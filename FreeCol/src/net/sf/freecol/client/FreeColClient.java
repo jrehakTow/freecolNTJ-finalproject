@@ -153,10 +153,10 @@ public final class FreeColClient {
         this.headless = headless
             || System.getProperty("java.awt.headless", "false").equals("true");
         if (this.headless) {
-            if (!FreeColDebugger.isInDebugMode()
+            /*if (!FreeColDebugger.isInDebugMode()
                 || FreeColDebugger.getDebugRunTurns() <= 0) {
                 fatal(Messages.message("client.headlessDebug"));
-            }
+            }*/
         }
 
         // Get the splash screen up early on to show activity.
@@ -245,9 +245,9 @@ public final class FreeColClient {
                             final boolean showOpeningVideo,
                             final File savedGame,
                             final Specification spec) {
-        if (headless && savedGame == null && spec == null) {
+      /*  if (headless && savedGame == null && spec == null) {
             fatal(Messages.message("client.headlessRequires"));
-        }
+        }*/
 
         // Load the client options, which handle reloading the
         // resources specified in the active mods.
