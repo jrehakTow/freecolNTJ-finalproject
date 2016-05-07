@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>PioneeringMissionTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai.mission</a> &gt; <span class="el_source">PioneeringMissionTest.java</span></div><h1>PioneeringMissionTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai.mission;
+
+import java.util.List;
+
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.Location;
+import net.sf.freecol.common.model.Role;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.util.LogBuilder;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.server.ai.AIColony;
+import net.sf.freecol.server.ai.AIMain;
+import net.sf.freecol.server.ai.AIUnit;
+import net.sf.freecol.server.ai.EuropeanAIPlayer;
+import net.sf.freecol.server.ai.TileImprovementPlan;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="fc" id="L45">public class PioneeringMissionTest extends FreeColTestCase {</span>
+
+<span class="fc" id="L47">    private static final GoodsType toolsGoodsType</span>
+<span class="fc" id="L48">        = spec().getGoodsType(&quot;model.goods.tools&quot;);</span>
+
+<span class="fc" id="L50">    private static final Role pioneerRole</span>
+<span class="fc" id="L51">        = spec().getRole(&quot;model.role.pioneer&quot;);</span>
+
+<span class="fc" id="L53">    private static final UnitType colonistType</span>
+<span class="fc" id="L54">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+
+<span class="fc" id="L56">    private LogBuilder lb = new LogBuilder(0);</span>
+
+
+    @Override
+    public void tearDown() throws Exception {
+<span class="fc" id="L61">        ServerTestHelper.stopServerGame();</span>
+<span class="fc" id="L62">        super.tearDown();</span>
+<span class="fc" id="L63">    }</span>
+
+
+    public void testImprovementNoLongerValid() {
+<span class="fc" id="L67">        final Game game = ServerTestHelper.startServerGame(getTestMap());</span>
+<span class="fc" id="L68">        final AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+
+        // Get player, colony and unit
+<span class="fc" id="L71">        final ServerPlayer player</span>
+<span class="fc" id="L72">            = (ServerPlayer)game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L73">        final EuropeanAIPlayer aiPlayer</span>
+<span class="fc" id="L74">            = (EuropeanAIPlayer)aiMain.getAIPlayer(player);</span>
+<span class="fc" id="L75">        final Colony colony = getStandardColony();</span>
+<span class="fc" id="L76">        final AIColony aiColony = aiMain.getAIColony(colony);</span>
+<span class="fc" id="L77">        final Unit colonist = new ServerUnit(game, colony.getTile(), player,</span>
+<span class="fc" id="L78">                                             colonistType);</span>
+<span class="fc" id="L79">        final AIUnit aiUnit = aiMain.getAIUnit(colonist);</span>
+<span class="fc" id="L80">        assertNotNull(aiUnit);</span>
+<span class="fc" id="L81">        aiUnit.setMission(null);</span>
+
+        // Check there are improvements to be made.
+<span class="fc" id="L84">        aiColony.updateTileImprovementPlans(lb);</span>
+<span class="fc" id="L85">        List&lt;TileImprovementPlan&gt; improvements</span>
+<span class="fc" id="L86">            = aiColony.getTileImprovementPlans();</span>
+<span class="fc" id="L87">        assertTrue(&quot;There should be valid improvements&quot;,</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">                   !improvements.isEmpty());</span>
+<span class="fc" id="L89">        aiPlayer.buildTipMap(lb);</span>
+<span class="fc" id="L90">        assertTrue(&quot;The player should need pioneers&quot;,</span>
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">                   aiPlayer.pioneersNeeded() &gt; 0);</span>
+
+        // Setup mission
+<span class="fc" id="L94">        assertFalse(&quot;Colonist can improve&quot;,</span>
+<span class="fc" id="L95">                    colonist.hasAbility(Ability.IMPROVE_TERRAIN));</span>
+<span class="fc" id="L96">        assertEquals(&quot;Pioneering should be valid (despite no tools)&quot;, null,</span>
+<span class="fc" id="L97">                     PioneeringMission.invalidReason(aiUnit));</span>
+<span class="fc" id="L98">        assertNull(&quot;Pioneering should find no targets though&quot;,</span>
+<span class="fc" id="L99">                   PioneeringMission.findTarget(aiUnit, 10, false));</span>
+
+        // Add some tools to the colony, mission should become viable.
+<span class="fc" id="L102">        colony.addGoods(toolsGoodsType, 100);</span>
+<span class="fc" id="L103">        assertTrue(&quot;Colony can provide tools&quot;,</span>
+<span class="fc" id="L104">                   colony.canProvideGoods(pioneerRole.getRequiredGoods()));</span>
+<span class="fc" id="L105">        assertEquals(&quot;Colony found&quot;, colony,</span>
+<span class="fc" id="L106">                     PioneeringMission.findTarget(aiUnit, 10, false));</span>
+<span class="fc" id="L107">        assertNull(&quot;Pioneer has no mission&quot;,</span>
+<span class="fc" id="L108">                   aiUnit.getMission());</span>
+<span class="fc" id="L109">        assertNull(&quot;Pioneering should be valid (tools present in colony)&quot;,</span>
+<span class="fc" id="L110">                   PioneeringMission.invalidReason(aiUnit));</span>
+
+        // Remove the tools as if to the unit and try again.
+<span class="fc" id="L113">        colony.addGoods(toolsGoodsType, -100);</span>
+<span class="fc" id="L114">        colonist.setRole(pioneerRole);</span>
+<span class="fc" id="L115">        assertEquals(&quot;Should be a pioneer&quot;, pioneerRole,</span>
+<span class="fc" id="L116">                     colonist.getRole());</span>
+<span class="fc" id="L117">        assertTrue(&quot;Colonist can improve&quot;,</span>
+<span class="fc" id="L118">                   colonist.hasAbility(Ability.IMPROVE_TERRAIN));</span>
+<span class="fc" id="L119">        assertNotNull(&quot;TileImprovementPlan found&quot;,</span>
+<span class="fc" id="L120">                      PioneeringMission.findTarget(aiUnit, 10, false));</span>
+<span class="fc" id="L121">        assertNull(&quot;Pioneering should be valid (unit has tools)&quot;,</span>
+<span class="fc" id="L122">                   PioneeringMission.invalidReason(aiUnit));</span>
+
+<span class="fc" id="L124">        Location loc = PioneeringMission.findTarget(aiUnit, 10, false);</span>
+<span class="fc" id="L125">        assertTrue(&quot;Pioneer should find a tile to improve&quot;,</span>
+<span class="fc" id="L126">                   loc instanceof Tile);</span>
+<span class="fc" id="L127">        PioneeringMission mission</span>
+<span class="fc" id="L128">            = new PioneeringMission(aiMain, aiUnit, loc);</span>
+<span class="fc" id="L129">        assertTrue(&quot;Mission should be valid&quot;,</span>
+<span class="fc" id="L130">                   mission.isValid());</span>
+<span class="fc" id="L131">        TileImprovementPlan tip = mission.getTileImprovementPlan();</span>
+<span class="fc" id="L132">        assertNotNull(&quot;Mission should have a plan&quot;,</span>
+<span class="fc" id="L133">                      tip);</span>
+<span class="fc" id="L134">        Tile target = tip.getTarget();</span>
+<span class="fc" id="L135">        assertNotNull(&quot;Plan should have a target&quot;,</span>
+<span class="fc" id="L136">                      target);</span>
+<span class="fc" id="L137">        assertEquals(&quot;Mission should stick&quot;, mission,</span>
+<span class="fc" id="L138">                     aiUnit.getMission());</span>
+<span class="fc" id="L139">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

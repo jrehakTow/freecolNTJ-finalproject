@@ -1,0 +1,473 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>AIPlayer.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai</a> &gt; <span class="el_source">AIPlayer.java</span></div><h1>AIPlayer.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Random;
+import java.util.logging.Logger;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.DiplomaticTrade;
+import net.sf.freecol.common.model.DiplomaticTrade.TradeStatus;
+import net.sf.freecol.common.model.FoundingFather;
+import net.sf.freecol.common.model.Goods;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Settlement;
+import net.sf.freecol.common.model.Stance;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.networking.Connection;
+import net.sf.freecol.common.util.Utils;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.networking.DummyConnection;
+
+
+/**
+ * Objects of this class contains AI-information for a single {@link
+ * Player} and is used for controlling this player.
+ *
+ * The method {@link #startWorking} gets called by the
+ * {@link AIInGameInputHandler} when it is this player's turn.
+ */
+public abstract class AIPlayer extends AIObject {
+
+<span class="fc" id="L59">    private static final Logger logger = Logger.getLogger(AIPlayer.class.getName());</span>
+
+    /** A comparator to sort AI units by location. */
+<span class="fc" id="L62">    private static final Comparator&lt;AIUnit&gt; aiUnitLocationComparator</span>
+<span class="fc" id="L63">        = Comparator.comparing(AIUnit::getUnit, Unit.locComparator);</span>
+
+    /** The FreeColGameObject this AIObject contains AI-information for. */
+    private ServerPlayer player;
+
+    /** The PRNG to use for this AI player. */
+    private Random aiRandom;
+
+    /**
+     * Temporary variable, used for debugging purposes only.
+     * See setDebuggingConnection()
+     */
+    private Connection debuggingConnection;
+
+    /** The wrapper for the server. */
+    private AIServerAPI serverAPI;
+
+    
+    /**
+     * Creates a new AI player.
+     *
+     * @param aiMain The &lt;code&gt;AIMain&lt;/code&gt; the player exists within.
+     * @param player The &lt;code&gt;ServerPlayer&lt;/code&gt; to associate this
+     *            AI player with.
+     */
+    public AIPlayer(AIMain aiMain, ServerPlayer player) {
+<span class="fc" id="L89">        super(aiMain, player.getId());</span>
+
+<span class="fc" id="L91">        this.player = player;</span>
+<span class="fc" id="L92">        this.aiRandom = new Random(aiMain.getRandomSeed(&quot;Seed for &quot; + getId()));</span>
+<span class="fc" id="L93">        this.serverAPI = new AIServerAPI(this);</span>
+
+<span class="fc" id="L95">        uninitialized = false;</span>
+<span class="fc" id="L96">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;AIPlayer&lt;/code&gt; from the given
+     * XML-representation.
+     *
+     * @param aiMain The main AI-object.
+     * @param xr The input stream containing the XML.
+     * @exception XMLStreamException if a problem was encountered
+     *     during parsing.
+     */
+    public AIPlayer(AIMain aiMain,
+                    FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L109">        super(aiMain, xr);</span>
+        
+<span class="fc" id="L111">        this.serverAPI = new AIServerAPI(this);</span>
+<span class="pc bpc" id="L112" title="1 of 2 branches missed.">        uninitialized = player == null;</span>
+<span class="fc" id="L113">    }</span>
+
+
+    /**
+     * Gets the &lt;code&gt;Player&lt;/code&gt; this &lt;code&gt;AIPlayer&lt;/code&gt; is
+     * controlling.
+     *
+     * @return The &lt;code&gt;Player&lt;/code&gt;.
+     */
+    public Player getPlayer() {
+<span class="fc" id="L123">        return player;</span>
+    }
+
+    /**
+     * Sets the ServerPlayer this AIPlayer is controlling.
+     * Used by implementing subclasses.
+     *
+     * @param p The new &lt;code&gt;Player&lt;/code&gt;.
+    protected void setPlayer(ServerPlayer p) {
+        player = p;
+    }
+     */
+
+    /**
+     * Gets the PRNG to use for this player.
+     *
+     * @return A &lt;code&gt;Random&lt;/code&gt; to use for this player.
+     */
+    public Random getAIRandom() {
+<span class="fc" id="L142">        return aiRandom;</span>
+    }
+
+    /**
+     * Gets the advantage of this AI player from the nation type.
+     *
+     * @return A short string stating the national advantage.
+     */
+    protected String getAIAdvantage() {
+<span class="fc" id="L151">        final String prefix = &quot;model.nationType.&quot;;</span>
+<span class="pc bpc" id="L152" title="2 of 4 branches missed.">        String id = (player == null || player.getNationType() == null) ? &quot;&quot;</span>
+<span class="fc" id="L153">            : player.getNationType().getId();</span>
+<span class="pc bpc" id="L154" title="1 of 2 branches missed.">        return (id.startsWith(prefix)) ? id.substring(prefix.length())</span>
+<span class="nc" id="L155">            : &quot;&quot;;</span>
+    }
+
+    /**
+     * Gets the connection to the server.
+     *
+     * @return The connection that can be used when communication with the
+     *     server.
+     */
+    public Connection getConnection() {
+<span class="pc bpc" id="L165" title="1 of 2 branches missed.">        return (debuggingConnection != null) ? debuggingConnection</span>
+<span class="fc" id="L166">            : ((DummyConnection)player.getConnection()).getOtherConnection();</span>
+    }
+
+    /**
+     * Sets the &lt;code&gt;Connection&lt;/code&gt; to be used while communicating with
+     * the server.
+     *
+     * This method is only used for debugging.
+     *
+     * @param debuggingConnection The &lt;code&gt;Connection&lt;/code&gt; to be
+     *     used for debugging.
+     */
+    public void setDebuggingConnection(Connection debuggingConnection) {
+<span class="nc" id="L179">        this.debuggingConnection = debuggingConnection;</span>
+<span class="nc" id="L180">    }</span>
+
+    /**
+     * Meaningfully named access to the server API.
+     *
+     * @return The &lt;code&gt;AIServerAPI&lt;/code&gt; wrapper.
+     */
+    public AIServerAPI askServer() {
+<span class="fc" id="L188">        return this.serverAPI;</span>
+    }
+        
+    /**
+     * Gets the AI colony corresponding to a given colony, if any.
+     *
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; to look up.
+     * @return The corresponding AI colony or null if not found.
+     */
+    public AIColony getAIColony(Colony colony) {
+<span class="fc" id="L198">        return getAIMain().getAIColony(colony);</span>
+    }
+
+    /**
+     * Gets a list of the players AI colonies.
+     *
+     * @return A list of AI colonies.
+     */
+    public List&lt;AIColony&gt; getAIColonies() {
+<span class="fc" id="L207">        List&lt;AIColony&gt; ac = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">        for (Colony colony : getPlayer().getColonies()) {</span>
+<span class="fc" id="L209">            AIColony a = getAIColony(colony);</span>
+<span class="pc bpc" id="L210" title="1 of 2 branches missed.">            if (a != null) {</span>
+<span class="fc" id="L211">                ac.add(a);</span>
+<span class="fc" id="L212">            } else {</span>
+<span class="nc" id="L213">                logger.warning(&quot;Could not find the AIColony for: &quot; + colony);</span>
+            }
+        }
+<span class="fc" id="L216">        return ac;</span>
+    }
+
+    /**
+     * Remove an AI colony.
+     * Do nothing here, but European player classes will be more active.
+     *
+     * @param aic The &lt;code&gt;AIColony&lt;/code&gt; to remove.
+     */
+<span class="nc" id="L225">    public void removeAIColony(AIColony aic) {}</span>
+
+    /**
+     * Gets the AI unit corresponding to a given unit, if any.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; to look up.
+     * @return The corresponding AI unit or null if not found.
+     */
+    protected AIUnit getAIUnit(Unit unit) {
+<span class="fc" id="L234">        return getAIMain().getAIUnit(unit);</span>
+    }
+
+    /**
+     * Gets a list of AIUnits for the player.
+     *
+     * @return A list of AIUnits.
+     */
+    protected List&lt;AIUnit&gt; getAIUnits() {
+<span class="fc" id="L243">        List&lt;AIUnit&gt; aiUnits = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L244" title="All 2 branches covered.">        for (Unit u : getPlayer().getUnits()) {</span>
+<span class="pc bpc" id="L245" title="1 of 2 branches missed.">            if (u.isDisposed()) {</span>
+<span class="nc" id="L246">                logger.warning(&quot;getAIUnits ignoring: &quot; + u.getId());</span>
+<span class="nc" id="L247">                continue;</span>
+            }
+<span class="fc" id="L249">            AIUnit a = getAIUnit(u);</span>
+<span class="pc bpc" id="L250" title="1 of 2 branches missed.">            if (a != null) {</span>
+<span class="pc bpc" id="L251" title="1 of 2 branches missed.">                if (a.getUnit() != u) {</span>
+<span class="nc" id="L252">                    throw new IllegalStateException(&quot;getAIUnits fail: &quot; + u</span>
+<span class="nc" id="L253">                                                    + &quot;/&quot; + a);</span>
+                }
+<span class="fc" id="L255">                aiUnits.add(a);</span>
+<span class="fc" id="L256">            } else {</span>
+<span class="nc" id="L257">                logger.warning(&quot;Could not find the AIUnit for: &quot;</span>
+<span class="nc" id="L258">                               + u + &quot; (&quot; + u.getId() + &quot;)&quot;);</span>
+            }
+        }
+<span class="fc" id="L261">        return aiUnits;</span>
+    }
+
+    /**
+     * Removes an AI unit owned by this player.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to remove.
+     */
+<span class="nc" id="L269">    public void removeAIUnit(AIUnit aiUnit) {}</span>
+
+    /**
+     * Standard stance change determination.
+     *
+     * @param other The &lt;code&gt;Player&lt;/code&gt; wrt consider stance.
+     * @return The new &lt;code&gt;Stance&lt;/code&gt;.
+     */
+    protected Stance determineStance(Player other) {
+<span class="fc" id="L278">        return player.getStance(other)</span>
+<span class="fc" id="L279">            .getStanceFromTension(player.getTension(other));</span>
+    }
+
+    /**
+     * Checks the integrity of this AIPlayer.
+     *
+     * @param fix Fix problems if possible.
+     * @return Negative if there are problems remaining, zero if
+     *     problems were fixed, positive if no problems found at all.
+     */
+    @Override
+    public int checkIntegrity(boolean fix) {
+<span class="fc" id="L291">        int result = super.checkIntegrity(fix);</span>
+<span class="pc bpc" id="L292" title="3 of 6 branches missed.">        if (player == null || player.isDisposed() || !player.isAI()) {</span>
+<span class="nc" id="L293">            result = -1;</span>
+        }
+<span class="fc" id="L295">        return result;</span>
+    }
+
+
+    // AI behaviour interface to be implemented by subclasses
+
+    /**
+     * Tells this &lt;code&gt;AIPlayer&lt;/code&gt; to make decisions. The
+     * &lt;code&gt;AIPlayer&lt;/code&gt; is done doing work this turn when this method
+     * returns.
+     */
+    public abstract void startWorking();
+
+    /**
+     * Decide whether to accept an Indian demand, or not.  Or for native
+     * players, return the result of the demand.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; making demands.
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; where demands are being made.
+     * @param type The &lt;code&gt;GoodsType&lt;/code&gt; demanded.
+     * @param amount The amount of gold demanded.
+     * @param accept The acceptance state of the demand.
+     * @return True if this player accepts the demand, false if the demand
+     *     is rejected, null if no further consideration is required.
+     */
+    public Boolean indianDemand(Unit unit, Colony colony,
+                                GoodsType type, int amount, Boolean accept) {
+<span class="nc" id="L322">        return false;</span>
+    }
+
+    /**
+     * Resolves a diplomatic trade offer.
+     *
+     * @param agreement The proposed &lt;code&gt;DiplomaticTrade&lt;/code&gt;.
+     * @return The &lt;code&gt;TradeStatus&lt;/code&gt; to apply to the agreement.
+     *
+     */
+    public TradeStatus acceptDiplomaticTrade(DiplomaticTrade agreement) {
+<span class="nc" id="L333">        return TradeStatus.REJECT_TRADE;</span>
+    }
+
+    /**
+     * Called after another &lt;code&gt;Player&lt;/code&gt; sends a
+     * &lt;code&gt;trade&lt;/code&gt; message
+     *
+     * @param goods The goods which we are going to offer
+     */
+    public abstract void registerSellGoods(Goods goods);
+
+    /**
+     * Called when another &lt;code&gt;Player&lt;/code&gt; proposes to buy.
+     *
+     *
+     * @param unit The foreign &lt;code&gt;Unit&lt;/code&gt; trying to trade.
+     * @param settlement The &lt;code&gt;Settlement&lt;/code&gt; this player owns and
+     *            which the given &lt;code&gt;Unit&lt;/code&gt; is trading.
+     * @param goods The goods the given &lt;code&gt;Unit&lt;/code&gt; is trying to sell.
+     * @param gold The suggested price.
+     * @return The price this &lt;code&gt;AIPlayer&lt;/code&gt; suggests or
+     *     {@link net.sf.freecol.common.model.Constants#NO_TRADE}.
+     */
+    public abstract int buyProposition(Unit unit, Settlement settlement,
+                                       Goods goods, int gold);
+
+    /**
+     * Called when another &lt;code&gt;Player&lt;/code&gt; proposes a sale.
+     *
+     *
+     * @param unit The foreign &lt;code&gt;Unit&lt;/code&gt; trying to trade.
+     * @param settlement The &lt;code&gt;Settlement&lt;/code&gt; this player owns and
+     *            which the given &lt;code&gt;Unit&lt;/code&gt; if trying to sell goods.
+     * @param goods The goods the given &lt;code&gt;Unit&lt;/code&gt; is trying to sell.
+     * @param gold The suggested price.
+     * @return The price this &lt;code&gt;AIPlayer&lt;/code&gt; suggests or
+     *     {@link net.sf.freecol.common.model.Constants#NO_TRADE}.
+     */
+    public abstract int sellProposition(Unit unit, Settlement settlement,
+                                        Goods goods, int gold);
+
+    /**
+     * Decides to accept a tax raise or not.
+     * Overridden by the European player.
+     *
+     * @param tax The tax raise.
+     * @return True if the raise is accepted.
+     */
+    public boolean acceptTax(int tax) {
+<span class="nc" id="L382">        return false;</span>
+    }
+
+    /**
+     * Decides to accept an offer of mercenaries or not.
+     * Overridden by the European player.
+     *
+     * @return True if the mercenaries are accepted.
+     */
+    public boolean acceptMercenaries() {
+<span class="nc" id="L392">        return false;</span>
+    }
+
+    /**
+     * Selects the most useful founding father offered.
+     * Overridden by EuropeanAIPlayers.
+     *
+     * @param ffs The founding fathers on offer.
+     * @return The founding father selected.
+     */
+    public FoundingFather selectFoundingFather(List&lt;FoundingFather&gt; ffs) {
+<span class="nc" id="L403">        return null;</span>
+    }
+
+
+    // European players need to implement these for AIColony
+
+    public int getNeededWagons(Tile tile) {
+<span class="nc" id="L410">        return 0;</span>
+    }
+
+    public int scoutsNeeded() {
+<span class="nc" id="L414">        return 0;</span>
+    }
+
+    public void completeWish(Wish w) {
+<span class="nc" id="L418">    }</span>
+
+
+    // Serialization
+
+<span class="fc" id="L423">    private static final String RANDOM_STATE_TAG = &quot;randomState&quot;;</span>
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="fc" id="L431">        super.writeAttributes(xw);</span>
+
+<span class="fc" id="L433">        xw.writeAttribute(RANDOM_STATE_TAG, Utils.getRandomState(aiRandom));</span>
+<span class="fc" id="L434">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L441">        super.readAttributes(xr);</span>
+
+<span class="fc" id="L443">        final AIMain aiMain = getAIMain();</span>
+
+<span class="fc" id="L445">        player = xr.findFreeColGameObject(aiMain.getGame(), ID_ATTRIBUTE_TAG,</span>
+<span class="fc" id="L446">            ServerPlayer.class, (ServerPlayer)null, true);</span>
+
+<span class="fc" id="L448">        Random rnd = Utils.restoreRandomState(xr.getAttribute(RANDOM_STATE_TAG,</span>
+<span class="fc" id="L449">                                                              (String)null));</span>
+<span class="pc bpc" id="L450" title="1 of 2 branches missed.">        aiRandom = (rnd != null) ? rnd</span>
+<span class="nc" id="L451">            : new Random(aiMain.getRandomSeed(&quot;Seed for &quot; + getId()));</span>
+<span class="fc" id="L452">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChildren(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L459">        super.readChildren(xr);</span>
+
+<span class="pc bpc" id="L461" title="1 of 2 branches missed.">        if (getPlayer() != null) uninitialized = false;</span>
+<span class="fc" id="L462">    }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return the tag name.
+     */
+    public static String getTagName() {
+<span class="fc" id="L470">        return &quot;aiPlayer&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

@@ -1,0 +1,592 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>Market.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">Market.java</span></div><h1>Market.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Logger;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+
+
+/**
+ * This class implements a simple economic model where a market holds
+ * all goods to be sold and the price of a particular goods type is
+ * determined solely by its availability in that market.
+ */
+public final class Market extends FreeColGameObject implements Ownable {
+
+<span class="fc" id="L43">    private static final Logger logger = Logger.getLogger(Market.class.getName());</span>
+
+    /**
+     * European markets are bottomless.  Goods present never decrease
+     * below this threshold.
+     */
+    public static final int MINIMUM_AMOUNT = 100;
+
+    /**
+     * Constant for specifying the access to this &lt;code&gt;Market&lt;/code&gt;
+     * when selling goods.
+     */
+<span class="fc" id="L55">    public static enum Access {</span>
+<span class="fc" id="L56">        EUROPE,</span>
+<span class="fc" id="L57">        CUSTOM_HOUSE,</span>
+    }
+
+    /** The contents of the market, keyed by goods type. */
+<span class="fc" id="L61">    private final Map&lt;GoodsType, MarketData&gt; marketData = new HashMap&lt;&gt;();</span>
+
+    /** The owning player. */
+    private Player owner;
+
+    /** Watching listeners.  Do not serialize. */
+<span class="fc" id="L67">    private final ArrayList&lt;TransactionListener&gt; transactionListeners</span>
+<span class="fc" id="L68">        = new ArrayList&lt;&gt;();</span>
+
+
+    /**
+     * Main constructor for creating a market for a new player.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; to own the market.
+     */
+    public Market(Game game, Player player) {
+<span class="fc" id="L78">        super(game);</span>
+
+<span class="fc" id="L80">        this.owner = player;</span>
+
+        /*
+         * Create the market data containers for each type of goods
+         * and seed these objects with the initial amount of each type
+         * of goods.
+         */
+<span class="fc bfc" id="L87" title="All 2 branches covered.">        for (GoodsType goodsType : getSpecification().getStorableGoodsTypeList()) {</span>
+<span class="fc" id="L88">            putMarketData(goodsType, new MarketData(game, goodsType));</span>
+        }
+<span class="fc" id="L90">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;Market&lt;/code&gt; with the given identifier.
+     *
+     * The object should be initialized later.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param id The object identifier.
+     */
+    public Market(Game game, String id) {
+<span class="fc" id="L101">        super(game, id);</span>
+<span class="fc" id="L102">    }</span>
+
+
+    private void putMarketData(GoodsType goodsType, MarketData data) {
+<span class="fc" id="L106">        marketData.put(goodsType, data);</span>
+<span class="fc" id="L107">    }</span>
+
+    /**
+     * Gets the market data for a specified goods type, creating it
+     * if it does not exist yet.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to query.
+     * @return The &lt;code&gt;MarketData&lt;/code&gt; required.
+     */
+    private MarketData requireMarketData(GoodsType goodsType) {
+<span class="fc" id="L117">        MarketData data = getMarketData(goodsType);</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">        if (data == null) {</span>
+<span class="nc" id="L119">            data = new MarketData(getGame(), goodsType);</span>
+<span class="nc" id="L120">            putMarketData(goodsType, data);</span>
+        }
+<span class="fc" id="L122">        return data;</span>
+    }
+
+    // ------------------------------------------------------------ API methods
+
+    /**
+     * Get the market data values.
+     *
+     * @return The market data in this market.
+     */
+    public Collection&lt;MarketData&gt; getMarketData() {
+<span class="nc" id="L133">        return this.marketData.values();</span>
+    }
+
+    /**
+     * Gets the market data for a type of goods.
+     *
+     * Public so the server can send individual MarketData updates.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to look for.
+     * @return The corresponding &lt;code&gt;MarketData&lt;/code&gt;, or null if none.
+     */
+    public MarketData getMarketData(GoodsType goodsType) {
+<span class="fc" id="L145">        return marketData.get(goodsType);</span>
+    }
+
+    /**
+     * Has a type of goods been traded in this market?
+     *
+     * @param type The type of goods to consider.
+     * @return True if the goods type has been traded.
+     */
+    public boolean hasBeenTraded(GoodsType type) {
+<span class="fc" id="L155">        MarketData data = getMarketData(type);</span>
+<span class="pc bpc" id="L156" title="1 of 4 branches missed.">        return data != null &amp;&amp; data.getTraded();</span>
+    }
+
+    /**
+     * Determines the cost to buy a single unit of a particular type of good.
+     *
+     * @param type A &lt;code&gt;GoodsType&lt;/code&gt; value.
+     * @return The cost to buy a single unit of the given type of goods.
+     */
+    public int getCostToBuy(GoodsType type) {
+<span class="fc" id="L166">        MarketData data = getMarketData(type);</span>
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">        return (data == null) ? 0 : data.getCostToBuy();</span>
+    }
+
+    /**
+     * Determines the price paid for the sale of a single unit of a particular
+     * type of goods.
+     *
+     * @param type A &lt;code&gt;GoodsType&lt;/code&gt; value.
+     * @return The price for a single unit of the given type of goods
+     *         if it is for sale.
+     */
+    public int getPaidForSale(GoodsType type) {
+<span class="fc" id="L179">        MarketData data = getMarketData(type);</span>
+<span class="pc bpc" id="L180" title="1 of 2 branches missed.">        return (data == null) ? 0 : data.getPaidForSale();</span>
+    }
+
+    /**
+     * Add (or remove) some goods to this market.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to add.
+     * @param amount The amount of goods.
+     * @return True if the price changes as a result of this addition.
+     */
+    public boolean addGoodsToMarket(GoodsType goodsType, int amount) {
+<span class="fc" id="L191">        MarketData data = requireMarketData(goodsType);</span>
+
+        // Markets are bottomless, amount can not go below the threshold
+<span class="fc" id="L194">        data.setAmountInMarket(Math.max(MINIMUM_AMOUNT,</span>
+<span class="fc" id="L195">                                        data.getAmountInMarket() + amount));</span>
+<span class="fc" id="L196">        data.setTraded(true);</span>
+<span class="fc" id="L197">        return data.price();</span>
+    }
+
+    /**
+     * Gets the initial price of a given goods type.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to get the initial price of.
+     * @return The initial price.
+     */
+    public int getInitialPrice(GoodsType goodsType) {
+<span class="nc" id="L207">        MarketData data = requireMarketData(goodsType);</span>
+<span class="nc" id="L208">        return data.getInitialPrice();</span>
+    }
+
+    /**
+     * Sets the initial price of a given goods type.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to set the initial price of.
+     * @param amount The new initial price.
+     */
+    public void setInitialPrice(GoodsType goodsType, int amount) {
+<span class="fc" id="L218">        MarketData data = requireMarketData(goodsType);</span>
+<span class="fc" id="L219">        data.setInitialPrice(amount);</span>
+<span class="fc" id="L220">    }</span>
+
+    /**
+     * Gets the price of a given goods when the &lt;code&gt;Player&lt;/code&gt; buys.
+     *
+     * @param type a &lt;code&gt;GoodsType&lt;/code&gt; value
+     * @param amount The amount of goods.
+     * @return The bid price of the given goods.
+     */
+    public int getBidPrice(GoodsType type, int amount) {
+<span class="fc" id="L230">        MarketData data = getMarketData(type);</span>
+<span class="pc bpc" id="L231" title="1 of 2 branches missed.">        return (data == null) ? 0 : amount * data.getCostToBuy();</span>
+    }
+
+    /**
+     * Gets the price of a given goods when the &lt;code&gt;Player&lt;/code&gt; sells.
+     *
+     * @param type a &lt;code&gt;GoodsType&lt;/code&gt; value
+     * @param amount The amount of goods.
+     * @return The sale price of the given goods.
+     */
+    public int getSalePrice(GoodsType type, int amount) {
+<span class="fc" id="L242">        MarketData data = getMarketData(type);</span>
+<span class="pc bpc" id="L243" title="1 of 2 branches missed.">        return (data == null) ? 0 : amount * data.getPaidForSale();</span>
+    }
+
+    /**
+     * Gets the price of a given goods when the &lt;code&gt;Player&lt;/code&gt; sells.
+     *
+     * @param goods a &lt;code&gt;Goods&lt;/code&gt; value
+     * @return an &lt;code&gt;int&lt;/code&gt; value
+     */
+    public int getSalePrice(Goods goods) {
+<span class="nc" id="L253">        return getSalePrice(goods.getType(), goods.getAmount());</span>
+    }
+
+    /**
+     * Gets the arrears for of a given goods type.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to get arrears for.
+     * @return The arrears.
+     */
+    public int getArrears(GoodsType goodsType) {
+<span class="fc" id="L263">        MarketData data = getMarketData(goodsType);</span>
+<span class="fc bfc" id="L264" title="All 2 branches covered.">        return (data == null) ? 0 : data.getArrears();</span>
+    }
+
+    /**
+     * Sets the arrears associated with a type of goods.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to set the arrears for.
+     * @param value The amount of arrears to set.
+     */
+    public void setArrears(GoodsType goodsType, int value) {
+<span class="fc" id="L274">        MarketData data = requireMarketData(goodsType);</span>
+<span class="fc" id="L275">        data.setArrears(value);</span>
+<span class="fc" id="L276">    }</span>
+
+    /**
+     * Gets the sales of a type of goods.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to get the sales for.
+     * @return The current sales amount.
+     */
+    public int getSales(GoodsType goodsType) {
+<span class="nc" id="L285">        MarketData data = getMarketData(goodsType);</span>
+<span class="nc bnc" id="L286" title="All 2 branches missed.">        return (data == null) ? 0 : data.getSales();</span>
+    }
+
+    /**
+     * Modifies the sales of a type of goods.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to set the sales for.
+     * @param amount The amount of sales to add to the current amount.
+     */
+    public void modifySales(GoodsType goodsType, int amount) {
+<span class="pc bpc" id="L296" title="1 of 2 branches missed.">        if (amount != 0) {</span>
+<span class="fc" id="L297">            MarketData data = requireMarketData(goodsType);</span>
+<span class="fc" id="L298">            data.setSales(data.getSales() + amount);</span>
+<span class="fc" id="L299">            data.setTraded(true);</span>
+        }
+<span class="fc" id="L301">    }</span>
+
+    /**
+     * Gets the income before taxes for a type of goods.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to get the income for.
+     * @return The current income before taxes.
+     */
+    public int getIncomeBeforeTaxes(GoodsType goodsType) {
+<span class="nc" id="L310">        MarketData data = getMarketData(goodsType);</span>
+<span class="nc bnc" id="L311" title="All 2 branches missed.">        return (data == null) ? 0 : data.getIncomeBeforeTaxes();</span>
+    }
+
+    /**
+     * Modifies the income before taxes on sales of a type of goods.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to set the income for.
+     * @param amount The amount of tax income to add to the current amount.
+     */
+    public void modifyIncomeBeforeTaxes(GoodsType goodsType, int amount) {
+<span class="fc" id="L321">        MarketData data = requireMarketData(goodsType);</span>
+<span class="fc" id="L322">        data.setIncomeBeforeTaxes(data.getIncomeBeforeTaxes() + amount);</span>
+<span class="fc" id="L323">    }</span>
+
+    /**
+     * Gets the income after taxes for a type of goods.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to get the income for.
+     * @return The current income after taxes.
+     */
+    public int getIncomeAfterTaxes(GoodsType goodsType) {
+<span class="nc" id="L332">        MarketData data = getMarketData(goodsType);</span>
+<span class="nc bnc" id="L333" title="All 2 branches missed.">        return (data == null) ? 0 : data.getIncomeAfterTaxes();</span>
+    }
+
+    /**
+     * Modifies the income after taxes on sales of a type of goods.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to set the income for.
+     * @param amount The amount of tax income to add to the current amount.
+     */
+    public void modifyIncomeAfterTaxes(GoodsType goodsType, int amount) {
+<span class="fc" id="L343">        MarketData data = requireMarketData(goodsType);</span>
+<span class="fc" id="L344">        data.setIncomeAfterTaxes(data.getIncomeAfterTaxes() + amount);</span>
+<span class="fc" id="L345">    }</span>
+
+    /**
+     * Gets the amount of a goods type in the market.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to get the amount of.
+     * @return The current amount of the goods in the market.
+     */
+    public int getAmountInMarket(GoodsType goodsType) {
+<span class="fc" id="L354">        MarketData data = getMarketData(goodsType);</span>
+<span class="pc bpc" id="L355" title="1 of 2 branches missed.">        return (data == null) ? 0 : data.getAmountInMarket();</span>
+    }
+
+    /**
+     * Has the price of a type of goods changed in this market?
+     *
+     * @param goodsType The type of goods to consider.
+     * @return True if the price has changed.
+     */
+    public boolean hasPriceChanged(GoodsType goodsType) {
+<span class="fc" id="L365">        MarketData data = getMarketData(goodsType);</span>
+<span class="pc bpc" id="L366" title="1 of 4 branches missed.">        return data != null &amp;&amp; data.getOldPrice() != 0</span>
+<span class="fc bfc" id="L367" title="All 2 branches covered.">            &amp;&amp; data.getOldPrice() != data.getCostToBuy();</span>
+    }
+
+    /**
+     * Clear any price changes for a type of goods.
+     *
+     * @param goodsType The type of goods to consider.
+     */
+    public void flushPriceChange(GoodsType goodsType) {
+<span class="fc" id="L376">        MarketData data = getMarketData(goodsType);</span>
+<span class="pc bpc" id="L377" title="1 of 2 branches missed.">        if (data != null) {</span>
+<span class="fc" id="L378">            data.setOldPrice(data.getCostToBuy());</span>
+        }
+<span class="fc" id="L380">    }</span>
+
+    /**
+     * Make up a &lt;code&gt;ModelMessage&lt;/code&gt; describing the change in this
+     * &lt;code&gt;Market&lt;/code&gt; for a specified type of goods.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; that has changed price.
+     * @return A message describing the change.
+     */
+    public ModelMessage makePriceChangeMessage(GoodsType goodsType) {
+<span class="fc" id="L390">        MarketData data = getMarketData(goodsType);</span>
+<span class="fc" id="L391">        int oldPrice = data.getOldPrice();</span>
+<span class="fc" id="L392">        int newPrice = data.getCostToBuy();</span>
+<span class="pc bpc" id="L393" title="1 of 2 branches missed.">        return (oldPrice == newPrice) ? null</span>
+<span class="fc" id="L394">            : new ModelMessage(ModelMessage.MessageType.MARKET_PRICES,</span>
+<span class="fc bfc" id="L395" title="All 2 branches covered.">                               ((newPrice &gt; oldPrice)</span>
+<span class="fc" id="L396">                                   ? &quot;model.market.priceIncrease&quot;</span>
+<span class="fc" id="L397">                                   : &quot;model.market.priceDecrease&quot;),</span>
+<span class="fc" id="L398">                               this, goodsType)</span>
+<span class="fc" id="L399">                .addStringTemplate(&quot;%market%&quot;, owner.getMarketName())</span>
+<span class="fc" id="L400">                .addNamed(&quot;%goods%&quot;, goodsType)</span>
+<span class="fc" id="L401">                .addAmount(&quot;%buy%&quot;, newPrice)</span>
+<span class="fc" id="L402">                .addAmount(&quot;%sell%&quot;, data.getPaidForSale());</span>
+    }
+
+    /**
+     * Update the price for a type of goods, bypassing the price change
+     * clamping.
+     *
+     * Used to reset the prices when the initial price is randomized.  Do
+     * not use during the game, the price change clamping mechanism should
+     * remain in effect.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to update.
+     */
+    public void update(GoodsType goodsType) {
+<span class="fc" id="L416">        MarketData data = requireMarketData(goodsType);</span>
+<span class="pc bpc" id="L417" title="1 of 2 branches missed.">        if (data != null) data.update();</span>
+<span class="fc" id="L418">    }</span>
+
+    /**
+     * Get a sale price comparator for this market.
+     *
+     * @param &lt;T&gt; The &lt;code&gt;AbstractGoods&lt;/code&gt; type to compare.
+     * @return A suitable &lt;code&gt;Comparator&lt;/code&gt;.
+     */
+    public &lt;T extends AbstractGoods&gt; Comparator&lt;T&gt; getSalePriceComparator() {
+<span class="fc" id="L427">        return Comparator.comparingInt((T t)</span>
+<span class="pc" id="L428">            -&gt; getSalePrice(t.getType(), t.getAmount())).reversed();</span>
+    }
+
+    /**
+     * Adds a transaction listener for notification of any transaction
+     *
+     * @param listener The &lt;code&gt;TransactionListener&lt;/code&gt; to add.
+     */
+    public void addTransactionListener(TransactionListener listener) {
+<span class="nc" id="L437">        transactionListeners.add(listener);</span>
+<span class="nc" id="L438">    }</span>
+
+    /**
+     * Removes a transaction listener
+     *
+     * @param listener The &lt;code&gt;TransactionListener&lt;/code&gt; to remove.
+     */
+    public void removeTransactionListener(TransactionListener listener) {
+<span class="nc" id="L446">        transactionListeners.remove(listener);</span>
+<span class="nc" id="L447">    }</span>
+
+    /**
+     * Gets the listeners added to this market.
+     *
+     * @return An array of all the &lt;code&gt;TransactionListener&lt;/code&gt;s
+     *     added, or an empty array if none found.
+     */
+    public TransactionListener[] getTransactionListener() {
+<span class="nc" id="L456">        return transactionListeners.toArray(new TransactionListener[0]);</span>
+    }
+
+
+    // Interface Ownable
+
+    /**
+     * Gets the owner of this &lt;code&gt;Market&lt;/code&gt;.
+     *
+     * @return The owner of this &lt;code&gt;Market&lt;/code&gt;.
+     */
+    @Override
+    public Player getOwner() {
+<span class="nc" id="L469">        return owner;</span>
+    }
+
+    /**
+     * Sets the owner of this &lt;code&gt;Market&lt;/code&gt;.
+     *
+     * @param owner The &lt;code&gt;Player&lt;/code&gt; to own this &lt;code&gt;Market&lt;/code&gt;.
+     */
+    @Override
+    public void setOwner(Player owner) {
+<span class="nc" id="L479">        this.owner = owner;</span>
+<span class="nc" id="L480">    }</span>
+
+    // Override FreeColGameObject
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public FreeColGameObject getLinkTarget(Player player) {
+<span class="nc bnc" id="L489" title="All 2 branches missed.">        return (player == getOwner()) ? getOwner().getEurope() : null;</span>
+    }
+
+
+    // Serialization
+
+<span class="fc" id="L495">    private static final String OWNER_TAG = &quot;owner&quot;;</span>
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="fc" id="L503">        super.writeAttributes(xw);</span>
+
+<span class="fc" id="L505">        xw.writeAttribute(OWNER_TAG, owner);</span>
+<span class="fc" id="L506">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeChildren(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="fc" id="L513">        super.writeChildren(xw);</span>
+
+<span class="fc bfc" id="L515" title="All 2 branches covered.">        if (xw.validFor(owner)) {</span>
+
+<span class="fc bfc" id="L517" title="All 2 branches covered.">            for (MarketData data : toSortedList(marketData.values())) {</span>
+<span class="fc" id="L518">                data.toXML(xw);</span>
+            }
+        }
+<span class="fc" id="L521">    }</span>
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L528">        super.readAttributes(xr);</span>
+
+<span class="fc" id="L530">        owner = xr.findFreeColGameObject(getGame(), OWNER_TAG,</span>
+<span class="fc" id="L531">                                         Player.class, (Player)null, true);</span>
+<span class="fc" id="L532">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChildren(FreeColXMLReader xr) throws XMLStreamException {
+        // Clear containers.
+<span class="fc" id="L540">        marketData.clear();</span>
+
+<span class="fc" id="L542">        super.readChildren(xr);</span>
+<span class="fc" id="L543">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChild(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L550">        final String tag = xr.getLocalName();</span>
+
+<span class="pc bpc" id="L552" title="1 of 2 branches missed.">        if (MarketData.getTagName().equals(tag)) {</span>
+<span class="fc" id="L553">            MarketData data = xr.readFreeColGameObject(getGame(), </span>
+<span class="fc" id="L554">                                                       MarketData.class);</span>
+<span class="fc" id="L555">            putMarketData(data.getGoodsType(), data);</span>
+
+<span class="fc" id="L557">        } else {</span>
+<span class="nc" id="L558">            super.readChild(xr);</span>
+        }
+<span class="fc" id="L560">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L567">        StringBuilder sb = new StringBuilder(64);</span>
+<span class="nc" id="L568">        sb.append(&quot;[&quot;).append(getId())</span>
+<span class="nc" id="L569">            .append(&quot; owner=&quot;).append(owner.getId());</span>
+<span class="nc bnc" id="L570" title="All 2 branches missed.">        for (MarketData md : toSortedList(marketData.values())) {</span>
+<span class="nc" id="L571">            sb.append(&quot; &quot;).append(md);</span>
+        }
+<span class="nc" id="L573">        sb.append(&quot;]&quot;);</span>
+<span class="nc" id="L574">        return sb.toString();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="fc" id="L581">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;market&quot;.
+     */
+    public static String getTagName() {
+<span class="fc" id="L589">        return &quot;market&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>TransportMissionTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai.mission</a> &gt; <span class="el_source">TransportMissionTest.java</span></div><h1>TransportMissionTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai.mission;
+
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.CombatModel.CombatResult;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.Europe;
+import net.sf.freecol.common.model.FreeColObject;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Goods;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.Location;
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TileType;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.util.LogBuilder;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.server.ai.AIGoods;
+import net.sf.freecol.server.ai.AIMain;
+import net.sf.freecol.server.ai.AIPlayer;
+import net.sf.freecol.server.ai.AIUnit;
+import net.sf.freecol.server.ai.TransportableAIObject;
+import net.sf.freecol.server.ai.mission.TransportMission;
+import net.sf.freecol.server.control.InGameController;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+import net.sf.freecol.util.test.FreeColTestUtils;
+
+
+<span class="fc" id="L52">public class TransportMissionTest extends FreeColTestCase {</span>
+
+<span class="fc" id="L54">    private static final GoodsType horsesType</span>
+<span class="fc" id="L55">        = spec().getGoodsType(&quot;model.goods.horses&quot;);</span>
+
+<span class="fc" id="L57">    private static final TileType plainsType</span>
+<span class="fc" id="L58">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+
+<span class="fc" id="L60">    private static final UnitType colonistType</span>
+<span class="fc" id="L61">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="fc" id="L62">    private static final UnitType galleonType</span>
+<span class="fc" id="L63">        = spec().getUnitType(&quot;model.unit.galleon&quot;);</span>
+<span class="fc" id="L64">    private static final UnitType privateerType</span>
+<span class="fc" id="L65">        = spec().getUnitType(&quot;model.unit.privateer&quot;);</span>
+<span class="fc" id="L66">    private static final UnitType wagonType</span>
+<span class="fc" id="L67">        = spec().getUnitType(&quot;model.unit.wagonTrain&quot;);</span>
+
+<span class="fc" id="L69">    private static final LogBuilder lb = new LogBuilder(0);</span>
+
+
+    @Override
+    public void tearDown() throws Exception {
+<span class="fc" id="L74">        ServerTestHelper.stopServerGame();</span>
+<span class="fc" id="L75">        super.tearDown();</span>
+<span class="fc" id="L76">    }</span>
+
+
+    public void testTransportMissionInvalidAfterCombatLost() {
+<span class="fc" id="L80">        Game game = ServerTestHelper.startServerGame(getCoastTestMap(plainsType));</span>
+<span class="fc" id="L81">        Map map = game.getMap();</span>
+<span class="fc" id="L82">        InGameController igc = ServerTestHelper.getInGameController();</span>
+<span class="fc" id="L83">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+<span class="fc" id="L84">        assertNotNull(aiMain);</span>
+
+<span class="fc" id="L86">        ServerPlayer dutch = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L87">        AIPlayer aiPlayer = aiMain.getAIPlayer(dutch);</span>
+
+        // Create a ship at sea carrying a colonist
+<span class="fc" id="L90">        Tile tile1 = map.getTile(12, 9);</span>
+
+<span class="fc" id="L92">        Unit galleon = new ServerUnit(game, tile1, dutch, galleonType);</span>
+<span class="fc" id="L93">        AIUnit aiUnit = aiMain.getAIUnit(galleon);</span>
+<span class="fc" id="L94">        assertNotNull(aiUnit);</span>
+<span class="fc" id="L95">        assertTrue(galleon.hasAbility(Ability.NAVAL_UNIT));</span>
+<span class="fc" id="L96">        assertEquals(&quot;Galleon should be repaired in Europe&quot;,</span>
+<span class="fc" id="L97">            dutch.getEurope(), galleon.getRepairLocation());</span>
+<span class="fc" id="L98">        Unit colonist = new ServerUnit(game, galleon, dutch, colonistType);</span>
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">        assertTrue(colonist.getLocation()==galleon);</span>
+
+        // Create the attacker, also at sea
+<span class="fc" id="L102">        ServerPlayer french = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="fc" id="L103">        Tile tile2 = map.getTile(11, 9);</span>
+<span class="fc" id="L104">        Unit privateer = new ServerUnit(game, tile2, french, privateerType);</span>
+
+        // assign transport mission to the ship
+<span class="fc" id="L107">        new TransportMission(aiMain, aiUnit);</span>
+
+        // Simulate the combat
+<span class="fc" id="L110">        igc.combat(dutch, privateer, galleon,</span>
+<span class="fc" id="L111">                   fakeAttackResult(CombatResult.WIN, privateer, galleon));</span>
+
+        // Verify that the outcome of the combat is a return to Europe
+        // for repairs and also invalidation of the transport mission
+        // as side effect.
+<span class="fc" id="L116">        assertTrue(galleon.isDamaged());</span>
+<span class="fc" id="L117">        assertFalse(aiUnit.getMission().isValid());</span>
+
+        // This will call AIPlayer.abortInvalidMissions() and change
+        // the carrier mission.
+<span class="fc" id="L121">        aiPlayer.startWorking();</span>
+<span class="fc" id="L122">        assertFalse(aiUnit.hasMission(TransportMission.class));</span>
+<span class="fc" id="L123">    }</span>
+
+    public void testGetNextStopAlreadyAtDestination() {
+<span class="fc" id="L126">        Game game = ServerTestHelper.startServerGame(getCoastTestMap(plainsType));</span>
+<span class="fc" id="L127">        Map map = game.getMap();</span>
+<span class="fc" id="L128">        InGameController igc = ServerTestHelper.getInGameController();</span>
+<span class="fc" id="L129">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+<span class="fc" id="L130">        assertNotNull(aiMain);</span>
+
+<span class="fc" id="L132">        ServerPlayer dutch = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L133">        dutch.exploreMap(true);</span>
+        
+        // create a ship carrying a colonist
+<span class="fc" id="L136">        Tile colonyTile = map.getTile(9, 9);</span>
+<span class="fc" id="L137">        getStandardColony(1, colonyTile.getX(), colonyTile.getY());</span>
+
+<span class="fc" id="L139">        Unit galleon = new ServerUnit(game, colonyTile, dutch, galleonType);</span>
+<span class="fc" id="L140">        AIUnit aiUnit = aiMain.getAIUnit(galleon);</span>
+<span class="fc" id="L141">        assertNotNull(aiUnit);</span>
+
+        // assign transport mission to the ship
+<span class="fc" id="L144">        TransportMission mission = new TransportMission(aiMain, aiUnit);</span>
+<span class="fc" id="L145">        TransportableAIObject goods = new AIGoods(aiMain, galleon, </span>
+<span class="fc" id="L146">                                                  horsesType, 50, colonyTile);</span>
+<span class="fc" id="L147">        mission.queueTransportable(goods, false, lb);</span>
+
+        // Exercise
+<span class="fc" id="L150">        Location dest = mission.getTarget();</span>
+
+        // Test
+<span class="fc" id="L153">        assertNotNull(&quot;Unit should have a destination&quot;, dest);</span>
+<span class="fc" id="L154">        assertTrue(&quot;Unit should be already at the destination&quot;,</span>
+<span class="fc" id="L155">            Map.isSameLocation(dest, galleon.getLocation()));</span>
+<span class="fc" id="L156">    }</span>
+
+    public void testGetNextStopIsEurope() {
+<span class="fc" id="L159">        Game game = ServerTestHelper.startServerGame(getCoastTestMap(plainsType));</span>
+<span class="fc" id="L160">        Map map = game.getMap();</span>
+<span class="fc" id="L161">        InGameController igc = ServerTestHelper.getInGameController();</span>
+<span class="fc" id="L162">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+<span class="fc" id="L163">        assertNotNull(aiMain);</span>
+
+<span class="fc" id="L165">        ServerPlayer dutch = (ServerPlayer)game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L166">        dutch.exploreMap(true);</span>
+<span class="fc" id="L167">        Europe europe = dutch.getEurope();</span>
+<span class="fc" id="L168">        assertNotNull(&quot;Setup error, europe is null&quot;, europe);</span>
+
+        // create a ship carrying a colonist in a colony
+<span class="fc" id="L171">        Tile colonyTile = map.getTile(9, 9);</span>
+<span class="fc" id="L172">        getStandardColony(1, colonyTile.getX(), colonyTile.getY());</span>
+
+<span class="fc" id="L174">        Unit galleon = new ServerUnit(game, colonyTile, dutch, galleonType);</span>
+<span class="fc" id="L175">        AIUnit aiUnit = aiMain.getAIUnit(galleon);</span>
+<span class="fc" id="L176">        assertNotNull(aiUnit);</span>
+
+        // assign transport mission to the ship
+<span class="fc" id="L179">        TransportMission mission = new TransportMission(aiMain, aiUnit);</span>
+<span class="fc" id="L180">        TransportableAIObject goods = new AIGoods(aiMain, galleon,</span>
+<span class="fc" id="L181">                                                  horsesType, 50, europe);</span>
+<span class="fc" id="L182">        assertTrue(&quot;Goods should queue&quot;,</span>
+<span class="fc" id="L183">                   mission.queueTransportable(goods, false, lb));</span>
+<span class="fc" id="L184">        mission.doMission(lb);</span>
+
+        // Exercise
+<span class="fc" id="L187">        Location dest = mission.getTarget();</span>
+
+        // Test
+<span class="fc" id="L190">        assertNotNull(&quot;Unit should have a destination&quot;, dest);</span>
+<span class="fc" id="L191">        assertEquals(&quot;Destination should be Europe&quot;, europe, dest);</span>
+<span class="fc" id="L192">        assertTrue(&quot;Unit should have a path&quot;, </span>
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">            galleon.getTurnsToReach(dest) &lt; Unit.MANY_TURNS);</span>
+<span class="fc" id="L194">    }</span>
+
+    public void testGetNextStopIsColony() {
+<span class="fc" id="L197">        Game game = ServerTestHelper.startServerGame(getCoastTestMap(plainsType));</span>
+<span class="fc" id="L198">        Map map = game.getMap();</span>
+<span class="fc" id="L199">        InGameController igc = ServerTestHelper.getInGameController();</span>
+<span class="fc" id="L200">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+<span class="fc" id="L201">        assertNotNull(aiMain);</span>
+
+<span class="fc" id="L203">        ServerPlayer dutch = (ServerPlayer)game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L204">        Europe europe = dutch.getEurope();</span>
+<span class="fc" id="L205">        assertNotNull(&quot;Setup error, europe is null&quot;, europe);</span>
+
+<span class="fc" id="L207">        Tile colonyTile = map.getTile(9, 9);</span>
+<span class="fc" id="L208">        assertTrue(colonyTile.isLand());</span>
+<span class="fc" id="L209">        getStandardColony(1, colonyTile.getX(), colonyTile.getY());</span>
+
+        // create a ship
+<span class="fc" id="L212">        Tile galleonTile = map.getTile(10, 9);</span>
+<span class="fc" id="L213">        assertFalse(galleonTile.isLand());</span>
+<span class="fc" id="L214">        Unit galleon = new ServerUnit(game, galleonTile, dutch, galleonType);</span>
+<span class="fc" id="L215">        AIUnit aiUnit = aiMain.getAIUnit(galleon);</span>
+<span class="fc" id="L216">        assertNotNull(aiUnit);</span>
+
+        // assign transport mission to the ship
+<span class="fc" id="L219">        TransportMission mission = new TransportMission(aiMain, aiUnit);</span>
+<span class="fc" id="L220">        TransportableAIObject goods = new AIGoods(aiMain, galleon,</span>
+<span class="fc" id="L221">                                                  horsesType, 50, colonyTile);</span>
+<span class="fc" id="L222">        goods.setTransportDestination(europe);</span>
+<span class="fc" id="L223">        mission.queueTransportable(goods, false, lb);</span>
+<span class="fc" id="L224">        mission.doMission(lb);</span>
+
+        // Exercise
+<span class="fc" id="L227">        Location dest = mission.getTarget();</span>
+
+        // Test
+<span class="fc" id="L230">        assertNotNull(&quot;Unit should have a destination&quot;, dest);</span>
+<span class="fc" id="L231">        assertEquals(&quot;Destination should be the colony&quot;,</span>
+<span class="fc" id="L232">                     colonyTile.getColony(), dest);</span>
+<span class="fc" id="L233">    }</span>
+
+    public void testGetDefaultDestination() {
+<span class="fc" id="L236">        Game game = ServerTestHelper.startServerGame(getCoastTestMap(plainsType));</span>
+<span class="fc" id="L237">        Map map = game.getMap();</span>
+<span class="fc" id="L238">        InGameController igc = ServerTestHelper.getInGameController();</span>
+<span class="fc" id="L239">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+<span class="fc" id="L240">        assertNotNull(aiMain);</span>
+
+<span class="fc" id="L242">        ServerPlayer dutch = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L243">        dutch.exploreMap(true);</span>
+<span class="fc" id="L244">        Europe europe = dutch.getEurope();</span>
+<span class="fc" id="L245">        assertNotNull(&quot;Setup error, europe is null&quot;, europe);</span>
+
+        // create a ship
+<span class="fc" id="L248">        Tile galleonTile = map.getTile(10, 9);</span>
+<span class="fc" id="L249">        assertFalse(galleonTile.isLand());</span>
+<span class="fc" id="L250">        Unit galleon = new ServerUnit(game, galleonTile, dutch, galleonType);</span>
+<span class="fc" id="L251">        AIUnit aiUnit = aiMain.getAIUnit(galleon);</span>
+<span class="fc" id="L252">        assertNotNull(aiUnit);</span>
+
+        // assign transport mission to the ship
+<span class="fc" id="L255">        TransportMission mission = new TransportMission(aiMain, aiUnit);</span>
+
+<span class="fc" id="L257">        assertTrue(&quot;Setup error, player should not have colonies&quot;, dutch.getColonies().isEmpty());</span>
+
+        // Exercise
+<span class="fc" id="L260">        Location dest = mission.getTarget();</span>
+
+        // Test
+<span class="fc" id="L263">        assertNotNull(&quot;Unit should have a destination&quot;, dest);</span>
+<span class="fc" id="L264">        assertTrue(&quot;Destination should be Europe&quot;, dest instanceof Europe);</span>
+
+        // add colony
+<span class="fc" id="L267">        Tile colonyTile = map.getTile(9, 9);</span>
+<span class="fc" id="L268">        FreeColTestUtils.ColonyBuilder builder = FreeColTestUtils.getColonyBuilder();</span>
+<span class="fc" id="L269">        builder.colonyTile(colonyTile).initialColonists(1).player(dutch).build();</span>
+<span class="fc" id="L270">        assertFalse(&quot;Player should now have a colony&quot;, dutch.getColonies().isEmpty());</span>
+<span class="fc" id="L271">        mission = new TransportMission(aiMain, aiUnit);</span>
+
+        // Exercise
+<span class="fc" id="L274">        dest = mission.getTarget();</span>
+
+        // Test
+<span class="fc" id="L277">        assertNotNull(&quot;Unit should have a destination&quot;, dest);</span>
+<span class="fc" id="L278">        assertEquals(&quot;Destination should be the colony&quot;,</span>
+<span class="fc" id="L279">                     colonyTile.getColony(), dest);</span>
+<span class="fc" id="L280">    }</span>
+
+    public void testWagonTrain() {
+<span class="fc" id="L283">        Game game = ServerTestHelper.startServerGame(getTestMap());</span>
+<span class="fc" id="L284">        Colony one = getStandardColony(3, 3, 3);</span>
+<span class="fc" id="L285">        one.setName(&quot;one&quot;);</span>
+<span class="fc" id="L286">        Colony two = getStandardColony(3, 8, 8);</span>
+<span class="fc" id="L287">        two.setName(&quot;two&quot;);</span>
+<span class="fc" id="L288">        assertEquals(one.getOwner(), two.getOwner());</span>
+
+<span class="fc" id="L290">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+<span class="fc" id="L291">        assertNotNull(aiMain);</span>
+
+<span class="fc" id="L293">        Unit wagonTrain = new ServerUnit(game, one.getTile(),</span>
+<span class="fc" id="L294">            (ServerPlayer) one.getOwner(), wagonType);</span>
+<span class="fc" id="L295">        AIUnit wagon = aiMain.getAIUnit(wagonTrain);</span>
+<span class="fc" id="L296">        assertNotNull(wagon);</span>
+
+<span class="fc" id="L298">        wagon.setMission(null);</span>
+<span class="fc" id="L299">        assertNull(&quot;Transport mission should be valid.&quot;,</span>
+<span class="fc" id="L300">                   TransportMission.invalidReason(wagon));</span>
+<span class="fc" id="L301">        TransportMission mission = new TransportMission(aiMain, wagon);</span>
+
+<span class="fc" id="L303">        Location dest = mission.getTarget();</span>
+<span class="fc" id="L304">        assertEquals(&quot;Destination should be colony one.&quot;, one, dest);</span>
+
+<span class="fc" id="L306">        wagonTrain.setLocation(one.getTile().getNeighbourOrNull(Direction.NE));</span>
+<span class="fc" id="L307">        dest = mission.getTarget();</span>
+<span class="fc" id="L308">        assertEquals(&quot;Destination should still be colony one.&quot;, one, dest);</span>
+
+<span class="fc" id="L310">        Goods goods = new Goods(game, two, horsesType, 20);</span>
+<span class="fc" id="L311">        two.addGoods(goods);</span>
+<span class="fc" id="L312">        AIGoods aiGoods = new AIGoods(aiMain, two, </span>
+<span class="fc" id="L313">                                      goods.getType(), goods.getAmount(), one);</span>
+<span class="fc" id="L314">        mission.queueTransportable(aiGoods, false, lb);</span>
+<span class="fc" id="L315">        mission.doMission(lb);</span>
+
+<span class="fc" id="L317">        dest = mission.getTarget();</span>
+<span class="fc" id="L318">        assertEquals(&quot;Destination should now be colony two&quot;, two.getId(), dest.getId());</span>
+<span class="fc" id="L319">        assertEquals(&quot;Destination should now be colony two.&quot;, two, dest);</span>
+<span class="fc" id="L320">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

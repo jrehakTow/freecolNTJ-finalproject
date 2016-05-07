@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>StatisticsPanel.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.gui.panel</a> &gt; <span class="el_source">StatisticsPanel.java</span></div><h1>StatisticsPanel.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.gui.panel;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.GridLayout;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.logging.Logger;
+
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.table.AbstractTableModel;
+
+import net.sf.freecol.client.FreeColClient;
+import net.sf.freecol.common.i18n.Messages;
+
+import static net.sf.freecol.common.util.CollectionUtils.*;
+
+
+/**
+ * Display the current game statistics.
+ */
+public final class StatisticsPanel extends FreeColPanel {
+
+    @SuppressWarnings(&quot;unused&quot;)
+<span class="nc" id="L51">    private static final Logger logger = Logger.getLogger(StatisticsPanel.class.getName());</span>
+
+<span class="nc" id="L53">    private static final String[] memoryKeys = {</span>
+<span class="nc" id="L54">        &quot;freeMemory&quot;, &quot;totalMemory&quot;, &quot;maxMemory&quot;</span>
+<span class="nc" id="L55">    };</span>
+
+    private static class StatisticsModel extends AbstractTableModel {
+
+        private static final int NAME_COLUMN = 0, VALUE_COLUMN = 1;
+<span class="nc" id="L60">        private final String[] columnNames = { &quot;name&quot;, &quot;value&quot; };</span>
+
+<span class="nc" id="L62">        private Object data[][] = null;</span>
+
+
+        /**
+         * A standard constructor.
+         */
+<span class="nc" id="L68">        public StatisticsModel() {}</span>
+
+        /**
+         * Gives this table model the data that is being used in the
+         * table. This method should only be called to initialize the
+         * data set. To modify or extend the data set use other
+         * methods.
+         *
+         * @param statsData The map of key,value pairs to enter.
+         */
+        public void setData(java.util.Map&lt;String, String&gt; statsData) {
+<span class="nc" id="L79">            this.data = new Object[2][statsData.size()];</span>
+<span class="nc" id="L80">            int i = 0;</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">            for (Entry&lt;String, String&gt; e : mapEntriesByKey(statsData)) {</span>
+<span class="nc" id="L82">                data[NAME_COLUMN][i] = e.getKey();</span>
+<span class="nc" id="L83">                data[VALUE_COLUMN][i] = e.getValue();</span>
+<span class="nc" id="L84">                i++;</span>
+            }
+<span class="nc" id="L86">        }</span>
+
+        // AbstractTableModel
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public Class&lt;?&gt; getColumnClass(int column) {
+<span class="nc" id="L95">            return String.class;</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public String getColumnName(int column) {
+<span class="nc" id="L103">            return Messages.message(columnNames[column]);</span>
+        }
+
+        ///**
+        // * {@inheritDoc}
+        // */
+        //@Override
+        //public boolean isCellEditable(int row, int column) {
+        //    return false;
+        //}
+
+
+        // Interface TableModel
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public int getColumnCount() {
+<span class="nc" id="L122">            return columnNames.length;</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public int getRowCount() {
+<span class="nc" id="L130">            return data[NAME_COLUMN].length;</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public Object getValueAt(int row, int column) {
+<span class="nc bnc" id="L138" title="All 4 branches missed.">            if ((row &lt; getRowCount()) &amp;&amp; (column &lt; getColumnCount())</span>
+<span class="nc bnc" id="L139" title="All 4 branches missed.">                &amp;&amp; (row &gt;= 0) &amp;&amp; (column &gt;= 0)) {</span>
+<span class="nc bnc" id="L140" title="All 3 branches missed.">                switch (column) {</span>
+                case StatisticsModel.NAME_COLUMN:
+<span class="nc" id="L142">                    return data[NAME_COLUMN][row];</span>
+                case StatisticsModel.VALUE_COLUMN:
+<span class="nc" id="L144">                    return data[VALUE_COLUMN][row];</span>
+                }
+            }
+<span class="nc" id="L147">            return null;</span>
+        }
+    }
+
+
+    /**
+     * Creates the statistics panel.
+     *
+     * @param freeColClient The &lt;code&gt;FreeColClient&lt;/code&gt; for the game.
+     * @param serverStatistics A map of key,value pairs of server statistics.
+     * @param clientStatistics A map of key,value pairs of client statistics.
+     */
+    public StatisticsPanel(FreeColClient freeColClient,
+                           Map&lt;String, String&gt; serverStatistics,
+                           Map&lt;String, String&gt; clientStatistics) {
+<span class="nc" id="L162">        super(freeColClient, new BorderLayout());</span>
+
+        // Title
+<span class="nc" id="L165">        JPanel header = new JPanel();</span>
+<span class="nc" id="L166">        this.add(header, BorderLayout.NORTH);</span>
+<span class="nc" id="L167">        header.add(Utility.localizedLabel(&quot;statistics&quot;), JPanel.CENTER_ALIGNMENT);</span>
+
+        // Actual stats panel
+<span class="nc" id="L170">        JPanel statsPanel = new JPanel(new GridLayout(1,2));</span>
+<span class="nc" id="L171">        JScrollPane scrollPane = new JScrollPane(statsPanel,</span>
+<span class="nc" id="L172">            JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,</span>
+<span class="nc" id="L173">            JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);</span>
+        // correct way to make scroll pane opaque
+<span class="nc" id="L175">        scrollPane.getViewport().setOpaque(false);</span>
+<span class="nc" id="L176">        scrollPane.setBorder(null);</span>
+
+<span class="nc" id="L178">        this.add(scrollPane,BorderLayout.CENTER);</span>
+<span class="nc" id="L179">        statsPanel.add(displayStatsMessage(&quot;client&quot;, clientStatistics));</span>
+<span class="nc" id="L180">        statsPanel.add(displayStatsMessage(&quot;server&quot;, serverStatistics));</span>
+
+<span class="nc" id="L182">        add(okButton, BorderLayout.SOUTH);</span>
+
+<span class="nc" id="L184">        setSize(getPreferredSize());</span>
+<span class="nc" id="L185">    }</span>
+
+
+    private JPanel displayStatsMessage(String title,
+                                       Map&lt;String, String&gt; stats) {
+<span class="nc" id="L190">        JPanel panel = new JPanel();</span>
+<span class="nc" id="L191">        panel.setBorder(Utility.localizedBorder(title));</span>
+<span class="nc" id="L192">        Box b = new Box(BoxLayout.Y_AXIS);</span>
+<span class="nc" id="L193">        panel.add(b);</span>
+<span class="nc" id="L194">        Map&lt;String, String&gt; memory = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L195">        Map&lt;String, String&gt; ai = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L196" title="All 2 branches missed.">        for (String k : memoryKeys) {</span>
+<span class="nc" id="L197">            memory.put(Messages.message(&quot;memoryManager.&quot; + k),</span>
+<span class="nc" id="L198">                       stats.remove(k));</span>
+        }
+<span class="nc bnc" id="L200" title="All 2 branches missed.">        for (String k : new ArrayList&lt;&gt;(stats.keySet())) {</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">            if (k.startsWith(&quot;AI&quot;)) { // FIXME: AIMain.aiStatisticsPrefix</span>
+<span class="nc" id="L202">                ai.put(k, stats.remove(k));</span>
+            }
+        }
+<span class="nc" id="L205">        b.add(createStatsTable(&quot;Memory&quot;, memory));</span>
+<span class="nc" id="L206">        b.add(createStatsTable(&quot;Game&quot;, stats));</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">        if (ai.isEmpty()) {</span>
+<span class="nc" id="L208">            b.add(new JLabel());</span>
+<span class="nc" id="L209">        } else {</span>
+<span class="nc" id="L210">            b.add(createStatsTable(&quot;AI&quot;, ai));</span>
+        }
+<span class="nc" id="L212">        return panel;</span>
+    }
+
+    private JPanel createStatsTable(String title, Map&lt;String, String&gt; data) {
+<span class="nc" id="L216">        JPanel panel = new JPanel();</span>
+<span class="nc" id="L217">        panel.setLayout(new BorderLayout());</span>
+<span class="nc" id="L218">        panel.add(new JLabel(title), BorderLayout.NORTH);</span>
+<span class="nc" id="L219">        StatisticsModel model = new StatisticsModel();</span>
+<span class="nc" id="L220">        model.setData(data);</span>
+<span class="nc" id="L221">        JTable table = new JTable(model);</span>
+<span class="nc" id="L222">        table.setAutoCreateColumnsFromModel(true);</span>
+<span class="nc" id="L223">        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);</span>
+<span class="nc" id="L224">        table.setAutoCreateRowSorter(true);</span>
+<span class="nc" id="L225">        JScrollPane scrollPane = new JScrollPane(table);</span>
+<span class="nc" id="L226">        table.addNotify();</span>
+<span class="nc" id="L227">        scrollPane.getViewport().setOpaque(false);</span>
+<span class="nc" id="L228">        scrollPane.getColumnHeader().setOpaque(false);</span>
+<span class="nc" id="L229">        panel.add(scrollPane, BorderLayout.CENTER);</span>
+<span class="nc" id="L230">        panel.setPreferredSize(new Dimension(300, (data.size()+2)*17));</span>
+<span class="nc" id="L231">        return panel;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

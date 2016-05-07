@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ModelMessageTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">ModelMessageTest.java</span></div><h1>ModelMessageTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.HashSet;
+
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.model.ModelMessage.MessageType;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="fc" id="L29">public class ModelMessageTest extends FreeColTestCase {</span>
+
+    public void testHashCode() {
+<span class="fc" id="L32">        Game game = getGame();</span>
+<span class="fc" id="L33">        game.setMap(getTestMap(true));</span>
+    	
+<span class="fc" id="L35">        Colony colony = getStandardColony(1);</span>
+<span class="fc" id="L36">        GoodsType cotton = spec().getGoodsType(&quot;model.goods.cotton&quot;);</span>
+        
+<span class="fc" id="L38">        ModelMessage mm1 = new ModelMessage(MessageType.MISSING_GOODS,</span>
+<span class="fc" id="L39">                                            &quot;buildColony.landLocked&quot;,</span>
+<span class="fc" id="L40">                                            colony, cotton);</span>
+<span class="fc" id="L41">        ModelMessage mm2 = new ModelMessage(MessageType.MISSING_GOODS,</span>
+<span class="fc" id="L42">                                            &quot;buildColony.landLocked&quot;,</span>
+<span class="fc" id="L43">                                            colony, cotton);</span>
+<span class="fc" id="L44">        assertEquals(mm1, mm2);</span>
+<span class="fc" id="L45">        assertEquals(mm1.hashCode(), mm2.hashCode());</span>
+        
+<span class="fc" id="L47">        ModelMessage mm3 = new ModelMessage(MessageType.MISSING_GOODS,</span>
+<span class="fc" id="L48">                                            &quot;buildColony.landLocked&quot;,</span>
+<span class="fc" id="L49">                                            colony, cotton);</span>
+<span class="fc" id="L50">        ModelMessage mm4 = new ModelMessage(MessageType.MISSING_GOODS,</span>
+<span class="fc" id="L51">                                            &quot;buildColony.landLocked&quot;,</span>
+<span class="fc" id="L52">                                            colony, cotton);</span>
+<span class="fc" id="L53">        assertNotSame(mm3, mm4);</span>
+<span class="fc" id="L54">        assertNotSame(mm3.hashCode(), mm4.hashCode());</span>
+<span class="fc" id="L55">    }</span>
+    
+    public void testModelMapSet2() {
+<span class="fc" id="L58">        Game game = getGame();</span>
+<span class="fc" id="L59">        game.setMap(getTestMap(true));</span>
+    	
+<span class="fc" id="L61">        Colony colony = getStandardColony(1);</span>
+<span class="fc" id="L62">        GoodsType cotton = spec().getGoodsType(&quot;model.goods.cotton&quot;);</span>
+        
+<span class="fc" id="L64">        ModelMessage mm1 = new ModelMessage(MessageType.WAREHOUSE_CAPACITY,</span>
+<span class="fc" id="L65">                                            &quot;model.building.warehouseSoonFull&quot;,</span>
+<span class="fc" id="L66">                                            colony, cotton)</span>
+<span class="fc" id="L67">            .addNamed(&quot;%goods%&quot;, cotton)</span>
+<span class="fc" id="L68">            .addName(&quot;%colony%&quot;, colony.getName())</span>
+<span class="fc" id="L69">            .addAmount(&quot;%amount%&quot;, 10);</span>
+                                    
+ 
+<span class="fc" id="L72">        ModelMessage mm2 = new ModelMessage(MessageType.WAREHOUSE_CAPACITY,</span>
+<span class="fc" id="L73">                                            &quot;model.building.warehouseSoonFull&quot;,</span>
+<span class="fc" id="L74">                                            colony, cotton)</span>
+<span class="fc" id="L75">            .addNamed(&quot;%goods%&quot;, cotton)</span>
+<span class="fc" id="L76">            .addName(&quot;%colony%&quot;, colony.getName())</span>
+<span class="fc" id="L77">            .addAmount(&quot;%amount%&quot;, 10);</span>
+
+<span class="fc" id="L79">        HashSet&lt;ModelMessage&gt; set = new HashSet&lt;ModelMessage&gt;();</span>
+<span class="fc" id="L80">        assertEquals(mm1, mm2);</span>
+<span class="fc" id="L81">        assertEquals(mm1.hashCode(), mm2.hashCode());</span>
+<span class="fc" id="L82">        set.add(mm1);</span>
+<span class="fc" id="L83">        assertTrue(set.remove(mm2));</span>
+<span class="fc" id="L84">    }</span>
+
+    public void testDefaultId() {
+<span class="fc" id="L87">        Game game = getGame();</span>
+<span class="fc" id="L88">        game.setMap(getTestMap(true));</span>
+    	
+<span class="fc" id="L90">        Player player = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L91">        String realMessageId = &quot;player&quot;; // Must exist</span>
+<span class="fc" id="L92">        String fakeMessageId = &quot;no.such.messageId&quot;; // Must no exist</span>
+<span class="fc" id="L93">        ModelMessage mm1 = new ModelMessage(MessageType.WAREHOUSE_CAPACITY,</span>
+<span class="fc" id="L94">                                            fakeMessageId, realMessageId,</span>
+<span class="fc" id="L95">                                            player, null);</span>
+<span class="fc" id="L96">        assertEquals(Messages.message(realMessageId), Messages.message(mm1));</span>
+<span class="fc" id="L97">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

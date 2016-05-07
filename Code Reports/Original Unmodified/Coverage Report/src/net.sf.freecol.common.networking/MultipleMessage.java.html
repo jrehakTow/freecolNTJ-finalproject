@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>MultipleMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">MultipleMessage.java</span></div><h1>MultipleMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message that contains other messages.
+ */
+public class MultipleMessage extends DOMMessage {
+
+    public static final String TAG = &quot;multiple&quot;;
+
+    /** The list of messages. */
+<span class="fc" id="L41">    private List&lt;Element&gt; elements = new ArrayList&lt;&gt;();</span>
+
+
+    /**
+     * Create a new &lt;code&gt;MultipleMessage&lt;/code&gt;.
+     *
+     * @param elements A list of sub-&lt;code&gt;Element&lt;/code&gt;s.
+     */
+    public MultipleMessage(List&lt;Element&gt; elements) {
+<span class="fc" id="L50">        super(getTagName());</span>
+
+<span class="fc" id="L52">        this.elements.clear();</span>
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">        if (elements != null) this.elements.addAll(elements);</span>
+<span class="fc" id="L54">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;MultipleMessage&lt;/code&gt;.
+     *
+     * @param element An element containing the sub-&lt;code&gt;Element&lt;/code&gt;s.
+     */
+    public MultipleMessage(Element element) {
+<span class="fc" id="L62">        this(mapChildren(element, e -&gt; e));</span>
+<span class="fc" id="L63">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;MultipleMessage&lt;/code&gt; from a
+     * supplied element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public MultipleMessage(Game game, Element element) {
+<span class="nc" id="L73">        this((List&lt;Element&gt;)null);</span>
+
+<span class="nc" id="L75">        this.elements.addAll(mapChildren(element, e -&gt; e));</span>
+<span class="nc" id="L76">    }</span>
+
+
+    // Public interface
+
+    /**
+     * Extract an element chosen by tag from the elements list.
+     *
+     * @param tag The message tag to choose.
+     * @return The chosen &lt;code&gt;Element&lt;/code&gt; if found, or null if not.
+     */
+    public Element extract(String tag) {
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        for (Element e : this.elements) {</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">            if (e.getTagName().equals(tag)) {</span>
+<span class="nc" id="L90">                this.elements.remove(e);</span>
+<span class="nc" id="L91">                return e;</span>
+            }
+        }
+<span class="nc" id="L94">        return null;</span>
+    }
+
+    /**
+     * Apply a handler to this message.
+     *
+     * @param handler A &lt;code&gt;MessageHandler&lt;/code&gt; to apply.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message was received on.
+     * @return A collapsed resolution of the submessages.
+     */
+    public Element applyHandler(MessageHandler handler,
+                                Connection connection) {
+<span class="fc" id="L106">        return handleList(handler, connection, this.elements);</span>
+    }
+
+
+    /**
+     * Handle a &quot;multiple&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; handling the message.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; the message applies to.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message was received on.
+     * @return A collapsed resolution of the submessages.
+     */
+    public Element handle(FreeColServer server, Player player,
+                          Connection connection) {
+<span class="nc" id="L120">        return applyHandler(server.getInGameInputHandler(), connection);</span>
+    }
+
+
+    /**
+     * Convert this MultipleMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="fc" id="L131">        DOMMessage result = new DOMMessage(getTagName());</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        for (Element e : this.elements) result.add(e);</span>
+<span class="fc" id="L133">        return result.toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;multiple&quot;.
+     */
+    public static String getTagName() {
+<span class="fc" id="L142">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

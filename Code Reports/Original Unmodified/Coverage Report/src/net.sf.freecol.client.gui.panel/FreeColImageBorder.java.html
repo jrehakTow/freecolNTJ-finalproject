@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>FreeColImageBorder.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.gui.panel</a> &gt; <span class="el_source">FreeColImageBorder.java</span></div><h1>FreeColImageBorder.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.gui.panel;
+
+import java.awt.Component;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.Insets;
+import java.awt.image.BufferedImage;
+
+import javax.swing.border.AbstractBorder;
+
+import net.sf.freecol.client.gui.ImageLibrary;
+import net.sf.freecol.common.resources.ResourceManager;
+
+
+/**
+ * A border created from a set of images. 
+ */
+public class FreeColImageBorder extends AbstractBorder {
+
+<span class="nc" id="L40">    public static final FreeColImageBorder imageBorder = new FreeColImageBorder();</span>
+
+
+    // The buffered image objects
+    private final BufferedImage topLeftCornerImage;
+    private final BufferedImage topImage;
+    private final BufferedImage topRightCornerImage;
+    private final BufferedImage rightImage;
+    private final BufferedImage bottomRightCornerImage;
+    private final BufferedImage bottomImage;
+    private final BufferedImage bottomLeftCornerImage;
+    private final BufferedImage leftImage;
+
+
+    /**
+     * Creates the default border.
+     */
+    public FreeColImageBorder() {
+<span class="nc" id="L58">        this(ResourceManager.getImage(&quot;image.menuborder.nw&quot;),</span>
+<span class="nc" id="L59">             ResourceManager.getImage(&quot;image.menuborder.n&quot;),</span>
+<span class="nc" id="L60">             ResourceManager.getImage(&quot;image.menuborder.ne&quot;),</span>
+<span class="nc" id="L61">             ResourceManager.getImage(&quot;image.menuborder.e&quot;),</span>
+<span class="nc" id="L62">             ResourceManager.getImage(&quot;image.menuborder.se&quot;),</span>
+<span class="nc" id="L63">             ResourceManager.getImage(&quot;image.menuborder.s&quot;),</span>
+<span class="nc" id="L64">             ResourceManager.getImage(&quot;image.menuborder.sw&quot;),</span>
+<span class="nc" id="L65">             ResourceManager.getImage(&quot;image.menuborder.w&quot;));</span>
+<span class="nc" id="L66">    }</span>
+
+
+    /**
+     * Creates a border with the given set of images.
+     * Needs &lt;code&gt;BufferedImage&lt;/code&gt; objects, because the images will
+     * be used as Textures for the border.
+     *
+     * @param topLeftCornerImage NW-corner
+     * @param topImage N-border
+     * @param topRightCornerImage NE-corner
+     * @param rightImage E-border
+     * @param bottomRightCornerImage SE-corner
+     * @param bottomImage S-border
+     * @param bottomLeftCornerImage SW-corner
+     * @param leftImage W-border
+     */
+<span class="nc" id="L83">    public FreeColImageBorder(BufferedImage topLeftCornerImage,</span>
+                              BufferedImage topImage,
+                              BufferedImage topRightCornerImage,
+                              BufferedImage rightImage,
+                              BufferedImage bottomRightCornerImage,
+                              BufferedImage bottomImage,
+                              BufferedImage bottomLeftCornerImage,
+                              BufferedImage leftImage) {
+<span class="nc" id="L91">        this.topLeftCornerImage = topLeftCornerImage;</span>
+<span class="nc" id="L92">        this.topImage = topImage;</span>
+<span class="nc" id="L93">        this.topRightCornerImage = topRightCornerImage;</span>
+<span class="nc" id="L94">        this.rightImage = rightImage;</span>
+<span class="nc" id="L95">        this.bottomRightCornerImage = bottomRightCornerImage;</span>
+<span class="nc" id="L96">        this.bottomImage = bottomImage;</span>
+<span class="nc" id="L97">        this.bottomLeftCornerImage = bottomLeftCornerImage;</span>
+<span class="nc" id="L98">        this.leftImage = leftImage;</span>
+<span class="nc" id="L99">    }</span>
+
+    /**
+     * Gets the insets of this border around the given component.
+     *
+     * @param c The &lt;code&gt;Component&lt;/code&gt; having the border.
+     * @return The &lt;code&gt;Insets&lt;/code&gt;.
+     */    
+    @Override
+    public Insets getBorderInsets(Component c) {
+<span class="nc" id="L109">        return getBorderInsets(c, null);</span>
+    }
+
+    /**
+     * Gets the insets of this border around the given component.
+     *
+     * @param c The &lt;code&gt;Component&lt;/code&gt; having the border.
+     * @param insets An instance of &lt;code&gt;Insets&lt;/code&gt; to be updated.
+     * @return The given instance of &lt;code&gt;Insets&lt;/code&gt; if not
+     *      &lt;code&gt;null&lt;/code&gt;, or a new instance otherwise.
+     */
+    @Override
+    public Insets getBorderInsets(Component c, Insets insets) {        
+<span class="nc" id="L122">        int top = Math.max(Math.max(getHeight(topImage), getHeight(topLeftCornerImage)), getHeight(topRightCornerImage));</span>
+<span class="nc" id="L123">        int left = Math.max(Math.max(getWidth(leftImage), getWidth(topLeftCornerImage)), getWidth(bottomLeftCornerImage));</span>
+<span class="nc" id="L124">        int bottom = Math.max(Math.max(getHeight(bottomImage), getHeight(bottomLeftCornerImage)), getHeight(bottomRightCornerImage));</span>
+<span class="nc" id="L125">        int right = Math.max(Math.max(getWidth(rightImage), getWidth(topRightCornerImage)), getWidth(bottomRightCornerImage));</span>
+
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        if (topImage == null) {</span>
+<span class="nc" id="L128">            top = 0;</span>
+        }
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        if (leftImage == null) {</span>
+<span class="nc" id="L131">            left = 0;</span>
+        }
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        if (bottomImage == null) {</span>
+<span class="nc" id="L134">            bottom = 0;</span>
+        }
+<span class="nc bnc" id="L136" title="All 2 branches missed.">        if (rightImage == null) {</span>
+<span class="nc" id="L137">            right = 0;</span>
+        }
+
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        if (insets == null) {</span>
+<span class="nc" id="L141">            return new Insets(top, left, bottom, right);</span>
+        } else {
+<span class="nc" id="L143">            insets.top = top;</span>
+<span class="nc" id="L144">            insets.left = left;</span>
+<span class="nc" id="L145">            insets.bottom = bottom;</span>
+<span class="nc" id="L146">            insets.right = right;</span>
+<span class="nc" id="L147">            return insets;</span>
+        }
+    }
+
+    /**
+     * Paints the border on the given component.
+     *
+     * @param c The &lt;code&gt;Component&lt;/code&gt; to draw the border on.
+     * @param g The &lt;code&gt;Graphics&lt;/code&gt; used for painting the border.
+     * @param x The x-component of the offset.
+     * @param y The y-component of the offset.
+     * @param width The width of the border.
+     * @param height The height of the border.
+     */
+    @Override
+    public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
+<span class="nc" id="L163">        Insets insets = getBorderInsets(c);</span>
+<span class="nc" id="L164">        Graphics2D g2 = (Graphics2D) g;</span>
+
+        // Get width and height of the images
+<span class="nc" id="L167">        int topHeight = getHeight(topImage);</span>
+<span class="nc" id="L168">        int leftWidth = getWidth(leftImage);</span>
+<span class="nc" id="L169">        int bottomHeight = getHeight(bottomImage);</span>
+<span class="nc" id="L170">        int rightWidth = getWidth(rightImage);  </span>
+<span class="nc" id="L171">        int topLeftCornerWidth = getWidth(topLeftCornerImage);</span>
+<span class="nc" id="L172">        int topLeftCornerHeight = getHeight(topLeftCornerImage);</span>
+<span class="nc" id="L173">        int topRightCornerWidth = getWidth(topRightCornerImage);</span>
+<span class="nc" id="L174">        int topRightCornerHeight = getHeight(topRightCornerImage);</span>
+<span class="nc" id="L175">        int bottomLeftCornerWidth = getWidth(bottomLeftCornerImage);</span>
+<span class="nc" id="L176">        int bottomLeftCornerHeight = getHeight(bottomLeftCornerImage);</span>
+<span class="nc" id="L177">        int bottomRightCornerWidth = getWidth(bottomRightCornerImage);</span>
+<span class="nc" id="L178">        int bottomRightCornerHeight = getHeight(bottomRightCornerImage);</span>
+
+        // Add the image border
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        if(topImage != null) {</span>
+<span class="nc" id="L182">            ImageLibrary.fillTexture(g2, topImage,</span>
+<span class="nc" id="L183">                x + topLeftCornerWidth,</span>
+<span class="nc" id="L184">                y + insets.top - topHeight,</span>
+<span class="nc" id="L185">                width - topLeftCornerWidth - topRightCornerWidth,</span>
+<span class="nc" id="L186">                topHeight);</span>
+        }
+<span class="nc bnc" id="L188" title="All 2 branches missed.">        if(leftImage != null) {</span>
+<span class="nc" id="L189">            ImageLibrary.fillTexture(g2, leftImage,</span>
+<span class="nc" id="L190">                x + insets.left - leftWidth,</span>
+<span class="nc" id="L191">                y + topLeftCornerHeight,</span>
+<span class="nc" id="L192">                leftWidth,</span>
+<span class="nc" id="L193">                height - topLeftCornerHeight - bottomLeftCornerHeight);</span>
+        }
+<span class="nc bnc" id="L195" title="All 2 branches missed.">        if(bottomImage != null) {</span>
+<span class="nc" id="L196">            ImageLibrary.fillTexture(g2, bottomImage,</span>
+<span class="nc" id="L197">                x + bottomLeftCornerWidth,</span>
+<span class="nc" id="L198">                y + height - insets.bottom,</span>
+<span class="nc" id="L199">                width - bottomLeftCornerWidth - bottomRightCornerWidth,</span>
+<span class="nc" id="L200">                bottomHeight);</span>
+        }
+<span class="nc bnc" id="L202" title="All 2 branches missed.">        if(rightImage != null) {</span>
+<span class="nc" id="L203">            ImageLibrary.fillTexture(g2, rightImage,</span>
+<span class="nc" id="L204">                x + width - insets.right,</span>
+<span class="nc" id="L205">                y + topRightCornerHeight,</span>
+<span class="nc" id="L206">                rightWidth,</span>
+<span class="nc" id="L207">                height - topRightCornerHeight - bottomRightCornerHeight);</span>
+        }
+<span class="nc bnc" id="L209" title="All 2 branches missed.">        if(topLeftCornerImage != null) {</span>
+<span class="nc" id="L210">            ImageLibrary.fillTexture(g2, topLeftCornerImage,</span>
+<span class="nc" id="L211">                x + Math.max(insets.left, topLeftCornerWidth) - topLeftCornerWidth,</span>
+<span class="nc" id="L212">                y + Math.max(insets.top, topLeftCornerHeight) - topLeftCornerHeight,</span>
+<span class="nc" id="L213">                topLeftCornerWidth,</span>
+<span class="nc" id="L214">                topLeftCornerHeight);</span>
+        }
+<span class="nc bnc" id="L216" title="All 2 branches missed.">        if(topRightCornerImage != null) {</span>
+<span class="nc" id="L217">            ImageLibrary.fillTexture(g2, topRightCornerImage,</span>
+<span class="nc" id="L218">                x + width - Math.max(insets.right, topRightCornerWidth),</span>
+<span class="nc" id="L219">                y + Math.max(insets.top, topRightCornerHeight) - topRightCornerHeight,</span>
+<span class="nc" id="L220">                topRightCornerWidth,</span>
+<span class="nc" id="L221">                topRightCornerHeight);</span>
+        }
+<span class="nc bnc" id="L223" title="All 2 branches missed.">        if(bottomLeftCornerImage != null) {</span>
+<span class="nc" id="L224">            ImageLibrary.fillTexture(g2, bottomLeftCornerImage,</span>
+<span class="nc" id="L225">                x + Math.max(insets.left, bottomLeftCornerWidth) - bottomLeftCornerWidth,</span>
+<span class="nc" id="L226">                y + height - Math.max(insets.bottom, bottomLeftCornerHeight),</span>
+<span class="nc" id="L227">                bottomLeftCornerWidth,</span>
+<span class="nc" id="L228">                bottomLeftCornerHeight);</span>
+        }
+<span class="nc bnc" id="L230" title="All 2 branches missed.">        if(bottomRightCornerImage != null) {</span>
+<span class="nc" id="L231">            ImageLibrary.fillTexture(g2, bottomRightCornerImage,</span>
+<span class="nc" id="L232">                x + width - Math.max(insets.right, bottomRightCornerWidth),</span>
+<span class="nc" id="L233">                y + height - Math.max(insets.bottom, bottomRightCornerHeight),</span>
+<span class="nc" id="L234">                bottomRightCornerWidth,</span>
+<span class="nc" id="L235">                bottomRightCornerHeight);</span>
+        }
+<span class="nc" id="L237">    }</span>
+
+    /**
+     * Get the height of an image. If image is null, return 0.
+     * @param im The image.
+     * @return The height of the image.
+     */
+    private static int getHeight(Image im) {
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        return (im == null) ? 0 : im.getHeight(null);</span>
+    }
+
+    /**
+     * Get the width of an image. If image is null, return 0.
+     * @param im The image.
+     * @return The width of the image.
+     */
+    private static int getWidth(Image im) {
+<span class="nc bnc" id="L254" title="All 2 branches missed.">        return (im == null) ? 0 : im.getWidth(null);</span>
+    }        
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

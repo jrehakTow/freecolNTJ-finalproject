@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>EquipForRoleMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">EquipForRoleMessage.java</span></div><h1>EquipForRoleMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.Role;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.control.ChangeSet;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent to equip a unit for a particular role.
+ */
+public class EquipForRoleMessage extends DOMMessage {
+
+    public static final String TAG = &quot;equipForRole&quot;;
+    private static final String COUNT_TAG = &quot;count&quot;;
+    private static final String ROLE_TAG = &quot;role&quot;;
+    private static final String UNIT_TAG = &quot;unit&quot;;
+
+    /** The identifier of the unit to equip. */
+    private final String unitId;
+
+    /** The Role identifier. */
+    private final String roleId;
+
+    /** The role count. */
+    private final String roleCount;
+
+
+    /**
+     * Create a new &lt;code&gt;EquipForRoleMessage&lt;/code&gt; for the supplied
+     * Unit and Role.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; to equip.
+     * @param role The &lt;code&gt;Role&lt;/code&gt; to equip for.
+     * @param roleCount The role count.
+     */
+    public EquipForRoleMessage(Unit unit, Role role, int roleCount) {
+<span class="fc" id="L61">        super(getTagName());</span>
+
+<span class="fc" id="L63">        this.unitId = unit.getId();</span>
+<span class="fc" id="L64">        this.roleId = role.getId();</span>
+<span class="fc" id="L65">        this.roleCount = String.valueOf(roleCount);</span>
+<span class="fc" id="L66">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;EquipForRoleMessage&lt;/code&gt; from a supplied element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public EquipForRoleMessage(Game game, Element element) {
+<span class="fc" id="L75">        super(getTagName());</span>
+
+<span class="fc" id="L77">        this.unitId = getStringAttribute(element, UNIT_TAG);</span>
+<span class="fc" id="L78">        this.roleId = getStringAttribute(element, ROLE_TAG);</span>
+<span class="fc" id="L79">        this.roleCount = getStringAttribute(element, COUNT_TAG);</span>
+<span class="fc" id="L80">    }</span>
+
+
+    /**
+     * Handle a &quot;equipForRole&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; handling the message.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; the message applies to.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message received on.
+     * @return An update encapsulating the equipForRole location change
+     *     or an error &lt;code&gt;Element&lt;/code&gt; on failure.
+     */
+    public Element handle(FreeColServer server, Player player,
+                          Connection connection) {
+<span class="fc" id="L94">        final ServerPlayer serverPlayer = server.getPlayer(connection);</span>
+<span class="fc" id="L95">        final Game game = server.getGame();</span>
+
+        Unit unit;
+        try {
+<span class="fc" id="L99">            unit = player.getOurFreeColGameObject(this.unitId, Unit.class);</span>
+<span class="pc" id="L100">        } catch (Exception e) {</span>
+<span class="nc" id="L101">            return serverPlayer.clientError(e.getMessage())</span>
+<span class="nc" id="L102">                .build(serverPlayer);</span>
+        }
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">        if (unit.isInEurope()) {</span>
+            ; // Always OK
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">        } else if (!unit.hasTile()) {</span>
+<span class="nc" id="L107">            return serverPlayer.clientError(&quot;Unit is not on the map: &quot;</span>
+<span class="nc" id="L108">                + this.unitId)</span>
+<span class="nc" id="L109">                .build(serverPlayer);</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">        } else if (unit.getSettlement() == null) {</span>
+<span class="nc" id="L111">            return serverPlayer.clientError(&quot;Unit is not in a settlement: &quot;</span>
+<span class="nc" id="L112">                + this.unitId)</span>
+<span class="nc" id="L113">                .build(serverPlayer);</span>
+        }
+
+<span class="fc" id="L116">        Role role = game.getSpecification().getRole(this.roleId);</span>
+<span class="pc bpc" id="L117" title="1 of 2 branches missed.">        if (role == null) {</span>
+<span class="nc" id="L118">            return serverPlayer.clientError(&quot;Not a role: &quot; + this.roleId)</span>
+<span class="nc" id="L119">                .build(serverPlayer);</span>
+        }
+        int count;
+        try {
+<span class="fc" id="L123">            count = Integer.parseInt(this.roleCount);</span>
+<span class="pc" id="L124">        } catch (NumberFormatException nfe) {</span>
+<span class="nc" id="L125">            return serverPlayer.clientError(&quot;Role count is not an integer: &quot; +</span>
+<span class="nc" id="L126">                this.roleCount)</span>
+<span class="nc" id="L127">                .build(serverPlayer);</span>
+        }
+<span class="pc bpc" id="L129" title="2 of 4 branches missed.">        if (count &lt; 0 || count &gt; role.getMaximumCount()) {</span>
+<span class="nc" id="L130">            return serverPlayer.clientError(&quot;Invalid role count: &quot;</span>
+<span class="nc" id="L131">                + this.roleCount)</span>
+<span class="nc" id="L132">                .build(serverPlayer);</span>
+        }
+
+        // Proceed to equip.
+<span class="fc" id="L136">        ChangeSet cs = server.getInGameController()</span>
+<span class="fc" id="L137">            .equipForRole(serverPlayer, unit, role, count);</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">        return (cs == null) ? null : cs.build(serverPlayer);</span>
+    }
+
+    /**
+     * Convert this EquipForRoleMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="fc" id="L148">        return new DOMMessage(getTagName(),</span>
+<span class="fc" id="L149">            UNIT_TAG, this.unitId,</span>
+<span class="fc" id="L150">            ROLE_TAG, this.roleId,</span>
+<span class="fc" id="L151">            COUNT_TAG, this.roleCount).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;equipForRole&quot;.
+     */
+    public static String getTagName() {
+<span class="fc" id="L160">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>PrivateerMissionTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai.mission</a> &gt; <span class="el_source">PrivateerMissionTest.java</span></div><h1>PrivateerMissionTest.java</h1><pre class="source lang-java linenums"> /**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai.mission;
+
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TileType;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.server.ai.AIMain;
+import net.sf.freecol.server.ai.AIPlayer;
+import net.sf.freecol.server.ai.AIUnit;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="fc" id="L38">public class PrivateerMissionTest extends FreeColTestCase {</span>
+
+<span class="fc" id="L40">    private static final GoodsType musketsType</span>
+<span class="fc" id="L41">        = spec().getGoodsType(&quot;model.goods.muskets&quot;);</span>
+
+<span class="fc" id="L43">    private static final TileType plains</span>
+<span class="fc" id="L44">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+
+<span class="fc" id="L46">    private static final UnitType privateerType</span>
+<span class="fc" id="L47">        = spec().getUnitType(&quot;model.unit.privateer&quot;);</span>
+<span class="fc" id="L48">    private static final UnitType galleonType</span>
+<span class="fc" id="L49">        = spec().getUnitType(&quot;model.unit.galleon&quot;);</span>
+
+
+    @Override
+    public void tearDown() throws Exception {
+<span class="fc" id="L54">        ServerTestHelper.stopServerGame();</span>
+<span class="fc" id="L55">        super.tearDown();</span>
+<span class="fc" id="L56">    }</span>
+
+
+    private void setupPrivateerTestMap(Game game) {
+<span class="fc" id="L60">        Map map = game.getMap();</span>
+
+        // Create player and unit
+<span class="fc" id="L63">        ServerPlayer french = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="fc" id="L64">        ServerPlayer dutch = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+
+<span class="fc" id="L66">        Tile colonyTile = map.getTile(9, 9);</span>
+<span class="fc" id="L67">        Tile privateerTile = map.getTile(10, 9);</span>
+<span class="fc" id="L68">        Tile frenchGalleonTile = map.getTile(11, 9);</span>
+<span class="fc" id="L69">        Tile dutchGalleonTile = map.getTile(12, 9);</span>
+<span class="fc" id="L70">        assertTrue(&quot;Setup error, colony tile should be land&quot;,colonyTile.isLand());</span>
+<span class="fc" id="L71">        assertFalse(&quot;Privateer tile should be ocean&quot;,privateerTile.isLand());</span>
+<span class="fc" id="L72">        assertFalse(&quot;French galleon tile should be ocean&quot;,frenchGalleonTile.isLand());</span>
+<span class="fc" id="L73">        assertFalse(&quot;Dutch galleon tile should be ocean&quot;,dutchGalleonTile.isLand());</span>
+
+        // setup colony and units
+<span class="fc" id="L76">        getStandardColony(1, colonyTile.getX(), colonyTile.getY());</span>
+<span class="fc" id="L77">        new ServerUnit(game, privateerTile, dutch, privateerType);</span>
+<span class="fc" id="L78">        new ServerUnit(game, frenchGalleonTile, french, galleonType);</span>
+<span class="fc" id="L79">        new ServerUnit(game, dutchGalleonTile, dutch, galleonType);</span>
+<span class="fc" id="L80">    }</span>
+
+    private Game setupPrivateerTestGame() {
+<span class="fc" id="L83">        Game game = ServerTestHelper.startServerGame(getCoastTestMap(plains));</span>
+<span class="fc" id="L84">        setupPrivateerTestMap(game);</span>
+<span class="fc" id="L85">        return game;</span>
+    }
+
+    /**
+     * Tests validity of mission assignment
+     */
+    public void testIsMissionValid() {
+<span class="fc" id="L92">        Game game = setupPrivateerTestGame();</span>
+<span class="fc" id="L93">        Map map = game.getMap();</span>
+<span class="fc" id="L94">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+
+<span class="fc" id="L96">        Tile privateerTile = map.getTile(10, 9);</span>
+<span class="fc" id="L97">        Tile dutchGalleonTile = map.getTile(12, 9);</span>
+
+<span class="fc" id="L99">        Unit privateer = privateerTile.getFirstUnit();</span>
+<span class="fc" id="L100">        assertNotNull(&quot;Setup error, could not get privateer&quot;, privateer);</span>
+<span class="fc" id="L101">        Unit dutchGalleon = dutchGalleonTile.getFirstUnit();</span>
+<span class="fc" id="L102">        assertNotNull(&quot;Setup error, could not get galleon&quot;, dutchGalleon);</span>
+
+<span class="fc" id="L104">        AIPlayer aiPlayer = aiMain.getAIPlayer(privateer.getOwner());</span>
+<span class="fc" id="L105">        AIUnit privateerAI = aiMain.getAIUnit(privateer);</span>
+<span class="fc" id="L106">        assertNotNull(&quot;Setup error, could not get privateerAI&quot;, privateerAI);</span>
+
+<span class="fc" id="L108">        privateerAI.setMission(null);</span>
+<span class="fc" id="L109">        assertFalse(&quot;Privateer has no mission&quot;, privateerAI.hasMission());</span>
+<span class="fc" id="L110">        assertEquals(&quot;PrivateeringMission valid&quot;, null,</span>
+<span class="fc" id="L111">            PrivateerMission.invalidReason(privateerAI));</span>
+<span class="fc" id="L112">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

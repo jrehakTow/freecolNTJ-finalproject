@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>GoodsTradeItem.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">GoodsTradeItem.java</span></div><h1>GoodsTradeItem.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.util.Utils;
+
+
+/**
+ * A trade item consisting of some goods.
+ */
+public class GoodsTradeItem extends TradeItem {
+    
+    /** The goods to change hands. */
+    private Goods goods;
+
+
+    /**
+     * Creates a new &lt;code&gt;GoodsTradeItem&lt;/code&gt; instance.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param source The source &lt;code&gt;Player&lt;/code&gt;.
+     * @param destination The destination &lt;code&gt;Player&lt;/code&gt;.
+     * @param goods The &lt;code&gt;Goods&lt;/code&gt; to trade.
+     */
+    public GoodsTradeItem(Game game, Player source, Player destination,
+                          Goods goods) {
+<span class="nc" id="L49">        super(game, Messages.nameKey(&quot;model.tradeItem.goods&quot;),</span>
+<span class="nc" id="L50">              source, destination);</span>
+
+<span class="nc" id="L52">        this.goods = goods;</span>
+<span class="nc" id="L53">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;GoodsTradeItem&lt;/code&gt; instance.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param xr The &lt;code&gt;FreeColXMLReader&lt;/code&gt; to read from.
+     * @exception XMLStreamException if there is an error reading the stream.
+     */
+    public GoodsTradeItem(Game game, FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L63">        super(game, xr);</span>
+<span class="nc" id="L64">    }</span>
+
+
+    // Interface TradeItem
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isValid() {
+<span class="nc bnc" id="L74" title="All 4 branches missed.">        return goods != null &amp;&amp; goods.getType() != null</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">            &amp;&amp; goods.getAmount() &gt; 0</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">            &amp;&amp; (goods.getLocation() instanceof Ownable)</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">            &amp;&amp; getSource().owns((Ownable)goods.getLocation());</span>
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isUnique() {
+<span class="nc" id="L85">        return false;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public StringTemplate getLabel() {
+<span class="nc" id="L93">        return goods.getLabel(true);</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Goods getGoods() {
+<span class="nc" id="L101">        return goods;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setGoods(Goods goods) {
+<span class="nc" id="L109">        this.goods = goods;</span>
+<span class="nc" id="L110">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    public int evaluateFor(Player player) {
+<span class="nc" id="L116">        final Market market = player.getMarket();</span>
+<span class="nc" id="L117">        final Goods goods = getGoods();</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        return (!isValid())</span>
+<span class="nc" id="L119">            ? Integer.MIN_VALUE</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">            : (market == null)</span>
+<span class="nc" id="L121">            ? 2 * goods.getAmount()</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">            : (getSource() == player)</span>
+<span class="nc" id="L123">            ? market.getBidPrice(goods.getType(), goods.getAmount())</span>
+<span class="nc" id="L124">            : (int)Math.round(market.getSalePrice(goods.getType(),</span>
+<span class="nc" id="L125">                                                  goods.getAmount())</span>
+<span class="nc" id="L126">                * (1.0 - player.getTax() / 100.0));</span>
+    }
+
+    // Override Object
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object other) {
+<span class="nc bnc" id="L136" title="All 2 branches missed.">        if (other instanceof GoodsTradeItem) {</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">            return Utils.equals(this.goods, ((GoodsTradeItem)other).goods)</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">                &amp;&amp; super.equals(other);</span>
+        }
+<span class="nc" id="L140">        return false;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int hashCode() {
+<span class="nc" id="L148">        int hash = super.hashCode();</span>
+<span class="nc" id="L149">        return 37 * hash + Utils.hashCode(this.goods);</span>
+    }
+
+
+    // Serialization
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeChildren(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L160">        super.writeChildren(xw);</span>
+
+<span class="nc" id="L162">        goods.toXML(xw);</span>
+<span class="nc" id="L163">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChildren(FreeColXMLReader xr) throws XMLStreamException {
+        // Clear containers.
+<span class="nc" id="L171">        goods = null;</span>
+
+<span class="nc" id="L173">        super.readChildren(xr);</span>
+<span class="nc" id="L174">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChild(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L181">        final Game game = getGame();</span>
+<span class="nc" id="L182">        final String tag = xr.getLocalName();</span>
+
+<span class="nc bnc" id="L184" title="All 2 branches missed.">        if (Goods.getTagName().equals(tag)) {</span>
+<span class="nc" id="L185">            goods = new Goods(game, xr);</span>
+
+<span class="nc" id="L187">        } else {</span>
+<span class="nc" id="L188">            super.readChild(xr);</span>
+        }
+<span class="nc" id="L190">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L197">        StringBuilder sb = new StringBuilder(16);</span>
+<span class="nc" id="L198">        sb.append(&quot;[&quot;).append(getId())</span>
+<span class="nc" id="L199">            .append(&quot; &quot;).append(goods.getAmount()).append(&quot; &quot;)</span>
+<span class="nc" id="L200">            .append(Messages.getName(goods)).append(&quot;]&quot;);</span>
+<span class="nc" id="L201">        return sb.toString();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="nc" id="L208">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;goodsTradeItem&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L216">        return &quot;goodsTradeItem&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

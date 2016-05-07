@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>MapGeneratorTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.generator</a> &gt; <span class="el_source">MapGeneratorTest.java</span></div><h1>MapGeneratorTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.generator;
+
+import java.io.File;
+import java.util.Random;
+import java.util.Vector;
+
+import net.sf.freecol.common.io.FreeColSavegameFile;
+import net.sf.freecol.common.model.FreeColObject;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Nation;
+import net.sf.freecol.common.model.NationOptions;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Region;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Turn;
+import net.sf.freecol.common.option.FileOption;
+import net.sf.freecol.common.option.MapGeneratorOptions;
+import net.sf.freecol.common.util.LogBuilder;
+import net.sf.freecol.server.model.ServerGame;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="fc" id="L46">public class MapGeneratorTest extends FreeColTestCase {</span>
+
+    public void testWithNoIndians() {
+<span class="fc" id="L49">        ((FileOption) spec().getOption(MapGeneratorOptions.IMPORT_FILE)).setValue(null);</span>
+
+<span class="fc" id="L51">        Game g = new ServerGame(spec());</span>
+<span class="fc" id="L52">        g.setNationOptions(new NationOptions(spec()));</span>
+
+        // A new game does not have a map yet
+<span class="fc" id="L55">        assertEquals(null, g.getMap());</span>
+
+<span class="fc" id="L57">        MapGenerator gen = new SimpleMapGenerator(g, new Random(1));</span>
+
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        for (Nation n : spec().getNations()) {</span>
+<span class="fc bfc" id="L60" title="All 4 branches covered.">            if (n.getType().isEuropean() &amp;&amp; !n.getType().isREF()</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">                &amp;&amp; !n.isUnknownEnemy()) {</span>
+<span class="fc" id="L62">                g.addPlayer(new ServerPlayer(g, false, n, null, null));</span>
+            }
+        }
+
+<span class="fc" id="L66">        gen.createMap(new LogBuilder(-1));</span>
+
+        // Check that the map is created at all
+<span class="fc" id="L69">        assertNotNull(g.getMap());</span>
+<span class="fc" id="L70">    }</span>
+
+    public void testSinglePlayerOnSmallMap() {
+<span class="fc" id="L73">        ((FileOption) spec().getOption(MapGeneratorOptions.IMPORT_FILE)).setValue(null);</span>
+
+<span class="fc" id="L75">        Game g = new ServerGame(spec());</span>
+<span class="fc" id="L76">        g.setNationOptions(new NationOptions(spec()));</span>
+
+        // A new game does not have a map yet
+<span class="fc" id="L79">        assertEquals(null, g.getMap());</span>
+
+<span class="fc" id="L81">        MapGenerator gen = new SimpleMapGenerator(g, new Random(1));</span>
+<span class="fc" id="L82">        Nation nation = spec().getNation(&quot;model.nation.dutch&quot;);</span>
+
+<span class="fc" id="L84">        g.addPlayer(new ServerPlayer(g, false, nation, null, null));</span>
+
+<span class="fc" id="L86">        gen.createMap(new LogBuilder(-1));</span>
+
+        // Check that the map is created at all
+<span class="fc" id="L89">        assertNotNull(g.getMap());</span>
+
+<span class="fc" id="L91">        assertEquals(g.getMapGeneratorOptions().getInteger(MapGeneratorOptions.MAP_WIDTH),</span>
+<span class="fc" id="L92">                     g.getMap().getWidth());</span>
+<span class="fc" id="L93">        assertEquals(g.getMapGeneratorOptions().getInteger(MapGeneratorOptions.MAP_HEIGHT),</span>
+<span class="fc" id="L94">                     g.getMap().getHeight());</span>
+
+<span class="fc" id="L96">    }</span>
+
+    public void testMapGenerator() {
+<span class="fc" id="L99">        ((FileOption) spec().getOption(MapGeneratorOptions.IMPORT_FILE)).setValue(null);</span>
+
+<span class="fc" id="L101">        Game g = new ServerGame(spec());</span>
+
+<span class="fc" id="L103">        g.setNationOptions(new NationOptions(spec()));</span>
+        // A new game does not have a map yet
+<span class="fc" id="L105">        assertEquals(null, g.getMap());</span>
+
+<span class="fc" id="L107">        MapGenerator gen = new SimpleMapGenerator(g, new Random(1));</span>
+
+        // Apply the difficulty level
+        //spec().applyDifficultyLevel(&quot;model.difficulty.medium&quot;);
+
+<span class="fc" id="L112">        Vector&lt;Player&gt; players = new Vector&lt;Player&gt;();</span>
+
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        for (Nation n : spec().getNations()) {</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">            if (n.isUnknownEnemy()) continue;</span>
+<span class="fc" id="L116">            Player p = new ServerPlayer(g, false, n, null, null);</span>
+<span class="fc bfc" id="L117" title="All 4 branches covered.">            p.setAI(!n.getType().isEuropean() || n.getType().isREF());</span>
+<span class="fc" id="L118">            g.addPlayer(p);</span>
+<span class="fc" id="L119">            players.add(p);</span>
+        }
+
+<span class="fc" id="L122">        gen.createMap(new LogBuilder(-1));</span>
+
+        // Check that the map is created at all
+<span class="fc" id="L125">        assertNotNull(g.getMap());</span>
+
+        // Map of correct size?
+<span class="fc" id="L128">        Map m = g.getMap();</span>
+<span class="fc" id="L129">        assertEquals(m.getWidth(),</span>
+<span class="fc" id="L130">                     g.getMapGeneratorOptions().getInteger(MapGeneratorOptions.MAP_WIDTH));</span>
+<span class="fc" id="L131">        assertEquals(m.getHeight(),</span>
+<span class="fc" id="L132">                     g.getMapGeneratorOptions().getInteger(MapGeneratorOptions.MAP_HEIGHT));</span>
+
+        // Sufficient land?
+<span class="fc" id="L135">        int land = 0;</span>
+<span class="fc" id="L136">        int total = 0;</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">        for (Tile t : m.getAllTiles()) {</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">            if (t.isLand()) land++;</span>
+<span class="fc" id="L139">            total++;</span>
+        }
+        // Land Mass requirement fulfilled?
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">        assertTrue(100 * land / total &gt;= g.getMapGeneratorOptions()</span>
+<span class="fc" id="L143">                   .getInteger(MapGeneratorOptions.LAND_MASS));</span>
+
+        // Does the wholeMapIterator visit all fields?
+<span class="fc" id="L146">        assertEquals(total,</span>
+<span class="fc" id="L147">                     g.getMapGeneratorOptions().getInteger(MapGeneratorOptions.MAP_WIDTH)</span>
+<span class="fc" id="L148">                     * g.getMapGeneratorOptions().getInteger(MapGeneratorOptions.MAP_HEIGHT));</span>
+<span class="fc" id="L149">    }</span>
+
+    /**
+     * Make sure that each tribe has exactly one capital
+     *
+     */
+    public void testIndianCapital() {
+<span class="fc" id="L156">        ((FileOption) spec().getOption(MapGeneratorOptions.IMPORT_FILE)).setValue(null);</span>
+
+<span class="fc" id="L158">        Game g = new ServerGame(spec());</span>
+<span class="fc" id="L159">        g.setNationOptions(new NationOptions(spec()));</span>
+
+<span class="fc" id="L161">        MapGenerator gen = new SimpleMapGenerator(g, new Random(1));</span>
+
+<span class="fc" id="L163">        Vector&lt;Player&gt; players = new Vector&lt;Player&gt;();</span>
+
+<span class="fc bfc" id="L165" title="All 2 branches covered.">        for (Nation n : spec().getNations()) {</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">            if (n.isUnknownEnemy()) continue;</span>
+<span class="fc" id="L167">            Player p = new ServerPlayer(g, false, n, null, null);</span>
+<span class="fc bfc" id="L168" title="All 4 branches covered.">            p.setAI(!n.getType().isEuropean() || n.getType().isREF());</span>
+<span class="fc" id="L169">            g.addPlayer(p);</span>
+<span class="fc" id="L170">            players.add(p);</span>
+        }
+
+<span class="fc" id="L173">        gen.createMap(new LogBuilder(-1));</span>
+
+        // Check that the map is created at all
+<span class="fc" id="L176">        assertNotNull(g.getMap());</span>
+
+<span class="fc bfc" id="L178" title="All 2 branches covered.">        for (Player p : players) {</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">            if (!p.isIndian())</span>
+<span class="fc" id="L180">                continue;</span>
+
+            // Check that every indian player has exactly one capital if s/he
+            // has at least one settlement.
+<span class="fc" id="L184">            int settlements = 0;</span>
+<span class="fc" id="L185">            int capitals = 0;</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">            for (IndianSettlement s : p.getIndianSettlements()) {</span>
+<span class="fc" id="L187">                settlements++;</span>
+<span class="fc bfc" id="L188" title="All 2 branches covered.">                if (s.isCapital())</span>
+<span class="fc" id="L189">                    capitals++;</span>
+            }
+<span class="pc bpc" id="L191" title="1 of 2 branches missed.">            if (settlements &gt; 0)</span>
+<span class="fc" id="L192">                assertEquals(1, capitals);</span>
+        }
+<span class="fc" id="L194">    }</span>
+
+    /**
+     * Make sure we can import all distributed maps.
+     */
+    public void testImportMap() {
+<span class="fc" id="L200">        Game game = new ServerGame(spec());</span>
+<span class="fc" id="L201">        MapGenerator gen = new SimpleMapGenerator(game, new Random(1));</span>
+<span class="fc" id="L202">        File mapDir = new File(&quot;data/maps/&quot;);</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">        for (File importFile : mapDir.listFiles(FreeColSavegameFile.getFileFilter())) {</span>
+<span class="fc" id="L204">            ((FileOption)spec().getOption(MapGeneratorOptions.IMPORT_FILE))</span>
+<span class="fc" id="L205">                .setValue(importFile);</span>
+<span class="fc" id="L206">            assertNotNull(gen.createMap(new LogBuilder(-1)));</span>
+        }
+        // Clear import file option
+<span class="fc" id="L209">        ((FileOption)spec().getOption(MapGeneratorOptions.IMPORT_FILE))</span>
+<span class="fc" id="L210">            .setValue(null);</span>
+<span class="fc" id="L211">    }</span>
+
+    public void testRegions() {
+<span class="fc" id="L214">        Game game = new ServerGame(spec());</span>
+<span class="fc" id="L215">        MapGenerator gen = new SimpleMapGenerator(game, new Random(1));</span>
+<span class="fc" id="L216">        gen.createMap(new LogBuilder(-1));</span>
+        
+<span class="fc" id="L218">        Map map = game.getMap();</span>
+<span class="fc" id="L219">        Region pacific = map.getRegionByKey(&quot;model.region.pacific&quot;);</span>
+<span class="fc" id="L220">        assertNotNull(pacific);</span>
+<span class="fc" id="L221">        assertTrue(pacific.isPacific());</span>
+<span class="fc" id="L222">        assertEquals(pacific, pacific.getDiscoverableRegion());</span>
+
+<span class="fc" id="L224">        Region southPacific = map.getRegionByKey(&quot;model.region.southPacific&quot;);</span>
+<span class="fc" id="L225">        assertNotNull(southPacific);</span>
+<span class="fc" id="L226">        assertFalse(southPacific.getDiscoverable());</span>
+<span class="fc" id="L227">        assertTrue(southPacific.isPacific());</span>
+<span class="fc" id="L228">        assertEquals(pacific, southPacific.getParent());</span>
+<span class="fc" id="L229">        assertEquals(pacific, southPacific.getDiscoverableRegion());</span>
+
+<span class="fc" id="L231">        Player player = new Player(game, FreeColObject.ID_ATTRIBUTE_TAG);</span>
+<span class="fc" id="L232">        ServerUnit unit = new ServerUnit(game, null, player,</span>
+<span class="fc" id="L233">            spec().getUnitType(&quot;model.unit.caravel&quot;));</span>
+<span class="fc" id="L234">        pacific.discover(player, new Turn(1));</span>
+
+<span class="fc" id="L236">        assertFalse(pacific.getDiscoverable());</span>
+<span class="fc" id="L237">        assertNull(pacific.getDiscoverableRegion());</span>
+<span class="fc" id="L238">        assertFalse(southPacific.getDiscoverable());</span>
+<span class="fc" id="L239">        assertTrue(southPacific.isPacific());</span>
+<span class="fc" id="L240">        assertEquals(pacific, southPacific.getParent());</span>
+<span class="fc" id="L241">        assertNull(southPacific.getDiscoverableRegion());</span>
+
+<span class="fc" id="L243">        Region atlantic = map.getRegionByKey(&quot;model.region.atlantic&quot;);</span>
+<span class="fc" id="L244">        assertNotNull(atlantic);</span>
+<span class="fc" id="L245">        assertFalse(atlantic.isPacific());</span>
+<span class="fc" id="L246">        assertFalse(atlantic.getDiscoverable());</span>
+<span class="fc" id="L247">        assertNull(atlantic.getDiscoverableRegion());</span>
+
+<span class="fc" id="L249">        Region northAtlantic = map.getRegionByKey(&quot;model.region.northAtlantic&quot;);</span>
+<span class="fc" id="L250">        assertNotNull(northAtlantic);</span>
+<span class="fc" id="L251">        assertFalse(northAtlantic.isPacific());</span>
+<span class="fc" id="L252">        assertFalse(northAtlantic.getDiscoverable());</span>
+<span class="fc" id="L253">        assertNull(northAtlantic.getDiscoverableRegion());</span>
+<span class="fc" id="L254">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

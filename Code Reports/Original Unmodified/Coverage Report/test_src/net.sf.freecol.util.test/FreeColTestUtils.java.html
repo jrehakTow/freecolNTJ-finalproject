@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>FreeColTestUtils.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.util.test</a> &gt; <span class="el_source">FreeColTestUtils.java</span></div><h1>FreeColTestUtils.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.util.test;
+
+import java.util.HashMap;
+import java.util.Iterator;
+
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.GameOptions;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.option.BooleanOption;
+import net.sf.freecol.server.model.ServerColony;
+import net.sf.freecol.server.model.ServerUnit;
+
+
+<span class="nc" id="L37">public class FreeColTestUtils {</span>
+
+<span class="fc" id="L39">    private static ColonyBuilder colonyBuilder = null;</span>
+
+    public static ColonyBuilder getColonyBuilder(){
+<span class="fc" id="L42">        Game game = FreeColTestCase.getGame();</span>
+<span class="pc bpc" id="L43" title="1 of 2 branches missed.">        if(game == null){</span>
+<span class="nc" id="L44">            throw new NullPointerException(&quot;Game not set&quot;);</span>
+        }
+<span class="fc bfc" id="L46" title="All 2 branches covered.">        if(colonyBuilder == null){</span>
+<span class="fc" id="L47">            colonyBuilder = new ColonyBuilder(game);</span>
+<span class="fc" id="L48">        }</span>
+        else{
+<span class="fc" id="L50">            colonyBuilder = colonyBuilder.reset().setGame(game);</span>
+        }
+
+<span class="fc" id="L53">        return colonyBuilder;</span>
+    }
+
+    public static class ColonyBuilder {
+
+        // Required parameter
+<span class="fc" id="L59">        static final UnitType colonistType</span>
+<span class="fc" id="L60">            = FreeColTestCase.spec().getDefaultUnitType();</span>
+        private Game game;
+
+<span class="fc" id="L63">        private HashMap&lt;UnitType,Integer&gt; colonists = new HashMap&lt;&gt;();</span>
+        private Player player;
+        private String name;
+        private int initialColonists;
+<span class="fc" id="L67">        private final String defaultPlayer = &quot;model.nation.dutch&quot;;</span>
+<span class="fc" id="L68">        private String defaultName = &quot;New Amsterdam&quot;;</span>
+<span class="fc" id="L69">        private int initialDefaultColonists = 1;</span>
+        private Tile colonyTile;
+
+
+<span class="fc" id="L73">        private ColonyBuilder(Game game) {</span>
+<span class="fc" id="L74">            this.game = game;</span>
+<span class="fc" id="L75">            setStartingParams();</span>
+<span class="fc" id="L76">        }</span>
+
+        private void setStartingParams() {
+            // Some params can only be set in build(), because the default values
+            //may not be valid for the game set
+            // However, the tester himself may set them to valid values later,
+            //so they are set to null for now
+<span class="fc" id="L83">            player = null;</span>
+<span class="fc" id="L84">            colonyTile = null;</span>
+<span class="fc" id="L85">            name = defaultName;</span>
+<span class="fc" id="L86">            initialColonists = initialDefaultColonists;</span>
+<span class="fc" id="L87">            colonists.clear();</span>
+<span class="fc" id="L88">        }</span>
+
+        public ColonyBuilder player(Player player) {
+<span class="fc" id="L91">            this.player = player;</span>
+
+<span class="pc bpc" id="L93" title="2 of 4 branches missed.">            if(player == null || !game.getPlayers().contains(player)) {</span>
+<span class="nc" id="L94">                throw new IllegalArgumentException(&quot;Player not in game&quot;);</span>
+            }
+
+<span class="fc" id="L97">            return this;</span>
+        }
+
+        public ColonyBuilder initialColonists(int colonists) {
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">            if (colonists &lt;= 0) {</span>
+<span class="nc" id="L102">                throw new IllegalArgumentException(&quot;Number of colonists must be positive&quot;);</span>
+            }
+<span class="fc" id="L104">            this.initialColonists = colonists;</span>
+<span class="fc" id="L105">            return this;</span>
+        }
+
+        public ColonyBuilder colonyTile(Tile tile) {
+<span class="fc" id="L109">            Tile tileOnMap = this.game.getMap().getTile(tile.getX(), tile.getY());</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">            if (tile != tileOnMap) {</span>
+<span class="nc" id="L111">                throw new IllegalArgumentException(&quot;Given tile not on map&quot;);</span>
+            }
+<span class="fc" id="L113">            this.colonyTile = tile;</span>
+<span class="fc" id="L114">            return this;</span>
+        }
+
+        public ColonyBuilder colonyName(String name) {
+<span class="nc bnc" id="L118" title="All 2 branches missed.">            if (name == null) {</span>
+<span class="nc" id="L119">                throw new IllegalArgumentException(&quot;Name cannot be null&quot;);</span>
+            }
+<span class="nc" id="L121">            this.name = name;</span>
+<span class="nc" id="L122">            return this;</span>
+        }
+
+        public ColonyBuilder addColonist(UnitType type) {
+<span class="fc bfc" id="L126" title="All 2 branches covered.">            if (!colonists.containsKey(type)) {</span>
+<span class="fc" id="L127">                colonists.put(type, 0);</span>
+            }
+<span class="fc" id="L129">            Integer nCol = colonists.get(type);</span>
+<span class="fc" id="L130">            colonists.put(type, nCol + 1);</span>
+<span class="fc" id="L131">            return this;</span>
+        }
+
+        public Colony build() {
+            // player not set, get default
+<span class="fc bfc" id="L136" title="All 2 branches covered.">            if (player == null) {</span>
+<span class="fc" id="L137">                player = game.getPlayerByNationId(defaultPlayer);</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">                if (player == null) {</span>
+<span class="nc" id="L139">                    throw new IllegalArgumentException(&quot;Default Player &quot;</span>
+                        + defaultPlayer + &quot; not in game&quot;);
+                }
+            }
+
+            // settlement tile no set, get default
+<span class="fc bfc" id="L145" title="All 2 branches covered.">            if (colonyTile == null) {</span>
+<span class="fc" id="L146">                colonyTile = game.getMap().getTile(5, 8);</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">                if (colonyTile == null) {</span>
+<span class="nc" id="L148">                    throw new IllegalArgumentException(&quot;Default tile not in game&quot;);</span>
+                }
+            }
+
+            /*
+            if(this.name != null){
+                for(Colony colony : player.getColonies()){
+                    if(colony.getName().equals(this.name)){
+                        throw new IllegalArgumentException(&quot;Another colony already has the given name&quot;);
+                    }
+                }
+            }
+            */
+
+<span class="fc" id="L162">            Colony colony = new ServerColony(game, player, name, colonyTile);</span>
+<span class="fc" id="L163">            player.addSettlement(colony);</span>
+<span class="fc" id="L164">            colony.placeSettlement(true);//-vis(player)</span>
+<span class="fc" id="L165">            player.invalidateCanSeeTiles();//+vis(player)</span>
+
+            // Add colonists
+<span class="fc" id="L168">            int nCol = 0;</span>
+<span class="fc" id="L169">            Iterator&lt;UnitType&gt; iter = colonists.keySet().iterator();</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">            while (iter.hasNext()) {</span>
+<span class="fc" id="L171">                UnitType type = iter.next();</span>
+<span class="fc" id="L172">                Integer n = colonists.get(type);</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">                for (int i = 0; i &lt; n; i++) {</span>
+<span class="fc" id="L174">                    Unit colonist = new ServerUnit(game, colonyTile, player,</span>
+<span class="fc" id="L175">                                                   type);</span>
+<span class="fc" id="L176">                    colonist.setLocation(colony);</span>
+<span class="fc" id="L177">                    nCol++;</span>
+                }
+            }
+            // add rest of colonists as simple free colonists
+<span class="fc bfc" id="L181" title="All 2 branches covered.">            for (int i = nCol; i &lt; initialColonists; i++) {</span>
+<span class="fc" id="L182">                Unit colonist = new ServerUnit(game, colonyTile, player,</span>
+<span class="fc" id="L183">                                               colonistType);</span>
+<span class="fc" id="L184">                colonist.setLocation(colony);</span>
+            }
+
+<span class="fc" id="L187">            return colony;</span>
+        }
+
+        public ColonyBuilder setGame(Game game) {
+<span class="fc" id="L191">            this.game = game;</span>
+<span class="fc" id="L192">            return reset();</span>
+        }
+
+        public ColonyBuilder reset() {
+<span class="fc" id="L196">            setStartingParams();</span>
+<span class="fc" id="L197">            return this;</span>
+        }
+    }
+
+
+    public static boolean setStudentSelection(boolean value) {
+<span class="fc" id="L203">        BooleanOption allowStudentSelection = FreeColTestCase.spec()</span>
+<span class="fc" id="L204">            .getBooleanOption(GameOptions.ALLOW_STUDENT_SELECTION);</span>
+<span class="fc" id="L205">        boolean ret = allowStudentSelection.getValue();</span>
+<span class="fc" id="L206">        allowStudentSelection.setValue(value);</span>
+<span class="fc" id="L207">        return ret;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>TradeRouteTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">TradeRouteTest.java</span></div><h1>TradeRouteTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="fc" id="L27">public class TradeRouteTest extends FreeColTestCase {</span>
+
+<span class="fc" id="L29">    private static final GoodsType fursGoodsType</span>
+<span class="fc" id="L30">        = spec().getGoodsType(&quot;model.goods.furs&quot;);</span>
+
+<span class="fc" id="L32">    private static final TileType mixedForestType</span>
+<span class="fc" id="L33">        = spec().getTileType(&quot;model.tile.mixedForest&quot;);</span>
+
+<span class="fc" id="L35">    private static final UnitType caravel</span>
+<span class="fc" id="L36">        = spec().getUnitType(&quot;model.unit.caravel&quot;);</span>
+<span class="fc" id="L37">    private static final UnitType wagonTrainType</span>
+<span class="fc" id="L38">        = spec().getUnitType(&quot;model.unit.wagonTrain&quot;);</span>
+
+
+    public void testTradeRoute() {
+<span class="fc" id="L42">        Game game = getGame();</span>
+<span class="fc" id="L43">        game.setMap(getTestMap(mixedForestType, true));</span>
+
+        // Set up three colonies
+<span class="fc" id="L46">        Colony colony1 = getStandardColony(4, 1, 1);</span>
+<span class="fc" id="L47">        Colony colony2 = getStandardColony(4, 3, 1);</span>
+<span class="fc" id="L48">        Colony colony3 = getStandardColony(4, 5, 1);</span>
+<span class="fc" id="L49">        Tile tile1 = colony1.getTile();</span>
+<span class="fc" id="L50">        Tile tile2 = colony2.getTile();</span>
+<span class="fc" id="L51">        Tile tile3 = colony3.getTile();</span>
+<span class="fc" id="L52">        assertEquals(mixedForestType, tile1.getType());</span>
+<span class="fc" id="L53">        assertEquals(mixedForestType, tile2.getType());</span>
+<span class="fc" id="L54">        assertEquals(mixedForestType, tile3.getType());</span>
+<span class="fc" id="L55">        Player player = colony1.getOwner();</span>
+
+        // Create a wagon
+<span class="fc" id="L58">        Unit wagon = new ServerUnit(game, tile1, player, wagonTrainType);</span>
+
+<span class="fc" id="L60">        wagon.setLocation(tile1);</span>
+<span class="fc" id="L61">        assertEquals(2, wagon.getTurnsToReach(colony2));</span>
+<span class="fc" id="L62">        assertEquals(4, wagon.getTurnsToReach(colony3));</span>
+<span class="fc" id="L63">        wagon.setLocation(tile2);</span>
+<span class="fc" id="L64">        assertEquals(2, wagon.getTurnsToReach(colony1));</span>
+<span class="fc" id="L65">        assertEquals(2, wagon.getTurnsToReach(colony3));</span>
+<span class="fc" id="L66">        wagon.setLocation(tile3);</span>
+<span class="fc" id="L67">        assertEquals(4, wagon.getTurnsToReach(colony1));</span>
+<span class="fc" id="L68">        assertEquals(2, wagon.getTurnsToReach(colony2));</span>
+<span class="fc" id="L69">        wagon.setLocation(tile1);</span>
+
+        // Create a trade route
+<span class="fc" id="L72">        TradeRoute tr = new TradeRoute(game, &quot;TR&quot;, player);</span>
+<span class="fc" id="L73">        assertNotNull(tr);</span>
+       
+        // Build towards validity
+<span class="fc" id="L76">        assertNotNull(tr.verify()); // Invalid, no stops</span>
+<span class="fc" id="L77">        assertTrue(tr.getStops().isEmpty());</span>
+<span class="fc" id="L78">        TradeRouteStop trs1 = new TradeRouteStop(game, colony1);</span>
+<span class="fc" id="L79">        assertTrue(trs1.isValid(player));</span>
+<span class="fc" id="L80">        tr.addStop(trs1);</span>
+<span class="fc" id="L81">        assertNotNull(tr.verify()); // Invalid, one stop is not enough</span>
+<span class="fc" id="L82">        TradeRouteStop trs2 = new TradeRouteStop(game, colony2);</span>
+<span class="fc" id="L83">        assertTrue(trs2.isValid(player));</span>
+<span class="fc" id="L84">        tr.addStop(trs2);</span>
+<span class="fc" id="L85">        assertNotNull(tr.verify()); // Invalid, all stops are empty</span>
+<span class="fc" id="L86">        trs1.addCargo(fursGoodsType);</span>
+<span class="fc" id="L87">        assertNull(tr.verify()); // Now finally valid</span>
+<span class="fc" id="L88">        trs2.addCargo(fursGoodsType);</span>
+<span class="fc" id="L89">        assertNotNull(tr.verify()); // Invalid again, furs always present</span>
+<span class="fc" id="L90">        TradeRouteStop trs3 = new TradeRouteStop(game, colony3);</span>
+<span class="fc" id="L91">        assertTrue(trs3.isValid(player));</span>
+<span class="fc" id="L92">        tr.addStop(trs3);</span>
+<span class="fc" id="L93">        assertNull(tr.verify()); // Valid again, furs dumped at colony3</span>
+
+        // Assign the trade route
+<span class="fc" id="L96">        wagon.setTradeRoute(tr);</span>
+
+        // Check the import and export amounts
+<span class="fc" id="L99">        final int ex = 50;</span>
+<span class="fc" id="L100">        assertEquals(GoodsContainer.CARGO_SIZE * 2,</span>
+<span class="fc" id="L101">                     wagon.getLoadableAmount(fursGoodsType));</span>
+<span class="fc" id="L102">        assertEquals(0, colony1.getGoodsCount(fursGoodsType));</span>
+<span class="fc" id="L103">        assertEquals(0, colony2.getGoodsCount(fursGoodsType));</span>
+<span class="fc" id="L104">        assertEquals(0, colony3.getGoodsCount(fursGoodsType));</span>
+<span class="fc" id="L105">        colony1.getExportData(fursGoodsType).setExportLevel(ex)</span>
+<span class="fc" id="L106">            .setExported(true);</span>
+<span class="fc" id="L107">        colony2.getExportData(fursGoodsType).setExportLevel(ex)</span>
+<span class="fc" id="L108">            .setExported(true);</span>
+<span class="fc" id="L109">        colony3.getExportData(fursGoodsType).setExportLevel(ex)</span>
+<span class="fc" id="L110">            .setExported(true);</span>
+<span class="fc" id="L111">        assertEquals(0, colony1.getExportAmount(fursGoodsType, 0));</span>
+<span class="fc" id="L112">        assertEquals(0, colony2.getExportAmount(fursGoodsType, 0));</span>
+<span class="fc" id="L113">        assertEquals(0, colony3.getExportAmount(fursGoodsType, 0));</span>
+<span class="fc" id="L114">        assertEquals(0, trs1.getExportAmount(fursGoodsType, 0));</span>
+<span class="fc" id="L115">        assertEquals(0, trs2.getExportAmount(fursGoodsType, 0));</span>
+<span class="fc" id="L116">        assertEquals(0, trs3.getExportAmount(fursGoodsType, 0));</span>
+<span class="fc" id="L117">        assertEquals(GoodsContainer.CARGO_SIZE,</span>
+<span class="fc" id="L118">                     trs1.getImportAmount(fursGoodsType, 0));</span>
+<span class="fc" id="L119">        assertEquals(GoodsContainer.CARGO_SIZE,</span>
+<span class="fc" id="L120">                     trs2.getImportAmount(fursGoodsType, 0));</span>
+<span class="fc" id="L121">        assertEquals(GoodsContainer.CARGO_SIZE,</span>
+<span class="fc" id="L122">                     trs3.getImportAmount(fursGoodsType, 0));</span>
+
+        // Which stops have work?
+        // Initially nothing to collect, and therefore nothing to deliver
+<span class="fc" id="L126">        assertFalse(trs1.hasWork(wagon, 0));</span>
+<span class="fc" id="L127">        assertFalse(trs2.hasWork(wagon, 0));</span>
+<span class="fc" id="L128">        assertFalse(trs3.hasWork(wagon, 0));</span>
+
+        // Add some goods and delivery becomes valid
+<span class="fc" id="L131">        wagon.addGoods(fursGoodsType, 10);</span>
+<span class="fc" id="L132">        assertFalse(trs1.hasWork(wagon, 0));</span>
+<span class="fc" id="L133">        assertFalse(trs2.hasWork(wagon, 0));</span>
+<span class="fc" id="L134">        assertTrue(trs3.hasWork(wagon, 0));</span>
+<span class="fc" id="L135">        wagon.removeGoods(fursGoodsType);</span>
+
+        // Now allow production check.  There will still be nothing to
+        // collect because of the export level.
+<span class="fc" id="L139">        assertFalse(trs1.hasWork(wagon, 0));</span>
+<span class="fc" id="L140">        assertFalse(trs2.hasWork(wagon, 2));</span>
+<span class="fc" id="L141">        assertFalse(trs3.hasWork(wagon, 4));</span>
+
+        // Zero the export levels.  Now first colony will still not
+        // export because it has not produced anything yet, but the
+        // second (for which turnsToReach() &gt; 0) will have goods to
+        // export.  The third colony will still not show work needed
+        // unless there are goods on this wagon.
+<span class="fc" id="L148">        colony1.getExportData(fursGoodsType).setExportLevel(0);</span>
+<span class="fc" id="L149">        colony2.getExportData(fursGoodsType).setExportLevel(0);</span>
+<span class="fc" id="L150">        colony3.getExportData(fursGoodsType).setExportLevel(0);</span>
+<span class="fc" id="L151">        assertFalse(trs1.hasWork(wagon, 0));</span>
+<span class="fc" id="L152">        assertTrue(trs2.hasWork(wagon, 2));</span>
+<span class="fc" id="L153">        assertFalse(trs3.hasWork(wagon, 4));</span>
+<span class="fc" id="L154">        wagon.addGoods(fursGoodsType, 10);</span>
+<span class="fc" id="L155">        assertTrue(trs3.hasWork(wagon, 4));</span>
+<span class="fc" id="L156">        wagon.removeGoods(fursGoodsType);</span>
+<span class="fc" id="L157">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

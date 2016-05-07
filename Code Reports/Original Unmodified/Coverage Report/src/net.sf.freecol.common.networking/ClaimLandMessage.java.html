@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ClaimLandMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">ClaimLandMessage.java</span></div><h1>ClaimLandMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.common.model.FreeColGameObject;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Player.NoClaimReason;
+import net.sf.freecol.common.model.Settlement;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent when the client requests claiming land.
+ */
+public class ClaimLandMessage extends DOMMessage {
+
+    public static final String TAG = &quot;claimLand&quot;;
+    private static final String CLAIMANT_TAG = &quot;claimant&quot;;
+    private static final String PRICE_TAG = &quot;price&quot;;
+    private static final String TILE_TAG = &quot;tile&quot;;
+
+    /** The tile to claim. */
+    private final String tileId;
+
+    /** The unit or settlement claiming the land. */
+    private final String claimantId;
+
+    /** The price to pay for the tile. */
+    private final String priceString;
+
+
+    /**
+     * Create a new &lt;code&gt;ClaimLandMessage&lt;/code&gt;.
+     *
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; to claim.
+     * @param claimant The &lt;code&gt;Unit&lt;/code&gt; or &lt;code&gt;Settlement&lt;/code&gt;
+     *     claiming the tile.
+     * @param price The price to pay for the tile, negative if stealing.
+     */
+    public ClaimLandMessage(Tile tile, FreeColGameObject claimant, int price) {
+<span class="nc" id="L64">        super(getTagName());</span>
+
+<span class="nc" id="L66">        this.tileId = tile.getId();</span>
+<span class="nc" id="L67">        this.claimantId = claimant.getId();</span>
+<span class="nc" id="L68">        this.priceString = Integer.toString(price);</span>
+<span class="nc" id="L69">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;ClaimLandMessage&lt;/code&gt; from a supplied element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public ClaimLandMessage(Game game, Element element) {
+<span class="nc" id="L78">        super(getTagName());</span>
+
+<span class="nc" id="L80">        this.tileId = getStringAttribute(element, TILE_TAG);</span>
+<span class="nc" id="L81">        this.claimantId = getStringAttribute(element, CLAIMANT_TAG);</span>
+<span class="nc" id="L82">        this.priceString = getStringAttribute(element, PRICE_TAG);</span>
+<span class="nc" id="L83">    }</span>
+
+
+    /**
+     * Handle a &quot;claimLand&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; handling the message.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; the message applies to.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the message was from.
+     *
+     * @return An update, or error &lt;code&gt;Element&lt;/code&gt; on failure.
+     */
+    public Element handle(FreeColServer server, Player player,
+                          Connection connection) {
+<span class="nc" id="L97">        final ServerPlayer serverPlayer = server.getPlayer(connection);</span>
+<span class="nc" id="L98">        final Game game = server.getGame();</span>
+
+<span class="nc" id="L100">        Tile tile = game.getFreeColGameObject(this.tileId, Tile.class);</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        if (tile == null) {</span>
+<span class="nc" id="L102">            return serverPlayer.clientError(&quot;Not a file: &quot; + this.tileId)</span>
+<span class="nc" id="L103">                .build(serverPlayer);</span>
+        }
+
+<span class="nc" id="L106">        Unit unit = null;</span>
+        try {
+<span class="nc" id="L108">            unit = player.getOurFreeColGameObject(this.claimantId, Unit.class);</span>
+<span class="nc" id="L109">        } catch (IllegalStateException e) {} // Expected to fail sometimes...</span>
+<span class="nc" id="L110">        Settlement settlement = null;</span>
+        try {
+<span class="nc" id="L112">            settlement = player.getOurFreeColGameObject(this.claimantId,</span>
+<span class="nc" id="L113">                                                        Settlement.class);</span>
+<span class="nc" id="L114">        } catch (IllegalStateException e) {} // ...as is this one...</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">        if (unit != null) {</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">            if (unit.getTile() != tile) {</span>
+<span class="nc" id="L117">                return serverPlayer.clientError(&quot;Unit not at tile: &quot;</span>
+<span class="nc" id="L118">                    + this.tileId)</span>
+<span class="nc" id="L119">                    .build(serverPlayer);</span>
+            }
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        } else if (settlement != null) {</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">            if (settlement.getOwner().isEuropean()</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">                &amp;&amp; !settlement.getTile().isAdjacent(tile)) {</span>
+<span class="nc" id="L124">                return serverPlayer.clientError(&quot;Settlement can not claim tile: &quot;</span>
+<span class="nc" id="L125">                    + this.tileId)</span>
+<span class="nc" id="L126">                    .build(serverPlayer);</span>
+            }
+        } else { // ...but not both of them.
+<span class="nc" id="L129">            return serverPlayer.clientError(&quot;Not a unit or settlement: &quot;</span>
+<span class="nc" id="L130">                + this.claimantId)</span>
+<span class="nc" id="L131">                .build(serverPlayer);</span>
+        }
+
+        int price;
+        try {
+<span class="nc" id="L136">            price = Integer.parseInt(this.priceString);</span>
+<span class="nc" id="L137">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L138">            return serverPlayer.clientError(&quot;Bad price: &quot; + this.priceString)</span>
+<span class="nc" id="L139">                .build(serverPlayer);</span>
+        }
+
+        // Request is well formed, but there are more possibilities...
+<span class="nc" id="L143">        int value = player.getLandPrice(tile);</span>
+<span class="nc" id="L144">        Player owner = tile.getOwner();</span>
+<span class="nc" id="L145">        Settlement ownerSettlement = tile.getOwningSettlement();</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">        if (owner == null) { // unclaimed, always free</span>
+<span class="nc" id="L147">            price = 0;</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">        } else if (owner == player) { // capture vacant colony tiles only</span>
+<span class="nc bnc" id="L149" title="All 4 branches missed.">            if (settlement != null &amp;&amp; ownerSettlement != null</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">                &amp;&amp; tile.isInUse()) {</span>
+<span class="nc" id="L151">                return serverPlayer.clientError(&quot;Can not claim tile &quot;</span>
+<span class="nc" id="L152">                    + tile.getId() + &quot;: already owned.&quot;)</span>
+<span class="nc" id="L153">                    .build(serverPlayer);</span>
+            }
+<span class="nc" id="L155">            price = 0;</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">        } else if (owner.isEuropean()) {</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">            if (tile.getOwningSettlement() == null  // its not &quot;nailed down&quot;</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">                || tile.getOwningSettlement() == settlement) { // pre-attached</span>
+<span class="nc" id="L159">                price = 0;</span>
+<span class="nc" id="L160">            } else { // must fail</span>
+<span class="nc" id="L161">                return serverPlayer.clientError(&quot;Can not claim tile &quot; </span>
+<span class="nc" id="L162">                    + tile.getId() + &quot;: European owners will not sell.&quot;)</span>
+<span class="nc" id="L163">                    .build(serverPlayer);</span>
+            }
+        } else { // natives
+<span class="nc" id="L166">            NoClaimReason why = player.canClaimForSettlementReason(tile);</span>
+<span class="nc bnc" id="L167" title="All 3 branches missed.">            switch (why) {</span>
+            case NONE:
+<span class="nc" id="L169">                break; // Succeed.</span>
+            case NATIVES:
+<span class="nc bnc" id="L171" title="All 2 branches missed.">                if (price &gt;= 0) {</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">                    if (price &lt; value) {</span>
+<span class="nc" id="L173">                        return serverPlayer.clientError(&quot;Can not claim tile &quot;</span>
+<span class="nc" id="L174">                            + tile.getId() + &quot;: insufficient offer.&quot;)</span>
+<span class="nc" id="L175">                            .build(serverPlayer);</span>
+                    }
+<span class="nc bnc" id="L177" title="All 2 branches missed.">                    if (!player.checkGold(price)) {</span>
+<span class="nc" id="L178">                        return serverPlayer.clientError(&quot;Can not pay for tile: &quot;</span>
+<span class="nc" id="L179">                            + tile.getId() + &quot;: insufficient funds.&quot;)</span>
+<span class="nc" id="L180">                            .build(serverPlayer);</span>
+                    }
+                    // Succeed, sufficient offer
+                } // else succeed, stealing
+                break;
+            default: // Fail
+<span class="nc" id="L186">                return serverPlayer.clientError(&quot;Can not claim tile &quot;</span>
+<span class="nc" id="L187">                    + tile.getId() + &quot;: &quot; + why)</span>
+<span class="nc" id="L188">                    .build(serverPlayer);</span>
+            }
+        }
+
+        // Proceed to claim.  Note, does not require unit, it is only
+        // required for permission checking above.  Settlement is required
+        // to set owning settlement.
+<span class="nc" id="L195">        return server.getInGameController()</span>
+<span class="nc" id="L196">            .claimLand(serverPlayer, tile, settlement, price)</span>
+<span class="nc" id="L197">            .build(serverPlayer);</span>
+    }
+
+    /**
+     * Convert this ClaimLandMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="nc" id="L207">        return new DOMMessage(getTagName(),</span>
+<span class="nc" id="L208">            TILE_TAG, this.tileId,</span>
+<span class="nc" id="L209">            CLAIMANT_TAG, this.claimantId,</span>
+<span class="nc" id="L210">            PRICE_TAG, this.priceString).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;claimLand&quot;.
+     */
+    public static String getTagName() {
+<span class="fc" id="L219">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

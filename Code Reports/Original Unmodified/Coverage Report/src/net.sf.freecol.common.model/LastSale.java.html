@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>LastSale.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">LastSale.java</span></div><h1>LastSale.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.networking.DOMMessage;
+
+
+/**
+ * This class contains the last sale a player has made, by Settlement
+ * and GoodsType.
+ */
+public final class LastSale extends FreeColObject {
+
+    /** When a sale was made. */
+    private Turn when;
+
+    /** The price per unit returned from the sale. */
+    private int price;
+
+
+    /**
+     * Trivial constructor to allow creation with FreeColObject.newInstance.
+     */
+<span class="nc" id="L45">    public LastSale() {}</span>
+
+    /**
+     * Make a new LastSale record.
+     *
+     * @param where The &lt;code&gt;Location&lt;/code&gt; of the sale.
+     * @param what The &lt;code&gt;GoodsType&lt;/code&gt; sold.
+     * @param when In which &lt;code&gt;Turn&lt;/code&gt; the sale occurred.
+     * @param price The per-unit price of the sale.
+     */
+    public LastSale(Location where, GoodsType what,
+                    Turn when, int price) {
+<span class="nc" id="L57">        this(makeKey(where, what), when, price);</span>
+<span class="nc" id="L58">    }</span>
+
+    /**
+     * Make a new LastSale record.
+     *
+     * @param id The object identifier.
+     * @param when In which &lt;code&gt;Turn&lt;/code&gt; the sale occurred.
+     * @param price The per-unit price of the sale.
+     */
+<span class="nc" id="L67">    public LastSale(String id, Turn when, int price) {</span>
+<span class="nc" id="L68">        setId(id);</span>
+<span class="nc" id="L69">        this.when = when;</span>
+<span class="nc" id="L70">        this.price = price;</span>
+<span class="nc" id="L71">    }</span>
+
+    /**
+     * Create a new last sale by reading a stream.
+     *
+     * @param xr The &lt;code&gt;FreeColXMLReader&lt;/code&gt; to read from.
+     * @exception XMLStreamException if there is a problem reading the stream.
+     */
+<span class="nc" id="L79">    public LastSale(FreeColXMLReader xr) throws XMLStreamException {</span>
+<span class="nc" id="L80">        readFromXML(xr);</span>
+<span class="nc" id="L81">    }</span>
+
+
+    /**
+     * Get the &lt;code&gt;Turn&lt;/code&gt; when the sale was made.
+     *
+     * @return The &lt;code&gt;Turn&lt;/code&gt; when the sale was made.
+     */
+    public Turn getWhen() {
+<span class="nc" id="L90">        return when;</span>
+    }
+
+    /**
+     * Get the price from the sale.
+     *
+     * @return The price from the sale.
+     */
+    public int getPrice() {
+<span class="nc" id="L99">        return price;</span>
+    }
+
+    /**
+     * Make a String to be used as a key for looking up sales.
+     *
+     * @param where The &lt;code&gt;Location&lt;/code&gt; of the sale.
+     * @param what The &lt;code&gt;GoodsType&lt;/code&gt; sold.
+     *
+     * @return A key string.
+     */
+    public static String makeKey(Location where, GoodsType what) {
+<span class="nc" id="L111">        return where.getId() + &quot;-&quot; + what.getId();</span>
+    }
+
+
+    // Override FreeColObject
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int compareTo(FreeColObject other) {
+<span class="nc" id="L122">        int cmp = 0;</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">        if (other instanceof LastSale) {</span>
+<span class="nc" id="L124">            LastSale ls = (LastSale)other;</span>
+<span class="nc" id="L125">            cmp = getWhen().getNumber() - ls.getWhen().getNumber();</span>
+        }
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        if (cmp == 0) cmp = super.compareTo(other);</span>
+<span class="nc" id="L128">        return cmp;</span>
+    }
+
+
+    // Serialization
+
+    private static final String PRICE_TAG = &quot;price&quot;;
+    private static final String WHEN_TAG = &quot;when&quot;;
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L143">        super.writeAttributes(xw);</span>
+
+<span class="nc" id="L145">        xw.writeAttribute(WHEN_TAG, when.getNumber());</span>
+
+<span class="nc" id="L147">        xw.writeAttribute(PRICE_TAG, price);</span>
+<span class="nc" id="L148">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L155">        super.readAttributes(xr);</span>
+
+<span class="nc" id="L157">        when = new Turn(xr.getAttribute(WHEN_TAG, 0));</span>
+
+<span class="nc" id="L159">        price = xr.getAttribute(PRICE_TAG, 0);</span>
+<span class="nc" id="L160">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L167">        StringBuilder sb = new StringBuilder(32);</span>
+<span class="nc" id="L168">        sb.append(&quot;[&quot;).append(getId())</span>
+<span class="nc" id="L169">            .append(&quot; when=&quot;).append(when)</span>
+<span class="nc" id="L170">            .append(&quot; price=&quot;).append(price)</span>
+<span class="nc" id="L171">            .append(&quot;]&quot;);</span>
+<span class="nc" id="L172">        return sb.toString();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="nc" id="L179">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;lastSale&quot;
+     */
+    public static String getTagName() {
+<span class="fc" id="L187">        return &quot;lastSale&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

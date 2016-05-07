@@ -1,0 +1,658 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>MessagesTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.i18n</a> &gt; <span class="el_source">MessagesTest.java</span></div><h1>MessagesTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.i18n;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.Locale;
+
+import net.sf.freecol.util.test.FreeColTestCase;
+import net.sf.freecol.common.model.AbstractGoods;
+import net.sf.freecol.common.model.AbstractUnit;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.HistoryEvent;
+import net.sf.freecol.common.model.Monarch;
+import net.sf.freecol.common.model.Nation;
+import net.sf.freecol.common.model.Role;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.Unit.UnitLabelType;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.model.StringTemplate;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.model.ServerUnit;
+
+
+<span class="fc" id="L44">public class MessagesTest extends FreeColTestCase {</span>
+
+    public static final String noSuchKey = &quot;should.not.exist.and.thus.return.null&quot;;
+
+<span class="fc" id="L48">    private static final Role armedBraveRole</span>
+<span class="fc" id="L49">        = spec().getRole(&quot;model.role.armedBrave&quot;);</span>
+<span class="fc" id="L50">    private static final Role cavalryRole</span>
+<span class="fc" id="L51">        = spec().getRole(&quot;model.role.cavalry&quot;);</span>
+<span class="fc" id="L52">    private static final Role defaultRole</span>
+<span class="fc" id="L53">        = spec().getDefaultRole();</span>
+<span class="fc" id="L54">    private static final Role dragoonRole</span>
+<span class="fc" id="L55">        = spec().getRole(&quot;model.role.dragoon&quot;);</span>
+<span class="fc" id="L56">    private static final Role infantryRole</span>
+<span class="fc" id="L57">        = spec().getRole(&quot;model.role.infantry&quot;);</span>
+<span class="fc" id="L58">    private static final Role missionaryRole</span>
+<span class="fc" id="L59">        = spec().getRole(&quot;model.role.missionary&quot;);</span>
+<span class="fc" id="L60">    private static final Role mountedBraveRole</span>
+<span class="fc" id="L61">        = spec().getRole(&quot;model.role.mountedBrave&quot;);</span>
+<span class="fc" id="L62">    private static final Role nativeDragoonRole</span>
+<span class="fc" id="L63">        = spec().getRole(&quot;model.role.nativeDragoon&quot;);</span>
+<span class="fc" id="L64">    private static final Role pioneerRole</span>
+<span class="fc" id="L65">        = spec().getRole(&quot;model.role.pioneer&quot;);</span>
+<span class="fc" id="L66">    private static final Role scoutRole</span>
+<span class="fc" id="L67">        = spec().getRole(&quot;model.role.scout&quot;);</span>
+<span class="fc" id="L68">    private static final Role soldierRole</span>
+<span class="fc" id="L69">        = spec().getRole(&quot;model.role.soldier&quot;);</span>
+
+<span class="fc" id="L71">    private static final UnitType artillery</span>
+<span class="fc" id="L72">        = spec().getUnitType(&quot;model.unit.artillery&quot;);</span>
+<span class="fc" id="L73">    private static final UnitType brave</span>
+<span class="fc" id="L74">        = spec().getUnitType(&quot;model.unit.brave&quot;);</span>
+<span class="fc" id="L75">    private static final UnitType caravel</span>
+<span class="fc" id="L76">        = spec().getUnitType(&quot;model.unit.caravel&quot;);</span>
+<span class="fc" id="L77">    private static final UnitType colonialRegular</span>
+<span class="fc" id="L78">        = spec().getUnitType(&quot;model.unit.colonialRegular&quot;);</span>
+<span class="fc" id="L79">    private static final UnitType freeColonist</span>
+<span class="fc" id="L80">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="fc" id="L81">    private static final UnitType hardyPioneer</span>
+<span class="fc" id="L82">        = spec().getUnitType(&quot;model.unit.hardyPioneer&quot;);</span>
+<span class="fc" id="L83">    private static final UnitType jesuitMissionary</span>
+<span class="fc" id="L84">        = spec().getUnitType(&quot;model.unit.jesuitMissionary&quot;);</span>
+<span class="fc" id="L85">    private static final UnitType kingsRegular</span>
+<span class="fc" id="L86">        = spec().getUnitType(&quot;model.unit.kingsRegular&quot;);</span>
+<span class="fc" id="L87">    private static final UnitType manOWar</span>
+<span class="fc" id="L88">        = spec().getUnitType(&quot;model.unit.manOWar&quot;);</span>
+<span class="fc" id="L89">    private static final UnitType masterCarpenter</span>
+<span class="fc" id="L90">        = spec().getUnitType(&quot;model.unit.masterCarpenter&quot;);</span>
+<span class="fc" id="L91">    private static final UnitType seasonedScout</span>
+<span class="fc" id="L92">        = spec().getUnitType(&quot;model.unit.seasonedScout&quot;);</span>
+<span class="fc" id="L93">    private static final UnitType treasureTrain</span>
+<span class="fc" id="L94">        = spec().getUnitType(&quot;model.unit.treasureTrain&quot;);</span>
+<span class="fc" id="L95">    private static final UnitType veteranSoldier</span>
+<span class="fc" id="L96">        = spec().getUnitType(&quot;model.unit.veteranSoldier&quot;);</span>
+
+
+    @Override
+    public void tearDown(){
+<span class="fc" id="L101">        Messages.loadMessageBundle(Locale.US);</span>
+<span class="fc" id="L102">    }</span>
+
+    public void testMessageString() {
+<span class="fc" id="L105">        assertTrue(&quot;Press enter in order to end the turn.&quot;</span>
+<span class="fc" id="L106">            .equals(Messages.message(&quot;infoPanel.endTurn&quot;)));</span>
+<span class="fc" id="L107">        assertTrue(&quot;Trade Advisor&quot;</span>
+<span class="fc" id="L108">            .equals(Messages.message(&quot;reportTradeAction.name&quot;)));</span>
+
+        // With parameters
+<span class="fc" id="L111">        assertTrue(&quot;Score: %score%    |    Gold: %gold%    |    Tax: %tax%%    |    Year: %year%&quot;</span>
+<span class="fc" id="L112">            .equals(Messages.message(&quot;menuBar.statusLine&quot;)));</span>
+
+        // Long String
+<span class="fc" id="L115">        assertTrue(&quot;Food is necessary to feed your colonists and to breed horses. A new colonist is born whenever a colony has 200 units of food or more.&quot;</span>
+<span class="fc" id="L116">            .equals(Messages.message(&quot;model.goods.food.description&quot;)));</span>
+
+        // Message not found
+<span class="fc" id="L119">        assertTrue(noSuchKey.equals(Messages.message(noSuchKey)));</span>
+<span class="fc" id="L120">    }</span>
+
+
+    public void testChangeLocaleSettings() {
+<span class="fc" id="L124">        Messages.loadMessageBundle(Locale.US);</span>
+
+<span class="fc" id="L126">        assertTrue(&quot;Trade Advisor&quot;</span>
+<span class="fc" id="L127">            .equals(Messages.message(&quot;reportTradeAction.name&quot;)));</span>
+
+<span class="fc" id="L129">        Messages.loadMessageBundle(Locale.GERMANY);</span>
+
+<span class="fc" id="L131">        assertTrue(&quot;Handelsberater&quot;</span>
+<span class="fc" id="L132">            .equals(Messages.message(&quot;reportTradeAction.name&quot;)));</span>
+<span class="fc" id="L133">    }</span>
+
+    // Tests if messages with special chars (like $) are well processed
+    public void testMessageWithSpecialChars() {
+<span class="fc" id="L137">        final String key = HistoryEvent.HistoryEventType.FOUND_COLONY.getDescriptionKey();</span>
+        try {
+<span class="fc" id="L139">            assertEquals(&quot;You establish the colony of %colony%.&quot;,</span>
+<span class="fc" id="L140">                         Messages.message(key));</span>
+<span class="pc" id="L141">        } catch (Exception e) {</span>
+<span class="nc" id="L142">            fail(&quot;Message fail&quot;);</span>
+<span class="nc" id="L143">            throw e;</span>
+        }
+<span class="fc" id="L145">        final String colNameWithSpecialChars=&quot;$specialColName\\&quot;;</span>
+        try {
+<span class="fc" id="L147">            assertEquals(&quot;You establish the colony of $specialColName\\.&quot;,</span>
+<span class="fc" id="L148">                         Messages.message(StringTemplate</span>
+<span class="fc" id="L149">                             .template(key)</span>
+<span class="fc" id="L150">                             .addName(&quot;%colony%&quot;, colNameWithSpecialChars)));</span>
+<span class="pc" id="L151">        } catch (IllegalArgumentException e) {</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">            if (e.getMessage().contains(&quot;Illegal group reference&quot;)) {</span>
+<span class="nc" id="L153">                fail(&quot;Does not process messages with special chars&quot;);</span>
+            }
+<span class="nc" id="L155">            throw e;</span>
+        }
+<span class="fc" id="L157">    }</span>
+
+    public void testStringTemplates() {
+<span class="fc" id="L160">        final Game game = getGame();</span>
+<span class="fc" id="L161">        Messages.loadMessageBundle(Locale.US);</span>
+
+        // template with key not in message bundle
+<span class="fc" id="L164">        StringTemplate s1 = StringTemplate.key(&quot;!no.such.string.template&quot;);</span>
+<span class="fc" id="L165">        assertTrue(s1.getId()</span>
+<span class="fc" id="L166">            .equals(Messages.message(s1)));</span>
+
+<span class="fc" id="L168">        StringTemplate s2 = StringTemplate.key(&quot;model.tile.plains.name&quot;);</span>
+<span class="fc" id="L169">        assertTrue(&quot;Plains&quot;</span>
+<span class="fc" id="L170">            .equals(Messages.message(s2)));</span>
+
+<span class="fc" id="L172">        StringTemplate t1 = AbstractGoods</span>
+<span class="fc" id="L173">            .getLabel(game.getSpecification().getPrimaryFoodType(), 100);</span>
+<span class="fc" id="L174">        assertEquals(2, t1.getKeys().size());</span>
+<span class="fc" id="L175">        assertEquals(2, t1.getReplacements().size());</span>
+<span class="fc" id="L176">        assertEquals(StringTemplate.TemplateType.KEY,</span>
+<span class="fc" id="L177">                     t1.getReplacements().get(0).getTemplateType());</span>
+<span class="fc" id="L178">        assertEquals(StringTemplate.TemplateType.NAME,</span>
+<span class="fc" id="L179">                     t1.getReplacements().get(1).getTemplateType());</span>
+<span class="fc" id="L180">        assertTrue(&quot;model.abstractGoods.label&quot;</span>
+<span class="fc" id="L181">            .equals(t1.getId()));</span>
+<span class="fc" id="L182">        assertTrue(&quot;100 Food&quot;</span>
+<span class="fc" id="L183">            .equals(Messages.message(t1)));</span>
+
+<span class="fc" id="L185">        StringTemplate t2 = StringTemplate.label(&quot; / &quot;)</span>
+<span class="fc" id="L186">            .add(&quot;model.goods.food.name&quot;)</span>
+<span class="fc" id="L187">            .addName(&quot;xyz&quot;);</span>
+<span class="fc" id="L188">        assertTrue(&quot;Food / xyz&quot;</span>
+<span class="fc" id="L189">            .equals(Messages.message(t2)));</span>
+
+<span class="fc" id="L191">        game.setMap(getTestMap());</span>
+<span class="fc" id="L192">        Colony colony = getStandardColony();</span>
+<span class="fc" id="L193">        assertTrue(&quot;New Amsterdam&quot;</span>
+<span class="fc" id="L194">            .equals(colony.getName()));</span>
+
+<span class="fc" id="L196">        StringTemplate t3 = StringTemplate.template(&quot;model.building.locationLabel&quot;)</span>
+<span class="fc" id="L197">            .addName(&quot;%location%&quot;, colony.getName());</span>
+<span class="fc" id="L198">        assertTrue(&quot;In New Amsterdam&quot;</span>
+<span class="fc" id="L199">            .equals(Messages.message(t3)));</span>
+
+<span class="fc" id="L201">        StringTemplate t4 = StringTemplate.label(&quot;&quot;)</span>
+<span class="fc" id="L202">            .addName(&quot;(&quot;)</span>
+<span class="fc" id="L203">            .add(&quot;model.goods.food.name&quot;)</span>
+<span class="fc" id="L204">            .addName(&quot;)&quot;);</span>
+<span class="fc" id="L205">        assertTrue(&quot;(Food)&quot;</span>
+<span class="fc" id="L206">            .equals(Messages.message(t4)));</span>
+<span class="fc" id="L207">    }</span>
+
+    public void testReplaceGarbage() {
+        // random garbage enclosed in double brackets should be
+        // removed
+<span class="fc" id="L212">        String mapping = &quot;some.key={{}}abc   {{xyz}}def{{123|567}}\n&quot;;</span>
+<span class="fc" id="L213">        ByteArrayInputStream stream = new ByteArrayInputStream(mapping.getBytes());</span>
+        try {
+<span class="fc" id="L215">            Messages.loadMessages(stream);</span>
+<span class="pc" id="L216">        } catch (IOException ioe) { fail(); }</span>
+<span class="fc" id="L217">        assertTrue(&quot;abc   def&quot;</span>
+<span class="fc" id="L218">            .equals(Messages.message(&quot;some.key&quot;)));</span>
+<span class="fc" id="L219">    }</span>
+
+    public void testReplaceNumber() {
+
+<span class="fc" id="L223">        double[] numbers = new double[] {</span>
+<span class="fc" id="L224">            -1.3, -1, -0.5, 0, 0.33, 1, 1.2, 2, 2.7, 3, 3.4, 11, 13, 27, 100</span>
+        };
+<span class="fc" id="L226">        String mapping = &quot;some.key=abc{{plural:%number%|zero=zero|one=one|two=two&quot;</span>
+            + &quot;|few=few|many=many|other=other}}|xyz&quot;;
+<span class="fc" id="L228">        ByteArrayInputStream stream = new ByteArrayInputStream(mapping.getBytes());</span>
+        try {
+<span class="fc" id="L230">            Messages.loadMessages(stream);</span>
+<span class="pc" id="L231">        } catch (IOException ioe) { fail(); }</span>
+
+        // default Number is Other
+<span class="fc" id="L234">        Messages.setGrammaticalNumber(NumberRules.OTHER_NUMBER_RULE);</span>
+<span class="fc bfc" id="L235" title="All 2 branches covered.">        for (double d : numbers) {</span>
+<span class="fc" id="L236">            assertTrue(&quot;abcother|xyz&quot;.equals(Messages.message(StringTemplate</span>
+<span class="fc" id="L237">                        .template(&quot;some.key&quot;)</span>
+<span class="fc" id="L238">                        .addAmount(&quot;%number%&quot;, d))));</span>
+        }
+        // apply English rules
+<span class="fc" id="L241">        Messages.setGrammaticalNumber(NumberRules.PLURAL_NUMBER_RULE);</span>
+<span class="fc bfc" id="L242" title="All 2 branches covered.">        for (double d : numbers) {</span>
+<span class="fc bfc" id="L243" title="All 2 branches covered.">            if (d == 1) {</span>
+<span class="fc" id="L244">                assertTrue(&quot;abcone|xyz&quot;.equals(Messages.message(StringTemplate</span>
+<span class="fc" id="L245">                            .template(&quot;some.key&quot;)</span>
+<span class="fc" id="L246">                            .addAmount(&quot;%number%&quot;, d))));</span>
+<span class="fc" id="L247">            } else {</span>
+<span class="fc" id="L248">                assertTrue(&quot;abcother|xyz&quot;.equals(Messages.message(StringTemplate</span>
+<span class="fc" id="L249">                            .template(&quot;some.key&quot;)</span>
+<span class="fc" id="L250">                            .addAmount(&quot;%number%&quot;, d))));</span>
+            }
+        }
+<span class="fc" id="L253">    }</span>
+
+    public void testReplaceArbitraryTag() {
+<span class="fc" id="L256">        final String testKey = &quot;model.player.startGame&quot;;</span>
+<span class="fc" id="L257">        StringTemplate template = StringTemplate.template(testKey)</span>
+<span class="fc" id="L258">            .add(&quot;%direction%&quot;, &quot;east&quot;);</span>
+<span class="fc" id="L259">        String expected = &quot;After months at sea, you have finally arrived off the &quot;</span>
+            + &quot;coast of an unknown continent. Sail eastward in order to discover &quot;
+            + &quot;the New World and to claim it for the Crown.&quot;;
+<span class="fc" id="L262">        assertTrue(expected.equals(Messages.message(template)));</span>
+
+<span class="fc" id="L264">        template = StringTemplate.template(testKey)</span>
+<span class="fc" id="L265">            .add(&quot;%direction%&quot;, &quot;west&quot;);</span>
+<span class="fc" id="L266">        expected = &quot;After months at sea, you have finally arrived off the &quot;</span>
+            + &quot;coast of an unknown continent. Sail westward in order to discover &quot;
+            + &quot;the New World and to claim it for the Crown.&quot;;
+<span class="fc" id="L269">        assertTrue(expected.equals(Messages.message(template)));</span>
+
+<span class="fc" id="L271">        template = StringTemplate.template(testKey)</span>
+<span class="fc" id="L272">            .add(&quot;%direction%&quot;, &quot;whatever&quot;);</span>
+<span class="fc" id="L273">        expected = &quot;After months at sea, you have finally arrived off the &quot;</span>
+            + &quot;coast of an unknown continent. Sail into the wind in order to discover &quot;
+            + &quot;the New World and to claim it for the Crown.&quot;;
+<span class="fc" id="L276">        assertTrue(expected.equals(Messages.message(template)));</span>
+<span class="fc" id="L277">    }</span>
+
+    public void testReplaceChoicesPlural() {
+<span class="fc" id="L280">        String mapping = &quot;some.key=This is {{plural:%number%|one=a test|other=one of several tests&quot;</span>
+            + &quot;|default=not much of a test}}.\n&quot;
+            + &quot;unit.template=%number% {{plural:%number%|%unit%}}\n&quot;
+            + &quot;unit.key={{plural:%number%|one=piece of artillery|other=pieces of artillery|&quot;
+            + &quot;default=artillery}}&quot;;
+<span class="fc" id="L285">        ByteArrayInputStream stream = new ByteArrayInputStream(mapping.getBytes());</span>
+        try {
+<span class="fc" id="L287">            Messages.loadMessages(stream);</span>
+<span class="pc" id="L288">        } catch (IOException ioe) { fail(); }</span>
+
+<span class="fc" id="L290">        assertTrue(&quot;artillery&quot;</span>
+<span class="fc" id="L291">            .equals(Messages.message(&quot;unit.key&quot;)));</span>
+
+<span class="fc" id="L293">        assertTrue(&quot;This is one of several tests.&quot;</span>
+<span class="fc" id="L294">            .equals(Messages.message(StringTemplate.template(&quot;some.key&quot;)</span>
+<span class="fc" id="L295">                                                   .addAmount(&quot;%number%&quot;, 0))));</span>
+<span class="fc" id="L296">        assertTrue(&quot;This is a test.&quot;</span>
+<span class="fc" id="L297">            .equals(Messages.message(StringTemplate.template(&quot;some.key&quot;)</span>
+<span class="fc" id="L298">                                                   .addAmount(&quot;%number%&quot;, 1))));</span>
+<span class="fc" id="L299">        assertTrue(&quot;This is one of several tests.&quot;</span>
+<span class="fc" id="L300">            .equals(Messages.message(StringTemplate.template(&quot;some.key&quot;)</span>
+<span class="fc" id="L301">                                                   .addAmount(&quot;%number%&quot;, 2))));</span>
+<span class="fc" id="L302">        assertTrue(&quot;This is one of several tests.&quot;</span>
+<span class="fc" id="L303">            .equals(Messages.message(StringTemplate.template(&quot;some.key&quot;)</span>
+<span class="fc" id="L304">                                                   .addAmount(&quot;%number%&quot;, 24))));</span>
+
+<span class="fc" id="L306">        StringTemplate template = StringTemplate.template(&quot;unit.template&quot;)</span>
+<span class="fc" id="L307">            .addAmount(&quot;%number%&quot;, 1)</span>
+<span class="fc" id="L308">            .add(&quot;%unit%&quot;, &quot;unit.key&quot;);</span>
+<span class="fc" id="L309">        assertTrue(&quot;1 piece of artillery&quot;.equals(Messages.message(template)));</span>
+<span class="fc" id="L310">    }</span>
+
+    public void testReplaceChoicesGrammar() {
+<span class="fc" id="L313">        String mapping = &quot;key.france={{randomTag:%randomKey%|country=France|people=French|&quot;</span>
+            + &quot;default=French people}}\n&quot;
+            + &quot;greeting1=The {{otherRandomTag:default|%nation%}} are happy to see you.\n&quot;
+            + &quot;greeting2=The {{otherRandomTag:people|%nation%}} are happy to see you.\n&quot;;
+
+<span class="fc" id="L318">        ByteArrayInputStream stream = new ByteArrayInputStream(mapping.getBytes());</span>
+        try {
+<span class="fc" id="L320">            Messages.loadMessages(stream);</span>
+<span class="pc" id="L321">        } catch (IOException ioe) { fail(); }</span>
+
+<span class="fc" id="L323">        assertTrue(&quot;French people&quot;</span>
+<span class="fc" id="L324">            .equals(Messages.message(&quot;key.france&quot;)));</span>
+
+<span class="fc" id="L326">        StringTemplate t1 = StringTemplate.template(&quot;key.france&quot;)</span>
+<span class="fc" id="L327">            .addTagged(&quot;%randomKey%&quot;, &quot;country&quot;);</span>
+<span class="fc" id="L328">        assertTrue(&quot;France&quot;</span>
+<span class="fc" id="L329">            .equals(Messages.message(t1)));</span>
+
+<span class="fc" id="L331">        StringTemplate t2 = StringTemplate.template(&quot;greeting1&quot;)</span>
+<span class="fc" id="L332">            .add(&quot;%nation%&quot;, &quot;key.france&quot;);</span>
+<span class="fc" id="L333">        assertTrue(&quot;The French people are happy to see you.&quot;</span>
+<span class="fc" id="L334">            .equals(Messages.message(t2)));</span>
+
+<span class="fc" id="L336">        StringTemplate t3 = StringTemplate.template(&quot;greeting2&quot;)</span>
+<span class="fc" id="L337">            .add(&quot;%nation%&quot;, &quot;key.france&quot;);</span>
+<span class="fc" id="L338">        assertTrue(&quot;The French are happy to see you.&quot;</span>
+<span class="fc" id="L339">            .equals(Messages.message(t3)));</span>
+<span class="fc" id="L340">    }</span>
+
+    public void testNestedChoices() {
+<span class="fc" id="L343">        String mapping = &quot;key1=%colony% tuottaa tuotetta &quot;</span>
+            + &quot;{{tag:acc|%goods%}}.\n&quot;
+            + &quot;key2={{plural:%amount%|one=ruoka|other=ruokaa|&quot;
+            + &quot;default={{tag:|acc=viljaa|default=Vilja}}}}\n&quot;
+            + &quot;key3={{tag:|acc=viljaa|default={{plural:%amount%|one=ruoka|other=ruokaa|default=Ruoka}}}}\n&quot;;
+
+<span class="fc" id="L349">        ByteArrayInputStream stream = new ByteArrayInputStream(mapping.getBytes());</span>
+        try {
+<span class="fc" id="L351">            Messages.loadMessages(stream);</span>
+<span class="pc" id="L352">        } catch (IOException ioe) { fail(); }</span>
+
+<span class="fc" id="L354">        StringTemplate t = StringTemplate.template(&quot;key1&quot;)</span>
+<span class="fc" id="L355">            .addName(&quot;%colony%&quot;, &quot;someColony&quot;)</span>
+<span class="fc" id="L356">            .add(&quot;%goods%&quot;, &quot;key2&quot;);</span>
+<span class="fc" id="L357">        assertTrue(&quot;someColony tuottaa tuotetta viljaa.&quot;</span>
+<span class="fc" id="L358">            .equals(Messages.message(t)));</span>
+<span class="fc" id="L359">        assertTrue(&quot;Ruoka&quot;</span>
+<span class="fc" id="L360">            .equals(Messages.message(StringTemplate.key(&quot;key3&quot;))));</span>
+<span class="fc" id="L361">        assertTrue(&quot;Ruoka&quot;</span>
+<span class="fc" id="L362">            .equals(Messages.message(&quot;key3&quot;)));</span>
+<span class="fc" id="L363">    }</span>
+
+    public void testREFMessages() {
+<span class="fc" id="L366">        StringTemplate template = StringTemplate</span>
+<span class="fc" id="L367">            .template(Monarch.MonarchAction.ADD_TO_REF.getTextKey())</span>
+<span class="fc" id="L368">            .addAmount(&quot;%number%&quot;, 1)</span>
+<span class="fc" id="L369">            .addNamed(&quot;%unit%&quot;, kingsRegular);</span>
+<span class="fc" id="L370">        String expected = &quot;The Crown has added 1 King's Regular&quot;</span>
+            + &quot; to the Royal Expeditionary Force.&quot;
+            + &quot; Colonial leaders express concern.&quot;;
+<span class="fc" id="L373">        assertTrue(expected.equals(Messages.message(template)));</span>
+
+<span class="fc" id="L375">        template = StringTemplate</span>
+<span class="fc" id="L376">            .template(Monarch.MonarchAction.ADD_TO_REF.getTextKey())</span>
+<span class="fc" id="L377">            .addAmount(&quot;%number%&quot;, 2)</span>
+<span class="fc" id="L378">            .addNamed(&quot;%unit%&quot;, artillery);</span>
+<span class="fc" id="L379">        expected = &quot;The Crown has added 2 Pieces of Artillery&quot;</span>
+            + &quot; to the Royal Expeditionary Force.&quot;
+            + &quot; Colonial leaders express concern.&quot;;
+<span class="fc" id="L382">        assertTrue(expected.equals(Messages.message(template)));</span>
+
+<span class="fc" id="L384">        template = StringTemplate</span>
+<span class="fc" id="L385">            .template(Monarch.MonarchAction.ADD_TO_REF.getTextKey())</span>
+<span class="fc" id="L386">            .addAmount(&quot;%number%&quot;, 3)</span>
+<span class="fc" id="L387">            .addNamed(&quot;%unit%&quot;, manOWar);</span>
+<span class="fc" id="L388">        expected = &quot;The Crown has added 3 Men of War&quot;</span>
+            + &quot; to the Royal Expeditionary Force.&quot;
+            + &quot; Colonial leaders express concern.&quot;;
+<span class="fc" id="L391">        assertTrue(expected.equals(Messages.message(template)));</span>
+<span class="fc" id="L392">    }</span>
+
+    public void testAbstractUnitDescription() {
+<span class="fc" id="L395">        AbstractUnit au = new AbstractUnit(&quot;model.unit.merchantman&quot;,</span>
+<span class="fc" id="L396">                                           Specification.DEFAULT_ROLE_ID, 1);</span>
+<span class="fc" id="L397">        assertTrue(&quot;one Merchantman&quot;.equals(au.getDescription()));</span>
+<span class="fc" id="L398">    }</span>
+
+    public void testUnitDescription() {
+        // Unit.getDescription/getFullDescription are just wrappers around
+        // Messages.getTemplate/getFullTemplate.
+<span class="fc" id="L403">        Game game = getStandardGame();</span>
+<span class="fc" id="L404">        ServerPlayer dutch = (ServerPlayer)game</span>
+<span class="fc" id="L405">            .getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L406">        Nation refNation = dutch.getNation().getREFNation();</span>
+<span class="fc" id="L407">        ServerPlayer dutchREF = new ServerPlayer(game, false, refNation, </span>
+<span class="fc" id="L408">                                                 null, null);</span>
+<span class="fc" id="L409">        ServerPlayer sioux = (ServerPlayer)game</span>
+<span class="fc" id="L410">            .getPlayerByNationId(&quot;model.nation.sioux&quot;);</span>
+        Unit unit;
+
+        // King's regulars
+<span class="fc" id="L414">        unit = new ServerUnit(game, null, dutchREF, kingsRegular, defaultRole);</span>
+<span class="fc" id="L415">        assertEquals(&quot;King's Regular&quot;,</span>
+<span class="fc" id="L416">            unit.getDescription());</span>
+<span class="fc" id="L417">        assertEquals(&quot;Dutch Royal Expeditionary Force King's Regular&quot;,</span>
+<span class="fc" id="L418">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L419">        assertEquals(&quot;Dutch Royal Expeditionary Force King's Regular&quot;,</span>
+<span class="fc" id="L420">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L422">        unit.changeRole(infantryRole, 1);</span>
+<span class="fc" id="L423">        assertEquals(&quot;Infantry&quot;,</span>
+<span class="fc" id="L424">            unit.getDescription());</span>
+<span class="fc" id="L425">        assertEquals(&quot;Dutch Royal Expeditionary Force Infantry&quot;,</span>
+<span class="fc" id="L426">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L427">        assertEquals(&quot;Dutch Royal Expeditionary Force Infantry (50 Muskets)&quot;,</span>
+<span class="fc" id="L428">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L430">        unit.changeRole(cavalryRole, 1);</span>
+<span class="fc" id="L431">        assertEquals(&quot;Cavalry&quot;,</span>
+<span class="fc" id="L432">            unit.getDescription());</span>
+<span class="fc" id="L433">        assertEquals(&quot;Dutch Royal Expeditionary Force Cavalry&quot;,</span>
+<span class="fc" id="L434">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L435">        assertEquals(&quot;Dutch Royal Expeditionary Force Cavalry (50 Muskets 50 Horses)&quot;,</span>
+<span class="fc" id="L436">            unit.getDescription(UnitLabelType.FULL));</span>
+
+        // Colonial regulars
+<span class="fc" id="L439">        unit = new ServerUnit(game, null, dutch, colonialRegular, defaultRole);</span>
+<span class="fc" id="L440">        assertEquals(&quot;Colonial Regular&quot;,</span>
+<span class="fc" id="L441">            unit.getDescription());</span>
+<span class="fc" id="L442">        assertEquals(&quot;Dutch Colonial Regular&quot;,</span>
+<span class="fc" id="L443">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L444">        assertEquals(&quot;Dutch Colonial Regular&quot;,</span>
+<span class="fc" id="L445">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L447">        unit.changeRole(soldierRole, 1);</span>
+<span class="fc" id="L448">        assertEquals(&quot;Continental Army&quot;,</span>
+<span class="fc" id="L449">            unit.getDescription());</span>
+<span class="fc" id="L450">        assertEquals(&quot;Dutch Continental Army&quot;,</span>
+<span class="fc" id="L451">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L452">        assertEquals(&quot;Dutch Continental Army (50 Muskets)&quot;,</span>
+<span class="fc" id="L453">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L455">        unit.changeRole(dragoonRole, 1);</span>
+<span class="fc" id="L456">        assertEquals(&quot;Continental Cavalry&quot;,</span>
+<span class="fc" id="L457">            unit.getDescription());</span>
+<span class="fc" id="L458">        assertEquals(&quot;Dutch Continental Cavalry&quot;,</span>
+<span class="fc" id="L459">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L460">        assertEquals(&quot;Dutch Continental Cavalry (50 Muskets 50 Horses)&quot;,</span>
+<span class="fc" id="L461">            unit.getDescription(UnitLabelType.FULL));</span>
+
+        // Veteran Soldiers
+<span class="fc" id="L464">        unit = new ServerUnit(game, null, dutch, veteranSoldier, soldierRole);</span>
+<span class="fc" id="L465">        assertEquals(&quot;Veteran Soldier&quot;,</span>
+<span class="fc" id="L466">            unit.getDescription());</span>
+<span class="fc" id="L467">        assertEquals(&quot;Dutch Veteran Soldier&quot;,</span>
+<span class="fc" id="L468">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L469">        assertEquals(&quot;Dutch Veteran Soldier (50 Muskets)&quot;,</span>
+<span class="fc" id="L470">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L472">        unit.changeRole(defaultRole, 0);</span>
+<span class="fc" id="L473">        assertEquals(&quot;Veteran Soldier&quot;,</span>
+<span class="fc" id="L474">            unit.getDescription());</span>
+<span class="fc" id="L475">        assertEquals(&quot;Dutch Veteran Soldier&quot;,</span>
+<span class="fc" id="L476">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L477">        assertEquals(&quot;Dutch Veteran Soldier (no muskets)&quot;,</span>
+<span class="fc" id="L478">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L480">        unit.changeRole(dragoonRole, 1);</span>
+<span class="fc" id="L481">        assertEquals(&quot;Veteran Dragoon&quot;,</span>
+<span class="fc" id="L482">            unit.getDescription());</span>
+<span class="fc" id="L483">        assertEquals(&quot;Dutch Veteran Dragoon&quot;,</span>
+<span class="fc" id="L484">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L485">        assertEquals(&quot;Dutch Veteran Dragoon (50 Muskets 50 Horses)&quot;,</span>
+<span class="fc" id="L486">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L488">        unit.setName(&quot;Davy Crockett&quot;);</span>
+<span class="fc" id="L489">        assertEquals(&quot;Davy Crockett (Veteran Dragoon)&quot;,</span>
+<span class="fc" id="L490">            unit.getDescription());</span>
+<span class="fc" id="L491">        assertEquals(&quot;Davy Crockett (Dutch Veteran Dragoon)&quot;,</span>
+<span class="fc" id="L492">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L493">        assertEquals(&quot;Davy Crockett (Dutch Veteran Dragoon/50 Muskets 50 Horses)&quot;,</span>
+<span class="fc" id="L494">            unit.getDescription(UnitLabelType.FULL));</span>
+
+        // Indian Braves
+<span class="fc" id="L497">        unit = new ServerUnit(game, null, sioux, brave, defaultRole);</span>
+<span class="fc" id="L498">        assertEquals(&quot;Brave&quot;,</span>
+<span class="fc" id="L499">            unit.getDescription());</span>
+<span class="fc" id="L500">        assertEquals(&quot;Sioux Brave&quot;,</span>
+<span class="fc" id="L501">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L502">        assertEquals(&quot;Sioux Brave&quot;,</span>
+<span class="fc" id="L503">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L505">        unit.changeRole(armedBraveRole, 1);</span>
+<span class="fc" id="L506">        assertEquals(&quot;Armed Brave&quot;,</span>
+<span class="fc" id="L507">            unit.getDescription());</span>
+<span class="fc" id="L508">        assertEquals(&quot;Sioux Armed Brave&quot;,</span>
+<span class="fc" id="L509">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L510">        assertEquals(&quot;Sioux Armed Brave (25 Muskets)&quot;,</span>
+<span class="fc" id="L511">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L513">        unit.changeRole(mountedBraveRole, 1);</span>
+<span class="fc" id="L514">        assertEquals(&quot;Mounted Brave&quot;,</span>
+<span class="fc" id="L515">            unit.getDescription());</span>
+<span class="fc" id="L516">        assertEquals(&quot;Sioux Mounted Brave&quot;,</span>
+<span class="fc" id="L517">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L518">        assertEquals(&quot;Sioux Mounted Brave (25 Horses)&quot;,</span>
+<span class="fc" id="L519">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L521">        unit.changeRole(nativeDragoonRole, 1);</span>
+<span class="fc" id="L522">        assertEquals(&quot;Native Dragoon&quot;,</span>
+<span class="fc" id="L523">            unit.getDescription());</span>
+<span class="fc" id="L524">        assertEquals(&quot;Sioux Native Dragoon&quot;,</span>
+<span class="fc" id="L525">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L526">        assertEquals(&quot;Sioux Native Dragoon (25 Muskets 25 Horses)&quot;,</span>
+<span class="fc" id="L527">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L529">        unit.setName(&quot;Chingachgook&quot;);</span>
+<span class="fc" id="L530">        assertEquals(&quot;Chingachgook (Native Dragoon)&quot;,</span>
+<span class="fc" id="L531">            unit.getDescription());</span>
+<span class="fc" id="L532">        assertEquals(&quot;Chingachgook (Sioux Native Dragoon)&quot;,</span>
+<span class="fc" id="L533">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L534">        assertEquals(&quot;Chingachgook (Sioux Native Dragoon/25 Muskets 25 Horses)&quot;,</span>
+<span class="fc" id="L535">            unit.getDescription(UnitLabelType.FULL));</span>
+
+        // Hardy Pioneers
+<span class="fc" id="L538">        unit = new ServerUnit(game, null, dutch, hardyPioneer, pioneerRole);</span>
+<span class="fc" id="L539">        assertEquals(&quot;Hardy Pioneer&quot;,</span>
+<span class="fc" id="L540">            unit.getDescription());</span>
+<span class="fc" id="L541">        assertEquals(&quot;Dutch Hardy Pioneer (100 Tools)&quot;,</span>
+<span class="fc" id="L542">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L543">        assertEquals(&quot;Dutch Hardy Pioneer (100 Tools)&quot;,</span>
+<span class="fc" id="L544">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L546">        unit.changeRole(defaultRole, 0);</span>
+<span class="fc" id="L547">        assertEquals(&quot;Hardy Pioneer&quot;,</span>
+<span class="fc" id="L548">            unit.getDescription());</span>
+<span class="fc" id="L549">        assertEquals(&quot;Dutch Hardy Pioneer&quot;,</span>
+<span class="fc" id="L550">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L551">        assertEquals(&quot;Dutch Hardy Pioneer (no tools)&quot;,</span>
+<span class="fc" id="L552">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L554">        unit.setName(&quot;Daniel Boone&quot;);</span>
+<span class="fc" id="L555">        assertEquals(&quot;Daniel Boone (Hardy Pioneer)&quot;,</span>
+<span class="fc" id="L556">            unit.getDescription());</span>
+<span class="fc" id="L557">        assertEquals(&quot;Daniel Boone (Dutch Hardy Pioneer)&quot;,</span>
+<span class="fc" id="L558">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L559">        assertEquals(&quot;Daniel Boone (Dutch Hardy Pioneer/no tools)&quot;,</span>
+<span class="fc" id="L560">            unit.getDescription(UnitLabelType.FULL));</span>
+
+        // Jesuit Missionaries
+<span class="fc" id="L563">        unit = new ServerUnit(game, null, dutch, jesuitMissionary, </span>
+<span class="fc" id="L564">                              missionaryRole);</span>
+<span class="fc" id="L565">        assertEquals(&quot;Jesuit Missionary&quot;,</span>
+<span class="fc" id="L566">            unit.getDescription());</span>
+<span class="fc" id="L567">        assertEquals(&quot;Dutch Jesuit Missionary&quot;,</span>
+<span class="fc" id="L568">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L569">        assertEquals(&quot;Dutch Jesuit Missionary (1 Bible)&quot;,</span>
+<span class="fc" id="L570">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L572">        unit.changeRole(defaultRole, 0);</span>
+<span class="fc" id="L573">        assertEquals(&quot;Jesuit Missionary&quot;,</span>
+<span class="fc" id="L574">            unit.getDescription());</span>
+<span class="fc" id="L575">        assertEquals(&quot;Dutch Jesuit Missionary&quot;,</span>
+<span class="fc" id="L576">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L577">        assertEquals(&quot;Dutch Jesuit Missionary (not commissioned)&quot;,</span>
+<span class="fc" id="L578">            unit.getDescription(UnitLabelType.FULL));</span>
+
+        // Free Colonists
+<span class="fc" id="L581">        unit = new ServerUnit(game, null, dutch, freeColonist, defaultRole);</span>
+<span class="fc" id="L582">        assertEquals(&quot;Free Colonist&quot;,</span>
+<span class="fc" id="L583">            unit.getDescription());</span>
+<span class="fc" id="L584">        assertEquals(&quot;Dutch Free Colonist&quot;,</span>
+<span class="fc" id="L585">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L586">        assertEquals(&quot;Dutch Free Colonist&quot;,</span>
+<span class="fc" id="L587">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L589">        unit.setRole(soldierRole);</span>
+<span class="fc" id="L590">        assertEquals(&quot;Soldier (Free Colonist)&quot;,</span>
+<span class="fc" id="L591">            unit.getDescription());</span>
+<span class="fc" id="L592">        assertEquals(&quot;Dutch Soldier (Free Colonist)&quot;,</span>
+<span class="fc" id="L593">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L594">        assertEquals(&quot;Dutch Soldier (Free Colonist/50 Muskets)&quot;,</span>
+<span class="fc" id="L595">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L597">        unit.setName(&quot;John Doe&quot;);</span>
+<span class="fc" id="L598">        assertEquals(&quot;John Doe (Soldier/Free Colonist)&quot;,</span>
+<span class="fc" id="L599">            unit.getDescription());</span>
+<span class="fc" id="L600">        assertEquals(&quot;John Doe (Dutch Soldier/Free Colonist)&quot;,</span>
+<span class="fc" id="L601">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L602">        assertEquals(&quot;John Doe (Dutch Soldier/Free Colonist/50 Muskets)&quot;,</span>
+<span class="fc" id="L603">            unit.getDescription(UnitLabelType.FULL));</span>
+
+        // Expert
+<span class="fc" id="L606">        unit = new ServerUnit(game, null, dutch, masterCarpenter, defaultRole);</span>
+<span class="fc" id="L607">        assertEquals(&quot;Master Carpenter&quot;,</span>
+<span class="fc" id="L608">            unit.getDescription());</span>
+<span class="fc" id="L609">        assertEquals(&quot;Dutch Master Carpenter&quot;,</span>
+<span class="fc" id="L610">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L611">        assertEquals(&quot;Dutch Master Carpenter&quot;,</span>
+<span class="fc" id="L612">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L614">        unit.setRole(missionaryRole);</span>
+<span class="fc" id="L615">        assertEquals(&quot;Missionary (Master Carpenter)&quot;,</span>
+<span class="fc" id="L616">            unit.getDescription());</span>
+<span class="fc" id="L617">        assertEquals(&quot;Dutch Missionary (Master Carpenter)&quot;,</span>
+<span class="fc" id="L618">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L619">        assertEquals(&quot;Dutch Missionary (Master Carpenter/1 Bible)&quot;,</span>
+<span class="fc" id="L620">            unit.getDescription(UnitLabelType.FULL));</span>
+
+        // Treasure Train
+<span class="fc" id="L623">        unit = new ServerUnit(game, null, dutch, treasureTrain, defaultRole);</span>
+<span class="fc" id="L624">        unit.setTreasureAmount(4567);</span>
+<span class="fc" id="L625">        assertEquals(&quot;Treasure Train&quot;,</span>
+<span class="fc" id="L626">            unit.getDescription());</span>
+<span class="fc" id="L627">        assertEquals(&quot;Dutch Treasure Train&quot;,</span>
+<span class="fc" id="L628">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L629">        assertEquals(&quot;Dutch Treasure Train (4567 gold)&quot;,</span>
+<span class="fc" id="L630">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L632">        unit.setName(&quot;The Gold of El Dorado&quot;);</span>
+<span class="fc" id="L633">        assertEquals(&quot;The Gold of El Dorado (Treasure Train)&quot;,</span>
+<span class="fc" id="L634">            unit.getDescription());</span>
+<span class="fc" id="L635">        assertEquals(&quot;The Gold of El Dorado (Dutch Treasure Train)&quot;,</span>
+<span class="fc" id="L636">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L637">        assertEquals(&quot;The Gold of El Dorado (Dutch Treasure Train/4567 gold)&quot;,</span>
+<span class="fc" id="L638">            unit.getDescription(UnitLabelType.FULL));</span>
+
+        // Caravel
+<span class="fc" id="L641">        unit = new ServerUnit(game, null, dutch, caravel, defaultRole);</span>
+<span class="fc" id="L642">        assertEquals(&quot;Caravel&quot;,</span>
+<span class="fc" id="L643">            unit.getDescription());</span>
+<span class="fc" id="L644">        assertEquals(&quot;Dutch Caravel&quot;,</span>
+<span class="fc" id="L645">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L646">        assertEquals(&quot;Dutch Caravel&quot;,</span>
+<span class="fc" id="L647">            unit.getDescription(UnitLabelType.FULL));</span>
+
+<span class="fc" id="L649">        unit.setName(&quot;Santa Maria&quot;);</span>
+<span class="fc" id="L650">        assertEquals(&quot;Santa Maria (Caravel)&quot;,</span>
+<span class="fc" id="L651">            unit.getDescription());</span>
+<span class="fc" id="L652">        assertEquals(&quot;Santa Maria (Dutch Caravel)&quot;,</span>
+<span class="fc" id="L653">            unit.getDescription(UnitLabelType.NATIONAL));</span>
+<span class="fc" id="L654">        assertEquals(&quot;Santa Maria (Dutch Caravel)&quot;,</span>
+<span class="fc" id="L655">            unit.getDescription(UnitLabelType.FULL));</span>
+<span class="fc" id="L656">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

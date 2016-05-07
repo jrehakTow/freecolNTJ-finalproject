@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>CurrentPlayerNetworkRequestHandler.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">CurrentPlayerNetworkRequestHandler.java</span></div><h1>CurrentPlayerNetworkRequestHandler.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.control.FreeColServerHolder;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * A network request handler for the current player will automatically
+ * return an error (&amp;quot;not your turn&amp;quot;) if called by a
+ * connection other than that of the currently active player. If no
+ * game is active or if the player is unknown the same error is
+ * returned.
+ */
+public abstract class CurrentPlayerNetworkRequestHandler
+    extends FreeColServerHolder implements NetworkRequestHandler {
+
+
+    /**
+     * Create a new current player request handler.
+     *
+     * @param freeColServer The enclosing &lt;code&gt;FreeColServer&lt;/code&gt;.
+     */
+    public CurrentPlayerNetworkRequestHandler(FreeColServer freeColServer) {
+<span class="fc" id="L48">        super(freeColServer);</span>
+<span class="fc" id="L49">    }</span>
+
+
+    /**
+     * Check if a player is the current player.
+     * 
+     * @param player The &lt;code&gt;Player&lt;/code&gt; to check.
+     * @return true if a game is active and the player is the current one.
+     */
+    private boolean isCurrentPlayer(Player player) {
+<span class="fc" id="L59">        Game game = getGame();</span>
+<span class="pc bpc" id="L60" title="2 of 4 branches missed.">        return (player == null || game == null) ? false</span>
+<span class="fc" id="L61">            : player.equals(game.getCurrentPlayer());</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public final Element handle(Connection conn, Element element) {
+<span class="fc" id="L69">        final ServerPlayer serverPlayer = getFreeColServer().getPlayer(conn);</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (!isCurrentPlayer(serverPlayer)) {</span>
+<span class="fc" id="L71">            return serverPlayer.clientError(&quot;Received message: &quot;</span>
+<span class="fc" id="L72">                + element.getTagName() + &quot; out of turn from player: &quot;</span>
+<span class="fc" id="L73">                + serverPlayer.getNation())</span>
+<span class="fc" id="L74">                .build(serverPlayer);</span>
+        }
+<span class="fc" id="L76">        return handle(serverPlayer, conn, element);</span>
+    }
+
+    /**
+     * Handle a request for the current player.
+     * 
+     * @param player The requesting &lt;code&gt;Player&lt;/code&gt;.
+     * @param conn The &lt;code&gt;Connection&lt;/code&gt; the request originates from.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; with the request.
+     * @return An answerering &lt;code&gt;Element&lt;/code&gt;, which may be null.
+     */
+    protected abstract Element handle(Player player, Connection conn,
+                                      Element element);
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

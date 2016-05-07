@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>MessageMerge.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.i18n</a> &gt; <span class="el_source">MessageMerge.java</span></div><h1>MessageMerge.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.i18n;
+
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
+import javax.swing.WindowConstants;
+
+
+<span class="nc" id="L45">public final class MessageMerge {</span>
+
+    public static void main( String[] args )
+    {
+<span class="nc bnc" id="L49" title="All 2 branches missed.">        if ( args.length != 2 )</span>
+        {
+<span class="nc" id="L51">            System.err.println( &quot;use: MessageMerge path-to-file-1 path-to-file-2&quot; );</span>
+<span class="nc" id="L52">            System.exit( 1 );</span>
+        }
+
+<span class="nc" id="L55">              String  pathToFile1 = args[0];</span>
+<span class="nc" id="L56">        final String  pathToFile2 = args[1];</span>
+
+<span class="nc" id="L58">        final MergeTableModel  mergeTableModel = new MergeTableModel();</span>
+<span class="nc" id="L59">        mergeTableModel.merge = new Merge();</span>
+<span class="nc" id="L60">        mergeTableModel.merge.lineFromFile1 = loadLinesFromFile( pathToFile1 );</span>
+<span class="nc" id="L61">        mergeTableModel.merge.lineFromFile2 = loadLinesFromFile( pathToFile2 );</span>
+
+<span class="nc" id="L63">        final JTable  mergeTable = new JTable( mergeTableModel );</span>
+<span class="nc" id="L64">        mergeTable.setSelectionMode( ListSelectionModel.SINGLE_INTERVAL_SELECTION );</span>
+<span class="nc" id="L65">        mergeTable.setDefaultRenderer( Object.class, new MergeTableCellRenderer() );</span>
+
+<span class="nc" id="L67">        Action  insertInRightAction = new AbstractAction( &quot;insert in right&quot; )</span>
+        {
+            @Override
+            public void actionPerformed( ActionEvent event )
+            {
+<span class="nc" id="L72">                int  from = mergeTable.getSelectionModel().getMinSelectionIndex();</span>
+<span class="nc" id="L73">                int  to = mergeTable.getSelectionModel().getMaxSelectionIndex();</span>
+<span class="nc" id="L74">                mergeTableModel.insertInRight( from, to );</span>
+<span class="nc" id="L75">            }</span>
+        };
+
+<span class="nc" id="L78">        Action  deleteFromRightAction = new AbstractAction( &quot;delete from right&quot; )</span>
+        {
+            @Override
+            public void actionPerformed( ActionEvent event )
+            {
+<span class="nc" id="L83">                int  from = mergeTable.getSelectionModel().getMinSelectionIndex();</span>
+<span class="nc" id="L84">                int  to = mergeTable.getSelectionModel().getMaxSelectionIndex();</span>
+<span class="nc" id="L85">                mergeTableModel.deleteFromRight( from, to );</span>
+<span class="nc" id="L86">            }</span>
+        };
+
+<span class="nc" id="L89">        Action  saveRightAction = new AbstractAction( &quot;save right&quot; )</span>
+        {
+            @Override
+            public void actionPerformed( ActionEvent event )
+            {
+<span class="nc" id="L94">                saveLinesToFile( mergeTableModel.merge.lineFromFile2, pathToFile2 );</span>
+<span class="nc" id="L95">            }</span>
+        };
+
+<span class="nc" id="L98">        JPanel controlPanel = new JPanel(new GridLayout(1, 3));</span>
+<span class="nc" id="L99">        controlPanel.add(new JButton(insertInRightAction));</span>
+<span class="nc" id="L100">        controlPanel.add(new JButton(deleteFromRightAction));</span>
+<span class="nc" id="L101">        controlPanel.add(new JButton(saveRightAction));</span>
+
+<span class="nc" id="L103">        JPanel rootPane = new JPanel(new BorderLayout());</span>
+<span class="nc" id="L104">        rootPane.setBorder(BorderFactory.createEmptyBorder(3, 3, 3, 3));</span>
+<span class="nc" id="L105">        rootPane.add(new JScrollPane(mergeTable), BorderLayout.CENTER);</span>
+<span class="nc" id="L106">        rootPane.add(controlPanel, BorderLayout.SOUTH);</span>
+
+<span class="nc" id="L108">        JFrame frame = new JFrame(&quot;MessageMerge&quot;);</span>
+<span class="nc" id="L109">        frame.getContentPane().add(rootPane);</span>
+<span class="nc" id="L110">        frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);</span>
+<span class="nc" id="L111">        frame.addWindowListener(new WindowAdapter() {</span>
+                // for when the window is closed by the OS
+                @Override
+                public void windowClosing(WindowEvent event) {
+<span class="nc" id="L115">                    System.exit(0);</span>
+<span class="nc" id="L116">                }</span>
+
+                // for when the window is closed by Java
+                @Override
+                public void windowClosed(WindowEvent event) {
+<span class="nc" id="L121">                    windowClosing(event);</span>
+<span class="nc" id="L122">                }</span>
+            }
+        );
+
+<span class="nc" id="L126">        frame.pack();</span>
+<span class="nc" id="L127">        frame.setVisible(true);</span>
+<span class="nc" id="L128">    }</span>
+
+
+    private static List&lt;String&gt; loadLinesFromFile(String pathToFile) {
+        try {
+<span class="nc" id="L133">            List&lt;String&gt; lineList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L134">            FileInputStream in = new FileInputStream( pathToFile );</span>
+<span class="nc" id="L135">            StringBuilder line = new StringBuilder();</span>
+<span class="nc" id="L136">            while ( true )</span>
+            {
+<span class="nc" id="L138">                int  data = in.read();</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">                if ( -1 == data )</span>
+                {
+<span class="nc bnc" id="L141" title="All 2 branches missed.">                    if ( 0 &lt; line.length() ) { lineList.add( line.toString() ); }</span>
+<span class="nc" id="L142">                    break;</span>
+                }
+<span class="nc" id="L144">                char  c = (char) data;</span>
+                if ( '\r' == c )
+                {
+                    // do nothing
+                }
+<span class="nc bnc" id="L149" title="All 2 branches missed.">                if ( '\n' == c )</span>
+                {
+<span class="nc" id="L151">                    lineList.add( line.toString() );</span>
+<span class="nc" id="L152">                    line.setLength( 0 );</span>
+<span class="nc" id="L153">                }</span>
+                else {
+<span class="nc" id="L155">                    line.append( c );</span>
+                }
+            }
+<span class="nc" id="L158">            in.close();</span>
+<span class="nc" id="L159">            return lineList;</span>
+<span class="nc" id="L160">        } catch (IOException ex) {</span>
+<span class="nc" id="L161">            throw new RuntimeException(ex);</span>
+        }
+    }
+
+
+    private static void saveLinesToFile( List&lt;String&gt; lineList, String pathToFile )
+    {
+        try {
+<span class="nc" id="L169">            FileOutputStream  out = new FileOutputStream( pathToFile );</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">            for ( int lineNumber = 0, lines = lineList.size();  lineNumber &lt; lines;  lineNumber ++ )</span>
+            {
+<span class="nc" id="L172">                String  line = (String) lineList.get( lineNumber );</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">                for ( int i = 0;  i &lt; line.length();  i ++ )</span>
+                {
+<span class="nc" id="L175">                    out.write( line.charAt(i) );</span>
+                }
+<span class="nc" id="L177">                out.write( '\n' );</span>
+            }
+<span class="nc" id="L179">            out.close();</span>
+<span class="nc" id="L180">        } catch (IOException ex) {</span>
+<span class="nc" id="L181">            throw new RuntimeException(ex);</span>
+        }
+<span class="nc" id="L183">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

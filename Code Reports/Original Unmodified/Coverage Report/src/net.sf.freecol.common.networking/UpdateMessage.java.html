@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>UpdateMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">UpdateMessage.java</span></div><h1>UpdateMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import net.sf.freecol.common.model.FreeColGameObject;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent to update game objects.
+ */
+public class UpdateMessage extends DOMMessage {
+
+    public static final String TAG = &quot;update&quot;;
+
+    /** The players to add. */
+<span class="nc" id="L42">    private final List&lt;FreeColGameObject&gt; fcgos = new ArrayList&lt;&gt;();</span>
+
+
+    /**
+     * Create a new &lt;code&gt;UpdateMessage&lt;/code&gt;.
+     *
+     * @param fcgos The list of &lt;code&gt;FreeColGameObject&lt;/code&gt;s to add.
+     */
+    public UpdateMessage(List&lt;FreeColGameObject&gt; fcgos) {
+<span class="nc" id="L51">        super(getTagName());</span>
+
+<span class="nc" id="L53">        this.fcgos.clear();</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">        if (fcgos != null) this.fcgos.addAll(fcgos);</span>
+<span class="nc" id="L55">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;UpdateMessage&lt;/code&gt; from a supplied
+     * element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public UpdateMessage(Game game, Element element) {
+<span class="nc" id="L65">        this(null);</span>
+
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        for (FreeColGameObject f : mapChildren(element, (e) -&gt;</span>
+<span class="nc" id="L68">                DOMMessage.updateFromElement(game, e))) {</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">            if (f != null) this.fcgos.add(f);</span>
+        }
+<span class="nc" id="L71">    }</span>
+
+
+    // Public interface
+
+    /**
+     * Get the objects attached to this message.
+     *
+     * @return The list of &lt;code&gt;FreeColGameObject&lt;/code&gt;s.
+     */
+    public List&lt;FreeColGameObject&gt; getObjects() {
+<span class="nc" id="L82">        return this.fcgos;</span>
+    }
+
+    
+    /**
+     * Handle a &quot;update&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; handling the message.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; the message applies to.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message was received on.
+     * @return Null.
+     */
+    public Element handle(FreeColServer server, Player player,
+                          Connection connection) {
+        // Only sent by the server to the clients.
+<span class="nc" id="L97">        return null;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="nc" id="L105">        return new DOMMessage(getTagName())</span>
+<span class="nc" id="L106">            .add(this.fcgos).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;update&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L115">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>TileItem.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">TileItem.java</span></div><h1>TileItem.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.List;
+import java.util.logging.Logger;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.model.Map.Layer;
+
+
+/**
+ * Represents a &lt;code&gt;TileItem&lt;/code&gt; item on a &lt;code&gt;Tile&lt;/code&gt;.
+ */
+public abstract class TileItem extends FreeColGameObject
+    implements Locatable, Named {
+
+<span class="fc" id="L37">    private static final Logger logger = Logger.getLogger(TileItem.class.getName());</span>
+
+    /** The tile where the tile item is. */
+    protected Tile tile;
+
+
+    /**
+     * Creates a new &lt;code&gt;TileItem&lt;/code&gt;.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param tile The location of this &lt;code&gt;TileItem&lt;/code&gt;.
+     */
+    public TileItem(Game game, Tile tile) {
+<span class="fc" id="L50">        super(game);</span>
+
+<span class="pc bpc" id="L52" title="1 of 2 branches missed.">        if (tile == null) {</span>
+<span class="nc" id="L53">            throw new IllegalArgumentException(&quot;Parameter 'tile' must not be 'null'.&quot;);</span>
+        }
+<span class="fc" id="L55">        this.tile = tile;</span>
+<span class="fc" id="L56">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;TileItem&lt;/code&gt; from an XML stream.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param xr The input stream containing the XML.
+     * @exception XMLStreamException if a problem was encountered
+     *     during parsing.
+     */
+    public TileItem(Game game, FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L67">        super(game, null);</span>
+<span class="nc" id="L68">    }</span>
+
+    /**
+     * Initiates a new &lt;code&gt;TileItem&lt;/code&gt; with the given
+     * identifier.  The object should later be initialized by calling
+     * either {@link #readFromXML(FreeColXMLReader)}.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param id The object identifier.
+     */
+    public TileItem(Game game, String id) {
+<span class="fc" id="L79">        super(game, id);</span>
+<span class="fc" id="L80">    }</span>
+
+
+    // Routines to be implemented by subclasses.
+
+    /**
+     * Get the &lt;code&gt;ZIndex&lt;/code&gt; value.
+     *
+     * @return The z-index.
+     */
+    public abstract int getZIndex();
+
+    /**
+     * Is a tile type compatible with this tile item?
+     *
+     * @param tileType The &lt;code&gt;TileType&lt;/code&gt; to check.
+     * @return True if the tile type is compatible.
+     */
+    public abstract boolean isTileTypeAllowed(TileType tileType);
+
+    /**
+     * Applies the production bonus for the given goods type and unit
+     * type to the given potential production.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to produce.
+     * @param unitType The &lt;code&gt;UnitType&lt;/code&gt; that is to work.
+     * @param potential The base potential production.
+     * @return The production with resource bonuses.
+     */
+    public abstract int applyBonus(GoodsType goodsType, UnitType unitType,
+                                   int potential);
+
+    /**
+     * Does this tile item allow its enclosing tile to produce a given
+     * goods type?
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to produce.
+     * @param unitType The optional &lt;code&gt;unitType&lt;/code&gt; to produce with.
+     * @return True if this tile item produces the goods.
+     */
+    public abstract boolean canProduce(GoodsType goodsType,
+                                       UnitType unitType);
+
+    /**
+     * Gets the production modifiers for the given type of goods and unit.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to produce.
+     * @param unitType The optional &lt;code&gt;unitType&lt;/code&gt; to produce them.
+     * @return A list of the applicable modifiers.
+     */
+    public abstract List&lt;Modifier&gt; getProductionModifiers(GoodsType goodsType,
+                                                          UnitType unitType);
+
+    /**
+     * Is this a natural TileItem?
+     *
+     * @return True if this is a natural &lt;code&gt;TileItem&lt;/code&gt;.
+     */
+    public abstract boolean isNatural();
+
+    /**
+     * Is this improvement complete?
+     *
+     * @return True if complete.
+     */
+    public abstract boolean isComplete();
+
+    /**
+     * Get the layer associated with this tile item.
+     *
+     * @return The layer.
+     */
+    public abstract Layer getLayer();
+
+
+    // Interface Locatable
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Location getLocation() {
+<span class="nc" id="L162">        return tile;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean setLocation(Location newLocation) {
+<span class="pc bpc" id="L170" title="3 of 4 branches missed.">        if (newLocation == null || newLocation instanceof Tile) {</span>
+<span class="fc" id="L171">            tile = (Tile)newLocation;</span>
+<span class="fc" id="L172">            return true;</span>
+        }
+<span class="nc" id="L174">        throw new IllegalArgumentException(&quot;newLocation is not a Tile&quot;);</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isInEurope() {
+<span class="nc" id="L182">        return false;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Tile getTile() {
+<span class="fc" id="L190">        return tile;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getSpaceTaken() {
+<span class="nc" id="L198">        return 0;</span>
+    }
+
+    // Interface Named
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public abstract String getNameKey();
+
+
+    // Override FreeColGameObject
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int checkIntegrity(boolean fix) {
+<span class="fc" id="L217">        int result = super.checkIntegrity(fix);</span>
+<span class="pc bpc" id="L218" title="1 of 2 branches missed.">        if (this.tile == null) {</span>
+<span class="nc" id="L219">            logger.warning(&quot;Tile item with no tile: &quot; + this.getId());</span>
+<span class="nc" id="L220">            return -1;</span>
+        }
+<span class="fc" id="L222">        return result;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

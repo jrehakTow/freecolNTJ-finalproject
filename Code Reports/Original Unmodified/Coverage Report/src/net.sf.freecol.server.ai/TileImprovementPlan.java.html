@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>TileImprovementPlan.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai</a> &gt; <span class="el_source">TileImprovementPlan.java</span></div><h1>TileImprovementPlan.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai;
+
+import java.util.Comparator;
+import java.util.function.Predicate;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TileImprovementType;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+
+
+/**
+ * Represents a plan to improve a &lt;code&gt;Tile&lt;/code&gt; in some way.
+ * For instance by plowing or by building a road.
+ *
+ * @see Tile
+ */
+public class TileImprovementPlan extends ValuedAIObject {
+
+<span class="fc" id="L46">    private static final Logger logger = Logger.getLogger(TileImprovementPlan.class.getName());</span>
+
+    /** The type of improvement, from TileImprovementTypes. */
+    private TileImprovementType type;
+
+    /** The &lt;code&gt;Tile&lt;/code&gt; to be improved. */
+    private Tile target;
+
+    /**
+     * The pioneer which should make the improvement (if a
+     * &lt;code&gt;Unit&lt;/code&gt; has been assigned).
+     */
+<span class="pc" id="L58">    private AIUnit pioneer = null;</span>
+
+
+    /**
+     * Creates a new uninitialized &lt;code&gt;TileImprovementPlan&lt;/code&gt;
+     * from the given XML-representation.
+     *
+     * @param aiMain The main AI-object.
+     * @param id The object identifier.
+     * @throws XMLStreamException if a problem was encountered
+     *     during parsing.
+     */
+    public TileImprovementPlan(AIMain aiMain, String id)
+        throws XMLStreamException {
+<span class="nc" id="L72">        super(aiMain, id);</span>
+
+<span class="nc" id="L74">        type = null;</span>
+<span class="nc" id="L75">        target = null;</span>
+<span class="nc" id="L76">        pioneer = null;</span>
+<span class="nc" id="L77">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;TileImprovementPlan&lt;/code&gt;.
+     *
+     * @param aiMain The main AI-object.
+     * @param target The target &lt;code&gt;Tile&lt;/code&gt; for the improvement.
+     * @param type The type of improvement.
+     * @param value The value identifying the importance of
+     *     this &lt;code&gt;TileImprovementPlan&lt;/code&gt; - a higher value
+     *     signals a higher importance.
+     */
+    public TileImprovementPlan(AIMain aiMain, Tile target,
+                               TileImprovementType type, int value) {
+<span class="fc" id="L91">        super(aiMain, getTagName() + &quot;:&quot; + aiMain.getNextId());</span>
+
+<span class="fc" id="L93">        this.target = target;</span>
+<span class="fc" id="L94">        this.type = type;</span>
+<span class="fc" id="L95">        this.pioneer = null;</span>
+<span class="fc" id="L96">        setValue(value);</span>
+<span class="pc bpc" id="L97" title="2 of 4 branches missed.">        uninitialized = getType() == null || getTarget() == null;</span>
+<span class="fc" id="L98">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;TileImprovementPlan&lt;/code&gt; from the given
+     * XML-representation.
+     *
+     * @param aiMain The main AI-object.
+     * @param xr The input stream containing the XML.
+     * @throws XMLStreamException if a problem was encountered
+     *     during parsing.
+     */
+    public TileImprovementPlan(AIMain aiMain,
+                               FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L111">        super(aiMain, xr);</span>
+
+<span class="nc bnc" id="L113" title="All 4 branches missed.">        uninitialized = getType() == null || getTarget() == null;</span>
+<span class="nc" id="L114">    }</span>
+
+
+    /**
+     * Gets the pioneer who have been assigned to making the
+     * improvement described by this object.
+     *
+     * @return The pioneer which should make the improvement, if
+     *     such a &lt;code&gt;AIUnit&lt;/code&gt; has been assigned, and
+     *     &lt;code&gt;null&lt;/code&gt; if nobody has been assigned this
+     *     mission.
+     */
+    public final AIUnit getPioneer() {
+<span class="fc" id="L127">        return pioneer;</span>
+    }
+
+    /**
+     * Sets the pioneer who have been assigned to making the
+     * improvement described by this object.
+     *
+     * @param pioneer The pioneer which should make the improvement, if
+     *     such a &lt;code&gt;Unit&lt;/code&gt; has been assigned, and
+     *     &lt;code&gt;null&lt;/code&gt; if nobody has been assigned this
+     *     mission.
+     */
+    public final void setPioneer(AIUnit pioneer) {
+<span class="fc" id="L140">        this.pioneer = pioneer;</span>
+<span class="fc" id="L141">    }</span>
+
+    /**
+     * Gets the &lt;code&gt;TileImprovementType&lt;/code&gt; of this plan.
+     *
+     * @return The type of the improvement.
+     */
+    public final TileImprovementType getType() {
+<span class="fc" id="L149">        return type;</span>
+    }
+
+    /**
+     * Sets the type of this &lt;code&gt;TileImprovementPlan&lt;/code&gt;.
+     *
+     * @param type The &lt;code&gt;TileImprovementType&lt;/code&gt;.
+     * @see #getType
+     */
+    public final void setType(TileImprovementType type) {
+<span class="nc" id="L159">        this.type = type;</span>
+<span class="nc" id="L160">    }</span>
+
+    /**
+     * Gets the target of this &lt;code&gt;TileImprovementPlan&lt;/code&gt;.
+     *
+     * @return The &lt;code&gt;Tile&lt;/code&gt; where
+     *     {@link #getPioneer pioneer} should make the
+     *     given {@link #getType improvement}.
+     */
+    public final Tile getTarget() {
+<span class="fc" id="L170">        return target;</span>
+    }
+
+    /**
+     * Gets the 'most effective' TileImprovementType allowed for a
+     * given tile and goods type.  Useful for AI in deciding the
+     * improvements to prioritize.
+     *
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; that will be improved.
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to be prioritized.
+     * @return The best &lt;code&gt;TileImprovementType&lt;/code&gt; available to be done.
+     */
+    public static TileImprovementType getBestTileImprovementType(Tile tile,
+        GoodsType goodsType) {
+<span class="fc" id="L184">        final Specification spec = tile.getSpecification();</span>
+<span class="fc" id="L185">        final Predicate&lt;TileImprovementType&gt; pred = it -&gt;</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">            !it.isNatural()</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">                &amp;&amp; it.isTileTypeAllowed(tile.getType())</span>
+                // FIXME: For now, disable any exotic non-Col1
+                // improvement types that expend more than one parcel
+                // of tools (e.g. plantForest), because
+                // PioneeringMission assumes this does not happen.
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">                &amp;&amp; it.getExpendedAmount() &lt;= 1</span>
+<span class="fc bfc" id="L193" title="All 2 branches covered.">                &amp;&amp; tile.getTileImprovement(it) == null;</span>
+<span class="fc" id="L194">        final Comparator&lt;TileImprovementType&gt; comp = cachingIntComparator(it -&gt;</span>
+<span class="fc" id="L195">            it.getImprovementValue(tile, goodsType));</span>
+<span class="fc" id="L196">        TileImprovementType best = maximize(spec.getTileImprovementTypeList(),</span>
+<span class="fc" id="L197">                                            pred, comp);</span>
+<span class="pc bpc" id="L198" title="1 of 4 branches missed.">        return (best == null || best.getImprovementValue(tile, goodsType) &lt;= 0)</span>
+<span class="fc" id="L199">            ? null</span>
+<span class="fc" id="L200">            : best;</span>
+    }
+
+    /**
+     * Updates this tile improvement plan to the best available for its
+     * tile and the specified goods type.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to be prioritized.
+     * @return True if the plan is still viable.
+     */
+    public boolean update(GoodsType goodsType) {
+<span class="nc" id="L211">        TileImprovementType type = getBestTileImprovementType(target, goodsType);</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">        if (type == null) return false;</span>
+<span class="nc" id="L213">        setType(type);</span>
+<span class="nc" id="L214">        setValue(type.getImprovementValue(target, goodsType));</span>
+<span class="nc" id="L215">        return true;</span>
+    }
+
+    /**
+     * Is this improvement complete?
+     *
+     * @return True if the tile improvement has been completed.
+     */
+    public boolean isComplete() {
+<span class="pc bpc" id="L224" title="2 of 4 branches missed.">        return target != null &amp;&amp; target.hasTileImprovement(getType());</span>
+    }
+
+    /**
+     * Weeds out a broken or obsolete tile improvement plan.
+     *
+     * @return True if the plan survives this check.
+     */
+    public boolean validate() {
+<span class="pc bpc" id="L233" title="1 of 2 branches missed.">        if (type == null) {</span>
+<span class="nc" id="L234">            logger.warning(&quot;Removing typeless TileImprovementPlan&quot;);</span>
+<span class="nc" id="L235">            dispose();</span>
+<span class="nc" id="L236">            return false;</span>
+        }
+<span class="pc bpc" id="L238" title="1 of 2 branches missed.">        if (target == null) {</span>
+<span class="nc" id="L239">            logger.warning(&quot;Removing targetless TileImprovementPlan&quot;);</span>
+<span class="nc" id="L240">            dispose();</span>
+<span class="nc" id="L241">            return false;</span>
+        }
+<span class="pc bpc" id="L243" title="1 of 2 branches missed.">        if (getPioneer() != null</span>
+<span class="nc bnc" id="L244" title="All 2 branches missed.">            &amp;&amp; (getPioneer().getUnit() == null</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">                || getPioneer().getUnit().isDisposed())) {</span>
+<span class="nc" id="L246">            logger.warning(&quot;Clearing broken pioneer for TileImprovementPlan&quot;);</span>
+<span class="nc" id="L247">            setPioneer(null);</span>
+        }
+<span class="fc" id="L249">        return true;</span>
+    }
+
+
+    // Override AIObject
+
+    /**
+     * Disposes this &lt;code&gt;TileImprovementPlan&lt;/code&gt;.
+     *
+     * If a pioneer has been assigned to making this improvement, then
+     * abort its mission.
+     */
+    @Override
+    public void dispose() {
+<span class="nc" id="L263">        this.pioneer = null;</span>
+<span class="nc" id="L264">        super.dispose();</span>
+<span class="nc" id="L265">    }</span>
+
+    /**
+     * Checks the integrity of a this TileImprovementPlan.
+     *
+     * @param fix Fix problems if possible.
+     * @return Negative if there are problems remaining, zero if
+     *     problems were fixed, positive if no problems found at all.
+     */
+    @Override
+    public int checkIntegrity(boolean fix) {
+<span class="nc" id="L276">        int result = super.checkIntegrity(fix);</span>
+<span class="nc bnc" id="L277" title="All 2 branches missed.">        if (pioneer != null) {</span>
+<span class="nc" id="L278">            result = Math.min(result, pioneer.checkIntegrity(fix));</span>
+        }
+<span class="nc bnc" id="L280" title="All 4 branches missed.">        if (type == null || target == null) result = -1;</span>
+<span class="nc" id="L281">        return result;</span>
+    }
+
+
+    // Serialization
+
+    private static final String PIONEER_TAG = &quot;pioneer&quot;;
+    private static final String TARGET_TAG = &quot;target&quot;;
+<span class="fc" id="L289">    private static final String TYPE_TAG = &quot;type&quot;;</span>
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void toXML(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc bnc" id="L297" title="All 2 branches missed.">        if (validate()) toXML(xw, getXMLTagName());</span>
+<span class="nc" id="L298">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L305">        super.writeAttributes(xw);</span>
+
+<span class="nc" id="L307">        xw.writeAttribute(TYPE_TAG, type);</span>
+
+<span class="nc" id="L309">        xw.writeAttribute(TARGET_TAG, target);</span>
+
+<span class="nc bnc" id="L311" title="All 4 branches missed.">        if (pioneer != null &amp;&amp; pioneer.checkIntegrity(false) &gt; 0) {</span>
+<span class="nc" id="L312">            xw.writeAttribute(PIONEER_TAG, pioneer);</span>
+        }
+<span class="nc" id="L314">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L321">        super.readAttributes(xr);</span>
+
+<span class="nc" id="L323">        final AIMain aiMain = getAIMain();</span>
+<span class="nc" id="L324">        final Specification spec = getSpecification();</span>
+        
+<span class="nc" id="L326">        type = xr.getType(spec, TYPE_TAG, </span>
+<span class="nc" id="L327">                          TileImprovementType.class, (TileImprovementType)null);</span>
+
+<span class="nc bnc" id="L329" title="All 2 branches missed.">        pioneer = (xr.hasAttribute(PIONEER_TAG))</span>
+<span class="nc" id="L330">            ? xr.makeAIObject(aiMain, PIONEER_TAG,</span>
+<span class="nc" id="L331">                              AIUnit.class, (AIUnit)null, true)</span>
+<span class="nc" id="L332">            : null;</span>
+
+<span class="nc" id="L334">        target = xr.getAttribute(getGame(), TARGET_TAG,</span>
+<span class="nc" id="L335">                                 Tile.class, (Tile)null);</span>
+<span class="nc" id="L336">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChildren(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L343">        super.readChildren(xr);</span>
+
+<span class="nc bnc" id="L345" title="All 4 branches missed.">        if (type != null &amp;&amp; target != null) uninitialized = false;</span>
+<span class="nc" id="L346">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L353">        StringBuilder sb = new StringBuilder(32);</span>
+<span class="nc" id="L354">        sb.append(&quot;[&quot;).append(getId())</span>
+<span class="nc bnc" id="L355" title="All 2 branches missed.">            .append(&quot; &quot;).append((type == null) ? &quot;null&quot; : type.getSuffix())</span>
+<span class="nc bnc" id="L356" title="All 2 branches missed.">            .append(&quot; at &quot;).append((target == null) ? &quot;null&quot;</span>
+<span class="nc" id="L357">                : target.toShortString())</span>
+<span class="nc" id="L358">            .append(&quot;/&quot;).append(getValue())</span>
+<span class="nc" id="L359">            .append(&quot;]&quot;);</span>
+<span class="nc" id="L360">        return sb.toString();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="nc" id="L367">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;tileImprovementPlan&quot;
+     */
+    public static String getTagName() {
+<span class="fc" id="L375">        return &quot;tileImprovementPlan&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

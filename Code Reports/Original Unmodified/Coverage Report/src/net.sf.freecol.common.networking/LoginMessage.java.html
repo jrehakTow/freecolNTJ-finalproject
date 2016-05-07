@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>LoginMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">LoginMessage.java</span></div><h1>LoginMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.FreeCol;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.networking.AddPlayerMessage;
+import net.sf.freecol.common.networking.ErrorMessage;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent when logging in.
+ */
+public class LoginMessage extends DOMMessage {
+
+    public static final String TAG = &quot;login&quot;;
+    private static final String ADMIN_TAG = &quot;admin&quot;;
+    private static final String CURRENT_PLAYER_TAG = &quot;currentPlayer&quot;;
+    private static final String SINGLE_PLAYER_TAG = &quot;singlePlayer&quot;;
+    private static final String START_GAME_TAG = &quot;startGame&quot;;
+    private static final String USER_NAME_TAG = &quot;userName&quot;;
+    private static final String VERSION_TAG = &quot;version&quot;;
+    
+    /** The user name. */
+    private final String userName;
+
+    /** The client FreeCol version. */
+    private final String version;
+
+    /** Is the player an admin. */
+    private final boolean admin;
+
+    /** Whether to start the game. */
+    private final boolean startGame;
+
+    /** Is this a single player game. */
+    private final boolean singlePlayer;
+
+    /** Is the client the current player. */
+    private final boolean currentPlayer;
+
+    /** The game. */
+    private final Game game;
+
+        
+    /**
+     * Create a new &lt;code&gt;LoginMessage&lt;/code&gt; with the supplied parameters.
+     *
+     * @param userName The name of the user logging in.
+     * @param version The version of FreeCol at the client.
+     * @param admin Is the player an administrator?
+     * @param startGame Whether to start the game.
+     * @param singlePlayer True in single player games.
+     * @param currentPlayer True if this player is the current player.
+     * @param game The entire game.
+     */
+    public LoginMessage(String userName, String version,
+                        boolean admin, boolean startGame, boolean singlePlayer,
+                        boolean currentPlayer, Game game) {
+<span class="fc" id="L82">        super(getTagName());</span>
+
+<span class="fc" id="L84">        this.userName = userName;</span>
+<span class="fc" id="L85">        this.version = version;</span>
+<span class="fc" id="L86">        this.admin = admin;</span>
+<span class="fc" id="L87">        this.startGame = startGame;</span>
+<span class="fc" id="L88">        this.singlePlayer = singlePlayer;</span>
+<span class="fc" id="L89">        this.currentPlayer = currentPlayer;</span>
+<span class="fc" id="L90">        this.game = game;</span>
+<span class="fc" id="L91">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;LoginMessage&lt;/code&gt; request with name and version
+     * only.
+     *
+     * @param userName The name of the user logging in.
+     * @param version The version of FreeCol at the client.
+     */
+    public LoginMessage(String userName, String version) {
+<span class="fc" id="L101">        this(userName, version, false, false, false, false, null);</span>
+<span class="fc" id="L102">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;LoginMessage&lt;/code&gt; from a supplied element.
+     *
+     * @param game A &lt;code&gt;Game&lt;/code&gt; (not used).
+     * @param e The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public LoginMessage(Game game, Element e) {
+<span class="fc" id="L111">        super(getTagName());</span>
+
+<span class="fc" id="L113">        this.userName = getStringAttribute(e, USER_NAME_TAG);</span>
+<span class="fc" id="L114">        this.version = getStringAttribute(e, VERSION_TAG);</span>
+<span class="fc" id="L115">        this.admin = getBooleanAttribute(e, ADMIN_TAG, false);</span>
+<span class="fc" id="L116">        this.startGame = getBooleanAttribute(e, START_GAME_TAG, false);</span>
+<span class="fc" id="L117">        this.singlePlayer = getBooleanAttribute(e, SINGLE_PLAYER_TAG, true);</span>
+<span class="fc" id="L118">        this.currentPlayer = getBooleanAttribute(e, CURRENT_PLAYER_TAG, false);</span>
+<span class="fc" id="L119">        this.game = getChild(game, e, 0, true, Game.class);</span>
+<span class="fc" id="L120">    }</span>
+
+
+    // Public interface
+
+    public String getUserName() {
+<span class="nc" id="L126">        return this.userName;</span>
+    }
+
+    public String getVersion() {
+<span class="nc" id="L130">        return this.version;</span>
+    }
+
+    public boolean isAdmin() {
+<span class="nc" id="L134">        return this.admin;</span>
+    }
+
+    public boolean getStartGame() {
+<span class="nc" id="L138">        return this.startGame;</span>
+    }
+
+    public boolean isSinglePlayer() {
+<span class="nc" id="L142">        return this.singlePlayer;</span>
+    }
+
+    public boolean isCurrentPlayer() {
+<span class="nc" id="L146">        return this.currentPlayer;</span>
+    }
+
+    public Game getGame() {
+<span class="nc" id="L150">        return this.game;</span>
+    }
+
+
+    /**
+     * Handle a &quot;login&quot;-message.
+     *
+     * FIXME: Do not allow more than one (human) player to connect
+     * to a single player game. This would be easy if we used a
+     * dummy connection for single player games.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; handling the message.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message was received on.
+     * @return An &lt;code&gt;Element&lt;/code&gt; to update the originating player
+     *     with the result of the query.
+     */
+    public Element handle(FreeColServer server, Connection connection) {
+<span class="pc bpc" id="L167" title="2 of 4 branches missed.">        if (this.userName == null || this.userName.isEmpty()) {</span>
+<span class="nc" id="L168">            return new ErrorMessage(&quot;server.missingUserName&quot;, null)</span>
+<span class="nc" id="L169">                .toXMLElement();</span>
+<span class="pc bpc" id="L170" title="2 of 4 branches missed.">        } else if (this.version == null || this.version.isEmpty()) {</span>
+<span class="nc" id="L171">            return new ErrorMessage(&quot;server.missingVersion&quot;, null)</span>
+<span class="nc" id="L172">                .toXMLElement();</span>
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">        } else if (!this.version.equals(FreeCol.getVersion())) {</span>
+<span class="nc" id="L174">            return new ErrorMessage(&quot;server.wrongFreeColVersion&quot;,</span>
+<span class="nc" id="L175">                this.version + &quot; != &quot; + FreeCol.getVersion()).toXMLElement();</span>
+        }
+
+        Game game;
+        ServerPlayer player;
+<span class="fc" id="L180">        boolean isCurrentPlayer = false;</span>
+        MessageHandler mh;
+<span class="pc bpc" id="L182" title="1 of 2 branches missed.">        boolean starting = server.getGameState()</span>
+<span class="fc" id="L183">            == FreeColServer.GameState.STARTING_GAME;</span>
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">        if (starting) {</span>
+            // Wait until the game has been created.
+            // FIXME: is this still needed?
+<span class="nc" id="L187">            int timeOut = 20000;</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">            while ((game = server.getGame()) == null) {</span>
+                try {
+<span class="nc" id="L190">                    Thread.sleep(1000);</span>
+<span class="nc" id="L191">                } catch (InterruptedException e) {}</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">                if ((timeOut -= 1000) &lt;= 0) {</span>
+<span class="nc" id="L193">                    return new ErrorMessage(&quot;server.timeOut&quot;, null)</span>
+<span class="nc" id="L194">                        .toXMLElement();</span>
+                }
+            }
+
+<span class="nc bnc" id="L198" title="All 2 branches missed.">            if (!game.canAddNewPlayer()) {</span>
+<span class="nc" id="L199">                return new ErrorMessage(&quot;server.maximumPlayers&quot;, null)</span>
+<span class="nc" id="L200">                    .toXMLElement();</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">            } else if (game.playerNameInUse(this.userName)) {</span>
+<span class="nc" id="L202">                return new ErrorMessage(&quot;server.userNameInUse&quot;,</span>
+<span class="nc" id="L203">                    this.userName + &quot; is already in use.&quot;).toXMLElement();</span>
+            }
+
+            // Create and add the new player:
+<span class="nc" id="L207">            boolean admin = game.getLivePlayers(null).isEmpty();</span>
+<span class="nc" id="L208">            player = new ServerPlayer(game, admin, game.getVacantNation(),</span>
+<span class="nc" id="L209">                                      connection.getSocket(), connection);</span>
+<span class="nc" id="L210">            player.setName(userName);</span>
+<span class="nc" id="L211">            game.addPlayer(player);</span>
+
+            // Send message to all players except to the new player.
+            // FIXME: check visibility.
+<span class="nc" id="L215">            server.sendToAll(new AddPlayerMessage(player), connection);</span>
+
+            // Ready now to handle pre-game messages.
+<span class="nc" id="L218">            mh = server.getPreGameInputHandler();</span>
+
+<span class="nc" id="L220">        } else { // Restoring from existing game.</span>
+<span class="fc" id="L221">            game = server.getGame();</span>
+<span class="fc" id="L222">            player = (ServerPlayer)game.getPlayerByName(this.userName);</span>
+<span class="pc bpc" id="L223" title="1 of 2 branches missed.">            if (player == null) {</span>
+<span class="fc" id="L224">                StringBuilder sb = new StringBuilder(&quot;Player \&quot;&quot;);</span>
+<span class="fc" id="L225">                sb.append(userName).append(&quot;\&quot; is not present in the game.&quot;)</span>
+<span class="fc" id="L226">                    .append(&quot;\n  Known players = ( &quot;);</span>
+<span class="fc bfc" id="L227" title="All 2 branches covered.">                for (Player p : game.getLiveEuropeanPlayers(null)) {</span>
+<span class="fc" id="L228">                    sb.append(p.getName()).append(&quot; &quot;);</span>
+                }
+<span class="fc" id="L230">                sb.append(&quot;)&quot;);</span>
+<span class="fc" id="L231">                return new ErrorMessage(&quot;server.userNameNotPresent&quot;,</span>
+<span class="fc" id="L232">                    sb.toString()).toXMLElement();</span>
+<span class="nc bnc" id="L233" title="All 4 branches missed.">            } else if (player.isConnected() &amp;&amp; !player.isAI()) {</span>
+<span class="nc" id="L234">                return new ErrorMessage(&quot;server.userNameInUse&quot;,</span>
+<span class="nc" id="L235">                    this.userName + &quot; is already in use.&quot;).toXMLElement();</span>
+            }
+<span class="nc" id="L237">            player.setConnection(connection);</span>
+<span class="nc" id="L238">            player.setConnected(true);</span>
+
+<span class="nc bnc" id="L240" title="All 2 branches missed.">            if (player.isAI()) {</span>
+<span class="nc" id="L241">                player.setAI(false);</span>
+<span class="nc" id="L242">                server.sendToAll(new DOMMessage(&quot;setAI&quot;,</span>
+<span class="nc" id="L243">                        &quot;player&quot;, player.getId(),</span>
+<span class="nc" id="L244">                        &quot;ai&quot;, Boolean.toString(false)),</span>
+<span class="nc" id="L245">                    null);</span>
+            }
+
+            // If this player is the first to reconnect, it is the
+            // current player.
+<span class="nc bnc" id="L250" title="All 2 branches missed.">            isCurrentPlayer = game.getCurrentPlayer() == null;</span>
+<span class="nc bnc" id="L251" title="All 2 branches missed.">            if (isCurrentPlayer) game.setCurrentPlayer(player);</span>
+
+            // Go straight into the game.
+<span class="nc" id="L254">            mh = server.getInGameInputHandler();</span>
+        }
+
+<span class="nc" id="L257">        connection.setMessageHandler(mh);</span>
+<span class="nc" id="L258">        server.getServer().addConnection(connection);</span>
+<span class="nc" id="L259">        server.updateMetaServer();</span>
+<span class="nc" id="L260">        return new LoginMessage(this.userName, this.version, player.isAdmin(),</span>
+<span class="nc bnc" id="L261" title="All 2 branches missed.">                                !starting, server.getSinglePlayer(),</span>
+<span class="nc" id="L262">                                isCurrentPlayer, game).toXMLElement();</span>
+    }
+
+    /**
+     * Convert this LoginMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="pc bpc" id="L272" title="3 of 4 branches missed.">        Player player = (this.game == null || this.userName == null) ? null</span>
+<span class="nc" id="L273">            : this.game.getPlayerByName(this.userName);</span>
+<span class="fc" id="L274">        return new DOMMessage(getTagName(),</span>
+<span class="fc" id="L275">            USER_NAME_TAG, this.userName,</span>
+<span class="fc" id="L276">            VERSION_TAG, this.version,</span>
+<span class="fc" id="L277">            ADMIN_TAG, Boolean.toString(this.admin),</span>
+<span class="fc" id="L278">            START_GAME_TAG, Boolean.toString(this.startGame),</span>
+<span class="fc" id="L279">            SINGLE_PLAYER_TAG, Boolean.toString(this.singlePlayer),</span>
+<span class="fc" id="L280">            CURRENT_PLAYER_TAG, Boolean.toString(this.currentPlayer))</span>
+<span class="fc" id="L281">            .add(this.game, player)</span>
+<span class="fc" id="L282">            .toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;login&quot;.
+     */
+    public static String getTagName() {
+<span class="fc" id="L291">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

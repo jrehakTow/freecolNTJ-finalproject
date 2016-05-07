@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>FreeColClientHolder.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.control</a> &gt; <span class="el_source">FreeColClientHolder.java</span></div><h1>FreeColClientHolder.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.control;
+
+import net.sf.freecol.client.ClientOptions;
+import net.sf.freecol.client.control.ConnectController;
+import net.sf.freecol.client.control.InGameController;
+import net.sf.freecol.client.FreeColClient;
+import net.sf.freecol.client.gui.GUI;
+import net.sf.freecol.client.networking.UserServerAPI;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.networking.ServerAPI;
+import net.sf.freecol.server.FreeColServer;
+
+
+/**
+ * This base class provides access to a
+ * {@link net.sf.freecol.client.FreeColClient} for several subclasses.
+ */
+public class FreeColClientHolder {
+
+    /** The main client object. */
+    private final FreeColClient freeColClient;
+
+
+    /**
+     * Simple constructor.
+     * 
+     * @param freeColClient The &lt;code&gt;FreeColClient&lt;/code&gt; to hold.
+     */
+<span class="fc" id="L50">    protected FreeColClientHolder(FreeColClient freeColClient) {</span>
+<span class="fc" id="L51">        this.freeColClient = freeColClient;</span>
+<span class="fc" id="L52">    }</span>
+
+
+    /**
+     * Meaningfully named access to the server API.
+     *
+     * @return The &lt;code&gt;ServerAPI&lt;/code&gt;.
+     */
+    public UserServerAPI askServer() {
+<span class="fc" id="L61">        return this.freeColClient.askServer();</span>
+    }
+
+    /**
+     * Check if the current player is the client player.
+     *
+     * @return True if the client player is current.
+     */
+    protected boolean currentPlayerIsMyPlayer() {
+<span class="nc" id="L70">        return this.freeColClient.currentPlayerIsMyPlayer();</span>
+    }
+
+    /**
+     * Get the client options.
+     *
+     * @return The &lt;code&gt;ClientOptions&lt;/code&gt; held by the client.
+     */
+    protected ClientOptions getClientOptions() {
+<span class="nc" id="L79">        return this.freeColClient.getClientOptions();</span>
+    }
+
+    /**
+     * Get the connect controller.
+     *
+     * @return The &lt;code&gt;ConnectController&lt;/code&gt; held by the client.
+     */
+    protected ConnectController getConnectController() {
+<span class="nc" id="L88">        return this.freeColClient.getConnectController();</span>
+    }
+
+    /**
+     * Get the main client object.
+     * 
+     * @return The &lt;code&gt;FreeColClient&lt;/code&gt; held by this object.
+     */
+    protected FreeColClient getFreeColClient() {
+<span class="fc" id="L97">        return this.freeColClient;</span>
+    }
+
+    /**
+     * Get the server.
+     *
+     * @return The &lt;code&gt;FreeColServer&lt;/code&gt; held by the client.
+     */
+    protected FreeColServer getFreeColServer() {
+<span class="fc" id="L106">        return this.freeColClient.getFreeColServer();</span>
+    }
+
+    /**
+     * Get the game.
+     *
+     * @return The &lt;code&gt;Game&lt;/code&gt; held by the client.
+     */
+    protected Game getGame() {
+<span class="fc" id="L115">        return this.freeColClient.getGame();</span>
+    }
+
+    /**
+     * Get the GUI.
+     *
+     * @return The &lt;code&gt;GUI&lt;/code&gt; held by the client.
+     */
+    protected GUI getGUI() {
+<span class="fc" id="L124">        return this.freeColClient.getGUI();</span>
+    }
+
+    /**
+     * Get the client player.
+     *
+     * @return The &lt;code&gt;Player&lt;/code&gt; associated with the client.
+     */
+    protected Player getMyPlayer() {
+<span class="nc" id="L133">        return this.freeColClient.getMyPlayer();</span>
+    }
+
+    /**
+     * Gets the controller for the sound.
+     *
+     * @return The sound controller, if any.
+     */
+    public SoundController getSoundController() {
+<span class="nc" id="L142">        return this.freeColClient.getSoundController();</span>
+    }
+
+    /**
+     * Get the specification.
+     *
+     * @return The &lt;code&gt;Specification&lt;/code&gt; held by the game.
+     */
+    protected Specification getSpecification() {
+<span class="nc" id="L151">        Game game = getGame();</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">        return (game == null) ? null : game.getSpecification();</span>
+    }
+
+    /**
+     * Get the in game controller.
+     *
+     * @return The &lt;code&gt;InGameController&lt;/code&gt; for the client.
+     */
+    protected InGameController igc() {
+<span class="nc" id="L161">        return this.freeColClient.getInGameController();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

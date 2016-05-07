@@ -1,0 +1,956 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>NativeAIPlayer.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai</a> &gt; <span class="el_source">NativeAIPlayer.java</span></div><h1>NativeAIPlayer.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Random;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.CombatModel;
+import net.sf.freecol.common.model.Constants;
+import net.sf.freecol.common.model.FeatureContainer;
+import net.sf.freecol.common.model.GameOptions;
+import net.sf.freecol.common.model.Goods;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.Location;
+import net.sf.freecol.common.model.Modifier;
+import net.sf.freecol.common.model.Ownable;
+import net.sf.freecol.common.model.PathNode;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Stance;
+import net.sf.freecol.common.model.Settlement;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.model.Tension;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Turn;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.Role;
+import net.sf.freecol.common.model.pathfinding.CostDecider;
+import net.sf.freecol.common.model.pathfinding.CostDeciders;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+import net.sf.freecol.common.util.LogBuilder;
+import net.sf.freecol.common.util.RandomChoice;
+import static net.sf.freecol.common.util.RandomUtils.*;
+import net.sf.freecol.server.ai.mission.DefendSettlementMission;
+import net.sf.freecol.server.ai.mission.IndianBringGiftMission;
+import net.sf.freecol.server.ai.mission.IndianDemandMission;
+import net.sf.freecol.server.ai.mission.Mission;
+import net.sf.freecol.server.ai.mission.UnitSeekAndDestroyMission;
+import net.sf.freecol.server.ai.mission.UnitWanderHostileMission;
+import net.sf.freecol.server.model.ServerPlayer;
+
+
+/**
+ * Objects of this class contains AI-information for a single {@link
+ * Player} and is used for controlling this player.
+ *
+ * The method {@link #startWorking} gets called by the
+ * {@link AIInGameInputHandler} when it is this player's turn.
+ */
+public class NativeAIPlayer extends MissionAIPlayer {
+
+<span class="fc" id="L86">    private static final Logger logger = Logger.getLogger(NativeAIPlayer.class.getName());</span>
+
+    public static final int MAX_DISTANCE_TO_BRING_GIFTS = 5;
+
+    public static final int MAX_NUMBER_OF_GIFTS_BEING_DELIVERED = 1;
+
+    public static final int MAX_DISTANCE_TO_MAKE_DEMANDS = 5;
+
+<span class="fc" id="L94">    public static final int MAX_NUMBER_OF_DEMANDS = 1;</span>
+
+    /**
+     * Stores temporary information for sessions (trading with another
+     * player etc).
+     */
+<span class="fc" id="L100">    private final HashMap&lt;String, Integer&gt; sessionRegister = new HashMap&lt;&gt;();</span>
+
+    /**
+     * Debug helper to keep track of why/what the units are doing.
+     * Do not serialize.
+     */
+<span class="fc" id="L106">    private final java.util.Map&lt;Unit, String&gt; reasons = new HashMap&lt;&gt;();</span>
+
+
+    /**
+     * Creates a new &lt;code&gt;AIPlayer&lt;/code&gt;.
+     *
+     * @param aiMain The main AI-class.
+     * @param player The player that should be associated with this
+     *            &lt;code&gt;AIPlayer&lt;/code&gt;.
+     */
+    public NativeAIPlayer(AIMain aiMain, ServerPlayer player) {
+<span class="fc" id="L117">        super(aiMain, player);</span>
+
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">        uninitialized = getPlayer() == null;</span>
+<span class="fc" id="L120">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;AIPlayer&lt;/code&gt;.
+     *
+     * @param aiMain The main AI-object.
+     * @param xr The input stream containing the XML.
+     * @throws XMLStreamException if a problem was encountered during parsing.
+     */
+    public NativeAIPlayer(AIMain aiMain,
+                          FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L131">        super(aiMain, xr);</span>
+
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">        uninitialized = getPlayer() == null;</span>
+<span class="fc" id="L134">    }</span>
+
+
+    /**
+     * Simple initialization of AI missions given that we know the starting
+     * conditions.
+     *
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt;  to log to.
+     */
+    private void initializeMissions(LogBuilder lb) {
+<span class="nc" id="L144">        final Player player = getPlayer();</span>
+<span class="nc" id="L145">        lb.add(&quot;\n  Initialize&quot;);</span>
+
+        // Give defensive missions up to the minimum expected defence,
+        // leave the rest with the default wander-hostile mission.
+<span class="nc" id="L149">        List&lt;Unit&gt; units = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        for (IndianSettlement is : player.getIndianSettlements()) {</span>
+<span class="nc" id="L151">            units.clear();</span>
+<span class="nc" id="L152">            units.addAll(is.getTile().getUnitList());</span>
+<span class="nc" id="L153">            units.addAll(is.getUnitList());</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">            while (units.size() &gt; is.getRequiredDefenders()) {</span>
+<span class="nc" id="L155">                Unit u = units.remove(0);</span>
+<span class="nc" id="L156">                AIUnit aiu = getAIUnit(u);</span>
+<span class="nc" id="L157">                Mission m = getWanderHostileMission(aiu);</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">                if (m != null) lb.add(&quot; &quot;, m);</span>
+            }
+<span class="nc bnc" id="L160" title="All 2 branches missed.">            for (Unit u : units) {</span>
+<span class="nc" id="L161">                AIUnit aiu = getAIUnit(u);</span>
+<span class="nc" id="L162">                Mission m = getDefendSettlementMission(aiu, is);</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">                if (m != null) lb.add(&quot; &quot;, m);</span>
+            }
+        }
+<span class="nc" id="L166">    }</span>
+
+    /**
+     * Determines the stances towards each player.
+     * That is: should we declare war?
+     *
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     */
+    private void determineStances(LogBuilder lb) {
+<span class="nc" id="L175">        final ServerPlayer serverPlayer = (ServerPlayer)getPlayer();</span>
+<span class="nc" id="L176">        lb.mark();</span>
+
+<span class="nc bnc" id="L178" title="All 2 branches missed.">        for (Player p : getGame().getLivePlayers(serverPlayer)) {</span>
+<span class="nc" id="L179">            Stance newStance = determineStance(p);</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">            if (newStance != serverPlayer.getStance(p)) {</span>
+<span class="nc" id="L181">                getAIMain().getFreeColServer().getInGameController()</span>
+<span class="nc" id="L182">                    .changeStance(serverPlayer, newStance, </span>
+<span class="nc" id="L183">                                  (ServerPlayer)p, true);</span>
+<span class="nc" id="L184">                lb.add(&quot; &quot;, p.getDebugName(), &quot;-&gt;&quot;, newStance, &quot;, &quot;);</span>
+            }
+        }
+<span class="nc bnc" id="L187" title="All 2 branches missed.">        if (lb.grew(&quot;\n  Stance changes:&quot;)) lb.shrink(&quot;, &quot;);</span>
+<span class="nc" id="L188">    }</span>
+
+    /**
+     * Takes the necessary actions to secure the settlements.
+     * This is done by making new military units or to give existing
+     * units new missions.
+     *
+     * @param randoms An array of random settlement indexes.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     */
+    private void secureSettlements(int[] randoms, LogBuilder lb) {
+<span class="nc" id="L199">        int randomIdx = 0;</span>
+<span class="nc" id="L200">        List&lt;IndianSettlement&gt; settlements</span>
+<span class="nc" id="L201">            = getPlayer().getIndianSettlements();</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">        for (IndianSettlement is : settlements) {</span>
+            // Spread arms and horses between camps
+            // FIXME: maybe make this dependent on difficulty level?
+<span class="nc" id="L205">            int n = randoms[randomIdx++];</span>
+<span class="nc" id="L206">            IndianSettlement settlement = settlements.get(n);</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">            if (settlement != is) {</span>
+<span class="nc" id="L208">                is.tradeGoodsWithSettlement(settlement);</span>
+            }
+        }
+<span class="nc bnc" id="L211" title="All 2 branches missed.">        for (IndianSettlement is : settlements) {</span>
+<span class="nc" id="L212">            lb.mark();</span>
+<span class="nc" id="L213">            equipBraves(is, lb);</span>
+<span class="nc" id="L214">            secureIndianSettlement(is, lb);</span>
+<span class="nc bnc" id="L215" title="All 2 branches missed.">            if (lb.grew(&quot;\n  At &quot;, is.getName())) lb.shrink(&quot;, &quot;);</span>
+        }
+<span class="nc" id="L217">    }</span>
+
+    /**
+     * Greedily equips braves with horses and muskets.
+     * Public for the test suite.
+     *
+     * @param is The &lt;code&gt;IndianSettlement&lt;/code&gt; where the equipping occurs.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     */
+    public void equipBraves(IndianSettlement is, LogBuilder lb) {
+        // Find all the units
+<span class="fc" id="L228">        List&lt;Unit&gt; units = is.getUnitList();</span>
+<span class="fc" id="L229">        units.addAll(is.getTile().getUnitList());</span>
+
+        // Prioritize promoting partially equipped units to full dragoon
+<span class="fc" id="L232">        Collections.sort(units,</span>
+<span class="fc" id="L233">            getGame().getCombatModel().getMilitaryStrengthComparator());</span>
+
+<span class="fc bfc" id="L235" title="All 2 branches covered.">        for (Unit u : units) {</span>
+<span class="fc" id="L236">            Role r = is.canImproveUnitMilitaryRole(u);</span>
+<span class="fc bfc" id="L237" title="All 2 branches covered.">            if (r != null) {</span>
+<span class="fc" id="L238">                Role old = u.getRole();</span>
+<span class="pc bpc" id="L239" title="2 of 4 branches missed.">                if (getAIUnit(u).equipForRole(r) &amp;&amp; u.getRole() != old) {</span>
+<span class="fc" id="L240">                    lb.add(u, &quot; upgraded from &quot;, old.getSuffix(), &quot;, &quot;);</span>
+                }
+            }
+        }
+<span class="fc" id="L244">    }</span>
+
+    /**
+     * Takes the necessary actions to secure an indian settlement
+     * Public for the test suite.
+     *
+     * @param is The &lt;code&gt;IndianSettlement&lt;/code&gt; to secure.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     */
+    public void secureIndianSettlement(final IndianSettlement is,
+                                       LogBuilder lb) {
+<span class="fc" id="L255">        final AIMain aiMain = getAIMain();</span>
+<span class="fc" id="L256">        final Player player = getPlayer();</span>
+<span class="fc" id="L257">        final CombatModel cm = getGame().getCombatModel();</span>
+<span class="fc" id="L258">        final int minimumDefence = is.getType().getMinimumSize() - 1;</span>
+        DefendSettlementMission dm;
+
+        // Collect native units and defenders
+<span class="fc" id="L262">        List&lt;Unit&gt; units = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L263">        List&lt;Unit&gt; defenders = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L264">        units.addAll(is.getUnitList());</span>
+<span class="fc" id="L265">        units.addAll(is.getTile().getUnitList());</span>
+<span class="fc bfc" id="L266" title="All 2 branches covered.">        for (Unit u : is.getOwnedUnits()) {</span>
+<span class="pc bpc" id="L267" title="1 of 2 branches missed.">            if (!units.contains(u)) units.add(u);</span>
+        }
+
+        // Collect the current defenders
+<span class="fc bfc" id="L271" title="All 2 branches covered.">        for (Unit u : new ArrayList&lt;&gt;(units)) {</span>
+<span class="fc" id="L272">            AIUnit aiu = aiMain.getAIUnit(u);</span>
+<span class="pc bpc" id="L273" title="1 of 2 branches missed.">            if (aiu == null) {</span>
+<span class="nc" id="L274">                units.remove(u);</span>
+<span class="pc bpc" id="L275" title="1 of 2 branches missed.">            } else if ((dm = aiu.getMission(DefendSettlementMission.class)) != null</span>
+<span class="nc bnc" id="L276" title="All 2 branches missed.">                &amp;&amp; dm.getTarget() == is) {</span>
+<span class="nc" id="L277">                defenders.add(u);</span>
+<span class="nc" id="L278">                units.remove(u);</span>
+<span class="pc bpc" id="L279" title="1 of 2 branches missed.">            } else if (Mission.invalidNewMissionReason(aiu) != null) {</span>
+<span class="nc" id="L280">                units.remove(u);</span>
+            }
+        }
+
+        // Collect threats and other potential defenders
+<span class="fc" id="L285">        final HashMap&lt;Tile, Double&gt; threats = new HashMap&lt;&gt;();</span>
+        Player enemy;
+        Tension tension;
+<span class="fc bfc" id="L288" title="All 2 branches covered.">        for (Tile t : is.getTile().getSurroundingTiles(is.getRadius() + 1)) {</span>
+<span class="fc bfc" id="L289" title="All 4 branches covered.">            if (!t.isLand() || t.getUnitCount() == 0) {</span>
+                ; // Do nothing
+<span class="pc bpc" id="L291" title="1 of 2 branches missed.">            } else if ((enemy = t.getFirstUnit().getOwner()) == player) {</span>
+                // Its one of ours!
+<span class="nc bnc" id="L293" title="All 2 branches missed.">                for (Unit u : t.getUnitList()) {</span>
+                    AIUnit aiu;
+<span class="nc bnc" id="L295" title="All 4 branches missed.">                    if (defenders.contains(u) || units.contains(u)</span>
+<span class="nc bnc" id="L296" title="All 2 branches missed.">                        || (aiu = aiMain.getAIUnit(u)) == null) {</span>
+                        ; // Do nothing
+<span class="nc bnc" id="L298" title="All 2 branches missed.">                    } else if ((dm = aiu.getMission(DefendSettlementMission.class)) != null</span>
+<span class="nc bnc" id="L299" title="All 2 branches missed.">                        &amp;&amp; dm.getTarget() == is) {</span>
+<span class="nc" id="L300">                        defenders.add(u);</span>
+<span class="nc bnc" id="L301" title="All 2 branches missed.">                    } else if (Mission.invalidNewMissionReason(aiu) == null) {</span>
+<span class="nc" id="L302">                        units.add(u);</span>
+                    }
+                }
+<span class="pc bpc" id="L305" title="1 of 2 branches missed.">            } else if ((tension = is.getAlarm(enemy)) == null</span>
+<span class="fc bfc" id="L306" title="All 2 branches covered.">                || tension.getLevel().compareTo(Tension.Level.CONTENT) &lt;= 0) {</span>
+                ; // Not regarded as a threat
+<span class="fc" id="L308">            } else {</span>
+                // Evaluate the threat
+<span class="fc" id="L310">                double threshold, bonus, value = 0.0;</span>
+<span class="pc bpc" id="L311" title="1 of 2 branches missed.">                if (tension.getLevel().compareTo(Tension.Level.DISPLEASED) &lt;= 0) {</span>
+<span class="nc" id="L312">                    threshold = 1.0;</span>
+<span class="nc" id="L313">                    bonus = 0.0f;</span>
+<span class="nc" id="L314">                } else {</span>
+<span class="fc" id="L315">                    threshold = 0.0;</span>
+<span class="fc" id="L316">                    bonus = (float)tension.getLevel().ordinal()</span>
+<span class="fc" id="L317">                        - Tension.Level.CONTENT.ordinal();</span>
+                }
+<span class="fc" id="L319">                value += sumDouble(t.getUnitList(),</span>
+<span class="pc bpc" id="L320" title="1 of 2 branches missed.">                                   u -&gt; cm.getOffencePower(u, is) &gt; threshold,</span>
+<span class="fc" id="L321">                                   u -&gt; cm.getOffencePower(u, is) + bonus);</span>
+<span class="pc bpc" id="L322" title="1 of 2 branches missed.">                if (value &gt; 0.0) threats.put(t, value);</span>
+            }
+        }
+
+        // Sort the available units by proximity to the settlement.
+        // Simulates favouring the first warriors found by outgoing messengers.
+        // Also favour units native to the settlement.
+<span class="fc" id="L329">        final int homeBonus = 3;</span>
+<span class="fc" id="L330">        final Tile isTile = is.getTile();</span>
+<span class="fc" id="L331">        final Comparator&lt;Unit&gt; isComparator = cachingIntComparator(u -&gt; {</span>
+<span class="fc" id="L332">                final Tile t = u.getTile();</span>
+<span class="fc" id="L333">                return t.getDistanceTo(isTile)</span>
+<span class="pc bpc" id="L334" title="1 of 2 branches missed.">                    - ((u.getHomeIndianSettlement() == is) ? homeBonus : 0);</span>
+            });
+
+        // Do we need more or less defenders?
+<span class="fc" id="L338">        int needed = minimumDefence + threats.size();</span>
+<span class="pc bpc" id="L339" title="1 of 2 branches missed.">        if (defenders.size() &lt; needed) { // More needed, call some in.</span>
+<span class="fc" id="L340">            Collections.sort(units, isComparator);</span>
+<span class="pc bpc" id="L341" title="1 of 2 branches missed.">            while (!units.isEmpty()) {</span>
+<span class="fc" id="L342">                Unit u = units.remove(0);</span>
+<span class="fc" id="L343">                AIUnit aiu = aiMain.getAIUnit(u);</span>
+<span class="fc" id="L344">                Mission m = getDefendSettlementMission(aiu, is);</span>
+<span class="pc bpc" id="L345" title="1 of 2 branches missed.">                if (m != null) {</span>
+<span class="fc" id="L346">                    lb.add(m, &quot;, &quot;);</span>
+<span class="fc" id="L347">                    defenders.add(u);</span>
+<span class="fc bfc" id="L348" title="All 2 branches covered.">                    if (defenders.size() &gt;= needed) break;</span>
+                }
+            }
+<span class="nc bnc" id="L351" title="All 2 branches missed.">        } else if (defenders.size() &gt; needed) { // Less needed, release them</span>
+<span class="nc" id="L352">            Collections.sort(defenders, isComparator.reversed());</span>
+<span class="nc bnc" id="L353" title="All 2 branches missed.">            while (defenders.size() &gt; needed) {</span>
+<span class="nc" id="L354">                units.add(defenders.remove(0));</span>
+            }
+        }
+
+        // Sort threat tiles by threat value.
+<span class="fc" id="L359">        List&lt;Tile&gt; threatTiles = new ArrayList&lt;&gt;(threats.keySet());</span>
+<span class="fc" id="L360">        Collections.sort(threatTiles,</span>
+<span class="pc" id="L361">            Comparator.comparingDouble(t -&gt; threats.get(t)));</span>
+
+<span class="pc bpc" id="L363" title="1 of 2 branches missed.">        if (!defenders.isEmpty()) {</span>
+<span class="fc" id="L364">            lb.add(&quot; defend with:&quot;);</span>
+<span class="fc bfc" id="L365" title="All 2 branches covered.">            for (Unit u : defenders) lb.add(&quot; &quot;, u);</span>
+<span class="fc" id="L366">            lb.add(&quot; minimum=&quot;, minimumDefence,</span>
+<span class="fc" id="L367">                   &quot; threats=&quot;, threats.size(), &quot;, &quot;);</span>
+        }
+
+        // Assign units to attack the threats, greedily chosing closest unit.
+<span class="pc bpc" id="L371" title="1 of 4 branches missed.">        while (!threatTiles.isEmpty() &amp;&amp; !units.isEmpty()) {</span>
+<span class="fc" id="L372">            Tile tile = threatTiles.remove(0);</span>
+<span class="fc" id="L373">            final ToIntFunction&lt;Unit&gt; score = cacheInt(u -&gt;</span>
+<span class="fc" id="L374">                u.getTile().getDistanceTo(tile));</span>
+<span class="fc" id="L375">            final Predicate&lt;Unit&gt; pred = u -&gt;</span>
+<span class="pc bpc" id="L376" title="1 of 2 branches missed.">                UnitSeekAndDestroyMission.invalidReason(aiMain.getAIUnit(u),</span>
+<span class="fc" id="L377">                    tile.getDefendingUnit(u)) == null</span>
+<span class="pc bpc" id="L378" title="1 of 2 branches missed.">                &amp;&amp; score.applyAsInt(u) &gt;= 0;</span>
+<span class="fc" id="L379">            final Comparator&lt;Unit&gt; comp = Comparator.comparingInt(score);</span>
+<span class="fc" id="L380">            Unit unit = minimize(units, pred, comp);</span>
+<span class="pc bpc" id="L381" title="1 of 2 branches missed.">            if (unit == null) continue; // Declined to attack.</span>
+<span class="fc" id="L382">            units.remove(unit);</span>
+<span class="fc" id="L383">            AIUnit aiUnit = aiMain.getAIUnit(unit);</span>
+<span class="fc" id="L384">            Unit target = tile.getDefendingUnit(unit);</span>
+<span class="fc" id="L385">            Mission m = getSeekAndDestroyMission(aiUnit, target);</span>
+<span class="pc bpc" id="L386" title="1 of 2 branches missed.">            if (m != null) lb.add(m, &quot;, &quot;);</span>
+        }
+<span class="fc" id="L388">    }</span>
+
+    /**
+     * Gives a mission to all units.
+     *
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     */
+    private void giveNormalMissions(LogBuilder lb) {
+<span class="nc" id="L396">        final Player player = getPlayer();</span>
+<span class="nc" id="L397">        List&lt;AIUnit&gt; aiUnits = getAIUnits();</span>
+
+<span class="nc" id="L399">        lb.mark();</span>
+<span class="nc" id="L400">        List&lt;AIUnit&gt; done = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L401">        reasons.clear();</span>
+<span class="nc bnc" id="L402" title="All 2 branches missed.">        for (AIUnit aiUnit : aiUnits) {</span>
+<span class="nc" id="L403">            final Unit unit = aiUnit.getUnit();</span>
+<span class="nc" id="L404">            Mission m = aiUnit.getMission();</span>
+
+<span class="nc bnc" id="L406" title="All 4 branches missed.">            if (!unit.isInitialized() || unit.isDisposed()) {</span>
+<span class="nc" id="L407">                reasons.put(unit, &quot;Invalid&quot;);</span>
+
+<span class="nc bnc" id="L409" title="All 6 branches missed.">            } else if (m != null &amp;&amp; m.isValid() &amp;&amp; !m.isOneTime()) {</span>
+<span class="nc" id="L410">                reasons.put(unit, &quot;Valid&quot;);</span>
+
+            } else { // Unit needs a mission
+                continue;
+            }
+<span class="nc" id="L415">            done.add(aiUnit);</span>
+        }
+<span class="nc" id="L417">        aiUnits.removeAll(done);</span>
+<span class="nc" id="L418">        done.clear();</span>
+
+<span class="nc bnc" id="L420" title="All 2 branches missed.">        for (AIUnit aiUnit : aiUnits) {</span>
+<span class="nc" id="L421">            final Unit unit = aiUnit.getUnit();</span>
+<span class="nc" id="L422">            final Settlement settlement = unit.getSettlement();</span>
+<span class="nc" id="L423">            final IndianSettlement is = unit.getHomeIndianSettlement();</span>
+<span class="nc" id="L424">            Mission m = aiUnit.getMission();</span>
+            
+<span class="nc bnc" id="L426" title="All 2 branches missed.">            if (settlement != null &amp;&amp; settlement.getUnitCount()</span>
+<span class="nc bnc" id="L427" title="All 2 branches missed.">                + settlement.getTile().getUnitCount() &lt;= 1) {</span>
+                // First see to local settlement defence
+<span class="nc bnc" id="L429" title="All 2 branches missed.">                if (!(m instanceof DefendSettlementMission)</span>
+<span class="nc bnc" id="L430" title="All 2 branches missed.">                    || m.getTarget() != settlement) {</span>
+<span class="nc" id="L431">                    m = getDefendSettlementMission(aiUnit, settlement);</span>
+<span class="nc bnc" id="L432" title="All 2 branches missed.">                    if (m == null) continue;</span>
+<span class="nc" id="L433">                    lb.add(m, &quot;, &quot;);</span>
+                }
+<span class="nc" id="L435">                reasons.put(unit, &quot;Defend-&quot; + settlement.getName());</span>
+
+<span class="nc bnc" id="L437" title="All 2 branches missed.">            } else if (is != null</span>
+<span class="nc bnc" id="L438" title="All 2 branches missed.">                &amp;&amp; is.canImproveUnitMilitaryRole(unit) != null) {</span>
+                // Go home for new equipment if the home settlement has it
+<span class="nc bnc" id="L440" title="All 2 branches missed.">                if (!(m instanceof DefendSettlementMission)</span>
+<span class="nc bnc" id="L441" title="All 2 branches missed.">                    || m.getTarget() != is) {</span>
+<span class="nc" id="L442">                    m = getDefendSettlementMission(aiUnit, is);</span>
+<span class="nc bnc" id="L443" title="All 2 branches missed.">                    if (m == null) continue;</span>
+<span class="nc" id="L444">                    lb.add(m, &quot;, &quot;);</span>
+                }
+<span class="nc" id="L446">                reasons.put(unit, &quot;Equip-&quot; + is.getName());</span>
+
+<span class="nc" id="L448">            } else {</span>
+                // Go out looking for trouble
+<span class="nc bnc" id="L450" title="All 2 branches missed.">                if (!(m instanceof UnitWanderHostileMission)) {</span>
+<span class="nc" id="L451">                    m = getWanderHostileMission(aiUnit);</span>
+<span class="nc bnc" id="L452" title="All 2 branches missed.">                    if (m == null) continue;</span>
+<span class="nc" id="L453">                    lb.add(m, &quot;, &quot;);</span>
+                }
+<span class="nc" id="L455">                reasons.put(unit, &quot;Patrol&quot;);</span>
+            }
+<span class="nc" id="L457">            done.add(aiUnit);</span>
+        }
+<span class="nc" id="L459">        aiUnits.removeAll(done);</span>
+<span class="nc" id="L460">        done.clear();</span>
+
+        // Log
+<span class="nc bnc" id="L463" title="All 2 branches missed.">        if (lb.grew(&quot;\n  Mission changes: &quot;)) lb.shrink(&quot;, &quot;);</span>
+<span class="nc bnc" id="L464" title="All 2 branches missed.">        if (!aiUnits.isEmpty()) {</span>
+<span class="nc" id="L465">            lb.add(&quot;\n  Free Land Units:&quot;);</span>
+<span class="nc bnc" id="L466" title="All 2 branches missed.">            for (AIUnit aiu : aiUnits) lb.add(&quot; &quot;, aiu.getUnit());</span>
+        }
+<span class="nc" id="L468">        lb.add(&quot;\n  Missions(settlements=&quot;,</span>
+<span class="nc" id="L469">            player.getSettlements().size(), &quot;)&quot;);</span>
+<span class="nc" id="L470">        logMissions(reasons, lb);</span>
+<span class="nc" id="L471">    }</span>
+
+    /**
+     * Brings gifts to nice players with nearby colonies.
+     *
+     * @param randoms An array of random percentages.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     */
+    private void bringGifts(int[] randoms, LogBuilder lb) {
+<span class="nc" id="L480">        final Player player = getPlayer();</span>
+<span class="nc" id="L481">        final CostDecider cd = CostDeciders.numberOfLegalTiles();</span>
+<span class="nc" id="L482">        final int giftProbability = getSpecification()</span>
+<span class="nc" id="L483">            .getInteger(GameOptions.GIFT_PROBABILITY);</span>
+<span class="nc" id="L484">        int randomIdx = 0;</span>
+<span class="nc" id="L485">        lb.mark();</span>
+
+<span class="nc bnc" id="L487" title="All 2 branches missed.">        for (IndianSettlement is : player.getIndianSettlements()) {</span>
+            // Do not bring gifts all the time.
+<span class="nc bnc" id="L489" title="All 2 branches missed.">            if (randoms[randomIdx++] &gt;= giftProbability) continue;</span>
+
+            // Check if the settlement has anything to give.
+<span class="nc" id="L492">            Goods gift = is.getRandomGift(getAIRandom());</span>
+<span class="nc bnc" id="L493" title="All 2 branches missed.">            if (gift == null) continue;</span>
+
+            // Check if there are available units, and if there are already
+            // enough missions in operation.
+<span class="nc" id="L497">            List&lt;Unit&gt; availableUnits = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L498">            int alreadyAssignedUnits = 0;</span>
+<span class="nc bnc" id="L499" title="All 2 branches missed.">            for (Unit ou : is.getOwnedUnits()) {</span>
+<span class="nc" id="L500">                AIUnit aiu = getAIUnit(ou);</span>
+<span class="nc bnc" id="L501" title="All 2 branches missed.">                if (aiu == null) {</span>
+<span class="nc" id="L502">                    continue;</span>
+<span class="nc bnc" id="L503" title="All 2 branches missed.">                } else if (aiu.hasMission(IndianBringGiftMission.class)) {</span>
+<span class="nc" id="L504">                    alreadyAssignedUnits++;</span>
+<span class="nc bnc" id="L505" title="All 2 branches missed.">                } else if (Mission.invalidNewMissionReason(aiu) == null) {</span>
+<span class="nc" id="L506">                    availableUnits.add(ou);</span>
+                }
+            }
+<span class="nc bnc" id="L509" title="All 2 branches missed.">            if (alreadyAssignedUnits &gt; MAX_NUMBER_OF_GIFTS_BEING_DELIVERED) {</span>
+<span class="nc" id="L510">                lb.add(is.getName(), &quot; has &quot;, alreadyAssignedUnits, </span>
+<span class="nc" id="L511">                       &quot; already, &quot;);</span>
+<span class="nc" id="L512">                continue;</span>
+<span class="nc bnc" id="L513" title="All 2 branches missed.">            } else if (availableUnits.isEmpty()) {</span>
+<span class="nc" id="L514">                lb.add(is.getName(), &quot; has no gift units, &quot;);</span>
+<span class="nc" id="L515">                continue;</span>
+            }
+            // Pick a random available capable unit.
+<span class="nc" id="L518">            Unit unit = null;</span>
+<span class="nc" id="L519">            AIUnit aiUnit = null;</span>
+<span class="nc" id="L520">            Tile home = is.getTile();</span>
+<span class="nc bnc" id="L521" title="All 4 branches missed.">            while (unit == null &amp;&amp; !availableUnits.isEmpty()) {</span>
+<span class="nc" id="L522">                Unit u = availableUnits.get(randomInt(logger, &quot;Gift unit&quot;,</span>
+<span class="nc" id="L523">                        getAIRandom(), availableUnits.size()));</span>
+<span class="nc" id="L524">                availableUnits.remove(u);</span>
+<span class="nc" id="L525">                aiUnit = getAIUnit(u);</span>
+<span class="nc bnc" id="L526" title="All 2 branches missed.">                if (IndianBringGiftMission.invalidReason(aiUnit) == null</span>
+<span class="nc bnc" id="L527" title="All 2 branches missed.">                    &amp;&amp; u.findPath(u.getTile(), home, null, cd) != null) {</span>
+<span class="nc" id="L528">                    unit = u;</span>
+                }
+            }
+<span class="nc bnc" id="L531" title="All 2 branches missed.">            if (unit == null) {</span>
+<span class="nc" id="L532">                lb.add(is.getName(), &quot; found no gift unit, &quot;);</span>
+<span class="nc" id="L533">                continue;</span>
+            }
+
+            // Collect nearby colonies.  Filter out ones which are uncontacted,
+            // unreachable or otherwise unsuitable.  Score the rest on alarm
+            // and distance.
+<span class="nc" id="L539">            List&lt;RandomChoice&lt;Colony&gt;&gt; nearbyColonies = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L540" title="All 2 branches missed.">            for (Tile t : home.getSurroundingTiles(MAX_DISTANCE_TO_BRING_GIFTS)) {</span>
+<span class="nc" id="L541">                Colony c = t.getColony();</span>
+                PathNode path;
+<span class="nc bnc" id="L543" title="All 2 branches missed.">                if (c == null</span>
+<span class="nc bnc" id="L544" title="All 2 branches missed.">                    || !is.hasContacted(c.getOwner())</span>
+<span class="nc bnc" id="L545" title="All 2 branches missed.">                    || IndianBringGiftMission.invalidReason(aiUnit, c) != null</span>
+<span class="nc bnc" id="L546" title="All 2 branches missed.">                    || (path = unit.findPath(home, c.getTile(),</span>
+<span class="nc" id="L547">                                             null, cd)) == null) continue;</span>
+<span class="nc" id="L548">                int alarm = Math.max(1, is.getAlarm(c.getOwner()).getValue());</span>
+<span class="nc" id="L549">                nearbyColonies.add(new RandomChoice&lt;&gt;(c,</span>
+<span class="nc" id="L550">                        1000000 / alarm / path.getTotalTurns()));</span>
+            }
+
+            // If there are any suitable colonies, pick a random one
+            // to send a gift to.
+<span class="nc bnc" id="L555" title="All 2 branches missed.">            if (nearbyColonies.isEmpty()) {</span>
+<span class="nc" id="L556">                lb.add(is.getName(), &quot; found no gift colonies, &quot;);</span>
+<span class="nc" id="L557">                continue;</span>
+            }
+<span class="nc" id="L559">            Colony target = RandomChoice.getWeightedRandom(logger,</span>
+<span class="nc" id="L560">                &quot;Choose gift colony&quot;, nearbyColonies, getAIRandom());</span>
+<span class="nc bnc" id="L561" title="All 2 branches missed.">            if (target == null) {</span>
+<span class="nc" id="L562">                throw new IllegalStateException(&quot;No gift target!?!&quot;);</span>
+            }
+
+            // Send the unit.
+<span class="nc" id="L566">            Mission m = new IndianBringGiftMission(getAIMain(), aiUnit, target);</span>
+<span class="nc" id="L567">            lb.add(m, &quot; gift from &quot;, is.getName(),</span>
+<span class="nc" id="L568">                   &quot; to &quot;, target.getName(), &quot;, &quot;);</span>
+        }
+<span class="nc bnc" id="L570" title="All 2 branches missed.">        if (lb.grew(&quot;\n  Gifts: &quot;)) lb.shrink(&quot;, &quot;);</span>
+<span class="nc" id="L571">    }</span>
+
+    /**
+     * Demands tribute from nasty players with nearby colonies.
+     *
+     * @param randoms An array of random percentages.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     */
+    private void demandTribute(int[] randoms, LogBuilder lb) {
+<span class="nc" id="L580">        final Player player = getPlayer();</span>
+<span class="nc" id="L581">        final CostDecider cd = CostDeciders.numberOfLegalTiles();</span>
+<span class="nc" id="L582">        final int demandProbability = getSpecification()</span>
+<span class="nc" id="L583">            .getInteger(GameOptions.DEMAND_PROBABILITY);</span>
+<span class="nc" id="L584">        int randomIdx = 0;</span>
+<span class="nc" id="L585">        lb.mark();</span>
+
+<span class="nc bnc" id="L587" title="All 2 branches missed.">        for (IndianSettlement is : player.getIndianSettlements()) {</span>
+            // Do not demand tribute all of the time.
+<span class="nc bnc" id="L589" title="All 2 branches missed.">            if (randoms[randomIdx++] &gt;= demandProbability) continue;</span>
+
+            // Check if there are available units, and if there are already
+            // enough missions in operation.
+<span class="nc" id="L593">            List&lt;Unit&gt; availableUnits = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L594">            int alreadyAssignedUnits = 0;</span>
+<span class="nc bnc" id="L595" title="All 2 branches missed.">            for (Unit ou : is.getOwnedUnits()) {</span>
+<span class="nc" id="L596">                AIUnit aiu = getAIUnit(ou);</span>
+<span class="nc bnc" id="L597" title="All 2 branches missed.">                if (Mission.invalidNewMissionReason(aiu) == null) {</span>
+<span class="nc bnc" id="L598" title="All 2 branches missed.">                    if (aiu.hasMission(IndianDemandMission.class)) {</span>
+<span class="nc" id="L599">                        alreadyAssignedUnits++;</span>
+<span class="nc" id="L600">                    } else {</span>
+<span class="nc" id="L601">                        availableUnits.add(ou);</span>
+                    }
+                }
+            }
+<span class="nc bnc" id="L605" title="All 2 branches missed.">            if (alreadyAssignedUnits &gt; MAX_NUMBER_OF_DEMANDS) {</span>
+<span class="nc" id="L606">                lb.add(is.getName(), &quot; has &quot;, alreadyAssignedUnits,</span>
+<span class="nc" id="L607">                       &quot; already, &quot;);</span>
+<span class="nc" id="L608">                continue;</span>
+<span class="nc bnc" id="L609" title="All 2 branches missed.">            } else if (availableUnits.isEmpty()) {</span>
+<span class="nc" id="L610">                lb.add(is.getName(), &quot; has no demand units, &quot;);</span>
+<span class="nc" id="L611">                continue;</span>
+            }
+            // Pick a random available capable unit.
+<span class="nc" id="L614">            Tile home = is.getTile();</span>
+<span class="nc" id="L615">            Unit unit = null;</span>
+<span class="nc" id="L616">            AIUnit aiUnit = null;</span>
+<span class="nc bnc" id="L617" title="All 4 branches missed.">            while (unit == null &amp;&amp; !availableUnits.isEmpty()) {</span>
+<span class="nc" id="L618">                Unit u = availableUnits.get(randomInt(logger, &quot;Demand unit&quot;,</span>
+<span class="nc" id="L619">                        getAIRandom(), availableUnits.size()));</span>
+<span class="nc" id="L620">                availableUnits.remove(u);</span>
+<span class="nc" id="L621">                aiUnit = getAIUnit(u);</span>
+<span class="nc bnc" id="L622" title="All 2 branches missed.">                if (IndianDemandMission.invalidReason(aiUnit) == null</span>
+<span class="nc bnc" id="L623" title="All 2 branches missed.">                    &amp;&amp; u.findPath(u.getTile(), home, null, cd) != null) {</span>
+<span class="nc" id="L624">                    unit = u;</span>
+                }
+            }
+<span class="nc bnc" id="L627" title="All 2 branches missed.">            if (unit == null) {</span>
+<span class="nc" id="L628">                lb.add(is.getName(), &quot; found no demand unit, &quot;);</span>
+<span class="nc" id="L629">                continue;</span>
+            }
+
+            // Collect nearby colonies.  Filter out ones which are unreachable
+            // or with which the settlement is on adequate terms.
+<span class="nc" id="L634">            List&lt;RandomChoice&lt;Colony&gt;&gt; nearbyColonies = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L635" title="All 2 branches missed.">            for (Tile t : home.getSurroundingTiles(MAX_DISTANCE_TO_MAKE_DEMANDS)) {</span>
+<span class="nc" id="L636">                Colony c = t.getColony();</span>
+                PathNode path;
+<span class="nc bnc" id="L638" title="All 2 branches missed.">                if (c == null</span>
+<span class="nc bnc" id="L639" title="All 2 branches missed.">                    || !is.hasContacted(c.getOwner())</span>
+<span class="nc bnc" id="L640" title="All 2 branches missed.">                    || IndianDemandMission.invalidReason(aiUnit, c) != null</span>
+<span class="nc bnc" id="L641" title="All 2 branches missed.">                    || (path = unit.findPath(home, c.getTile(),</span>
+<span class="nc" id="L642">                                             null, cd)) == null) continue;</span>
+<span class="nc" id="L643">                int alarm = is.getAlarm(c.getOwner()).getValue();</span>
+<span class="nc bnc" id="L644" title="All 2 branches missed.">                int defence = c.getUnitCount() + ((c.getStockade() == null) ? 1</span>
+<span class="nc" id="L645">                    : (c.getStockade().getLevel() * 10));</span>
+<span class="nc" id="L646">                int weight = 1 + alarm * (1000000 / defence</span>
+<span class="nc" id="L647">                                                  / path.getTotalTurns());</span>
+<span class="nc" id="L648">                nearbyColonies.add(new RandomChoice&lt;&gt;(c, weight));</span>
+            }
+            // If there are any suitable colonies, pick one to demand from.
+            // Sometimes a random one, sometimes the weakest, sometimes the
+            // most annoying.
+<span class="nc bnc" id="L653" title="All 2 branches missed.">            if (nearbyColonies.isEmpty()) {</span>
+<span class="nc" id="L654">                lb.add(is.getName(), &quot; found no demand colonies, &quot;);</span>
+<span class="nc" id="L655">                continue;</span>
+            }
+<span class="nc" id="L657">            Colony target = RandomChoice.getWeightedRandom(logger,</span>
+<span class="nc" id="L658">                &quot;Choose demand colony&quot;, nearbyColonies, getAIRandom());</span>
+<span class="nc bnc" id="L659" title="All 2 branches missed.">            if (target == null) {</span>
+<span class="nc" id="L660">                lb.add(is.getName(), &quot; found no demand target, &quot;);</span>
+<span class="nc" id="L661">                continue;</span>
+            }
+
+            // Send the unit.
+<span class="nc" id="L665">            Mission m = new IndianDemandMission(getAIMain(), aiUnit, target);</span>
+<span class="nc" id="L666">            lb.add(&quot;At &quot;, is.getName(), &quot; &quot;, m,</span>
+<span class="nc" id="L667">                   &quot; will demand of &quot;, target, &quot;, &quot;);</span>
+        }
+<span class="nc bnc" id="L669" title="All 2 branches missed.">        if (lb.grew(&quot;\n  Tribute: &quot;)) lb.shrink(&quot;, &quot;);</span>
+<span class="nc" id="L670">    }</span>
+
+    /**
+     * Gets the appropriate ship trade penalties.
+     *
+     * @param sense The sense to apply the modifiers.
+     * @return The ship trade penalties.
+     */
+    private Set&lt;Modifier&gt; getShipTradePenalties(boolean sense) {
+<span class="nc" id="L679">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L680">        int penalty = spec.getInteger(GameOptions.SHIP_TRADE_PENALTY);</span>
+<span class="nc" id="L681">        Set&lt;Modifier&gt; result = new HashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L682" title="All 2 branches missed.">        for (Modifier m : spec.getModifiers(Modifier.SHIP_TRADE_PENALTY)) {</span>
+<span class="nc" id="L683">            Modifier n = new Modifier(m);</span>
+<span class="nc bnc" id="L684" title="All 2 branches missed.">            n.setValue((sense) ? penalty : -penalty);</span>
+<span class="nc" id="L685">            result.add(n);</span>
+        }
+<span class="nc" id="L687">        return result;</span>
+    }
+
+    /**
+     * Aborts all the missions which are no longer valid.
+     *
+     * Public for the test suite.
+     */
+    public void abortInvalidMissions() {
+<span class="fc bfc" id="L696" title="All 2 branches covered.">        for (AIUnit au : getAIUnits()) {</span>
+<span class="fc" id="L697">            Mission mission = au.getMission();</span>
+<span class="pc bpc" id="L698" title="1 of 2 branches missed.">            String reason = (mission == null) ? null : mission.invalidReason();</span>
+<span class="pc bpc" id="L699" title="1 of 2 branches missed.">            if (reason != null) au.setMission(null);</span>
+        }
+<span class="fc" id="L701">    }</span>
+
+
+    // AIPlayer interface
+    // Inherit:
+    //   acceptDiplomaticTrade
+    //   acceptTax
+    //   acceptMercenaries
+    //   selectFoundingFather
+
+    /**
+     * Decides whether to accept an Indian demand, or not.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; making demands.
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; where demands are being made.
+     * @param type The &lt;code&gt;GoodsType&lt;/code&gt; demanded.
+     * @param amount The amount of gold demanded.
+     * @param accept The acceptance state of the demand.
+     * @return True if this player accepts the demand, false if rejected,
+     *     null if no further action is required.
+     */
+    public Boolean indianDemand(Unit unit, Colony colony,
+                                GoodsType type, int amount, Boolean accept) {
+<span class="nc" id="L724">        final Player player = getPlayer();</span>
+        AIUnit aiu;
+        IndianDemandMission mission;
+<span class="nc bnc" id="L727" title="All 2 branches missed.">        if (unit.getOwner() == player // Its one of ours</span>
+<span class="nc bnc" id="L728" title="All 2 branches missed.">            &amp;&amp; (aiu = getAIUnit(unit)) != null // and its valid and demanding</span>
+<span class="nc bnc" id="L729" title="All 2 branches missed.">            &amp;&amp; (mission = aiu.getMission(IndianDemandMission.class)) != null</span>
+<span class="nc bnc" id="L730" title="All 2 branches missed.">            &amp;&amp; accept != null) {</span>
+<span class="nc" id="L731">            mission.setSucceeded(accept);</span>
+        }
+<span class="nc" id="L733">        return null;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void startWorking() {
+<span class="nc" id="L741">        final Player player = getPlayer();</span>
+<span class="nc" id="L742">        final Turn turn = getGame().getTurn();</span>
+<span class="nc" id="L743">        final int nSettlements = player.getSettlements().size();</span>
+<span class="nc" id="L744">        final Random air = getAIRandom();</span>
+
+<span class="nc" id="L746">        LogBuilder lb = new LogBuilder(1024);</span>
+<span class="nc" id="L747">        lb.add(player.getDebugName(), &quot; in &quot;, turn, &quot;/&quot;, turn.getNumber());</span>
+
+<span class="nc" id="L749">        sessionRegister.clear();</span>
+<span class="nc" id="L750">        clearAIUnits();</span>
+
+<span class="nc" id="L752">        determineStances(lb);</span>
+        List&lt;AIUnit&gt; more;
+<span class="nc bnc" id="L754" title="All 2 branches missed.">        if (turn.isFirstTurn()) {</span>
+<span class="nc" id="L755">            initializeMissions(lb);</span>
+<span class="nc" id="L756">            more = getAIUnits();</span>
+<span class="nc" id="L757">        } else {</span>
+            int[] randoms;
+<span class="nc" id="L759">            abortInvalidMissions();</span>
+<span class="nc" id="L760">            randoms = randomInts(logger, &quot;Trades&quot;, air,</span>
+<span class="nc" id="L761">                                 nSettlements, nSettlements);</span>
+<span class="nc" id="L762">            secureSettlements(randoms, lb);</span>
+<span class="nc" id="L763">            randoms = randomInts(logger, &quot;Gifts&quot;, air, 100, nSettlements);</span>
+<span class="nc" id="L764">            bringGifts(randoms, lb);</span>
+<span class="nc" id="L765">            randoms = randomInts(logger, &quot;Tribute&quot;, air, 100, nSettlements);</span>
+<span class="nc" id="L766">            demandTribute(randoms, lb);</span>
+<span class="nc" id="L767">            giveNormalMissions(lb);</span>
+<span class="nc" id="L768">            more = doMissions(getAIUnits(), lb);</span>
+        }
+
+<span class="nc bnc" id="L771" title="All 2 branches missed.">        if (!more.isEmpty()) {</span>
+<span class="nc" id="L772">            abortInvalidMissions();</span>
+<span class="nc" id="L773">            giveNormalMissions(lb);</span>
+<span class="nc" id="L774">            doMissions(more, lb);</span>
+        }
+<span class="nc" id="L776">        clearAIUnits();</span>
+<span class="nc" id="L777">        lb.log(logger, Level.FINEST);</span>
+<span class="nc" id="L778">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int adjustMission(AIUnit aiUnit, PathNode path, Class type,
+                             int value) {
+<span class="nc bnc" id="L786" title="All 2 branches missed.">        if (type == DefendSettlementMission.class) {</span>
+            // Reduce value in proportion to the number of active defenders.
+<span class="nc" id="L788">            Settlement settlement = (Settlement)DefendSettlementMission</span>
+<span class="nc" id="L789">                .extractTarget(aiUnit, path);</span>
+<span class="nc" id="L790">            value -= 75 * getSettlementDefenders(settlement);</span>
+
+<span class="nc bnc" id="L792" title="All 2 branches missed.">        } else if (type == UnitSeekAndDestroyMission.class) {</span>
+            // Natives prefer to attack when DISPLEASED.
+<span class="nc" id="L794">            Location target = UnitSeekAndDestroyMission</span>
+<span class="nc" id="L795">                .extractTarget(aiUnit, path);</span>
+<span class="nc bnc" id="L796" title="All 2 branches missed.">            Player targetPlayer = (target instanceof Ownable)</span>
+<span class="nc" id="L797">                ? ((Ownable)target).getOwner()</span>
+<span class="nc" id="L798">                : null;</span>
+<span class="nc" id="L799">            IndianSettlement is = aiUnit.getUnit().getHomeIndianSettlement();</span>
+<span class="nc bnc" id="L800" title="All 2 branches missed.">            if (targetPlayer != null</span>
+<span class="nc bnc" id="L801" title="All 4 branches missed.">                &amp;&amp; is != null &amp;&amp; is.getAlarm(targetPlayer) != null) {</span>
+<span class="nc" id="L802">                value += is.getAlarm(targetPlayer).getValue()</span>
+<span class="nc" id="L803">                    - Tension.Level.DISPLEASED.getLimit();</span>
+            }
+        }
+
+<span class="nc" id="L807">        return value;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void registerSellGoods(Goods goods) {
+<span class="nc" id="L815">        String goldKey = &quot;tradeGold#&quot; + goods.getType().getId()</span>
+<span class="nc" id="L816">            + &quot;#&quot; + goods.getAmount() + &quot;#&quot; + goods.getLocation().getId();</span>
+<span class="nc" id="L817">        sessionRegister.put(goldKey, null);</span>
+<span class="nc" id="L818">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int buyProposition(Unit unit, Settlement settlement,
+                              Goods goods, int gold) {
+<span class="nc" id="L826">        logger.finest(&quot;Entering method buyProposition&quot;);</span>
+<span class="nc" id="L827">        Specification spec = getSpecification();</span>
+<span class="nc" id="L828">        IndianSettlement is = (IndianSettlement) settlement;</span>
+<span class="nc" id="L829">        Player buyer = unit.getOwner();</span>
+<span class="nc" id="L830">        String goldKey = &quot;tradeGold#&quot; + goods.getType().getId()</span>
+<span class="nc" id="L831">            + &quot;#&quot; + goods.getAmount() + &quot;#&quot; + settlement.getId();</span>
+<span class="nc" id="L832">        String hagglingKey = &quot;tradeHaggling#&quot; + unit.getId();</span>
+        int price;
+<span class="nc" id="L834">        Integer registered = sessionRegister.get(goldKey);</span>
+<span class="nc bnc" id="L835" title="All 2 branches missed.">        if (registered == null) {</span>
+<span class="nc" id="L836">            price = is.getPriceToSell(goods);</span>
+<span class="nc bnc" id="L837" title="All 3 branches missed.">            switch (is.getAlarm(buyer).getLevel()) {</span>
+            case HAPPY: case CONTENT:
+<span class="nc" id="L839">                break;</span>
+            case DISPLEASED:
+<span class="nc" id="L841">                price *= 2;</span>
+<span class="nc" id="L842">                break;</span>
+            default:
+<span class="nc" id="L844">                return Constants.NO_TRADE_HOSTILE;</span>
+            }
+<span class="nc" id="L846">            Set&lt;Modifier&gt; modifiers = new HashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L847" title="All 2 branches missed.">            if (is.hasMissionary(buyer)</span>
+<span class="nc bnc" id="L848" title="All 2 branches missed.">                &amp;&amp; spec.getBoolean(GameOptions.ENHANCED_MISSIONARIES)) {</span>
+<span class="nc" id="L849">                Unit u = is.getMissionary();</span>
+<span class="nc" id="L850">                modifiers.addAll(u.getMissionaryTradeModifiers(false));</span>
+            }
+<span class="nc bnc" id="L852" title="All 2 branches missed.">            if (unit.isNaval()) {</span>
+<span class="nc" id="L853">                modifiers.addAll(getShipTradePenalties(false));</span>
+            }
+<span class="nc" id="L855">            price = (int)FeatureContainer.applyModifiers((float)price,</span>
+<span class="nc" id="L856">                getGame().getTurn(), modifiers);</span>
+<span class="nc" id="L857">            sessionRegister.put(goldKey, price);</span>
+<span class="nc" id="L858">            return price;</span>
+        }
+<span class="nc" id="L860">        price = registered;</span>
+<span class="nc bnc" id="L861" title="All 4 branches missed.">        if (price &lt; 0 || price == gold) return price;</span>
+<span class="nc bnc" id="L862" title="All 2 branches missed.">        if (gold &lt; (price * 9) / 10) {</span>
+<span class="nc" id="L863">            logger.warning(&quot;Cheating attempt: sending offer too low&quot;);</span>
+<span class="nc" id="L864">            sessionRegister.put(goldKey, -1);</span>
+<span class="nc" id="L865">            return Constants.NO_TRADE;</span>
+        }
+
+<span class="nc" id="L868">        int haggling = 1;</span>
+<span class="nc bnc" id="L869" title="All 2 branches missed.">        if (sessionRegister.containsKey(hagglingKey)) {</span>
+<span class="nc" id="L870">            haggling = sessionRegister.get(hagglingKey);</span>
+        }
+<span class="nc bnc" id="L872" title="All 2 branches missed.">        if (randomInt(logger, &quot;Haggle-buy&quot;, getAIRandom(), 3 + haggling) &gt;= 3) {</span>
+<span class="nc" id="L873">            sessionRegister.put(goldKey, -1);</span>
+<span class="nc" id="L874">            return Constants.NO_TRADE_HAGGLE;</span>
+        }
+<span class="nc" id="L876">        sessionRegister.put(goldKey, gold);</span>
+<span class="nc" id="L877">        sessionRegister.put(hagglingKey, haggling + 1);</span>
+<span class="nc" id="L878">        return gold;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int sellProposition(Unit unit, Settlement settlement,
+                               Goods goods, int gold) {
+<span class="nc" id="L887">        logger.finest(&quot;Entering method sellProposition&quot;);</span>
+<span class="nc" id="L888">        Specification spec = getSpecification();</span>
+<span class="nc" id="L889">        IndianSettlement is = (IndianSettlement) settlement;</span>
+<span class="nc" id="L890">        Player seller = unit.getOwner();</span>
+<span class="nc" id="L891">        String goldKey = &quot;tradeGold#&quot; + goods.getType().getId()</span>
+<span class="nc" id="L892">            + &quot;#&quot; + goods.getAmount() + &quot;#&quot; + unit.getId()</span>
+<span class="nc" id="L893">            + &quot;#&quot; + settlement.getId();</span>
+<span class="nc" id="L894">        String hagglingKey = &quot;tradeHaggling#&quot; + unit.getId();</span>
+        int price;
+<span class="nc bnc" id="L896" title="All 2 branches missed.">        if (sessionRegister.containsKey(goldKey)) {</span>
+<span class="nc" id="L897">            price = sessionRegister.get(goldKey);</span>
+<span class="nc" id="L898">        } else {</span>
+<span class="nc" id="L899">            price = is.getPriceToBuy(goods);</span>
+<span class="nc bnc" id="L900" title="All 4 branches missed.">            switch (is.getAlarm(seller).getLevel()) {</span>
+            case HAPPY: case CONTENT:
+<span class="nc" id="L902">                break;</span>
+            case DISPLEASED:
+<span class="nc" id="L904">                price /= 2;</span>
+<span class="nc" id="L905">                break;</span>
+            case ANGRY:
+<span class="nc bnc" id="L907" title="All 2 branches missed.">                if (!goods.getType().isMilitaryGoods())</span>
+<span class="nc" id="L908">                    return Constants.NO_TRADE_HOSTILE;</span>
+<span class="nc" id="L909">                price /= 2;</span>
+<span class="nc" id="L910">                break;</span>
+            default:
+<span class="nc" id="L912">                return Constants.NO_TRADE_HOSTILE;</span>
+            }
+<span class="nc" id="L914">            Set&lt;Modifier&gt; modifiers = new HashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L915" title="All 2 branches missed.">            if (is.hasMissionary(seller)</span>
+<span class="nc bnc" id="L916" title="All 2 branches missed.">                &amp;&amp; spec.getBoolean(GameOptions.ENHANCED_MISSIONARIES)) {</span>
+<span class="nc" id="L917">                Unit u = is.getMissionary();</span>
+<span class="nc" id="L918">                modifiers.addAll(u.getMissionaryTradeModifiers(true));</span>
+            }
+<span class="nc bnc" id="L920" title="All 2 branches missed.">            if (unit.isNaval()) {</span>
+<span class="nc" id="L921">                modifiers.addAll(getShipTradePenalties(true));</span>
+            }
+<span class="nc" id="L923">            price = (int)FeatureContainer.applyModifiers((float)price,</span>
+<span class="nc" id="L924">                getGame().getTurn(), modifiers);</span>
+<span class="nc bnc" id="L925" title="All 2 branches missed.">            if (price &lt;= 0) return 0;</span>
+<span class="nc" id="L926">            sessionRegister.put(goldKey, price);</span>
+        }
+<span class="nc bnc" id="L928" title="All 4 branches missed.">        if (gold &lt; 0 || price == gold) return price;</span>
+<span class="nc bnc" id="L929" title="All 2 branches missed.">        if (gold &gt; (price * 11) / 10) {</span>
+<span class="nc" id="L930">            logger.warning(&quot;Cheating attempt: haggling request too high&quot;);</span>
+<span class="nc" id="L931">            sessionRegister.put(goldKey, -1);</span>
+<span class="nc" id="L932">            return Constants.NO_TRADE;</span>
+        }
+<span class="nc" id="L934">        int haggling = 1;</span>
+<span class="nc bnc" id="L935" title="All 2 branches missed.">        if (sessionRegister.containsKey(hagglingKey)) {</span>
+<span class="nc" id="L936">            haggling = sessionRegister.get(hagglingKey);</span>
+        }
+<span class="nc bnc" id="L938" title="All 2 branches missed.">        if (randomInt(logger, &quot;Haggle-sell&quot;, getAIRandom(), 3 + haggling) &gt;= 3) {</span>
+<span class="nc" id="L939">            sessionRegister.put(goldKey, -1);</span>
+<span class="nc" id="L940">            return Constants.NO_TRADE_HAGGLE;</span>
+        }
+<span class="nc" id="L942">        sessionRegister.put(goldKey, gold);</span>
+<span class="nc" id="L943">        sessionRegister.put(hagglingKey, haggling + 1);</span>
+<span class="nc" id="L944">        return gold;</span>
+    }
+
+
+    // Serialization
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="fc" id="L954">    public String getXMLTagName() { return getTagName(); }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

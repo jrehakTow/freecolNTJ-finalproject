@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>IndividualFatherTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">IndividualFatherTest.java</span></div><h1>IndividualFatherTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.UnitLocation.NoAddReason;
+import net.sf.freecol.server.control.ChangeSet;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+/**
+ * Test cases for individual Founding Fathers.
+ *
+ * FIXME: there should be a test case for each Founding Father.
+ */
+<span class="fc" id="L39">public class IndividualFatherTest extends FreeColTestCase {</span>
+
+<span class="fc" id="L41">    private static final BuildableType customHouseType</span>
+<span class="fc" id="L42">        = spec().getBuildingType(&quot;model.building.customHouse&quot;);</span>
+<span class="fc" id="L43">    private static final BuildingType townHallType</span>
+<span class="fc" id="L44">        = spec().getBuildingType(&quot;model.building.townHall&quot;);</span>
+
+<span class="fc" id="L46">    private static final FoundingFather bartolomeDeLasCasas</span>
+<span class="fc" id="L47">        = spec().getFoundingFather(&quot;model.foundingFather.bartolomeDeLasCasas&quot;);</span>
+<span class="fc" id="L48">    private static final FoundingFather hernanCortes</span>
+<span class="fc" id="L49">        = spec().getFoundingFather(&quot;model.foundingFather.hernanCortes&quot;);</span>
+<span class="fc" id="L50">    private static final FoundingFather janDeWitt</span>
+<span class="fc" id="L51">        = spec().getFoundingFather(&quot;model.foundingFather.janDeWitt&quot;);</span>
+<span class="fc" id="L52">    private static final FoundingFather jeanDeBrebeuf</span>
+<span class="fc" id="L53">        = spec().getFoundingFather(&quot;model.foundingFather.fatherJeanDeBrebeuf&quot;);</span>
+<span class="fc" id="L54">    private static final FoundingFather paulRevere</span>
+<span class="fc" id="L55">        = spec().getFoundingFather(&quot;model.foundingFather.paulRevere&quot;);</span>
+<span class="fc" id="L56">    private static final FoundingFather peterMinuit</span>
+<span class="fc" id="L57">        = spec().getFoundingFather(&quot;model.foundingFather.peterMinuit&quot;);</span>
+<span class="fc" id="L58">    private static final FoundingFather peterStuyvesant</span>
+<span class="fc" id="L59">        = spec().getFoundingFather(&quot;model.foundingFather.peterStuyvesant&quot;);</span>
+<span class="fc" id="L60">    private static final FoundingFather simonBolivar</span>
+<span class="fc" id="L61">        = spec().getFoundingFather(&quot;model.foundingFather.simonBolivar&quot;);</span>
+<span class="fc" id="L62">    private static final FoundingFather thomasJefferson</span>
+<span class="fc" id="L63">        = spec().getFoundingFather(&quot;model.foundingFather.thomasJefferson&quot;);</span>
+<span class="fc" id="L64">    private static final FoundingFather thomasPaine</span>
+<span class="fc" id="L65">        = spec().getFoundingFather(&quot;model.foundingFather.thomasPaine&quot;);</span>
+<span class="fc" id="L66">    private static final FoundingFather williamBrewster</span>
+<span class="fc" id="L67">        = spec().getFoundingFather(&quot;model.foundingFather.williamBrewster&quot;);</span>
+
+<span class="fc" id="L69">    private static final GoodsType bellsType</span>
+<span class="fc" id="L70">        = spec().getGoodsType(&quot;model.goods.bells&quot;);</span>
+<span class="fc" id="L71">    private static final GoodsType horsesType</span>
+<span class="fc" id="L72">        = spec().getGoodsType(&quot;model.goods.horses&quot;);</span>
+<span class="fc" id="L73">    private static final GoodsType musketsType</span>
+<span class="fc" id="L74">        = spec().getGoodsType(&quot;model.goods.muskets&quot;);</span>
+
+<span class="fc" id="L76">    private static final Role soldierRole</span>
+<span class="fc" id="L77">        = spec().getRole(&quot;model.role.soldier&quot;);</span>
+<span class="fc" id="L78">    private static final Role missionaryRole</span>
+<span class="fc" id="L79">        = spec().getRole(&quot;model.role.missionary&quot;);</span>
+
+<span class="fc" id="L81">    private static final UnitType servantType</span>
+<span class="fc" id="L82">        = spec().getUnitType(&quot;model.unit.indenturedServant&quot;);</span>
+<span class="fc" id="L83">    private static final UnitType colonistType</span>
+<span class="fc" id="L84">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="fc" id="L85">    private static final UnitType statesmanType</span>
+<span class="fc" id="L86">        = spec().getUnitType(&quot;model.unit.elderStatesman&quot;);</span>
+
+
+    public void testBolivar() {
+<span class="fc" id="L90">        Game game = getGame();</span>
+<span class="fc" id="L91">        game.setMap(getTestMap(true));</span>
+
+<span class="fc" id="L93">        final int pop = 5;</span>
+<span class="fc" id="L94">        Colony colony = getStandardColony(pop);</span>
+<span class="fc" id="L95">        Player player = colony.getOwner();</span>
+<span class="fc" id="L96">        List&lt;AbstractGoods&gt; empty = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L97">        Building townHall = colony.getBuilding(townHallType);</span>
+
+        // Zero to start
+<span class="fc" id="L100">        assertEquals(0, colony.getLiberty());</span>
+<span class="fc" id="L101">        assertEquals(0, colony.getSoL());</span>
+
+        // Add enough to raise 2 out of 5 to rebels =&gt; 40%
+<span class="fc" id="L104">        int inc = 2 * Colony.LIBERTY_PER_REBEL;</span>
+<span class="fc" id="L105">        colony.addLiberty(inc);</span>
+<span class="fc" id="L106">        assertEquals(inc, colony.getLiberty());</span>
+<span class="fc" id="L107">        assertEquals(100 * inc / (pop * Colony.LIBERTY_PER_REBEL),</span>
+<span class="fc" id="L108">                     colony.getSoL());</span>
+
+        // Add Bolivar and check that percentage is 20% higher
+<span class="fc" id="L111">        player.addFather(simonBolivar);</span>
+<span class="fc" id="L112">        colony.addLiberty(0); // provoke recalculation</span>
+<span class="fc" id="L113">        assertEquals(inc, colony.getLiberty());</span>
+<span class="fc" id="L114">        assertEquals(100 * inc / (pop * Colony.LIBERTY_PER_REBEL) + 20,</span>
+<span class="fc" id="L115">                     colony.getSoL());</span>
+
+        // Is the modifier present
+<span class="fc" id="L118">        Set&lt;Modifier&gt; modifierSet = player.getModifiers(Modifier.SOL);</span>
+<span class="fc" id="L119">        assertEquals(1, modifierSet.size());</span>
+<span class="fc" id="L120">        Modifier bolivarModifier = modifierSet.iterator().next();</span>
+<span class="fc" id="L121">        assertEquals(simonBolivar, bolivarModifier.getSource());</span>
+
+        // Check that SoL stops at 100%
+<span class="fc" id="L124">        colony.addLiberty(pop * Colony.LIBERTY_PER_REBEL);</span>
+<span class="fc" id="L125">        assertEquals(inc + pop * Colony.LIBERTY_PER_REBEL,</span>
+<span class="fc" id="L126">                     player.getLiberty());</span>
+<span class="fc" id="L127">        assertEquals(100, player.getSoL());</span>
+<span class="fc" id="L128">    }</span>
+
+    public void testBrebeuf() {
+<span class="fc" id="L131">        Game game = getGame();</span>
+<span class="fc" id="L132">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L133">        String ability = Ability.EXPERT_MISSIONARY;</span>
+
+<span class="fc" id="L135">        assertTrue(jeanDeBrebeuf.hasAbility(ability));</span>
+<span class="fc" id="L136">        assertFalse(dutch.hasAbility(ability));</span>
+
+<span class="fc" id="L138">        Unit missionary = new ServerUnit(game, null, dutch, </span>
+<span class="fc" id="L139">                                         colonistType, missionaryRole);</span>
+<span class="fc" id="L140">        assertEquals(missionaryRole, missionary.getRole());</span>
+<span class="fc" id="L141">        assertTrue(missionary.hasAbility(Ability.ESTABLISH_MISSION));</span>
+<span class="fc" id="L142">        assertFalse(missionary.hasAbility(ability));</span>
+
+<span class="fc" id="L144">        dutch.addFather(jeanDeBrebeuf);</span>
+<span class="fc" id="L145">        assertTrue(dutch.hasAbility(ability));</span>
+<span class="fc" id="L146">        assertTrue(missionary.hasAbility(ability));</span>
+<span class="fc" id="L147">    }</span>
+
+    public void testBrewster() {
+<span class="fc" id="L150">        Game game = getGame();</span>
+<span class="fc" id="L151">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+
+<span class="fc" id="L153">        String ability = Ability.CAN_RECRUIT_UNIT;</span>
+<span class="fc" id="L154">        assertTrue(dutch.hasAbility(ability));</span>
+
+<span class="fc bfc" id="L156" title="All 2 branches covered.">        for (UnitType unitType : spec().getUnitTypeList()) {</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">            if (unitType.isRecruitable()) {</span>
+<span class="fc" id="L158">                assertTrue(&quot;Unable to recruit &quot; + unitType.toString(),</span>
+<span class="fc" id="L159">                    dutch.hasAbility(ability, unitType));</span>
+            }
+        }
+
+<span class="fc" id="L163">        dutch.addFather(williamBrewster);</span>
+        // ability is no longer general, but limited to certain unit types
+<span class="fc" id="L165">        assertFalse(dutch.hasAbility(ability));</span>
+
+<span class="fc bfc" id="L167" title="All 2 branches covered.">        for (UnitType unitType : spec().getUnitTypeList()) {</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">            if (unitType.isRecruitable()) {</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">                if (unitType.getSkill() &lt; 0) {</span>
+<span class="fc" id="L170">                    assertFalse(&quot;Able to recruit &quot; + unitType.toString(),</span>
+<span class="fc" id="L171">                        dutch.hasAbility(ability, unitType));</span>
+<span class="fc" id="L172">                } else {</span>
+<span class="fc" id="L173">                    assertTrue(&quot;Unable to recruit &quot; + unitType.toString(),</span>
+<span class="fc" id="L174">                        dutch.hasAbility(ability, unitType));</span>
+                }
+            }
+        }
+<span class="fc" id="L178">    }</span>
+
+    public void testCortes() {
+<span class="fc" id="L181">        Game game = getGame();</span>
+<span class="fc" id="L182">        game.setMap(getTestMap(true));</span>
+
+<span class="fc" id="L184">        Colony colony = getStandardColony(4);</span>
+<span class="fc" id="L185">        Player player = colony.getOwner();</span>
+<span class="fc" id="L186">        Unit unit = colony.getUnitList().get(0);</span>
+
+<span class="fc" id="L188">        NationType inca = spec().getNationType(&quot;model.nationType.inca&quot;);</span>
+<span class="fc" id="L189">        SettlementType incaCity</span>
+<span class="fc" id="L190">            = inca.getSettlementType(&quot;model.settlement.inca&quot;);</span>
+
+<span class="fc" id="L192">        RandomRange range = incaCity.getPlunderRange(unit);</span>
+<span class="fc" id="L193">        assertEquals(2100, range.getFactor());</span>
+
+<span class="fc" id="L195">        player.addFather(hernanCortes);</span>
+
+<span class="fc" id="L197">        range = incaCity.getPlunderRange(unit);</span>
+<span class="fc" id="L198">        assertEquals(3100, range.getFactor());</span>
+<span class="fc" id="L199">    }</span>
+
+    public void testDeLasCasas() {
+<span class="fc" id="L202">        Game game = getGame();</span>
+<span class="fc" id="L203">        game.setMap(getTestMap(true));</span>
+
+<span class="fc" id="L205">        java.util.Map&lt;UnitType, UnitType&gt; upgrades = bartolomeDeLasCasas.getUpgrades();</span>
+
+<span class="fc" id="L207">        assertFalse(upgrades.isEmpty());</span>
+
+<span class="fc bfc" id="L209" title="All 2 branches covered.">        for (java.util.Map.Entry&lt;UnitType, UnitType&gt; entry : upgrades.entrySet()) {</span>
+<span class="fc" id="L210">            assertEquals(entry.getKey(), spec().getUnitType(entry.getKey().getId()));</span>
+<span class="fc" id="L211">            assertEquals(entry.getValue(), spec().getUnitType(entry.getValue().getId()));</span>
+        }
+
+<span class="fc" id="L214">        Colony colony = getStandardColony(4);</span>
+<span class="fc" id="L215">        ServerPlayer player = (ServerPlayer)colony.getOwner();</span>
+<span class="fc" id="L216">        Unit unit = colony.getUnitList().get(0);</span>
+
+<span class="fc" id="L218">        java.util.Map.Entry&lt;UnitType, UnitType&gt; entry = upgrades.entrySet().iterator().next();</span>
+<span class="fc" id="L219">        unit.setType(entry.getKey());</span>
+
+<span class="fc" id="L221">        player.csAddFoundingFather(bartolomeDeLasCasas, null, new ChangeSet());</span>
+<span class="fc" id="L222">        assertEquals(unit.getType(), entry.getValue());</span>
+<span class="fc" id="L223">    }</span>
+
+    public void testDeWitt() {
+<span class="fc" id="L226">        Game game = getGame();</span>
+<span class="fc" id="L227">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L228">        Player french = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="fc" id="L229">        dutch.getMarket().setArrears(musketsType, 1);</span>
+
+<span class="fc" id="L231">        assertFalse(dutch.canTrade(musketsType, Market.Access.EUROPE));</span>
+<span class="fc" id="L232">        assertFalse(dutch.canTrade(musketsType, Market.Access.CUSTOM_HOUSE));</span>
+
+<span class="fc" id="L234">        dutch.addFather(janDeWitt);</span>
+
+<span class="fc" id="L236">        assertFalse(dutch.canTrade(musketsType, Market.Access.EUROPE));</span>
+<span class="fc" id="L237">        assertFalse(dutch.canTrade(musketsType, Market.Access.CUSTOM_HOUSE));</span>
+
+<span class="fc" id="L239">        dutch.setStance(french, Stance.WAR);</span>
+
+<span class="fc" id="L241">        assertFalse(dutch.canTrade(musketsType, Market.Access.EUROPE));</span>
+<span class="fc" id="L242">        assertFalse(dutch.canTrade(musketsType, Market.Access.CUSTOM_HOUSE));</span>
+
+<span class="fc" id="L244">        dutch.setStance(french, Stance.PEACE);</span>
+
+<span class="fc" id="L246">        assertFalse(dutch.canTrade(musketsType, Market.Access.EUROPE));</span>
+<span class="fc" id="L247">        assertTrue(dutch.canTrade(musketsType, Market.Access.CUSTOM_HOUSE));</span>
+<span class="fc" id="L248">    }</span>
+
+    public void testJefferson() {
+<span class="fc" id="L251">        Game game = getGame();</span>
+<span class="fc" id="L252">        game.setMap(getTestMap(true));</span>
+
+<span class="fc" id="L254">        Set&lt;Modifier&gt; jeffersonModifiers</span>
+<span class="fc" id="L255">            = thomasJefferson.getModifiers(&quot;model.goods.bells&quot;);</span>
+<span class="fc" id="L256">        assertEquals(1, jeffersonModifiers.size());</span>
+<span class="fc" id="L257">        Modifier modifier = jeffersonModifiers.iterator().next();</span>
+<span class="fc" id="L258">        assertTrue(modifier.appliesTo(townHallType));</span>
+
+<span class="fc" id="L260">        Colony colony = getStandardColony(4);</span>
+<span class="fc" id="L261">        Player player = colony.getOwner();</span>
+<span class="fc" id="L262">        Building townHall = colony.getBuilding(townHallType);</span>
+<span class="fc" id="L263">        clearWorkLocation(townHall);</span>
+<span class="fc" id="L264">        Unit unit = colony.getFirstUnit();</span>
+<span class="fc" id="L265">        townHall.add(unit);</span>
+
+<span class="fc" id="L267">        assertEquals(0, player.getModifiers(&quot;model.goods.bells&quot;).size());</span>
+<span class="fc" id="L268">        assertEquals(0, colony.getModifiers(&quot;model.goods.bells&quot;).size());</span>
+<span class="fc" id="L269">        int expected = 4;</span>
+<span class="fc" id="L270">        assertEquals(expected, townHall.getTotalProductionOf(bellsType));</span>
+
+<span class="fc" id="L272">        player.addFather(thomasJefferson);</span>
+<span class="fc" id="L273">        expected += expected * 0.5; // Add Jefferson bonus</span>
+<span class="fc" id="L274">        assertEquals(1, player.getModifiers(&quot;model.goods.bells&quot;).size());</span>
+<span class="fc" id="L275">        assertEquals(0, colony.getModifiers(&quot;model.goods.bells&quot;).size());</span>
+<span class="fc" id="L276">        assertEquals(1, townHall.getProductionModifiers(bellsType, null).size());</span>
+<span class="fc" id="L277">        assertEquals(expected, townHall.getTotalProductionOf(bellsType));</span>
+<span class="fc" id="L278">    }</span>
+
+    public void testMinuit() {
+<span class="fc" id="L281">        Game game = getGame();</span>
+<span class="fc" id="L282">        game.setMap(getTestMap(true));</span>
+
+<span class="fc" id="L284">        Colony colony = getStandardColony();</span>
+<span class="fc" id="L285">        Unit unit = colony.getUnitList().get(0);</span>
+<span class="fc" id="L286">        Player player = colony.getOwner();</span>
+<span class="fc" id="L287">        Player iroquois = getGame().getPlayerByNationId(&quot;model.nation.iroquois&quot;);</span>
+<span class="fc" id="L288">        Tile colonyCenterTile = colony.getTile();</span>
+<span class="fc" id="L289">        Tile disputedTile = colonyCenterTile.getNeighbourOrNull(Direction.N);</span>
+<span class="fc" id="L290">        Tile settlementTile = disputedTile.getNeighbourOrNull(Direction.N);</span>
+<span class="fc" id="L291">        assertNull(settlementTile.getOwner());</span>
+
+<span class="fc" id="L293">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="fc" id="L294">            = new FreeColTestCase.IndianSettlementBuilder(getGame());</span>
+<span class="fc" id="L295">        IndianSettlement indianSettlement</span>
+<span class="fc" id="L296">            = builder.player(iroquois).settlementTile(settlementTile)</span>
+<span class="fc" id="L297">            .skillToTeach(null).build();</span>
+
+        // Set up disputed tile
+<span class="fc" id="L300">        ColonyTile colonyTile = colony.getColonyTile(disputedTile);</span>
+<span class="pc bpc" id="L301" title="1 of 2 branches missed.">        for (Unit u : colonyTile.getUnitList()) {</span>
+<span class="nc" id="L302">            u.setLocation(colony.getTile());</span>
+        }
+<span class="fc" id="L304">        disputedTile.changeOwnership(iroquois, indianSettlement);</span>
+
+<span class="fc" id="L306">        assertNotNull(settlementTile.getSettlement());</span>
+<span class="pc bpc" id="L307" title="1 of 2 branches missed.">        assertTrue(player.getLandPrice(disputedTile) &gt; 0);</span>
+<span class="fc" id="L308">        assertFalse(colony.getColonyTile(disputedTile).canAdd(unit));</span>
+
+<span class="fc" id="L310">        player.addFather(peterMinuit);</span>
+
+<span class="fc" id="L312">        assertEquals(&quot;Tile should be zero cost&quot;,</span>
+<span class="fc" id="L313">            0, player.getLandPrice(disputedTile));</span>
+<span class="fc" id="L314">        assertEquals(&quot;Should still have to claim the tile&quot;,</span>
+<span class="fc" id="L315">            NoAddReason.CLAIM_REQUIRED, colonyTile.getNoAddReason(unit));</span>
+<span class="fc" id="L316">    }</span>
+
+    public void testPaine() {
+<span class="fc" id="L319">        Game game = getGame();</span>
+<span class="fc" id="L320">        game.setMap(getTestMap(true));</span>
+<span class="fc" id="L321">        Colony colony = getStandardColony(4);</span>
+<span class="fc" id="L322">        Player player = colony.getOwner();</span>
+<span class="fc" id="L323">        List&lt;AbstractGoods&gt; empty = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L324">        Building townHall = colony.getBuilding(townHallType);</span>
+<span class="fc" id="L325">        clearWorkLocation(townHall);</span>
+
+<span class="fc" id="L327">        Unit statesman1 = colony.getUnitList().get(0);</span>
+<span class="fc" id="L328">        Unit statesman2 = colony.getUnitList().get(1);</span>
+<span class="fc" id="L329">        Unit statesman3 = colony.getUnitList().get(2);</span>
+
+<span class="fc" id="L331">        statesman1.setType(statesmanType);</span>
+<span class="fc" id="L332">        statesman1.setLocation(townHall);</span>
+<span class="fc" id="L333">        assertEquals(6 + 1, townHall.getTotalProductionOf(bellsType));</span>
+
+<span class="fc" id="L335">        statesman2.setType(statesmanType);</span>
+<span class="fc" id="L336">        statesman2.setLocation(townHall);</span>
+<span class="fc" id="L337">        assertEquals(2 * 6 + 1, townHall.getTotalProductionOf(bellsType));</span>
+
+<span class="fc" id="L339">        statesman3.setType(statesmanType);</span>
+<span class="fc" id="L340">        statesman3.setLocation(townHall);</span>
+<span class="fc" id="L341">        assertEquals(3 * 6 + 1, townHall.getTotalProductionOf(bellsType));</span>
+
+<span class="fc" id="L343">        player.setTax(20);</span>
+<span class="fc" id="L344">        assertEquals(3 * 6 + 1, townHall.getTotalProductionOf(bellsType));</span>
+
+<span class="fc" id="L346">        player.addFather(thomasPaine);</span>
+<span class="fc" id="L347">        player.recalculateBellsBonus();</span>
+
+<span class="fc" id="L349">        assertTrue(player.hasAbility(Ability.ADD_TAX_TO_BELLS));</span>
+<span class="fc" id="L350">        Set&lt;Modifier&gt; modifierSet = player.getModifiers(&quot;model.goods.bells&quot;);</span>
+<span class="fc" id="L351">        assertEquals(1, modifierSet.size());</span>
+
+<span class="fc" id="L353">        Modifier paineModifier = modifierSet.iterator().next();</span>
+<span class="fc" id="L354">        assertEquals(thomasPaine, paineModifier.getSource());</span>
+<span class="fc" id="L355">        assertEquals(player.getTax(), (int) paineModifier.getValue());</span>
+
+<span class="fc" id="L357">        int expected = (int) (3 * 6 * 1.2f + 1);</span>
+<span class="fc" id="L358">        assertEquals(expected, townHall.getTotalProductionOf(bellsType));</span>
+
+<span class="fc" id="L360">        player.setTax(30);</span>
+<span class="fc" id="L361">        player.recalculateBellsBonus();</span>
+
+<span class="fc" id="L363">        expected = (int) (3 * 6 * 1.3f + 1);</span>
+<span class="fc" id="L364">        assertEquals(expected, townHall.getTotalProductionOf(bellsType));</span>
+<span class="fc" id="L365">    }</span>
+
+    public void testRevere() {
+<span class="fc" id="L368">        Game game = getGame();</span>
+<span class="fc" id="L369">        game.setMap(getTestMap());</span>
+
+<span class="fc" id="L371">        Colony colony = getStandardColony();</span>
+<span class="fc" id="L372">        Player player = colony.getOwner();</span>
+<span class="fc" id="L373">        Unit colonist = colony.getUnitList().get(0);</span>
+
+<span class="fc" id="L375">        assertNull(&quot;No Revere, no auto-equip.&quot;,</span>
+<span class="fc" id="L376">                   colonist.getAutomaticRole());</span>
+
+        // Add Revere to congress
+<span class="fc" id="L379">        player.addFather(paulRevere);</span>
+
+<span class="fc" id="L381">        assertNull(&quot;No muskets, no auto-equip&quot;,</span>
+<span class="fc" id="L382">                   colonist.getAutomaticRole());</span>
+
+        // Add muskets
+<span class="fc" id="L385">        colony.addGoods(musketsType, 100);</span>
+
+<span class="fc" id="L387">        assertEquals(&quot;Auto equip to soldier role.&quot;, soldierRole,</span>
+<span class="fc" id="L388">                     colonist.getAutomaticRole());</span>
+
+        // Add horses, but still expect soldier
+<span class="fc" id="L391">        colony.addGoods(horsesType, 100);</span>
+
+<span class="fc" id="L393">        assertEquals(&quot;Auto equip to soldier role despite horses.&quot;, soldierRole,</span>
+<span class="fc" id="L394">                     colonist.getAutomaticRole());</span>
+<span class="fc" id="L395">    }</span>
+
+    public void testStuyvesant() {
+<span class="fc" id="L398">        Game game = getGame();</span>
+<span class="fc" id="L399">        game.setMap(getTestMap(true));</span>
+
+<span class="fc" id="L401">        Colony colony = getStandardColony(4);</span>
+<span class="fc" id="L402">        Player player = colony.getOwner();</span>
+
+        // The custom house is not buildable initially
+<span class="fc" id="L405">        assertFalse(colony.canBuild(customHouseType));</span>
+
+        // But it should become available after Peter Stuyvesant has
+        // joined continental congress
+<span class="fc" id="L409">        player.addFather(peterStuyvesant);</span>
+<span class="fc" id="L410">        assertTrue(colony.canBuild(customHouseType));</span>
+<span class="fc" id="L411">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

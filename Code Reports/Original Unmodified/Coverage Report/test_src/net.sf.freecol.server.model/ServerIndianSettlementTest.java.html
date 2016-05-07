@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ServerIndianSettlementTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.model</a> &gt; <span class="el_source">ServerIndianSettlementTest.java</span></div><h1>ServerIndianSettlementTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.model;
+
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TileType;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="fc" id="L33">public class ServerIndianSettlementTest extends FreeColTestCase {</span>
+
+<span class="fc" id="L35">    private static final GoodsType clothType</span>
+<span class="fc" id="L36">        = spec().getGoodsType(&quot;model.goods.cloth&quot;);</span>
+<span class="fc" id="L37">    private static final GoodsType coatsType</span>
+<span class="fc" id="L38">        = spec().getGoodsType(&quot;model.goods.coats&quot;);</span>
+<span class="fc" id="L39">    private static final GoodsType foodType</span>
+<span class="fc" id="L40">        = spec().getPrimaryFoodType();</span>
+<span class="fc" id="L41">    private static final GoodsType grainType</span>
+<span class="fc" id="L42">        = spec().getGoodsType(&quot;model.goods.grain&quot;);</span>
+<span class="fc" id="L43">    private static final GoodsType horsesType</span>
+<span class="fc" id="L44">        = spec().getGoodsType(&quot;model.goods.horses&quot;);</span>
+<span class="fc" id="L45">    private static final GoodsType rumType</span>
+<span class="fc" id="L46">        = spec().getGoodsType(&quot;model.goods.rum&quot;);</span>
+<span class="fc" id="L47">    private static final GoodsType toolsType</span>
+<span class="fc" id="L48">        = spec().getGoodsType(&quot;model.goods.tools&quot;);</span>
+
+<span class="fc" id="L50">    private static final TileType desertType</span>
+<span class="fc" id="L51">        = spec().getTileType(&quot;model.tile.desert&quot;);</span>
+<span class="fc" id="L52">    private static final TileType plainsType</span>
+<span class="fc" id="L53">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+
+<span class="fc" id="L55">    private static final UnitType brave</span>
+<span class="fc" id="L56">        = spec().getUnitType(&quot;model.unit.brave&quot;);</span>
+
+
+    public void testFoodConsumption() {
+<span class="fc" id="L60">        Game game = ServerTestHelper.startServerGame(getTestMap());</span>
+
+<span class="fc" id="L62">        FreeColTestCase.IndianSettlementBuilder builder = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="fc" id="L63">        IndianSettlement camp = builder.build();</span>
+
+<span class="fc" id="L65">        assertEquals(1, camp.getUnitCount());</span>
+<span class="fc" id="L66">        assertEquals(0, camp.getGoodsCount(foodType));</span>
+
+<span class="fc" id="L68">        int foodProduced = camp.getTotalProductionOf(grainType);</span>
+<span class="fc" id="L69">        int foodConsumed = camp.getFoodConsumption();</span>
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">        assertTrue(&quot;Food Produced should be more the food consumed&quot;,foodProduced &gt; foodConsumed);</span>
+
+<span class="fc" id="L72">        ServerTestHelper.newTurn();</span>
+
+<span class="fc" id="L74">        int foodRemaining = Math.max(foodProduced - foodConsumed, 0);</span>
+<span class="fc" id="L75">        assertEquals(&quot;Unexpected value for remaining food, &quot;, foodRemaining,camp.getGoodsCount(foodType));</span>
+<span class="fc" id="L76">    }</span>
+
+    public void testHorseBreeding() {
+<span class="fc" id="L79">        Game game = ServerTestHelper.startServerGame(getTestMap());</span>
+
+<span class="fc" id="L81">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="fc" id="L82">            = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="fc" id="L83">        IndianSettlement camp = builder.build();</span>
+
+        //verify initial conditions
+<span class="fc" id="L86">        assertEquals(1, camp.getUnitCount());</span>
+<span class="fc" id="L87">        assertEquals(0, camp.getGoodsCount(foodType));</span>
+
+        //add horses
+<span class="fc" id="L90">        int initialHorses = horsesType.getBreedingNumber();</span>
+<span class="fc" id="L91">        camp.addGoods(horsesType, initialHorses);</span>
+
+        // verify that there is food production for the horses.
+        // Using freecol rules where horses eat grain
+<span class="fc" id="L95">        assertEquals(&quot;Horses need grain&quot;, grainType, horsesType.getInputType());</span>
+<span class="fc" id="L96">        int foodProduced = camp.getTotalProductionOf(grainType);</span>
+<span class="fc" id="L97">        int foodConsumed = camp.getFoodConsumption();</span>
+<span class="fc" id="L98">        int foodAvail = foodProduced - foodConsumed;</span>
+<span class="fc" id="L99">        assertTrue(&quot;Food Produced should be more the food consumed&quot;,</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">                   foodProduced &gt; foodConsumed);</span>
+
+<span class="fc" id="L102">        int expectedHorseProd = Math.min(ServerIndianSettlement.MAX_HORSES_PER_TURN,</span>
+<span class="fc" id="L103">                                         foodAvail);</span>
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">        assertTrue(&quot;Horses should breed&quot;, expectedHorseProd &gt; 0);</span>
+
+<span class="fc" id="L106">        ServerTestHelper.newTurn();</span>
+
+<span class="fc" id="L108">        int horsesBred = camp.getGoodsCount(horsesType) - initialHorses;</span>
+<span class="fc" id="L109">        assertEquals(&quot;Wrong number of horses bred&quot;,</span>
+<span class="fc" id="L110">                     expectedHorseProd, horsesBred);</span>
+<span class="fc" id="L111">    }</span>
+
+    public void testHorseBreedingNoFoodAvail() {
+<span class="fc" id="L114">        Game game = ServerTestHelper.startServerGame(getTestMap(desertType));</span>
+
+<span class="fc" id="L116">        int initialBravesInCamp = 3;</span>
+<span class="fc" id="L117">        FreeColTestCase.IndianSettlementBuilder builder = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="fc" id="L118">        IndianSettlement camp1 = builder.initialBravesInCamp(initialBravesInCamp).build();</span>
+<span class="fc" id="L119">        IndianSettlement camp2 = builder.reset()</span>
+<span class="fc" id="L120">            .settlementTile(camp1.getTile().getNeighbourOrNull(Direction.N)</span>
+<span class="fc" id="L121">                            .getNeighbourOrNull(Direction.N)).build();</span>
+
+        //////////////////////
+        // Simulate that only the center tile is owned by camp 1
+        // Does not matter where camp 2 is, so we put it in the same tile as camp1
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        for (Tile t: camp1.getTile().getSurroundingTiles(camp1.getRadius())) {</span>
+<span class="fc" id="L127">            t.changeOwnership(camp2.getOwner(), camp2);</span>
+        }
+
+
+        //verify initial conditions
+<span class="fc" id="L132">        assertEquals(initialBravesInCamp, camp1.getUnitCount());</span>
+<span class="fc" id="L133">        assertEquals(0, camp1.getGoodsCount(foodType));</span>
+
+<span class="fc" id="L135">        int foodProduced = camp1.getTotalProductionOf(grainType);</span>
+<span class="fc" id="L136">        int foodConsumed = camp1.getFoodConsumption();</span>
+<span class="fc" id="L137">        assertEquals(2, brave.getConsumptionOf(foodType));</span>
+<span class="fc" id="L138">        assertEquals(2 * camp1.getUnitCount(), foodConsumed);</span>
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">        assertTrue(&quot;Food Produced should be less the food consumed&quot;,foodProduced &lt; foodConsumed);</span>
+
+        //add horses
+<span class="fc" id="L142">        int initialHorses = 2;</span>
+<span class="fc" id="L143">        camp1.addGoods(horsesType, initialHorses);</span>
+
+<span class="fc" id="L145">        ServerTestHelper.newTurn();</span>
+
+<span class="fc" id="L147">        int expectedHorsesBreeded = 0;</span>
+<span class="fc" id="L148">        int horsesBreeded = camp1.getGoodsCount(horsesType) - initialHorses;</span>
+<span class="fc" id="L149">        assertEquals(&quot;No horses should be bred&quot;,expectedHorsesBreeded,horsesBreeded);</span>
+<span class="fc" id="L150">    }</span>
+
+    public void testPricing() {
+<span class="fc" id="L153">        Game game = ServerTestHelper.startServerGame(getTestMap(plainsType));</span>
+
+<span class="fc" id="L155">        final int braveCount = 4;</span>
+<span class="fc" id="L156">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="fc" id="L157">            = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="fc" id="L158">        IndianSettlement camp = builder.initialBravesInCamp(braveCount).build();</span>
+<span class="fc" id="L159">        final int topPrice = IndianSettlement.GOODS_BASE_PRICE</span>
+<span class="fc" id="L160">            + camp.getType().getTradeBonus();</span>
+
+        // Clear wanted goods so as not to confuse comparisons
+<span class="fc" id="L163">        camp.setWantedGoods(0, null);</span>
+<span class="fc" id="L164">        camp.setWantedGoods(1, null);</span>
+<span class="fc" id="L165">        camp.setWantedGoods(2, null);</span>
+
+<span class="fc" id="L167">        assertEquals(braveCount, camp.getUnitCount());</span>
+
+        // Should initially value military goods highly
+<span class="fc" id="L170">        assertEquals(&quot;High price for horses&quot;, topPrice,</span>
+<span class="fc" id="L171">                     camp.getPriceToBuy(horsesType, 1));</span>
+
+        // But once there are enough for all the braves, the price should fall
+<span class="fc" id="L174">        camp.addGoods(horsesType, 50);</span>
+<span class="fc" id="L175">        assertEquals(&quot;Still high price for horses&quot;, topPrice,</span>
+<span class="fc" id="L176">                     camp.getPriceToBuy(horsesType, 1));</span>
+<span class="fc" id="L177">        camp.addGoods(horsesType, 50);</span>
+<span class="fc" id="L178">        assertTrue(&quot;Commercial price for horses&quot;,</span>
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">                   camp.getPriceToBuy(horsesType, 1) &lt;= topPrice / 2);</span>
+
+        // Farmed goods should be much cheaper
+<span class="fc" id="L182">        assertTrue(&quot;Grain is farmed&quot;, grainType.isFarmed());</span>
+<span class="fc" id="L183">        assertTrue(&quot;Devalue farmed goods&quot;,</span>
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">                   camp.getPriceToBuy(grainType, 100) &lt;= 100 * topPrice / 2);</span>
+
+        // Rum is more interesting...
+<span class="fc" id="L187">        assertEquals(0, camp.getGoodsCount(rumType));</span>
+<span class="fc" id="L188">        assertEquals(&quot;Buy rum&quot;, topPrice,</span>
+<span class="fc" id="L189">                     camp.getPriceToBuy(rumType, 1));</span>
+
+        // ...but the price falls with amount present
+<span class="fc" id="L192">        camp.addGoods(rumType, 100);</span>
+<span class="fc" id="L193">        assertTrue(&quot;Add rum&quot;,</span>
+<span class="pc bpc" id="L194" title="1 of 2 branches missed.">                   camp.getPriceToBuy(rumType, 1) &lt;= topPrice / 2);</span>
+<span class="fc" id="L195">        assertTrue(&quot;Add more rum&quot;,</span>
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">                   camp.getPriceToBuy(rumType, 99) &lt;= 99 * topPrice / 2);</span>
+<span class="fc" id="L197">        camp.addGoods(rumType, 100);</span>
+<span class="fc" id="L198">        assertEquals(&quot;Do not buy more rum&quot;, 0,</span>
+<span class="fc" id="L199">                     camp.getPriceToBuy(rumType, 1));</span>
+
+        // On plains cotton can be grown, so cloth should be cheaper than
+        // coats.
+<span class="fc" id="L203">        assertTrue(&quot;Cloth (&quot;</span>
+<span class="fc" id="L204">                   + camp.getPriceToBuy(clothType, 50)</span>
+<span class="fc" id="L205">                   + &quot;) cheaper than coats (&quot;</span>
+<span class="fc" id="L206">                   + camp.getPriceToBuy(coatsType, 50) + &quot;)&quot;,</span>
+<span class="pc bpc" id="L207" title="1 of 2 branches missed.">            camp.getPriceToBuy(clothType, 50) &lt; camp.getPriceToBuy(coatsType, 50));</span>
+<span class="fc" id="L208">        camp.addGoods(clothType, 20);</span>
+<span class="fc" id="L209">        camp.addGoods(coatsType, 20);</span>
+<span class="fc" id="L210">        assertTrue(&quot;Cloth still (&quot;</span>
+<span class="fc" id="L211">                   + camp.getPriceToBuy(clothType, 50)</span>
+<span class="fc" id="L212">                   + &quot;) cheaper than coats (&quot;</span>
+<span class="fc" id="L213">                   + camp.getPriceToBuy(coatsType, 50) + &quot;)&quot;,</span>
+<span class="pc bpc" id="L214" title="1 of 2 branches missed.">            camp.getPriceToBuy(clothType, 50) &lt; camp.getPriceToBuy(coatsType, 50));</span>
+<span class="fc" id="L215">        camp.addGoods(clothType, 100);</span>
+<span class="fc" id="L216">        camp.addGoods(coatsType, 100);</span>
+<span class="fc" id="L217">        assertEquals(&quot;Cloth now ignored&quot;, 0,</span>
+<span class="fc" id="L218">                     camp.getPriceToBuy(clothType, 1));</span>
+<span class="fc" id="L219">        assertEquals(&quot;Coats now ignored&quot;, 0,</span>
+<span class="fc" id="L220">                     camp.getPriceToBuy(coatsType, 1));</span>
+
+        // Check that wanted goods at least increases the price
+<span class="fc" id="L223">        camp.setWantedGoods(2, horsesType);</span>
+<span class="fc" id="L224">        camp.setWantedGoods(1, horsesType);</span>
+<span class="fc" id="L225">        camp.setWantedGoods(0, horsesType);</span>
+<span class="fc" id="L226">        int p3 = camp.getPriceToBuy(toolsType, 50);</span>
+<span class="fc" id="L227">        camp.setWantedGoods(2, toolsType);</span>
+<span class="fc" id="L228">        camp.setWantedGoods(1, horsesType);</span>
+<span class="fc" id="L229">        camp.setWantedGoods(0, horsesType);</span>
+<span class="fc" id="L230">        int p2 = camp.getPriceToBuy(toolsType, 50);</span>
+<span class="pc bpc" id="L231" title="1 of 2 branches missed.">        assertTrue(&quot;Wanted 2: (&quot; + p2 + &quot; &gt; &quot; + p3 + &quot;)&quot;,  p2 &gt; p3);</span>
+<span class="fc" id="L232">        camp.setWantedGoods(2, horsesType);</span>
+<span class="fc" id="L233">        camp.setWantedGoods(1, toolsType);</span>
+<span class="fc" id="L234">        camp.setWantedGoods(0, horsesType);</span>
+<span class="fc" id="L235">        int p1 = camp.getPriceToBuy(toolsType, 50);</span>
+<span class="pc bpc" id="L236" title="1 of 2 branches missed.">        assertTrue(&quot;Wanted 1: (&quot; + p1 + &quot; &gt; &quot; + p2 + &quot;)&quot;,  p1 &gt; p2);</span>
+<span class="fc" id="L237">        camp.setWantedGoods(2, horsesType);</span>
+<span class="fc" id="L238">        camp.setWantedGoods(1, horsesType);</span>
+<span class="fc" id="L239">        camp.setWantedGoods(0, toolsType);</span>
+<span class="fc" id="L240">        int p0 = camp.getPriceToBuy(toolsType, 50);</span>
+<span class="pc bpc" id="L241" title="1 of 2 branches missed.">        assertTrue(&quot;Wanted 0: (&quot; + p0 + &quot; &gt; &quot; + p1 + &quot;)&quot;,  p0 &gt; p1);</span>
+<span class="fc" id="L242">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

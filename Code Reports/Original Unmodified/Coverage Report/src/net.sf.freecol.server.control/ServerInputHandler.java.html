@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ServerInputHandler.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.control</a> &gt; <span class="el_source">ServerInputHandler.java</span></div><h1>ServerInputHandler.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.control;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import net.sf.freecol.common.networking.Connection;
+import net.sf.freecol.common.networking.DOMMessage;
+import net.sf.freecol.common.networking.ChatMessage;
+import net.sf.freecol.common.networking.MessageHandler;
+import net.sf.freecol.common.networking.NetworkRequestHandler;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.networking.Server;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * Handles the network messages on the server side.
+ * 
+ * @see Controller
+ */
+public abstract class ServerInputHandler extends FreeColServerHolder
+    implements MessageHandler {
+
+<span class="fc" id="L49">    private static final Logger logger = Logger.getLogger(ServerInputHandler.class.getName());</span>
+
+<span class="fc" id="L51">    private static final String LOGOUT_TAG = &quot;logout&quot;;</span>
+
+    /**
+     * The handler map provides named handlers for network
+     * requests.  Each handler deals with a given request type.
+     */
+<span class="fc" id="L57">    private final Map&lt;String, NetworkRequestHandler&gt; handlerMap</span>
+<span class="fc" id="L58">        = Collections.synchronizedMap(new HashMap&lt;String, NetworkRequestHandler&gt;());</span>
+
+
+    /**
+     * The constructor to use.
+     * 
+     * @param freeColServer The main server object.
+     */
+    public ServerInputHandler(final FreeColServer freeColServer) {
+<span class="fc" id="L67">        super(freeColServer);</span>
+
+<span class="fc" id="L69">        register(ChatMessage.TAG, (Connection conn, Element e) -&gt;</span>
+<span class="nc" id="L70">            new ChatMessage(getGame(), e).handle(freeColServer, conn));</span>
+
+<span class="fc" id="L72">        register(Connection.DISCONNECT_TAG, (Connection conn, Element e) -&gt;</span>
+<span class="nc" id="L73">            disconnect(conn, e));</span>
+
+<span class="fc" id="L75">        register(LOGOUT_TAG, (Connection conn, Element e) -&gt;</span>
+<span class="nc" id="L76">            logout(conn, e));</span>
+<span class="fc" id="L77">    }</span>
+
+
+    /**
+     * Register a network request handler.
+     * 
+     * @param name The handler name.
+     * @param handler The &lt;code&gt;NetworkRequestHandler&lt;/code&gt; to register.
+     */
+    protected final void register(String name, NetworkRequestHandler handler) {
+<span class="fc" id="L87">        this.handlerMap.put(name, handler);</span>
+<span class="fc" id="L88">    }</span>
+
+    /**
+     * Unregister a network request handler.
+     * 
+     * @param name The handler name.
+     * @param handler The &lt;code&gt;NetworkRequestHandler&lt;/code&gt; to unregister.
+     * @return True if the supplied handler was actually removed.
+     */
+    protected final boolean unregister(String name, NetworkRequestHandler handler) {
+<span class="nc" id="L98">        return this.handlerMap.remove(name, handler);</span>
+    }
+
+    /**
+     * Handle a &quot;disconnect&quot;-message.
+     * 
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the message was received
+     *     on.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; (root element in a
+     *     DOM-parsed XML tree) that holds all the information.
+     * @return Null.
+     */
+    protected Element disconnect(Connection connection, Element element) {
+        // The player should be logged out by now, but just in case:
+<span class="nc" id="L112">        ServerPlayer player = getFreeColServer().getPlayer(connection);</span>
+<span class="nc" id="L113">        logger.info(&quot;Disconnecting player &quot;</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">            + ((player == null) ? &quot;null&quot; : player.getName()));</span>
+<span class="nc bnc" id="L115" title="All 4 branches missed.">        if (player != null &amp;&amp; player.isConnected()) {</span>
+<span class="nc" id="L116">            logout(connection, null);</span>
+        }
+<span class="nc" id="L118">        connection.reallyClose();</span>
+<span class="nc" id="L119">        Server server = getFreeColServer().getServer();</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">        if (server != null) server.removeConnection(connection);</span>
+<span class="nc" id="L121">        return null;</span>
+    }
+    
+    /**
+     * Handle a &quot;logout&quot;-message.
+     * 
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the message was received
+     *     on.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; (root element in a
+     *     DOM-parsed XML tree) that holds all the information.
+     * @return The reply.
+     */
+    protected abstract Element logout(Connection connection, Element element);
+
+
+    // Implement MessageHandler
+
+    /**
+     * {@inheritDoc}
+     */
+    public final Element handle(Connection connection, Element element) {
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">        if (element == null) return null;</span>
+<span class="fc" id="L143">        final String tag = element.getTagName();</span>
+<span class="fc" id="L144">        NetworkRequestHandler handler = handlerMap.get(tag);</span>
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">        if (handler == null) {</span>
+            // Should we return an error here? The old handler returned null.
+<span class="nc" id="L147">            logger.warning(&quot;No handler installed for &quot; + tag);</span>
+<span class="nc" id="L148">        } else {</span>
+            try {
+<span class="fc" id="L150">                logger.log(Level.FINEST, &quot;Handling &quot; + tag);</span>
+<span class="fc" id="L151">                return handler.handle(connection, element);</span>
+<span class="nc" id="L152">            } catch (Exception e) {</span>
+                // FIXME: should we really catch Exception? The old code did.
+<span class="nc" id="L154">                logger.log(Level.WARNING, &quot;Handler failure for &quot; + tag, e);</span>
+<span class="nc" id="L155">                connection.reconnect();</span>
+            }
+        }
+<span class="nc" id="L158">        return null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

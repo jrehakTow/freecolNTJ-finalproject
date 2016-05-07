@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>CornerMapControls.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.gui.panel</a> &gt; <span class="el_source">CornerMapControls.java</span></div><h1>CornerMapControls.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.gui.panel;
+
+import java.awt.Component;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.Graphics;
+import java.awt.Image;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.swing.ImageIcon;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.border.BevelBorder;
+
+import net.sf.freecol.client.ClientOptions;
+import net.sf.freecol.client.FreeColClient;
+import net.sf.freecol.client.gui.Canvas;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.resources.ResourceManager;
+
+
+/**
+ * A collection of panels and buttons that are used to provide the
+ * user with a more detailed view of certain elements on the map and
+ * also to provide a means of input in case the user can't use the
+ * keyboard.
+ *
+ * The MapControls are useless by themselves, this object needs to be
+ * placed on a JComponent in order to be usable.
+ */
+public final class CornerMapControls extends MapControls {
+
+<span class="nc" id="L54">    private static final Logger logger = Logger.getLogger(CornerMapControls.class.getName());</span>
+
+<span class="nc" id="L56">    public class MiniMapPanel extends JPanel {</span>
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void paintComponent(Graphics graphics) {
+<span class="nc bnc" id="L63" title="All 2 branches missed.">            if (miniMapSkin != null) {</span>
+<span class="nc" id="L64">                graphics.drawImage(miniMapSkin, 0, 0, null);</span>
+            }
+<span class="nc" id="L66">            super.paintComponent(graphics);</span>
+<span class="nc" id="L67">        }</span>
+    }
+
+    private final JLabel compassRose;
+
+    private final MiniMapPanel miniMapPanel;
+
+    private final Image miniMapSkin;
+
+
+    /**
+     * The basic constructor.
+     *
+     * @param freeColClient The &lt;code&gt;FreeColClient&lt;/code&gt; for the game.
+     */
+    public CornerMapControls(final FreeColClient freeColClient) {
+<span class="nc" id="L83">        super(freeColClient, true);</span>
+
+<span class="nc" id="L85">        compassRose = new JLabel(new ImageIcon(ResourceManager.getImage(&quot;image.skin.compass&quot;)));</span>
+<span class="nc" id="L86">        compassRose.setFocusable(false);</span>
+<span class="nc" id="L87">        compassRose.setSize(compassRose.getPreferredSize());</span>
+<span class="nc" id="L88">        compassRose.addMouseListener(new MouseAdapter() {</span>
+
+                /**
+                 * {@inheritDoc}
+                 */
+                @Override
+                public void mouseClicked(MouseEvent e) {
+<span class="nc" id="L95">                    Unit unit = getGUI().getActiveUnit();</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">                    if (unit == null) return;</span>
+<span class="nc" id="L97">                    int x = e.getX() - compassRose.getWidth()/2;</span>
+<span class="nc" id="L98">                    int y = e.getY() - compassRose.getHeight()/2;</span>
+<span class="nc" id="L99">                    double theta = Math.atan2(y, x) + Math.PI/2 + Math.PI/8;</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">                    if (theta &lt; 0) {</span>
+<span class="nc" id="L101">                        theta += 2*Math.PI;</span>
+                    }
+<span class="nc" id="L103">                    igc().moveUnit(unit, Direction.angleToDirection(theta));</span>
+<span class="nc" id="L104">                }</span>
+            });
+
+<span class="nc" id="L107">        miniMapPanel = new MiniMapPanel();</span>
+<span class="nc" id="L108">        miniMapPanel.setFocusable(false);</span>
+        
+        /**
+         * In order to make the setLocation setup work, we need to set
+         * the layout to null first, then set the size of the minimap,
+         * and then its location.
+         */
+<span class="nc" id="L115">        miniMapPanel.setLayout(null);</span>
+<span class="nc" id="L116">        miniMap.setSize(MAP_WIDTH, MAP_HEIGHT);</span>
+        // Add buttons:
+<span class="nc" id="L118">        miniMapPanel.add(miniMapToggleBorders);</span>
+<span class="nc" id="L119">        miniMapPanel.add(miniMapToggleFogOfWarButton);</span>
+<span class="nc" id="L120">        miniMapPanel.add(miniMapZoomInButton);</span>
+<span class="nc" id="L121">        miniMapPanel.add(miniMapZoomOutButton);</span>
+<span class="nc" id="L122">        miniMapPanel.add(miniMap);</span>
+
+<span class="nc" id="L124">        String miniMapSkinKey = &quot;image.skin.MiniMap&quot;;</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">        if (ResourceManager.hasImageResource(miniMapSkinKey)) {</span>
+<span class="nc" id="L126">            miniMapSkin = ResourceManager.getImage(miniMapSkinKey);</span>
+<span class="nc" id="L127">            miniMapPanel.setBorder(null);</span>
+<span class="nc" id="L128">            miniMapPanel.setSize(miniMapSkin.getWidth(null),</span>
+<span class="nc" id="L129">                                 miniMapSkin.getHeight(null));</span>
+<span class="nc" id="L130">            miniMapPanel.setOpaque(false);</span>
+            // FIXME: LATER: The values below should be specified by a
+            // skin-configuration-file.
+<span class="nc" id="L133">            miniMap.setLocation(38, 75);</span>
+<span class="nc" id="L134">            miniMapToggleBorders.setLocation(4,114);</span>
+<span class="nc" id="L135">            miniMapToggleFogOfWarButton.setLocation(4, 144);</span>
+<span class="nc" id="L136">            miniMapZoomInButton.setLocation(4, 174);</span>
+<span class="nc" id="L137">            miniMapZoomOutButton.setLocation(264, 174);</span>
+<span class="nc" id="L138">        } else {</span>
+<span class="nc" id="L139">            miniMapSkin = null;</span>
+<span class="nc" id="L140">            int width = miniMapZoomOutButton.getWidth()</span>
+<span class="nc" id="L141">                + miniMapZoomInButton.getWidth() + 4 * GAP;</span>
+<span class="nc" id="L142">            miniMapPanel.setOpaque(true);</span>
+<span class="nc" id="L143">            miniMap.setBorder(new BevelBorder(BevelBorder.RAISED));</span>
+<span class="nc" id="L144">            miniMap.setLocation(width/2, GAP);</span>
+<span class="nc" id="L145">            miniMapZoomInButton.setLocation(GAP, </span>
+<span class="nc" id="L146">                MAP_HEIGHT + GAP - miniMapZoomInButton.getHeight());</span>
+<span class="nc" id="L147">            miniMapZoomOutButton.setLocation(</span>
+<span class="nc" id="L148">                miniMapZoomInButton.getWidth() + MAP_WIDTH + 3 * GAP,</span>
+<span class="nc" id="L149">                MAP_HEIGHT + GAP - miniMapZoomOutButton.getHeight());</span>
+        }
+<span class="nc" id="L151">    }</span>
+
+
+    /**
+     * Add a component to the canvas.
+     *
+     * @param canvas The &lt;code&gt;Canvas&lt;/code&gt; to add to.
+     * @param component The component to add.
+     */
+    private void addToCanvas(Canvas canvas, Component component) {
+        try {
+<span class="nc" id="L162">            canvas.add(component, CONTROLS_LAYER);</span>
+<span class="nc" id="L163">        } catch (Exception e) {</span>
+<span class="nc" id="L164">            logger.log(Level.WARNING, &quot;Component add: &quot; + component.getSize()</span>
+<span class="nc" id="L165">                + &quot; at &quot; + component.getLocation()</span>
+<span class="nc" id="L166">                + &quot; in &quot; + canvas.getSize(), e);</span>
+        }
+<span class="nc" id="L168">    }</span>
+
+
+    // Implement MapControls
+
+    /**
+     * Adds the map controls to the given canvas.
+     *
+     * @param canvas The parent &lt;code&gt;Canvas&lt;/code&gt;.
+     */
+    @Override
+    public void addToComponent(Canvas canvas) {
+<span class="nc bnc" id="L180" title="All 4 branches missed.">        if (getGame() == null || getGame().getMap() == null) return;</span>
+
+<span class="nc" id="L182">        final boolean rose = getClientOptions().getBoolean(ClientOptions.DISPLAY_COMPASS_ROSE);</span>
+
+        //
+        // Relocate GUI Objects
+        //
+<span class="nc" id="L187">        final int cw = canvas.getWidth();</span>
+<span class="nc" id="L188">        final int ch = canvas.getHeight();</span>
+<span class="nc" id="L189">        infoPanel.setLocation(cw - infoPanel.getWidth(),</span>
+<span class="nc" id="L190">                              ch - infoPanel.getHeight());</span>
+<span class="nc" id="L191">        miniMapPanel.setLocation(0, ch - miniMapPanel.getHeight());</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">        if (rose) {</span>
+<span class="nc" id="L193">            compassRose.setLocation(cw - compassRose.getWidth() - 20, 20);</span>
+        }
+<span class="nc bnc" id="L195" title="All 2 branches missed.">        if (!unitButtons.isEmpty()) {</span>
+<span class="nc" id="L196">            final int SPACE = 5;</span>
+<span class="nc" id="L197">            int width = -SPACE, height = 0;</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">            for (UnitButton ub : unitButtons) {</span>
+<span class="nc" id="L199">                height = Math.max(height, ub.getHeight());</span>
+<span class="nc" id="L200">                width += SPACE + ub.getWidth();</span>
+            }
+<span class="nc" id="L202">            int x = miniMapPanel.getWidth() + 1</span>
+<span class="nc" id="L203">                + (infoPanel.getX() - miniMapPanel.getWidth() - width) / 2;</span>
+<span class="nc" id="L204">            int y = ch - height - SPACE;</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">            for (UnitButton ub : unitButtons) {</span>
+<span class="nc" id="L206">                ub.setLocation(x, y);</span>
+<span class="nc" id="L207">                x += SPACE + ub.getWidth();</span>
+            }
+        }
+
+        //
+        // Add the GUI Objects to the container
+        //
+<span class="nc" id="L214">        addToCanvas(canvas, infoPanel);</span>
+<span class="nc" id="L215">        addToCanvas(canvas, miniMapPanel);</span>
+<span class="nc bnc" id="L216" title="All 2 branches missed.">        if (rose) addToCanvas(canvas, compassRose);</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">        if (!getFreeColClient().isMapEditor()) {</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">            for (UnitButton button : unitButtons) {</span>
+<span class="nc" id="L219">                addToCanvas(canvas, button);</span>
+<span class="nc" id="L220">                button.refreshAction();</span>
+            }
+        }
+<span class="nc" id="L223">    }</span>
+
+    /**
+     * Are these map controls showing?
+     *
+     * @return True if the map controls are showing.
+     */
+    @Override
+    public boolean isShowing() {
+<span class="nc bnc" id="L232" title="All 2 branches missed.">        return infoPanel.getParent() != null;</span>
+    }
+
+    /**
+     * Removes the map controls from the parent canvas.
+     *
+     * @param canvas The parent &lt;code&gt;Canvas&lt;/code&gt;.
+     */
+    @Override
+    public void removeFromComponent(Canvas canvas) {
+<span class="nc" id="L242">        canvas.removeFromCanvas(infoPanel);</span>
+<span class="nc" id="L243">        canvas.removeFromCanvas(miniMapPanel);</span>
+<span class="nc" id="L244">        canvas.removeFromCanvas(compassRose);</span>
+
+<span class="nc bnc" id="L246" title="All 2 branches missed.">        for (UnitButton button : unitButtons) {</span>
+<span class="nc" id="L247">            canvas.removeFromCanvas(button);</span>
+        }
+<span class="nc" id="L249">    }</span>
+
+    @Override
+    public void repaint() {
+<span class="nc" id="L253">        miniMapPanel.repaint();</span>
+<span class="nc" id="L254">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>
