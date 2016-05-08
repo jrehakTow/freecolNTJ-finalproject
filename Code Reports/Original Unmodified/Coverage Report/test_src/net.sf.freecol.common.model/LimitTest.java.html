@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>LimitTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">LimitTest.java</span></div><h1>LimitTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import net.sf.freecol.common.model.GameOptions;
+import net.sf.freecol.common.model.Operand.OperandType;
+import net.sf.freecol.common.model.Operand.ScopeLevel;
+import net.sf.freecol.common.option.IntegerOption;
+import net.sf.freecol.server.model.ServerBuilding;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="fc" id="L31">public class LimitTest extends FreeColTestCase {</span>
+
+    public void testOperand() {
+
+<span class="fc" id="L35">        UnitType carpenter = spec().getUnitType(&quot;model.unit.masterCarpenter&quot;);</span>
+<span class="fc" id="L36">        UnitType frigate = spec().getUnitType(&quot;model.unit.frigate&quot;);</span>
+
+<span class="fc" id="L38">        Operand operand = new Operand();</span>
+<span class="fc" id="L39">        assertEquals(OperandType.NONE, operand.getOperandType());</span>
+<span class="fc" id="L40">        assertEquals(ScopeLevel.NONE, operand.getScopeLevel());</span>
+
+<span class="fc" id="L42">        operand.setType(&quot;model.unit.frigate&quot;);</span>
+<span class="fc" id="L43">        assertTrue(operand.appliesTo(frigate));</span>
+<span class="fc" id="L44">        assertFalse(operand.appliesTo(carpenter));</span>
+
+<span class="fc" id="L46">    }</span>
+
+    public void testWagonTrainLimit() {
+
+<span class="fc" id="L50">        Game game = getStandardGame();</span>
+<span class="fc" id="L51">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L52">        Map map = getTestMap();</span>
+<span class="fc" id="L53">        game.setMap(map);</span>
+
+<span class="fc" id="L55">        Colony colony = getStandardColony(3);</span>
+<span class="fc" id="L56">        Building armory = new ServerBuilding(getGame(), colony, spec().getBuildingType(&quot;model.building.armory&quot;));</span>
+<span class="fc" id="L57">        colony.addBuilding(armory);</span>
+
+<span class="fc" id="L59">        UnitType wagonTrain = spec().getUnitType(&quot;model.unit.wagonTrain&quot;);</span>
+<span class="fc" id="L60">        UnitType artillery = spec().getUnitType(&quot;model.unit.artillery&quot;);</span>
+
+<span class="fc" id="L62">        Limit wagonTrainLimit = wagonTrain.getLimits().get(0);</span>
+
+<span class="fc" id="L64">        assertTrue(colony.canBuild(artillery));</span>
+<span class="fc" id="L65">        assertFalse(wagonTrainLimit.getLeftHandSide().appliesTo(artillery));</span>
+
+<span class="fc" id="L67">        assertTrue(wagonTrainLimit.evaluate(colony));</span>
+<span class="fc" id="L68">        assertTrue(colony.canBuild(wagonTrain));</span>
+
+<span class="fc" id="L70">        Unit wagon = new ServerUnit(game, colony.getTile(), dutch, wagonTrain);</span>
+<span class="fc" id="L71">        assertNotNull(wagon);</span>
+<span class="fc" id="L72">        assertEquals(Colony.NoBuildReason.LIMIT_EXCEEDED,</span>
+<span class="fc" id="L73">                     colony.getNoBuildReason(wagonTrain, null));</span>
+<span class="fc" id="L74">        assertFalse(wagonTrainLimit.evaluate(colony));</span>
+<span class="fc" id="L75">        assertFalse(colony.canBuild(wagonTrain));</span>
+<span class="fc" id="L76">        assertTrue(colony.canBuild(artillery));</span>
+<span class="fc" id="L77">    }</span>
+
+    public void testIndependenceLimits() {
+<span class="fc" id="L80">        Game game = getStandardGame();</span>
+<span class="fc" id="L81">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L82">        Map map = getTestMap();</span>
+<span class="fc" id="L83">        game.setMap(map);</span>
+
+<span class="fc" id="L85">        Colony colony = getStandardColony(3);</span>
+
+<span class="fc" id="L87">        Event event = spec().getEvent(&quot;model.event.declareIndependence&quot;);</span>
+<span class="fc" id="L88">        assertNotNull(event);</span>
+<span class="fc" id="L89">        assertNotNull(event.getLimits());</span>
+<span class="fc" id="L90">        assertNotNull(spec().getOption(GameOptions.LAST_COLONIAL_YEAR));</span>
+
+<span class="fc" id="L92">        Limit rebelLimit = event.getLimit(&quot;model.limit.independence.rebels&quot;);</span>
+<span class="fc" id="L93">        Limit colonyLimit = event.getLimit(&quot;model.limit.independence.coastalColonies&quot;);</span>
+<span class="fc" id="L94">        Limit yearLimit = event.getLimit(&quot;model.limit.independence.year&quot;);</span>
+
+<span class="fc" id="L96">        assertNotNull(rebelLimit);</span>
+<span class="fc" id="L97">        assertEquals(Limit.Operator.GE, rebelLimit.getOperator());</span>
+<span class="fc" id="L98">        assertEquals(Operand.OperandType.NONE, rebelLimit.getLeftHandSide().getOperandType());</span>
+<span class="fc" id="L99">        assertEquals(Operand.ScopeLevel.PLAYER, rebelLimit.getLeftHandSide().getScopeLevel());</span>
+<span class="fc" id="L100">        assertEquals(Integer.valueOf(0), rebelLimit.getLeftHandSide().getValue(dutch));</span>
+<span class="fc" id="L101">        assertEquals(Integer.valueOf(50), rebelLimit.getRightHandSide().getValue(dutch));</span>
+<span class="fc" id="L102">        assertFalse(rebelLimit.evaluate(dutch));</span>
+
+<span class="fc" id="L104">        assertNotNull(colonyLimit);</span>
+<span class="fc" id="L105">        assertEquals(Limit.Operator.GE, colonyLimit.getOperator());</span>
+<span class="fc" id="L106">        assertEquals(Operand.OperandType.SETTLEMENTS, colonyLimit.getLeftHandSide().getOperandType());</span>
+<span class="fc" id="L107">        assertEquals(Operand.ScopeLevel.PLAYER, colonyLimit.getLeftHandSide().getScopeLevel());</span>
+<span class="fc" id="L108">        assertEquals(&quot;isConnectedPort&quot;, colonyLimit.getLeftHandSide().getMethodName());</span>
+<span class="fc" id="L109">        assertFalse(colony.isConnectedPort());</span>
+<span class="fc" id="L110">        assertEquals(Integer.valueOf(0), colonyLimit.getLeftHandSide().getValue(dutch));</span>
+<span class="fc" id="L111">        assertEquals(Integer.valueOf(1), colonyLimit.getRightHandSide().getValue(dutch));</span>
+<span class="fc" id="L112">        assertFalse(colonyLimit.evaluate(dutch));</span>
+
+<span class="fc" id="L114">        assertNotNull(yearLimit);</span>
+<span class="fc" id="L115">        assertEquals(Limit.Operator.LE, yearLimit.getOperator());</span>
+<span class="fc" id="L116">        assertEquals(Operand.OperandType.YEAR, yearLimit.getLeftHandSide().getOperandType());</span>
+<span class="fc" id="L117">        assertEquals(Operand.OperandType.OPTION, yearLimit.getRightHandSide().getOperandType());</span>
+<span class="fc" id="L118">        assertEquals(GameOptions.LAST_COLONIAL_YEAR, yearLimit.getRightHandSide().getType());</span>
+<span class="fc" id="L119">        assertEquals(Integer.valueOf(1492), yearLimit.getLeftHandSide().getValue(dutch));</span>
+<span class="fc" id="L120">        assertEquals(Integer.valueOf(1800), yearLimit.getRightHandSide().getValue(dutch));</span>
+<span class="fc" id="L121">        assertTrue(yearLimit.evaluate(dutch));</span>
+
+<span class="fc" id="L123">        colony.modifyLiberty(10000);</span>
+<span class="fc" id="L124">        colony.updateSoL();</span>
+<span class="fc" id="L125">        assertTrue(rebelLimit.evaluate(dutch));</span>
+
+<span class="fc" id="L127">        Tile tile = colony.getTile().getNeighbourOrNull(Direction.N);</span>
+<span class="fc" id="L128">        tile.setType(spec().getTileType(&quot;model.tile.ocean&quot;));</span>
+<span class="fc" id="L129">        tile.setHighSeasCount(5);</span>
+<span class="fc" id="L130">        tile.setExplored(dutch, true);</span>
+<span class="fc" id="L131">        assertTrue(tile.isExploredBy(dutch));</span>
+<span class="fc" id="L132">        assertTrue(tile.isHighSeasConnected());</span>
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">        assertTrue(!tile.isLand());</span>
+<span class="fc" id="L134">        assertTrue(colony.isConnectedPort());</span>
+<span class="fc" id="L135">        assertTrue(colonyLimit.getLeftHandSide().appliesTo(colony));</span>
+<span class="fc" id="L136">        assertTrue(colonyLimit.evaluate(dutch));</span>
+
+<span class="fc" id="L138">        IntegerOption option = spec()</span>
+<span class="fc" id="L139">            .getIntegerOption(GameOptions.LAST_COLONIAL_YEAR);</span>
+<span class="fc" id="L140">        option.setMinimumValue(1300);</span>
+<span class="fc" id="L141">        option.setValue(1300);</span>
+<span class="fc" id="L142">        assertFalse(yearLimit.evaluate(dutch));</span>
+<span class="fc" id="L143">    }</span>
+
+    public void testSuccessionLimits() {
+
+<span class="fc" id="L147">        Game game = getStandardGame();</span>
+<span class="fc" id="L148">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L149">        Map map = getTestMap();</span>
+<span class="fc" id="L150">        game.setMap(map);</span>
+
+<span class="fc" id="L152">        Colony colony = getStandardColony(3);</span>
+
+<span class="fc" id="L154">        Event event = spec().getEvent(&quot;model.event.spanishSuccession&quot;);</span>
+<span class="fc" id="L155">        assertNotNull(event);</span>
+<span class="fc" id="L156">        assertNotNull(event.getLimits());</span>
+
+<span class="fc" id="L158">        Limit weakestPlayerLimit = event.getLimit(&quot;model.limit.spanishSuccession.weakestPlayer&quot;);</span>
+<span class="fc" id="L159">        Limit strongestPlayerLimit = event.getLimit(&quot;model.limit.spanishSuccession.strongestPlayer&quot;);</span>
+<span class="fc" id="L160">        Limit yearLimit = event.getLimit(&quot;model.limit.spanishSuccession.year&quot;);</span>
+
+<span class="fc" id="L162">        assertNotNull(strongestPlayerLimit);</span>
+<span class="fc" id="L163">        assertEquals(Limit.Operator.GT, strongestPlayerLimit.getOperator());</span>
+<span class="fc" id="L164">        assertEquals(Operand.OperandType.NONE, strongestPlayerLimit.getLeftHandSide().getOperandType());</span>
+<span class="fc" id="L165">        assertEquals(Operand.ScopeLevel.PLAYER, strongestPlayerLimit.getLeftHandSide().getScopeLevel());</span>
+<span class="fc" id="L166">        assertEquals(Integer.valueOf(0), strongestPlayerLimit.getLeftHandSide().getValue(dutch));</span>
+<span class="fc" id="L167">        assertEquals(Integer.valueOf(50), strongestPlayerLimit.getRightHandSide().getValue(dutch));</span>
+<span class="fc" id="L168">        assertFalse(strongestPlayerLimit.evaluate(dutch));</span>
+
+<span class="fc" id="L170">        assertNotNull(weakestPlayerLimit);</span>
+<span class="fc" id="L171">        assertEquals(Limit.Operator.LT, weakestPlayerLimit.getOperator());</span>
+<span class="fc" id="L172">        assertEquals(Operand.OperandType.NONE, weakestPlayerLimit.getLeftHandSide().getOperandType());</span>
+<span class="fc" id="L173">        assertEquals(Operand.ScopeLevel.PLAYER, weakestPlayerLimit.getLeftHandSide().getScopeLevel());</span>
+<span class="fc" id="L174">        assertEquals(Integer.valueOf(0), weakestPlayerLimit.getLeftHandSide().getValue(dutch));</span>
+<span class="fc" id="L175">        assertEquals(Integer.valueOf(50), weakestPlayerLimit.getRightHandSide().getValue(dutch));</span>
+<span class="fc" id="L176">        assertTrue(weakestPlayerLimit.evaluate(dutch));</span>
+
+<span class="fc" id="L178">        assertNotNull(yearLimit);</span>
+<span class="fc" id="L179">        assertEquals(Limit.Operator.GE, yearLimit.getOperator());</span>
+<span class="fc" id="L180">        assertEquals(Operand.OperandType.YEAR, yearLimit.getLeftHandSide().getOperandType());</span>
+<span class="fc" id="L181">        assertEquals(Operand.ScopeLevel.GAME, yearLimit.getLeftHandSide().getScopeLevel());</span>
+<span class="fc" id="L182">        assertEquals(Integer.valueOf(1492), yearLimit.getLeftHandSide().getValue(game));</span>
+<span class="fc" id="L183">        assertEquals(Integer.valueOf(1600), yearLimit.getRightHandSide().getValue());</span>
+<span class="fc" id="L184">        assertFalse(yearLimit.evaluate(game));</span>
+
+<span class="fc" id="L186">        colony.modifyLiberty(10000);</span>
+<span class="fc" id="L187">        colony.updateSoL();</span>
+<span class="fc" id="L188">        assertTrue(strongestPlayerLimit.evaluate(dutch));</span>
+<span class="fc" id="L189">        assertFalse(weakestPlayerLimit.evaluate(dutch));</span>
+<span class="fc" id="L190">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

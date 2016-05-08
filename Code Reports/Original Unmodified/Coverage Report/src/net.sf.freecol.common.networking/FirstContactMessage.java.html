@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>FirstContactMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">FirstContactMessage.java</span></div><h1>FirstContactMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent when making first contact between players.
+ */
+public class FirstContactMessage extends DOMMessage {
+
+    public static final String TAG = &quot;firstContact&quot;;
+    private static final String CAMPS_TAG = &quot;camps&quot;;
+    private static final String OTHER_TAG = &quot;other&quot;;
+    private static final String PLAYER_TAG = &quot;player&quot;;
+    private static final String RESULT_TAG = &quot;result&quot;;
+    private static final String TILE_TAG = &quot;tile&quot;;
+
+    /** The identifier for the player making contact. */
+    private final String playerId;
+
+    /** The identifier for the player being contacted. */
+    private final String otherId;
+
+    /**
+     * The identifier for a tile to offer the contacting player if this is a
+     * first landing and the contacted player is a friendly native.
+     */
+    private final String tileId;
+
+    /** The number of settlements the contacted player has, if native. */
+    private final String settlementCount;
+
+    /** The result of the contact. */
+    private String result;
+
+
+    /**
+     * Create a new &lt;code&gt;FirstContactMessage&lt;/code&gt;.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; making contact.
+     * @param other The &lt;code&gt;Player&lt;/code&gt; being contacted.
+     * @param tile An optional &lt;code&gt;Tile&lt;/code&gt; to offer.
+     */
+    public FirstContactMessage(Player player, Player other, Tile tile) {
+<span class="fc" id="L70">        super(getTagName());</span>
+
+<span class="fc" id="L72">        this.playerId = player.getId();</span>
+<span class="fc" id="L73">        this.otherId = other.getId();</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        this.tileId = (tile == null) ? null : tile.getId();</span>
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">        this.settlementCount = (other.isEuropean()) ? null</span>
+<span class="fc" id="L76">            : Integer.toString(other.getSettlements().size());</span>
+<span class="fc" id="L77">        this.result = null;</span>
+<span class="fc" id="L78">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;FirstContactMessage&lt;/code&gt; from a
+     * supplied element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public FirstContactMessage(Game game, Element element) {
+<span class="fc" id="L88">        super(getTagName());</span>
+
+<span class="fc" id="L90">        this.playerId = getStringAttribute(element, PLAYER_TAG);</span>
+<span class="fc" id="L91">        this.otherId = getStringAttribute(element, OTHER_TAG);</span>
+<span class="fc" id="L92">        this.tileId = getStringAttribute(element, TILE_TAG);</span>
+<span class="fc" id="L93">        this.settlementCount = getStringAttribute(element, CAMPS_TAG);</span>
+<span class="fc" id="L94">        this.result = getStringAttribute(element, RESULT_TAG);</span>
+<span class="fc" id="L95">    }</span>
+
+
+    // Public interface
+
+    public Player getPlayer(Game game) {
+<span class="fc" id="L101">        return game.getFreeColGameObject(playerId, Player.class);</span>
+    }
+
+    public Player getOtherPlayer(Game game) {
+<span class="fc" id="L105">        return game.getFreeColGameObject(otherId, Player.class);</span>
+    }
+
+    public Tile getTile(Game game) {
+<span class="fc" id="L109">        return game.getFreeColGameObject(tileId, Tile.class);</span>
+    }
+
+    public int getSettlementCount() {
+        try {
+<span class="nc" id="L114">            return Integer.parseInt(settlementCount);</span>
+<span class="nc" id="L115">        } catch (NumberFormatException nfe) {}</span>
+<span class="nc" id="L116">        return -1;</span>
+    }
+            
+    public boolean getResult() {
+<span class="fc" id="L120">        return Boolean.parseBoolean(result);</span>
+    }
+
+    public FirstContactMessage setResult(boolean result) {
+<span class="fc" id="L124">        this.result = String.valueOf(result);</span>
+<span class="fc" id="L125">        return this;</span>
+    }
+
+
+    /**
+     * Handle a &quot;firstContact&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; handling the message.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message was received on.
+     * @return An update containing the firstContactd unit, or an error
+     *     &lt;code&gt;Element&lt;/code&gt; on failure.
+     */
+    public Element handle(FreeColServer server, Connection connection) {
+<span class="fc" id="L138">        final ServerPlayer serverPlayer = server.getPlayer(connection);</span>
+<span class="fc" id="L139">        final Game game = serverPlayer.getGame();</span>
+
+<span class="fc" id="L141">        Player first = getPlayer(game);</span>
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">        if (first == null) {</span>
+<span class="nc" id="L143">            return serverPlayer.clientError(&quot;Invalid player: &quot; + this.playerId)</span>
+<span class="nc" id="L144">                .build(serverPlayer);</span>
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">        } else if (serverPlayer.getId().equals(this.playerId)) {</span>
+            ; // OK
+<span class="fc" id="L147">        } else {</span>
+<span class="nc" id="L148">            return serverPlayer.clientError(&quot;Not our player: &quot; + this.playerId)</span>
+<span class="nc" id="L149">                .build(serverPlayer);</span>
+        }
+
+<span class="fc" id="L152">        ServerPlayer otherPlayer = (ServerPlayer)getOtherPlayer(game);</span>
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">        if (otherPlayer == null) {</span>
+<span class="nc" id="L154">            return serverPlayer.clientError(&quot;Invalid other player: &quot;</span>
+<span class="nc" id="L155">                + this.otherId)</span>
+<span class="nc" id="L156">                .build(serverPlayer);</span>
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">        } else if (otherPlayer == serverPlayer) {</span>
+<span class="nc" id="L158">            return serverPlayer.clientError(&quot;First contact with self!?!&quot;)</span>
+<span class="nc" id="L159">                .build(serverPlayer);</span>
+        }
+
+        // Proceed to contact.
+<span class="fc" id="L163">        return server.getInGameController()</span>
+<span class="fc" id="L164">            .nativeFirstContact(serverPlayer, otherPlayer,</span>
+<span class="fc" id="L165">                                getTile(game), getResult())</span>
+<span class="fc" id="L166">            .build(serverPlayer);</span>
+    }
+
+    /**
+     * Convert this FirstContactMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="fc" id="L176">        return new DOMMessage(getTagName(),</span>
+<span class="fc" id="L177">            PLAYER_TAG, this.playerId,</span>
+<span class="fc" id="L178">            OTHER_TAG, this.otherId,</span>
+<span class="fc" id="L179">            TILE_TAG, this.tileId,</span>
+<span class="fc" id="L180">            CAMPS_TAG, this.settlementCount,</span>
+<span class="fc" id="L181">            RESULT_TAG, this.result).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;firstContact&quot;.
+     */
+    public static String getTagName() {
+<span class="fc" id="L190">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ReceivingThread.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">ReceivingThread.java</span></div><h1>ReceivingThread.java</h1><pre class="source lang-java linenums"><span class="pc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.FreeColException;
+import net.sf.freecol.common.io.FreeColXMLReader;
+
+import org.xml.sax.SAXException;
+
+
+/**
+ * The thread that checks for incoming messages.
+ */
+final class ReceivingThread extends Thread {
+
+<span class="fc" id="L44">    private static final Logger logger = Logger.getLogger(ReceivingThread.class.getName());</span>
+
+    /**
+     * Input stream for buffering the data from the network.
+     * 
+     * This is just an input stream that signals end-of-stream when a
+     * given token {@link Connection#END_OF_STREAM} is encountered.
+     * In order to continue receiving data, the method {@link #enable}
+     * has to be called.  Calls to &lt;code&gt;close()&lt;/code&gt; have no
+     * effect, the underlying input stream has to be closed directly.
+     */
+    private static class FreeColNetworkInputStream extends InputStream {
+
+        public static final int BUFFER_SIZE = 16384;
+
+        private static final int EOS_RESULT = -1;
+
+        private final InputStream in;
+
+<span class="fc" id="L63">        private final byte[] buffer = new byte[BUFFER_SIZE];</span>
+
+<span class="fc" id="L65">        private final byte[] bb = new byte[1];</span>
+        
+<span class="fc" id="L67">        private int bStart = 0;</span>
+
+<span class="fc" id="L69">        private int bEnd = 0;</span>
+
+<span class="fc" id="L71">        private int bSize = 0;</span>
+
+<span class="fc" id="L73">        private boolean wait = false;</span>
+
+
+        /**
+         * Creates a new &lt;code&gt;FreeColNetworkInputStream&lt;/code&gt;.
+         * 
+         * @param in The input stream in which this object should get the data
+         *            from.
+         */
+<span class="fc" id="L82">        public FreeColNetworkInputStream(InputStream in) {</span>
+<span class="fc" id="L83">            this.in = in;</span>
+<span class="fc" id="L84">        }</span>
+
+        /**
+         * Prepares the input stream for a new message.
+         *
+         * Makes the subsequent calls to &lt;code&gt;read&lt;/code&gt; return the data
+         * instead of &lt;code&gt;EOS_RESULT&lt;/code&gt;.
+         */
+        public void enable() {
+<span class="fc" id="L93">            this.wait = false;</span>
+<span class="fc" id="L94">        }</span>
+
+        /**
+         * Fills the buffer with data.
+         * 
+         * @return True if a non-zero amount of data was read into the buffer.
+         * @exception IOException is thrown by the underlying read.
+         * @exception IllegalStateException if the buffer is not empty.
+         */
+        private boolean fill() throws IOException {
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">            if (this.bSize != 0) throw new IllegalStateException(&quot;Not empty.&quot;);</span>
+
+<span class="fc" id="L106">            int r = this.in.read(buffer, 0, BUFFER_SIZE);</span>
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">            if (r &lt;= 0) return false;</span>
+
+<span class="fc" id="L109">            this.bStart = 0;</span>
+<span class="fc" id="L110">            this.bEnd = this.bSize = r;</span>
+<span class="fc" id="L111">            return true;</span>
+        }
+
+        /**
+         * Reads a single byte.
+         * 
+         * @return The byte read, or EOS_RESULT on error or &quot;end&quot; of stream.
+         * @see #read(byte[], int, int)
+         * @exception IOException is thrown by the underlying read.
+         */
+        @Override
+        public int read() throws IOException {
+<span class="nc bnc" id="L123" title="All 2 branches missed.">            return (read(bb, 0, 1) == 1) ? bb[0] : EOS_RESULT;</span>
+        }
+
+        /**
+         * Reads from the buffer and returns the data.
+         * 
+         * @param b The buffer to put the data in.
+         * @param off The offset to use when writing the data.
+         * @param len The maximum number of bytes to read.
+         * @return The actual number of bytes read, or EOS_RESULT if
+         *     the message has ended
+         *     ({@link Connection#END_OF_STREAM} was encountered).
+         */
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+<span class="fc bfc" id="L138" title="All 2 branches covered.">            if (this.wait) return EOS_RESULT;</span>
+
+<span class="fc" id="L140">            int n = 0;</span>
+<span class="pc bpc" id="L141" title="1 of 2 branches missed.">            for (; n &lt; len; n++) {</span>
+<span class="pc bpc" id="L142" title="1 of 4 branches missed.">                if (this.bSize == 0 &amp;&amp; !fill()) {</span>
+<span class="nc" id="L143">                    this.wait = true;</span>
+<span class="nc" id="L144">                    break;</span>
+                }
+
+<span class="fc" id="L147">                byte value = buffer[this.bStart];</span>
+<span class="fc" id="L148">                this.bStart++;</span>
+<span class="fc" id="L149">                this.bSize--;</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">                if (value == Connection.END_OF_STREAM) {</span>
+<span class="fc" id="L151">                    this.wait = true;</span>
+<span class="fc" id="L152">                    break;</span>
+                }
+<span class="fc" id="L154">                b[n + off] = value;</span>
+            }
+
+<span class="pc bpc" id="L157" title="3 of 4 branches missed.">            return (n &gt; 0 || !this.wait) ? n : EOS_RESULT;</span>
+        }
+    }
+
+    /** Maximum number of retries before closing the connection. */
+<span class="fc" id="L162">    private static final int MAXIMUM_RETRIES = 5;</span>
+
+    /** A map of network ids to the corresponding waiting thread. */
+<span class="fc" id="L165">    private final Map&lt;Integer, NetworkReplyObject&gt; waitingThreads</span>
+<span class="fc" id="L166">        = Collections.synchronizedMap(new HashMap&lt;Integer, NetworkReplyObject&gt;());</span>
+
+    /** The wrapped version of the input stream. */
+    private final FreeColNetworkInputStream in;
+
+    /** The connection to receive on. */
+    private final Connection connection;
+
+    /** Whether the thread should run. */
+    private boolean shouldRun;
+
+    /** A counter for reply ids. */
+    private int nextNetworkReplyId;
+
+
+    /**
+     * The constructor to use.
+     * 
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; this
+     *            &lt;code&gt;ReceivingThread&lt;/code&gt; belongs to.
+     * @param in The stream to read from.
+     * @param threadName The base name for the thread.
+     */
+    public ReceivingThread(Connection connection, InputStream in,
+                           String threadName) {
+<span class="fc" id="L191">        super(threadName + &quot;-ReceivingThread-&quot; + connection);</span>
+
+<span class="fc" id="L193">        this.in = new FreeColNetworkInputStream(in);</span>
+<span class="fc" id="L194">        this.connection = connection;</span>
+<span class="fc" id="L195">        this.shouldRun = true;</span>
+<span class="fc" id="L196">        this.nextNetworkReplyId = 1;</span>
+<span class="fc" id="L197">    }</span>
+
+    /**
+     * Gets the next network reply identifier that will be used when
+     * identifing a network message.
+     * 
+     * @return The next available network reply identifier.
+     */
+    public synchronized int getNextNetworkReplyId() {
+<span class="fc" id="L206">        return nextNetworkReplyId++;</span>
+    }
+
+    /**
+     * Creates and registers a new &lt;code&gt;NetworkReplyObject&lt;/code&gt; with the
+     * specified object identifier.
+     * 
+     * @param networkReplyId The identifier of the message the calling
+     *     thread should wait for.
+     * @return The &lt;code&gt;NetworkReplyObject&lt;/code&gt; containing the network
+     *     message.
+     */
+    public NetworkReplyObject waitForNetworkReply(int networkReplyId) {
+<span class="fc" id="L219">        NetworkReplyObject nro = new NetworkReplyObject(networkReplyId);</span>
+<span class="fc" id="L220">        waitingThreads.put(networkReplyId, nro);</span>
+<span class="fc" id="L221">        return nro;</span>
+    }
+
+    /**
+     * Checks if this thread should run.
+     *
+     * @return True if the thread should run.
+     */
+    private synchronized boolean shouldRun() {
+<span class="fc" id="L230">        return this.shouldRun;</span>
+    }
+
+    /**
+     * Tells this thread that it does not need to do any more work.
+     */
+    public synchronized void askToStop() {
+<span class="fc bfc" id="L237" title="All 2 branches covered.">        if (this.shouldRun) {</span>
+<span class="fc" id="L238">            this.shouldRun = false;</span>
+<span class="pc bpc" id="L239" title="1 of 2 branches missed.">            for (NetworkReplyObject o : this.waitingThreads.values()) {</span>
+<span class="nc" id="L240">                o.interrupt();</span>
+            }
+        }
+<span class="fc" id="L243">    }</span>
+
+    /**
+     * Disconnects this thread.
+     *
+     * @param reason The reason to disconnect.
+     */
+    private void disconnect(String reason) {
+<span class="nc" id="L251">        askToStop();</span>
+<span class="nc bnc" id="L252" title="All 2 branches missed.">        if (connection.getMessageHandler() != null) {</span>
+            try {
+<span class="nc" id="L254">                connection.getMessageHandler().handle(connection,</span>
+<span class="nc" id="L255">                    new DOMMessage(Connection.DISCONNECT_TAG,</span>
+<span class="nc" id="L256">                        &quot;reason&quot;, reason).toXMLElement());</span>
+<span class="nc" id="L257">            } catch (FreeColException e) {</span>
+<span class="nc" id="L258">                logger.log(Level.WARNING, &quot;Rx disconnect&quot;, e);</span>
+            }
+        }
+<span class="nc" id="L261">    }</span>
+
+    /**
+     * Listens to the InputStream and calls the MessageHandler for
+     * each message received.
+     * 
+     * @throws IOException If thrown by the {@link FreeColNetworkInputStream}.
+     * @throws SAXException if a problem occured during parsing.
+     * @throws XMLStreamException if a problem occured during parsing.
+     */
+    private void listen() throws IOException, SAXException, XMLStreamException {
+<span class="fc" id="L272">        in.enable();</span>
+
+        // Open a rewindable stream
+<span class="fc" id="L275">        final int LOOK_AHEAD = FreeColNetworkInputStream.BUFFER_SIZE;</span>
+<span class="fc" id="L276">        BufferedInputStream bis</span>
+<span class="fc" id="L277">            = new BufferedInputStream(in, LOOK_AHEAD);</span>
+<span class="fc" id="L278">        bis.mark(LOOK_AHEAD);</span>
+<span class="fc" id="L279">        FreeColXMLReader xr = new FreeColXMLReader(bis);</span>
+
+        // Peek at the tag of the first item in the stream.
+        try {
+            String tag;
+            int replyId;
+            try {
+<span class="fc" id="L286">                xr.nextTag();</span>
+<span class="fc" id="L287">                tag = xr.getLocalName();</span>
+<span class="fc" id="L288">                replyId = xr.getAttribute(Connection.NETWORK_REPLY_ID_TAG, -1);</span>
+<span class="pc" id="L289">            } catch (XMLStreamException xse) {</span>
+                // EOS can occur when the other end disconnects
+<span class="nc" id="L291">                tag = Connection.DISCONNECT_TAG;</span>
+<span class="nc" id="L292">                replyId = -1;</span>
+            }
+
+            // Respond to message according to tag, optionally defining a
+            // thread to start.
+<span class="fc" id="L297">            Thread t = null;</span>
+            DOMMessage msg;
+<span class="pc bpc" id="L299" title="4 of 10 branches missed.">            switch (tag) {</span>
+
+            case Connection.DISCONNECT_TAG:
+                // Disconnect at once if needed.
+<span class="fc" id="L303">                askToStop();</span>
+<span class="fc" id="L304">                return;</span>
+
+            case Connection.REPLY_TAG:
+                // A reply.  Look up its waiting thread and set a response.
+<span class="fc" id="L308">                NetworkReplyObject nro = waitingThreads.remove(replyId);</span>
+<span class="pc bpc" id="L309" title="1 of 2 branches missed.">                if (nro == null) {</span>
+<span class="nc" id="L310">                    logger.warning(&quot;Could not find replyId: &quot; + replyId);</span>
+<span class="nc" id="L311">                    return;</span>
+                }
+                try {
+<span class="fc" id="L314">                    bis.reset();</span>
+<span class="fc" id="L315">                    msg = new DOMMessage(bis);</span>
+<span class="fc" id="L316">                    nro.setResponse(msg);</span>
+<span class="pc" id="L317">                } catch (IOException|SAXException ex) {</span>
+                    // Always respond, even when failed, so as to unblock the
+                    // waiting thread.
+<span class="nc" id="L320">                    nro.setResponse(null);</span>
+<span class="nc" id="L321">                    throw ex;</span>
+                }
+<span class="fc" id="L323">                return;</span>
+
+            case Connection.QUESTION_TAG:
+                // A query.  Build a thread to handle it and send a reply.
+<span class="fc" id="L327">                bis.reset();</span>
+<span class="fc" id="L328">                msg = new DOMMessage(bis);</span>
+<span class="fc" id="L329">                final int finalReplyId = replyId;</span>
+<span class="fc" id="L330">                t = new Thread(msg.getType()) {</span>
+                        @Override
+                        public void run() {
+<span class="fc" id="L333">                            String tag = msg.getType();</span>
+                            try {
+<span class="fc" id="L335">                                ReceivingThread.this.connection</span>
+<span class="fc" id="L336">                                    .handleQuery(msg, finalReplyId);</span>
+<span class="pc" id="L337">                            } catch (FreeColException fce) {</span>
+<span class="nc" id="L338">                                logger.log(Level.WARNING, &quot;Query &quot;</span>
+<span class="nc" id="L339">                                    + finalReplyId</span>
+<span class="nc" id="L340">                                    + &quot; handler for &quot; + tag + &quot; failed&quot;, fce);</span>
+<span class="nc" id="L341">                            } catch (IOException ioe) {</span>
+<span class="nc" id="L342">                                logger.log(Level.WARNING, &quot;Query &quot;</span>
+<span class="nc" id="L343">                                    + finalReplyId</span>
+<span class="nc" id="L344">                                    + &quot; response send for &quot; + tag + &quot; failed&quot;,</span>
+<span class="nc" id="L345">                                    ioe);</span>
+                            }
+<span class="fc" id="L347">                        }</span>
+                    };
+<span class="fc" id="L349">                break;</span>
+
+            default:
+                // An ordinary update message.  Build a thread to handle
+                // it and possibly respond.
+<span class="nc" id="L354">                bis.reset();</span>
+<span class="nc" id="L355">                msg = new DOMMessage(bis);</span>
+<span class="nc" id="L356">                t = new Thread(msg.getType()) {</span>
+                        @Override
+                        public void run() {
+<span class="nc" id="L359">                            String tag = msg.getType();</span>
+                            try {
+<span class="nc" id="L361">                                ReceivingThread.this.connection.handleUpdate(msg);</span>
+<span class="nc" id="L362">                            } catch (FreeColException fce) {</span>
+<span class="nc" id="L363">                                logger.log(Level.WARNING, &quot;Update handler for &quot;</span>
+<span class="nc" id="L364">                                    + tag + &quot; failed&quot;, fce);</span>
+<span class="nc" id="L365">                            } catch (IOException ioe) {</span>
+<span class="nc" id="L366">                                logger.log(Level.WARNING, &quot;Update send for &quot;</span>
+<span class="nc" id="L367">                                    + tag + &quot; failed&quot;, ioe);</span>
+                            }
+<span class="nc" id="L369">                        }</span>
+                    };
+                break;
+            }
+
+            // Start the optional thread
+<span class="pc bpc" id="L375" title="1 of 2 branches missed.">            if (t != null) {</span>
+<span class="fc" id="L376">                t.setName(this.connection.getName() + &quot;-MessageHandler-&quot;</span>
+<span class="fc" id="L377">                    + t.getName());</span>
+<span class="fc" id="L378">                t.start();</span>
+            }
+<span class="pc" id="L380">        } finally {</span>
+<span class="pc" id="L381">            xr.close();</span>
+<span class="nc" id="L382">        }</span>
+<span class="fc" id="L383">    }</span>
+
+    /**
+     * Receives messages from the network in a loop. This method is
+     * invoked when the thread starts and the thread will stop when
+     * this method returns.
+     */
+    @Override
+    public void run() {
+<span class="fc" id="L392">        int timesFailed = 0;</span>
+
+        try {
+<span class="fc bfc" id="L395" title="All 2 branches covered.">            while (shouldRun()) {</span>
+                try {
+<span class="fc" id="L397">                    listen();</span>
+<span class="fc" id="L398">                    timesFailed = 0;</span>
+<span class="pc" id="L399">                } catch (SAXException|XMLStreamException e) {</span>
+<span class="nc bnc" id="L400" title="All 2 branches missed.">                    if (!shouldRun()) break;</span>
+<span class="nc" id="L401">                    logger.log(Level.WARNING, &quot;XML fail&quot;, e);</span>
+<span class="nc bnc" id="L402" title="All 2 branches missed.">                    if (++timesFailed &gt; MAXIMUM_RETRIES) {</span>
+<span class="nc" id="L403">                        disconnect(&quot;Too many failures (XML)&quot;);</span>
+                    }
+<span class="fc" id="L405">                } catch (IOException e) {</span>
+<span class="pc bpc" id="L406" title="1 of 2 branches missed.">                    if (!shouldRun()) break;</span>
+<span class="nc" id="L407">                    logger.log(Level.WARNING, &quot;IO fail&quot;, e);</span>
+<span class="nc" id="L408">                    disconnect(&quot;Unexpected IO failure&quot;);</span>
+                }
+            }
+<span class="pc" id="L411">        } catch (Exception e) {</span>
+<span class="nc" id="L412">            logger.log(Level.WARNING, &quot;Unexpected exception.&quot;, e);</span>
+<span class="nc" id="L413">        } finally {</span>
+<span class="pc" id="L414">            askToStop();</span>
+<span class="nc" id="L415">        }</span>
+        // Do not send disconnect again
+<span class="fc" id="L417">        connection.reallyClose();</span>
+<span class="fc" id="L418">        logger.info(&quot;Finished: &quot; + getName());</span>
+<span class="fc" id="L419">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

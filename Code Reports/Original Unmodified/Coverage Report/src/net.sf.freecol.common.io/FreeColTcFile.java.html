@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>FreeColTcFile.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.io</a> &gt; <span class="el_source">FreeColTcFile.java</span></div><h1>FreeColTcFile.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.io;
+
+import java.io.File;
+import java.io.FileFilter;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import net.sf.freecol.common.resources.ResourceMapping;
+
+
+/**
+ * A Total Conversion (TC).  Rules are TCs.
+ */
+public class FreeColTcFile extends FreeColModFile {
+
+<span class="fc" id="L36">    private static final Logger logger = Logger.getLogger(FreeColTcFile.class.getName());</span>
+
+    /** A file filter to select TCs. */
+<span class="fc" id="L39">    private static final FileFilter fileFilter</span>
+<span class="fc" id="L40">        = makeFileFilter(MOD_DESCRIPTOR_FILE, &quot;ftc&quot;, ZIP_FILE_EXTENSION);</span>
+
+
+    /**
+     * Opens the given file for reading.
+     *
+     * @param file The file to load.
+     * @throws IOException if thrown while opening the file.
+     */
+    public FreeColTcFile(final File file) throws IOException {
+<span class="fc" id="L50">        super(file);</span>
+<span class="fc" id="L51">    }</span>
+
+    /**
+     * Opens the file with the given name for reading.
+     *
+     * @param id The identifier of the TC to load.
+     * @throws IOException if thrown while opening the file.
+     */
+    public FreeColTcFile(final String id) throws IOException {
+<span class="fc" id="L60">        super(new File(FreeColDirectories.getRulesDirectory(), id));</span>
+<span class="fc" id="L61">    }</span>
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ResourceMapping getResourceMapping() {
+<span class="fc" id="L69">        ResourceMapping result = new ResourceMapping();</span>
+        try {
+<span class="fc bfc" id="L71" title="All 2 branches covered.">            if (getParent() != null) {</span>
+<span class="fc" id="L72">                final FreeColTcFile parentTcData = new FreeColTcFile(getParent());</span>
+<span class="fc" id="L73">                result.addAll(parentTcData.getResourceMapping());</span>
+            }
+            // Add the local data *after* the parent data so that the local
+            // values can override (eventual call is Map.putAll).
+            // Note that FreeColDataFile.getResourceMapping logs the load,
+            // and thus the log messages will appear to be in the reverse
+            // order, which mislead me until looking at the code.
+<span class="fc" id="L80">            result.addAll(super.getResourceMapping());</span>
+<span class="pc" id="L81">        } catch (IOException e) {</span>
+<span class="nc" id="L82">            throw new RuntimeException(e);</span>
+        }
+<span class="fc" id="L84">        return result;</span>
+    }
+
+    /**
+     * Get the file filter to select TC files.
+     *
+     * @return The TC file filter.
+     */
+    public static FileFilter getFileFilter() {
+<span class="fc" id="L93">        return fileFilter;</span>
+    }
+
+    /**
+     * Helper to make a TC file from a given file, logging the exception.
+     *
+     * @param f The &lt;code&gt;File&lt;/code&gt; to try to make the TC from.
+     * @return A new &lt;code&gt;FreeColTcFile&lt;/code&gt;, or null on error.
+     */
+    public static FreeColTcFile make(File f) {
+        try {
+<span class="fc" id="L104">            return new FreeColTcFile(f);</span>
+<span class="nc" id="L105">        } catch (IOException ioe) {</span>
+<span class="nc" id="L106">            logger.log(Level.WARNING, &quot;Failed to load TC from: &quot; + f, ioe);</span>
+        }
+<span class="nc" id="L108">        return null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

@@ -1,0 +1,2780 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>Canvas.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.gui</a> &gt; <span class="el_source">Canvas.java</span></div><h1>Canvas.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.gui;
+
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GraphicsDevice;
+import java.awt.Image;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.RenderingHints;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.font.TextLayout;
+import java.awt.geom.Rectangle2D;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import javax.swing.ImageIcon;
+import javax.swing.JComponent;
+import javax.swing.JDesktopPane;
+import javax.swing.JInternalFrame;
+import javax.swing.JLayeredPane;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.plaf.basic.BasicInternalFrameUI;
+
+import net.sf.freecol.FreeCol;
+import net.sf.freecol.client.ClientOptions;
+import net.sf.freecol.client.FreeColClient;
+import net.sf.freecol.client.gui.action.FreeColAction;
+import net.sf.freecol.client.gui.panel.*;
+import net.sf.freecol.client.gui.panel.LabourData.UnitData;
+import net.sf.freecol.common.ServerInfo;
+import net.sf.freecol.common.debug.FreeColDebugger;
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.DiplomaticTrade;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.FoundingFather;
+import net.sf.freecol.common.model.FreeColGameObject;
+import net.sf.freecol.common.model.FreeColObject;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Goods;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.HighScore;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.Location;
+import net.sf.freecol.common.model.ModelMessage;
+import net.sf.freecol.common.model.Monarch.MonarchAction;
+import net.sf.freecol.common.model.PathNode;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Settlement;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.model.StringTemplate;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TradeRoute;
+import net.sf.freecol.common.model.TypeCountMap;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.option.IntegerOption;
+import net.sf.freecol.common.option.Option;
+import net.sf.freecol.common.option.OptionGroup;
+import net.sf.freecol.common.resources.ResourceManager;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+
+
+/**
+ * The main container for the other GUI components in FreeCol. This
+ * container is where the panels, dialogs and menus are added. In
+ * addition, this is the component in which the map graphics are
+ * displayed.
+ *
+ * &lt;b&gt;Displaying panels and a dialogs&lt;/b&gt; &lt;br&gt;
+ * &lt;br&gt;
+ * &lt;code&gt;Canvas&lt;/code&gt; contains methods to display various panels and dialogs.
+ * Most of these methods use {@link net.sf.freecol.common.i18n i18n} to get
+ * localized text.  Dialogs return results, and may be modal or non-modal.
+ */
+public final class Canvas extends JDesktopPane {
+
+<span class="nc" id="L116">    private static final Logger logger = Logger.getLogger(Canvas.class.getName());</span>
+
+    /** A wrapper class for non-modal dialogs. */
+    private class DialogCallback&lt;T&gt; implements Runnable {
+        
+        /** The dialog to show. */
+        private final FreeColDialog&lt;T&gt; fcd;
+
+        /** An optional tile to guide the dialog placement. */
+        private final Tile tile;
+
+        /** The handler for the dialog response. */
+        private final DialogHandler&lt;T&gt; handler;
+
+
+        /**
+         * Constructor.
+         *
+         * @param fcd The parent &lt;code&gt;FreeColDialog&lt;/code&gt;.
+         * @param tile An optional &lt;code&gt;Tile&lt;/code&gt; to display.
+         * @param handler The &lt;code&gt;DialogHandler&lt;/code&gt; to call when run.
+         */
+<span class="nc" id="L138">        public DialogCallback(FreeColDialog&lt;T&gt; fcd, Tile tile,</span>
+<span class="nc" id="L139">                              DialogHandler&lt;T&gt; handler) {</span>
+<span class="nc" id="L140">            this.fcd = fcd;</span>
+<span class="nc" id="L141">            this.tile = tile;</span>
+<span class="nc" id="L142">            this.handler = handler;</span>
+<span class="nc" id="L143">        }</span>
+
+
+        // Implement Runnable
+
+        @Override
+        public void run() {
+            // Display the dialog...
+<span class="nc" id="L151">            viewFreeColDialog(fcd, tile);</span>
+            // ...and use another thread to wait for a dialog response...
+<span class="nc" id="L153">            new Thread(fcd.toString()) {</span>
+                @Override
+                public void run() {
+<span class="nc bnc" id="L156" title="All 2 branches missed.">                    while (!fcd.responded()) {</span>
+                        try {
+<span class="nc" id="L158">                            Thread.sleep(500);</span>
+<span class="nc" id="L159">                        } catch (InterruptedException e) {}</span>
+                    }
+                    // ...before handling the result.
+<span class="nc" id="L162">                    handler.handle(fcd.getResponse());</span>
+<span class="nc" id="L163">                }</span>
+<span class="nc" id="L164">            }.start();</span>
+<span class="nc" id="L165">        }</span>
+    };
+
+<span class="nc" id="L168">    private static enum PopupPosition {</span>
+<span class="nc" id="L169">        ORIGIN,</span>
+<span class="nc" id="L170">        CENTERED,</span>
+<span class="nc" id="L171">        CENTERED_LEFT,</span>
+<span class="nc" id="L172">        CENTERED_RIGHT,</span>
+    }
+
+    /** Number of tries to find a clear spot on the canvas. */
+<span class="nc" id="L176">    private static final int MAXTRY = 3;</span>
+
+    /** A class for frames being used as tool boxes. */
+<span class="nc" id="L179">    private static class ToolBoxFrame extends JInternalFrame {}</span>
+
+    /** The game client. */
+    private final FreeColClient freeColClient;
+
+    /** The parent GUI. */
+    private final SwingGUI gui;
+
+    private final GraphicsDevice graphicsDevice;
+
+    /** The parent frame, either a window or the full screen. */
+    private FreeColFrame frame;
+
+    private boolean windowed;
+
+    private MainPanel mainPanel;
+
+    private final StartGamePanel startGamePanel;
+
+    private final StatusPanel statusPanel;
+
+    private final ChatPanel chatPanel;
+
+    private final ChatDisplay chatDisplay;
+
+    private final MapViewer mapViewer;
+
+    private Point gotoDragPoint;
+
+    private GrayLayer greyLayer;
+
+    private final ServerListPanel serverListPanel;
+
+    /** Used to detect resizing. */
+<span class="nc" id="L213">    private Dimension oldSize = null;</span>
+
+<span class="nc" id="L215">    private boolean clientOptionsDialogShowing = false;</span>
+
+    private LoadingSavegameDialog loadingSavegameDialog;
+
+    /** Filters for loadable game files. */
+<span class="nc" id="L220">    private FileFilter[] fileFilters = null;</span>
+
+    /** The dialogs in view. */
+<span class="nc" id="L223">    private final List&lt;FreeColDialog&lt;?&gt;&gt; dialogs = new ArrayList&lt;&gt;();</span>
+
+
+    /**
+     * The constructor to use.
+     *
+     * @param freeColClient The &lt;code&gt;FreeColClient&lt;/code&gt; for the game.
+     * @param graphicsDevice The used graphics device.
+     * @param gui The gui.
+     * @param desiredSize The desired size of the frame.
+     * @param mapViewer The object responsible of drawing the map onto
+     *     this component.
+     */
+<span class="nc" id="L236">    Canvas(final FreeColClient freeColClient,</span>
+           final GraphicsDevice graphicsDevice,
+           final SwingGUI gui,
+           final Dimension desiredSize,
+           MapViewer mapViewer) {
+<span class="nc" id="L241">        this.freeColClient = freeColClient;</span>
+<span class="nc" id="L242">        this.gui = gui;</span>
+<span class="nc" id="L243">        this.graphicsDevice = graphicsDevice;</span>
+<span class="nc" id="L244">        chatDisplay = new ChatDisplay();</span>
+<span class="nc" id="L245">        this.mapViewer = mapViewer;</span>
+
+        // Determine if windowed mode should be used and set the window size.
+<span class="nc" id="L248">        Rectangle windowBounds = null;</span>
+<span class="nc bnc" id="L249" title="All 2 branches missed.">        if (desiredSize == null) {</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">            if(graphicsDevice.isFullScreenSupported()) {</span>
+<span class="nc" id="L251">                windowed = false;</span>
+<span class="nc" id="L252">                logger.info(&quot;Full screen mode used.&quot;);</span>
+<span class="nc" id="L253">            } else {</span>
+<span class="nc" id="L254">                windowed = true;</span>
+<span class="nc" id="L255">                logger.warning(&quot;Full screen mode not supported.&quot;);</span>
+<span class="nc" id="L256">                System.err.println(Messages.message(&quot;client.fullScreen&quot;));</span>
+            }
+<span class="nc" id="L258">        } else {</span>
+<span class="nc" id="L259">            windowed = true;</span>
+<span class="nc bnc" id="L260" title="All 4 branches missed.">            if(desiredSize.width &gt; 0 &amp;&amp; desiredSize.height &gt; 0) {</span>
+<span class="nc" id="L261">                windowBounds = new Rectangle(desiredSize);</span>
+<span class="nc" id="L262">                logger.info(&quot;Windowed mode using desired window size of &quot; + desiredSize);</span>
+<span class="nc" id="L263">            } else {</span>
+<span class="nc" id="L264">                logger.info(&quot;Windowed mode used.&quot;);</span>
+            }
+        }
+
+<span class="nc" id="L268">        setDoubleBuffered(true);</span>
+<span class="nc" id="L269">        setOpaque(false);</span>
+<span class="nc" id="L270">        setLayout(null);</span>
+
+<span class="nc" id="L272">        startGamePanel = new StartGamePanel(freeColClient);</span>
+<span class="nc" id="L273">        serverListPanel = new ServerListPanel(freeColClient,</span>
+<span class="nc" id="L274">            freeColClient.getConnectController());</span>
+<span class="nc" id="L275">        statusPanel = new StatusPanel(freeColClient);</span>
+<span class="nc" id="L276">        chatPanel = new ChatPanel(freeColClient);</span>
+
+<span class="nc" id="L278">        setFocusable(true);</span>
+<span class="nc" id="L279">        setFocusTraversalKeysEnabled(false);</span>
+
+<span class="nc" id="L281">        createKeyBindings();</span>
+<span class="nc" id="L282">        createFrame(null, windowBounds);</span>
+<span class="nc" id="L283">        mapViewer.startCursorBlinking();</span>
+<span class="nc" id="L284">        logger.info(&quot;Canvas created.&quot;);</span>
+<span class="nc" id="L285">    }</span>
+
+    boolean isWindowed() {
+<span class="nc" id="L288">        return windowed;</span>
+    }
+
+    /**
+     * Change the windowed mode.
+     */
+    void changeWindowedMode() {
+        // Clean up the old frame
+<span class="nc" id="L296">        JMenuBar menuBar = null;</span>
+<span class="nc" id="L297">        Rectangle windowBounds = null;</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">        if (frame != null) {</span>
+<span class="nc" id="L299">            menuBar = frame.getJMenuBar();</span>
+<span class="nc bnc" id="L300" title="All 2 branches missed.">            if (windowed) {</span>
+<span class="nc" id="L301">                windowBounds = frame.getBounds();</span>
+            }
+<span class="nc" id="L303">            frame.setVisible(false);</span>
+<span class="nc" id="L304">            frame.dispose();</span>
+        }
+<span class="nc bnc" id="L306" title="All 2 branches missed.">        windowed = !windowed;</span>
+
+<span class="nc" id="L308">        createFrame(menuBar, windowBounds);</span>
+<span class="nc" id="L309">    }</span>
+
+    private void createFrame(JMenuBar menuBar, Rectangle windowBounds) {
+        // FIXME: Check this:
+        // User might have moved window to new screen in a
+        // multi-screen setup, so make this.gd point to the current screen.
+<span class="nc" id="L315">        frame = new FreeColFrame(freeColClient, graphicsDevice,</span>
+<span class="nc" id="L316">            menuBar, this, windowed, windowBounds);</span>
+<span class="nc" id="L317">        updateSizes();</span>
+<span class="nc" id="L318">        frame.setVisible(true);</span>
+<span class="nc" id="L319">    }</span>
+
+    /**
+     * Start the GUI for the map editor.
+     */
+    void startMapEditorGUI() {
+<span class="nc bnc" id="L325" title="All 2 branches missed.">        if (frame == null) return;</span>
+
+        // We may need to reset the zoom value to the default value
+<span class="nc" id="L328">        gui.resetMapZoom();</span>
+
+<span class="nc" id="L330">        frame.setMapEditorMenuBar();</span>
+<span class="nc" id="L331">        showMapEditorTransformPanel();</span>
+
+<span class="nc" id="L333">        CanvasMapEditorMouseListener listener</span>
+<span class="nc" id="L334">            = new CanvasMapEditorMouseListener(freeColClient, this);</span>
+<span class="nc" id="L335">        addMouseListener(listener);</span>
+<span class="nc" id="L336">        addMouseMotionListener(listener);</span>
+<span class="nc" id="L337">    }</span>
+
+    /**
+     * Quit the GUI.  All that is required is to exit the full screen.
+     */
+    void quit() {
+<span class="nc bnc" id="L343" title="All 4 branches missed.">        if (frame != null &amp;&amp; !windowed) {</span>
+<span class="nc" id="L344">            frame.exitFullScreen();</span>
+        }
+<span class="nc" id="L346">    }</span>
+
+    /**
+     * In game initializations.
+     */
+    void initializeInGame() {
+<span class="nc bnc" id="L352" title="All 2 branches missed.">        if (frame == null) return;</span>
+<span class="nc" id="L353">        frame.setInGameMenuBar();</span>
+<span class="nc" id="L354">    }</span>
+
+    /**
+     * Reset the menu bar.
+     */
+    void resetMenuBar() {
+<span class="nc bnc" id="L360" title="All 2 branches missed.">        if (frame == null) return;</span>
+<span class="nc" id="L361">        frame.resetMenuBar();</span>
+<span class="nc" id="L362">    }</span>
+
+    /**
+     * Update the menu bar.
+     */
+    void updateMenuBar() {
+<span class="nc bnc" id="L368" title="All 2 branches missed.">        if (frame == null) return;</span>
+<span class="nc" id="L369">        frame.updateMenuBar();</span>
+<span class="nc" id="L370">    }</span>
+
+    /**
+     * Scroll the map in the given direction.
+     *
+     * @param direction The &lt;code&gt;Direction&lt;/code&gt; to scroll in.
+     * @return True if scrolling occurred.
+     */
+    boolean scrollMap(Direction direction) {
+<span class="nc" id="L379">        return mapViewer.scrollMap(direction);</span>
+    }
+
+    /**
+     * Converts the given screen coordinates to Map coordinates.
+     * It checks to see to which Tile the given pixel 'belongs'.
+     *
+     * @param x The x-coordinate in pixels.
+     * @param y The y-coordinate in pixels.
+     * @return The Tile that is located at the given position on the screen.
+     */
+    Tile convertToMapTile(int x, int y) {
+<span class="nc" id="L391">        return mapViewer.convertToMapTile(x, y);</span>
+    }
+
+    /**
+     * Get the view mode.
+     *
+     * @return The view mode.
+     */
+    public int getViewMode() {
+<span class="nc" id="L400">        return mapViewer.getViewMode();</span>
+    }
+
+    /**
+     * Gets the active unit.
+     *
+     * @return The &lt;code&gt;Unit&lt;/code&gt;.
+     */
+    Unit getActiveUnit() {
+<span class="nc" id="L409">        return mapViewer.getActiveUnit();</span>
+    }
+
+    /**
+     * Set the current active unit path.
+     *
+     * @param path The current &lt;code&gt;PathNode&lt;/code&gt;.
+     */
+    void setCurrentPath(PathNode path) {
+<span class="nc" id="L418">        mapViewer.setCurrentPath(path);</span>
+<span class="nc" id="L419">    }</span>
+
+    /**
+     * Sets the path of the active unit to display it.
+     */
+    void updateCurrentPathForActiveUnit() {
+<span class="nc" id="L425">        mapViewer.updateCurrentPathForActiveUnit();</span>
+<span class="nc" id="L426">    }</span>
+
+    /**
+     * Gets the point at which the map was clicked for a drag.
+     *
+     * @return The Point where the mouse was initially clicked.
+     */
+    Point getDragPoint() {
+<span class="nc" id="L434">        return gotoDragPoint;</span>
+    }
+
+    /**
+     * Sets the point at which the map was clicked for a drag.
+     *
+     * @param x The mouse's x position.
+     * @param y The mouse's y position.
+     */
+    void setDragPoint(int x, int y) {
+<span class="nc" id="L444">        gotoDragPoint = new Point(x, y);</span>
+<span class="nc" id="L445">    }</span>
+
+    /**
+     * Checks if there is currently a goto operation on the mapboard.
+     *
+     * @return True if a goto operation is in progress.
+     */
+    boolean isGotoStarted() {
+<span class="nc" id="L453">        return mapViewer.isGotoStarted();</span>
+    }
+
+    /**
+     * Gets the path to be drawn on the map.
+     *
+     * @return The path that should be drawn on the map or
+     *     &lt;code&gt;null&lt;/code&gt; if no path should be drawn.
+     */
+    PathNode getGotoPath() {
+<span class="nc" id="L463">        return mapViewer.getGotoPath();</span>
+    }
+
+    /**
+     * Sets the path to be drawn on the map.
+     *
+     * @param gotoPath The path that should be drawn on the map
+     *     or &lt;code&gt;null&lt;/code&gt; if no path should be drawn.
+     */
+    void setGotoPath(PathNode gotoPath) {
+<span class="nc" id="L473">        mapViewer.setGotoPath(gotoPath);</span>
+<span class="nc" id="L474">        refresh();</span>
+<span class="nc" id="L475">    }</span>
+
+    /**
+     * Starts a goto operation.
+     */
+    void startGoto() {
+<span class="nc" id="L481">        setCursor((java.awt.Cursor)UIManager.get(&quot;cursor.go&quot;));</span>
+<span class="nc" id="L482">        mapViewer.startGoto();</span>
+<span class="nc" id="L483">        refresh();</span>
+<span class="nc" id="L484">    }</span>
+
+    /**
+     * Stops any ongoing goto operation.
+     */
+    void stopGoto() {
+<span class="nc" id="L490">        setCursor(null);</span>
+<span class="nc" id="L491">        mapViewer.stopGoto();</span>
+<span class="nc" id="L492">        refresh();</span>
+<span class="nc" id="L493">    }</span>
+
+
+    // Internals
+
+    /**
+     * Adds a component on this Canvas inside a frame.
+     *
+     * @param comp The component to add to the canvas.
+     * @param toolBox Should be set to true if the resulting frame is
+     *     used as a toolbox (that is: it should not be counted as a
+     *     frame).
+     * @param popupPosition A preferred &lt;code&gt;PopupPosition&lt;/code&gt;.
+     * @param resizable Whether this component can be resized.
+     * @return The &lt;code&gt;JInternalFrame&lt;/code&gt; that was created and added.
+     */
+    private JInternalFrame addAsFrame(JComponent comp, boolean toolBox,
+                                      PopupPosition popupPosition,
+                                      boolean resizable) {
+<span class="nc" id="L512">        final int FRAME_EMPTY_SPACE = 60;</span>
+
+<span class="nc bnc" id="L514" title="All 2 branches missed.">        final JInternalFrame f = (toolBox) ? new ToolBoxFrame()</span>
+<span class="nc" id="L515">            : new JInternalFrame();</span>
+<span class="nc bnc" id="L516" title="All 2 branches missed.">        if (f.getContentPane() instanceof JComponent) {</span>
+<span class="nc" id="L517">            JComponent c = (JComponent) f.getContentPane();</span>
+<span class="nc" id="L518">            c.setOpaque(false);</span>
+<span class="nc" id="L519">            c.setBorder(null);</span>
+        }
+
+<span class="nc bnc" id="L522" title="All 2 branches missed.">        if (comp.getBorder() != null) {</span>
+<span class="nc bnc" id="L523" title="All 2 branches missed.">            if (comp.getBorder() instanceof EmptyBorder) {</span>
+<span class="nc" id="L524">                f.setBorder(Utility.blankBorder(10, 10, 10, 10));</span>
+<span class="nc" id="L525">            } else {</span>
+<span class="nc" id="L526">                f.setBorder(comp.getBorder());</span>
+<span class="nc" id="L527">                comp.setBorder(Utility.blankBorder(5, 5, 5, 5));</span>
+            }
+<span class="nc" id="L529">        } else {</span>
+<span class="nc" id="L530">            f.setBorder(null);</span>
+        }
+
+<span class="nc" id="L533">        final FrameMotionListener fml = new FrameMotionListener(f);</span>
+<span class="nc" id="L534">        comp.addMouseMotionListener(fml);</span>
+<span class="nc" id="L535">        comp.addMouseListener(fml);</span>
+<span class="nc bnc" id="L536" title="All 2 branches missed.">        if (f.getUI() instanceof BasicInternalFrameUI) {</span>
+<span class="nc" id="L537">            BasicInternalFrameUI biu = (BasicInternalFrameUI) f.getUI();</span>
+<span class="nc" id="L538">            biu.setNorthPane(null);</span>
+<span class="nc" id="L539">            biu.setSouthPane(null);</span>
+<span class="nc" id="L540">            biu.setWestPane(null);</span>
+<span class="nc" id="L541">            biu.setEastPane(null);</span>
+        }
+
+<span class="nc" id="L544">        f.getContentPane().add(comp);</span>
+<span class="nc" id="L545">        f.setOpaque(false);</span>
+<span class="nc" id="L546">        f.pack();</span>
+<span class="nc" id="L547">        int width = f.getWidth();</span>
+<span class="nc" id="L548">        int height = f.getHeight();</span>
+<span class="nc bnc" id="L549" title="All 2 branches missed.">        if (width &gt; getWidth() - FRAME_EMPTY_SPACE) {</span>
+<span class="nc" id="L550">            width = Math.min(width, getWidth());</span>
+        }
+<span class="nc bnc" id="L552" title="All 2 branches missed.">        if (height &gt; getHeight() - FRAME_EMPTY_SPACE) {</span>
+<span class="nc" id="L553">            height = Math.min(height, getHeight());</span>
+        }
+<span class="nc" id="L555">        f.setSize(width, height);</span>
+<span class="nc" id="L556">        Point p = chooseLocation(comp, width, height, popupPosition);</span>
+<span class="nc" id="L557">        f.setLocation(p);</span>
+<span class="nc" id="L558">        this.add(f, MODAL_LAYER);</span>
+<span class="nc" id="L559">        f.setName(comp.getClass().getSimpleName());</span>
+
+<span class="nc" id="L561">        f.setFrameIcon(null);</span>
+<span class="nc" id="L562">        f.setVisible(true);</span>
+<span class="nc" id="L563">        f.setResizable(resizable);</span>
+        try {
+<span class="nc" id="L565">            f.setSelected(true);</span>
+<span class="nc" id="L566">        } catch (java.beans.PropertyVetoException e) {}</span>
+
+<span class="nc" id="L568">        return f;</span>
+    }
+
+    /**
+     * Adds a component centered on this Canvas.
+     *
+     * @param comp The &lt;code&gt;Component&lt;/code&gt; to add to this canvas.
+     * @param i The layer to add the component to (see JLayeredPane).
+     */
+    private void addCentered(Component comp, Integer i) {
+<span class="nc" id="L578">        comp.setLocation((getWidth() - comp.getWidth()) / 2,</span>
+<span class="nc" id="L579">                         (getHeight() - comp.getHeight()) / 2);</span>
+
+<span class="nc" id="L581">        this.add(comp, i);</span>
+<span class="nc" id="L582">    }</span>
+
+    /**
+     * Adds a component to this Canvas.  Removes the statusPanel if
+     * visible (and &lt;code&gt;comp != statusPanel&lt;/code&gt;).
+     *
+     * @param comp The &lt;code&gt;Component&lt;/code&gt; to add to this canvas.
+     * @param i The layer to add the component to (see JLayeredPane).
+     */
+    private void addToCanvas(Component comp, Integer i) {
+<span class="nc bnc" id="L592" title="All 4 branches missed.">        if (comp != statusPanel &amp;&amp; !(comp instanceof JMenuItem)</span>
+<span class="nc bnc" id="L593" title="All 2 branches missed.">            &amp;&amp; statusPanel.isVisible()) {</span>
+<span class="nc" id="L594">            removeFromCanvas(statusPanel);</span>
+        }
+
+        try {
+<span class="nc bnc" id="L598" title="All 2 branches missed.">            super.add(comp, (i == null) ? JLayeredPane.DEFAULT_LAYER : i);</span>
+<span class="nc" id="L599">        } catch (Exception e) {</span>
+<span class="nc" id="L600">            logger.log(Level.WARNING, &quot;addToCanvas(&quot; + comp + &quot;, &quot; + i</span>
+<span class="nc" id="L601">                + &quot;) failed.&quot;, e);</span>
+        }
+<span class="nc" id="L603">    }</span>
+
+    /**
+     * Choose a location for a component.
+     *
+     * @param comp The &lt;code&gt;Component&lt;/code&gt; to place.
+     * @param width The component width to use.
+     * @param height The component height to use.
+     * @param popupPosition An optional &lt;code&gt;PopupPosition&lt;/code&gt; hint.
+     * @return A suitable &lt;code&gt;Point&lt;/code&gt; to place the component.
+     */
+    private Point chooseLocation(Component comp, int width, int height, 
+                                 PopupPosition popupPosition) {
+<span class="nc" id="L616">        Point p = null;</span>
+<span class="nc bnc" id="L617" title="All 2 branches missed.">        if ((comp instanceof FreeColPanel)</span>
+<span class="nc bnc" id="L618" title="All 2 branches missed.">            &amp;&amp; (p = getSavedPosition(comp)) != null) {</span>
+            // Sanity check stuff coming out of client options.
+<span class="nc bnc" id="L620" title="All 2 branches missed.">            if (p.getX() &lt; 0</span>
+<span class="nc bnc" id="L621" title="All 2 branches missed.">                || p.getX() &gt;= getWidth() - width</span>
+<span class="nc bnc" id="L622" title="All 2 branches missed.">                || p.getY() &lt; 0</span>
+<span class="nc bnc" id="L623" title="All 2 branches missed.">                || p.getY() &gt;= getHeight() - height) {</span>
+<span class="nc" id="L624">                p = null;</span>
+            }
+        }
+<span class="nc" id="L627">        int x = 0, y = 0;</span>
+<span class="nc bnc" id="L628" title="All 2 branches missed.">        if (p != null) {</span>
+<span class="nc" id="L629">            x = (int)p.getX();</span>
+<span class="nc" id="L630">            y = (int)p.getY();</span>
+<span class="nc bnc" id="L631" title="All 2 branches missed.">        } else if (popupPosition != null) {</span>
+<span class="nc bnc" id="L632" title="All 5 branches missed.">            switch (popupPosition) {</span>
+            case CENTERED:
+<span class="nc" id="L634">                x = (getWidth() - width) / 2;</span>
+<span class="nc" id="L635">                y = (getHeight() - height) / 2;</span>
+<span class="nc" id="L636">                break;</span>
+            case CENTERED_LEFT:
+<span class="nc" id="L638">                x = (getWidth() - width) / 4;</span>
+<span class="nc" id="L639">                y = (getHeight() - height) / 2;</span>
+<span class="nc" id="L640">                break;</span>
+            case CENTERED_RIGHT:
+<span class="nc" id="L642">                x = ((getWidth() - width) * 3) / 4;</span>
+<span class="nc" id="L643">                y = (getHeight() - height) / 2;</span>
+<span class="nc" id="L644">                break;</span>
+            case ORIGIN:
+<span class="nc" id="L646">                x = y = 0;</span>
+                break;
+            }
+        }
+<span class="nc bnc" id="L650" title="All 2 branches missed.">        if ((p = getClearSpace(x, y, width, height, MAXTRY)) != null</span>
+<span class="nc bnc" id="L651" title="All 4 branches missed.">            &amp;&amp; p.x &gt;= 0 &amp;&amp; p.x &lt; getWidth()</span>
+<span class="nc bnc" id="L652" title="All 4 branches missed.">            &amp;&amp; p.y &gt;= 0 &amp;&amp; p.y &lt; getHeight()) {</span>
+<span class="nc" id="L653">            x = p.x;</span>
+<span class="nc" id="L654">            y = p.y;</span>
+        }
+<span class="nc" id="L656">        return new Point(x, y);</span>
+    }
+
+    /**
+     * Create key bindings for all actions.
+     */
+    private void createKeyBindings() {
+<span class="nc bnc" id="L663" title="All 2 branches missed.">        for (Option option : freeColClient.getActionManager().getOptions()) {</span>
+<span class="nc" id="L664">            FreeColAction action = (FreeColAction) option;</span>
+<span class="nc" id="L665">            getInputMap().put(action.getAccelerator(), action.getId());</span>
+<span class="nc" id="L666">            getActionMap().put(action.getId(), action);</span>
+        }
+<span class="nc" id="L668">    }</span>
+
+    /**
+     * Try to find some free space on the canvas for a component,
+     * starting at x,y.
+     *
+     * @param x A starting x coordinate.
+     * @param y A starting y coordinate.
+     * @param w The component width to use.
+     * @param h The component height to use.
+     * @param tries The number of attempts to find a clear space.
+     * @return A &lt;code&gt;Point&lt;/code&gt; to place the component at or null
+     *     on failure.
+     */
+    private Point getClearSpace(final int x, final int y,
+                                final int w, final int h, int tries) {
+<span class="nc" id="L684">        final Rectangle bounds = this.getBounds();</span>
+<span class="nc bnc" id="L685" title="All 2 branches missed.">        if (!bounds.contains(x, y)) return null;</span>
+
+<span class="nc" id="L687">        tries = 3 * tries + 1; // 3 new candidates per level</span>
+<span class="nc" id="L688">        List&lt;Point&gt; todo = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L689">        Point p = new Point(x, y);</span>
+<span class="nc" id="L690">        todo.add(p);</span>
+
+<span class="nc" id="L692">        List&lt;Component&gt; allComponents = transform(this.getComponents(),</span>
+<span class="nc bnc" id="L693" title="All 4 branches missed.">            c -&gt; !(c instanceof GrayLayer) &amp;&amp; c.isValid(), Collectors.toList());</span>
+<span class="nc bnc" id="L694" title="All 2 branches missed.">        for (FreeColDialog&lt;?&gt; fcd : dialogs) allComponents.add(fcd);</span>
+
+        // Find the position with the least overlap
+<span class="nc" id="L697">        int bestScore = Integer.MAX_VALUE;</span>
+<span class="nc" id="L698">        Point best = p;</span>
+<span class="nc bnc" id="L699" title="All 2 branches missed.">        while (!todo.isEmpty()) {</span>
+<span class="nc" id="L700">            p = todo.remove(0);</span>
+<span class="nc" id="L701">            Rectangle r = new Rectangle(p.x, p.y, w, h);</span>
+<span class="nc bnc" id="L702" title="All 2 branches missed.">            if (!bounds.contains(r)) {</span>
+<span class="nc" id="L703">                continue;</span>
+            }
+
+            // Find the most overlapping component at this position,
+            // as well as the globally least.
+<span class="nc" id="L708">            int foundScore = 0;</span>
+<span class="nc" id="L709">            Component found = null;</span>
+<span class="nc bnc" id="L710" title="All 2 branches missed.">            for (Component c : allComponents) {</span>
+<span class="nc bnc" id="L711" title="All 2 branches missed.">                if (c.getBounds().intersects(r)) {</span>
+<span class="nc" id="L712">                    Rectangle rr = c.getBounds().intersection(r);</span>
+<span class="nc" id="L713">                    int score = (int)Math.round(rr.getWidth() * rr.getHeight());</span>
+<span class="nc bnc" id="L714" title="All 2 branches missed.">                    if (foundScore &lt; score) {</span>
+<span class="nc" id="L715">                        foundScore = score;</span>
+<span class="nc" id="L716">                        found = c;</span>
+                    }
+                }
+            }
+<span class="nc bnc" id="L720" title="All 2 branches missed.">            if (found == null) { // Can not improve on no overlap, return now</span>
+<span class="nc" id="L721">                return p;</span>
+            }
+<span class="nc bnc" id="L723" title="All 2 branches missed.">            if (bestScore &gt; foundScore) {</span>
+<span class="nc" id="L724">                bestScore = foundScore;</span>
+<span class="nc" id="L725">                best = p;</span>
+            }
+            // Guarantee eventual completion
+<span class="nc bnc" id="L728" title="All 2 branches missed.">            if (--tries &lt;= 0) break;</span>
+
+<span class="nc" id="L730">            int n = todo.size(),</span>
+                // Some alternative new positions
+                //   0: move right/down to avoid the collision
+                //   1: move as far as possible right/down
+                //   2: wrap back to the far left
+<span class="nc" id="L735">                x0 = found.getX() + found.getWidth() + 1,</span>
+<span class="nc" id="L736">                y0 = found.getY() + found.getHeight() + 1,</span>
+<span class="nc" id="L737">                x1 = bounds.x + bounds.width - w - 1,</span>
+<span class="nc" id="L738">                y1 = bounds.y + bounds.height - h - 1,</span>
+<span class="nc" id="L739">                x2 = bounds.x,</span>
+<span class="nc" id="L740">                y2 = bounds.y;</span>
+<span class="nc" id="L741">            boolean x0ok = bounds.contains(x0 + w, y),</span>
+<span class="nc" id="L742">                y0ok = bounds.contains(x, y0 + h),</span>
+<span class="nc" id="L743">                x1ok = bounds.contains(x1, y),</span>
+<span class="nc" id="L744">                y1ok = bounds.contains(x, y1);</span>
+<span class="nc bnc" id="L745" title="All 4 branches missed.">            todo.add(n, new Point((x0ok) ? x0 : (x1ok) ? x1 : x2,</span>
+<span class="nc bnc" id="L746" title="All 4 branches missed.">                                  (y0ok) ? y0 : (y1ok) ? y1 : y2));</span>
+<span class="nc bnc" id="L747" title="All 4 branches missed.">            todo.add(n, new Point(x, (y0ok) ? y0 : (y1ok) ? y1 : y2));</span>
+<span class="nc bnc" id="L748" title="All 4 branches missed.">            todo.add(n, new Point((x0ok) ? x0 : (x1ok) ? x1 : x2, y));</span>
+        }
+<span class="nc" id="L750">        return best;</span>
+    }
+
+    /**
+     * Gets any currently displayed colony panel for the specified colony.
+     *
+     * This is distinct from {@link #getExistingFreeColPanel} because
+     * there can be multiple ColonyPanels.
+     *
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; to check.
+     * @return A currently displayed colony panel, or null if not found.
+     */
+    private ColonyPanel getColonyPanel(Colony colony) {
+<span class="nc bnc" id="L763" title="All 2 branches missed.">        for (Component c1 : getComponents()) {</span>
+<span class="nc bnc" id="L764" title="All 2 branches missed.">            if (c1 instanceof JInternalFrame) {</span>
+<span class="nc bnc" id="L765" title="All 2 branches missed.">                for (Component c2 : ((JInternalFrame) c1).getContentPane()</span>
+<span class="nc" id="L766">                         .getComponents()) {</span>
+<span class="nc bnc" id="L767" title="All 2 branches missed.">                    if (c2 instanceof ColonyPanel</span>
+<span class="nc bnc" id="L768" title="All 2 branches missed.">                        &amp;&amp; ((ColonyPanel)c2).getColony() == colony) {</span>
+<span class="nc" id="L769">                        return (ColonyPanel)c2;</span>
+                    }
+                }
+            }
+        }
+<span class="nc" id="L774">        return null;</span>
+    }
+
+    /**
+     * Gets the internal frame for the given component.
+     *
+     * @param c The &lt;code&gt;Component&lt;/code&gt;.
+     * @return The given component if this is an internal frame or the
+     *     first parent that is an internal frame.  Returns
+     *     &lt;code&gt;null&lt;/code&gt; if no internal frame is found.
+     */
+    private JInternalFrame getInternalFrame(final Component c) {
+<span class="nc" id="L786">        Component temp = c;</span>
+
+<span class="nc bnc" id="L788" title="All 4 branches missed.">        while (temp != null &amp;&amp; !(temp instanceof JInternalFrame)) {</span>
+<span class="nc" id="L789">            temp = temp.getParent();</span>
+        }
+<span class="nc" id="L791">        return (JInternalFrame) temp;</span>
+    }
+
+    /**
+     * Make a tile visible, then determine corresponding position to popup
+     * a panel.
+     *
+     * @param tile A &lt;code&gt;Tile&lt;/code&gt; to be made visible.
+     * @return A &lt;code&gt;PopupPosition&lt;/code&gt; for a panel to be displayed.
+     */
+    private PopupPosition setOffsetFocus(Tile tile) {
+<span class="nc bnc" id="L802" title="All 2 branches missed.">        if (tile == null) return PopupPosition.CENTERED;</span>
+<span class="nc" id="L803">        int where = mapViewer.setOffsetFocus(tile);</span>
+<span class="nc bnc" id="L804" title="All 2 branches missed.">        return (where &gt; 0) ? PopupPosition.CENTERED_LEFT</span>
+<span class="nc bnc" id="L805" title="All 2 branches missed.">            : (where &lt; 0) ? PopupPosition.CENTERED_RIGHT</span>
+<span class="nc" id="L806">            : PopupPosition.CENTERED;</span>
+    }
+
+    /**
+     * Gets the saved position of a component.
+     *
+     * @param comp The &lt;code&gt;Component&lt;/code&gt; to use.
+     * @return The saved position as a &lt;code&gt;Point&lt;/code&gt;, or null if no
+     *     saved position is found.
+     */
+    private Point getSavedPosition(Component comp) {
+<span class="nc" id="L817">        final ClientOptions co = freeColClient.getClientOptions();</span>
+<span class="nc bnc" id="L818" title="All 2 branches missed.">        if (co == null) return null;</span>
+        try {
+<span class="nc bnc" id="L820" title="All 2 branches missed.">            if (!co.getBoolean(ClientOptions.REMEMBER_PANEL_POSITIONS)) {</span>
+<span class="nc" id="L821">                return null;</span>
+            }
+<span class="nc" id="L823">        } catch (Exception e) {}</span>
+
+<span class="nc" id="L825">        String className = comp.getClass().getName();</span>
+        try {
+<span class="nc" id="L827">            return new Point(co.getInteger(className + &quot;.x&quot;),</span>
+<span class="nc" id="L828">                             co.getInteger(className + &quot;.y&quot;));</span>
+<span class="nc" id="L829">        } catch (Exception e) {</span>
+<span class="nc" id="L830">            return null;</span>
+        }
+    }
+
+    /**
+     * Get the saved size of a component.
+     *
+     * @param comp The &lt;code&gt;Component&lt;/code&gt; to use.
+     * @return A &lt;code&gt;Dimension&lt;/code&gt; for the component or null if
+     *     no saved size is found.
+     */
+    private Dimension getSavedSize(Component comp) {
+<span class="nc" id="L842">        final ClientOptions co = freeColClient.getClientOptions();</span>
+<span class="nc bnc" id="L843" title="All 2 branches missed.">        if (co == null) return null;</span>
+        try {
+<span class="nc bnc" id="L845" title="All 2 branches missed.">            if (!co.getBoolean(ClientOptions.REMEMBER_PANEL_SIZES)) {</span>
+<span class="nc" id="L846">                return null;</span>
+            }
+<span class="nc" id="L848">        } catch (Exception e) {}</span>
+
+<span class="nc" id="L850">        String className = comp.getClass().getName();</span>
+        try {
+<span class="nc" id="L852">            return new Dimension(co.getInteger(className + &quot;.w&quot;),</span>
+<span class="nc" id="L853">                                 co.getInteger(className + &quot;.h&quot;));</span>
+<span class="nc" id="L854">        } catch (Exception e) {</span>
+<span class="nc" id="L855">            return null;</span>
+        }
+    }
+
+    /**
+     * Initialize the file filters to filter for saved games.
+     *
+     * @return File filters for the FreeCol save game extension.
+     */
+    private FileFilter[] getFileFilters() {
+<span class="nc bnc" id="L865" title="All 2 branches missed.">        if (fileFilters == null) {</span>
+<span class="nc" id="L866">            String s = Messages.message(&quot;filter.savedGames&quot;);</span>
+<span class="nc" id="L867">            fileFilters = new FileFilter[] {</span>
+<span class="nc" id="L868">                new FileNameExtensionFilter(s, FreeCol.FREECOL_SAVE_EXTENSION)</span>
+            };
+        }
+<span class="nc" id="L871">        return fileFilters;</span>
+    }
+
+    /**
+     * A component is closing.  Some components need position and size
+     * to be saved.
+     *
+     * @param c The closing &lt;code&gt;Component&lt;/code&gt;.
+     * @param frame The enclosing &lt;code&gt;JInternalFrame&lt;/code&gt;.
+     */
+    private void notifyClose(Component c, JInternalFrame frame) {
+<span class="nc bnc" id="L882" title="All 2 branches missed.">        if (frame == null) return;</span>
+
+<span class="nc bnc" id="L884" title="All 2 branches missed.">        if (c instanceof FreeColPanel) {</span>
+<span class="nc" id="L885">            FreeColPanel fcp = (FreeColPanel)c;</span>
+<span class="nc" id="L886">            fcp.firePropertyChange(&quot;closing&quot;, false, true);</span>
+            
+<span class="nc" id="L888">            savePosition(fcp, frame.getLocation());</span>
+<span class="nc" id="L889">            saveSize(fcp, fcp.getSize());</span>
+        }
+<span class="nc" id="L891">    }</span>
+
+    /**
+     * Remove the panels derived from the EuropePanel.
+     */
+    private void removeEuropeanSubpanels() {
+        FreeColPanel panel;
+<span class="nc bnc" id="L898" title="All 2 branches missed.">        if ((panel = getExistingFreeColPanel(RecruitPanel.class)) != null)</span>
+<span class="nc" id="L899">            removeFromCanvas(panel);</span>
+<span class="nc bnc" id="L900" title="All 2 branches missed.">        if ((panel = getExistingFreeColPanel(PurchasePanel.class)) != null)</span>
+<span class="nc" id="L901">            removeFromCanvas(panel);</span>
+<span class="nc bnc" id="L902" title="All 2 branches missed.">        if ((panel = getExistingFreeColPanel(TrainPanel.class)) != null)</span>
+<span class="nc" id="L903">            removeFromCanvas(panel);</span>
+<span class="nc" id="L904">    }</span>
+
+    /**
+     * Save an &lt;code&gt;int&lt;/code&gt; value to the saved ClientOptions,
+     * using the name of the components class plus the given key as
+     * and identifier.
+     *
+     * @param className The class name for the component.
+     * @param key The key to save.
+     * @param value The value to save.
+     */
+    private void saveInteger(String className, String key, int value) {
+<span class="nc bnc" id="L916" title="All 2 branches missed.">        if (freeColClient != null</span>
+<span class="nc bnc" id="L917" title="All 2 branches missed.">            &amp;&amp; freeColClient.getClientOptions() != null) {</span>
+<span class="nc" id="L918">            OptionGroup etc = freeColClient.getClientOptions()</span>
+<span class="nc" id="L919">                .getOptionGroup(ClientOptions.ETC);</span>
+<span class="nc" id="L920">            Option o = etc.getOption(className + key);</span>
+<span class="nc bnc" id="L921" title="All 2 branches missed.">            if (o == null) {</span>
+<span class="nc bnc" id="L922" title="All 2 branches missed.">                Specification specification = (freeColClient.getGame() == null)</span>
+<span class="nc" id="L923">                    ? null : freeColClient.getGame().getSpecification();</span>
+<span class="nc" id="L924">                IntegerOption io = new IntegerOption(className + key,</span>
+<span class="nc" id="L925">                                                     specification);</span>
+<span class="nc" id="L926">                io.setValue(value);</span>
+<span class="nc" id="L927">                etc.add(io);</span>
+<span class="nc bnc" id="L928" title="All 2 branches missed.">            } else if (o instanceof IntegerOption) {</span>
+<span class="nc" id="L929">                ((IntegerOption)o).setValue(value);</span>
+            }
+        }
+<span class="nc" id="L932">    }</span>
+
+    /**
+     * Save the position of a component.
+     *
+     * @param comp The &lt;code&gt;Component&lt;/code&gt; to use.
+     * @param position The position to save.
+     */
+    private void savePosition(Component comp, Point position) {
+        try {
+<span class="nc" id="L942">            if (!freeColClient.getClientOptions()</span>
+<span class="nc bnc" id="L943" title="All 2 branches missed.">                .getBoolean(ClientOptions.REMEMBER_PANEL_POSITIONS)) return;</span>
+<span class="nc" id="L944">        } catch (Exception e) {}</span>
+
+<span class="nc" id="L946">        String className = comp.getClass().getName();</span>
+<span class="nc" id="L947">        saveInteger(className, &quot;.x&quot;, position.x);</span>
+<span class="nc" id="L948">        saveInteger(className, &quot;.y&quot;, position.y);</span>
+<span class="nc" id="L949">    }</span>
+
+    /**
+     * Save the size of a component.
+     *
+     * @param comp The &lt;code&gt;Component&lt;/code&gt; to use.
+     * @param size The &lt;code&gt;Dimension&lt;/code&gt; to save.
+     */
+    private void saveSize(Component comp, Dimension size) {
+        try {
+<span class="nc" id="L959">            if (!freeColClient.getClientOptions()</span>
+<span class="nc bnc" id="L960" title="All 2 branches missed.">                .getBoolean(ClientOptions.REMEMBER_PANEL_SIZES)) return;</span>
+<span class="nc" id="L961">        } catch (Exception e) {}</span>
+
+<span class="nc" id="L963">        String className = comp.getClass().getName();</span>
+<span class="nc" id="L964">        saveInteger(className, &quot;.w&quot;, size.width);</span>
+<span class="nc" id="L965">        saveInteger(className, &quot;.h&quot;, size.height);</span>
+<span class="nc" id="L966">    }</span>
+
+    /**
+     * Restart blinking on the map.  Switching it on again needs to check
+     * for the presence of other dialogs.
+     */
+    private void restartBlinking() {
+<span class="nc bnc" id="L973" title="All 2 branches missed.">        if (mapViewer.getViewMode() != GUI.MOVE_UNITS_MODE) return;</span>
+<span class="nc bnc" id="L974" title="All 2 branches missed.">        for (FreeColDialog&lt;?&gt; f : dialogs) {</span>
+<span class="nc bnc" id="L975" title="All 2 branches missed.">            if (f.isModal()) return;</span>
+        }
+<span class="nc" id="L977">        mapViewer.restartBlinking();</span>
+<span class="nc" id="L978">    }</span>
+
+    /**
+     * Stop blinking on the map.
+     */
+    private void stopBlinking() {
+<span class="nc" id="L984">        mapViewer.stopBlinking();</span>
+<span class="nc" id="L985">    }</span>
+
+    /**
+     * Displays the given dialog, optionally making sure a tile is visible.
+     *
+     * @param &lt;T&gt; The type to be returned from the dialog.
+     * @param freeColDialog The dialog to be displayed
+     * @param tile An optional &lt;code&gt;Tile&lt;/code&gt; to make visible (not
+     *     under the dialog!)
+     * @return The {@link FreeColDialog#getResponse reponse} returned by
+     *     the dialog.
+     */
+    private &lt;T&gt; T showFreeColDialog(FreeColDialog&lt;T&gt; freeColDialog,
+                                    Tile tile) {
+<span class="nc" id="L999">        viewFreeColDialog(freeColDialog, tile);</span>
+<span class="nc" id="L1000">        T response = freeColDialog.getResponse();</span>
+<span class="nc" id="L1001">        remove(freeColDialog);</span>
+<span class="nc" id="L1002">        dialogRemove(freeColDialog);</span>
+<span class="nc bnc" id="L1003" title="All 2 branches missed.">        if (freeColDialog.isModal()) restartBlinking();</span>
+<span class="nc" id="L1004">        return response;</span>
+    }
+
+    /**
+     * Displays the given panel, making sure a tile is visible.
+     *
+     * @param panel The panel to be displayed
+     * @param tile A &lt;code&gt;Tile&lt;/code&gt; to make visible (not under the panel!)
+     * @param resizable Should the panel be resizable?
+     */
+    private void showFreeColPanel(FreeColPanel panel, Tile tile,
+                                  boolean resizable) {
+<span class="nc" id="L1016">        showSubPanel(panel, setOffsetFocus(tile), resizable);</span>
+<span class="nc" id="L1017">    }</span>
+
+    /**
+     * Displays a &lt;code&gt;FreeColPanel&lt;/code&gt;.
+     *
+     * @param panel &lt;code&gt;FreeColPanel&lt;/code&gt;, panel to show
+     * @param resizable Should the panel be resizable?
+     */
+    private void showSubPanel(FreeColPanel panel, boolean resizable) {
+<span class="nc" id="L1026">        showSubPanel(panel, PopupPosition.CENTERED, resizable);</span>
+<span class="nc" id="L1027">    }</span>
+
+    /**
+     * Displays a &lt;code&gt;FreeColPanel&lt;/code&gt; at a generalized position.
+     *
+     * @param panel &lt;code&gt;FreeColPanel&lt;/code&gt;, panel to show
+     * @param popupPosition &lt;code&gt;PopupPosition&lt;/code&gt; The generalized
+     *     position to place the panel.
+     * @param resizable Should the panel be resizable?
+     */
+    private void showSubPanel(FreeColPanel panel, PopupPosition popupPosition,
+                              boolean resizable) {
+<span class="nc" id="L1039">        repaint();</span>
+<span class="nc" id="L1040">        addAsFrame(panel, false, popupPosition, resizable);</span>
+<span class="nc" id="L1041">        panel.requestFocus();</span>
+<span class="nc" id="L1042">    }</span>
+
+
+    // Public API
+
+    /**
+     * Adds a component to this Canvas.
+     *
+     * @param comp The &lt;code&gt;Component&lt;/code&gt; to add.
+     * @return The component argument.
+     */
+    @Override
+    public Component add(Component comp) {
+<span class="nc" id="L1055">        this.add(comp, JLayeredPane.DEFAULT_LAYER);</span>
+<span class="nc" id="L1056">        return comp;</span>
+    }
+
+    /**
+     * Adds a component to this Canvas.
+     *
+     * @param comp The &lt;code&gt;Component&lt;/code&gt; to add to this canvas.
+     * @param i The layer to add the component to (see JLayeredPane).
+     */
+    public void add(Component comp, Integer i) {
+<span class="nc" id="L1066">        addToCanvas(comp, i);</span>
+<span class="nc" id="L1067">        gui.updateMenuBar();</span>
+<span class="nc" id="L1068">    }</span>
+
+    /**
+     * Closes all the menus that are currently open.
+     */
+    void closeMenus() {
+<span class="nc bnc" id="L1074" title="All 2 branches missed.">        for (JInternalFrame frame : getAllFrames()) {</span>
+<span class="nc bnc" id="L1075" title="All 2 branches missed.">            for (Component c : frame.getContentPane().getComponents()) {</span>
+<span class="nc" id="L1076">                notifyClose(c, frame);</span>
+            }
+<span class="nc" id="L1078">            frame.dispose();</span>
+        }
+<span class="nc bnc" id="L1080" title="All 2 branches missed.">        while (!dialogs.isEmpty()) {</span>
+<span class="nc" id="L1081">            FreeColDialog&lt;?&gt; dialog = dialogs.remove(0);</span>
+<span class="nc" id="L1082">            dialog.dispose();</span>
+        }
+<span class="nc" id="L1084">    }</span>
+
+    /**
+     * Closes the {@link MainPanel}.
+     */
+    void closeMainPanel() {
+<span class="nc bnc" id="L1090" title="All 2 branches missed.">       if (mainPanel != null) {</span>
+<span class="nc" id="L1091">          remove(mainPanel);</span>
+<span class="nc" id="L1092">          mainPanel = null;</span>
+       }
+<span class="nc" id="L1094">    }</span>
+
+    /**
+     * Closes the &lt;code&gt;StatusPanel&lt;/code&gt;.
+     *
+     * @see #showStatusPanel
+     */
+    void closeStatusPanel() {
+<span class="nc bnc" id="L1102" title="All 2 branches missed.">        if (statusPanel.isVisible()) {</span>
+<span class="nc" id="L1103">            remove(statusPanel);</span>
+        }
+<span class="nc" id="L1105">    }</span>
+
+    /**
+     * Checks if this &lt;code&gt;Canvas&lt;/code&gt; contains any in game components.
+     *
+     * @return &lt;code&gt;true&lt;/code&gt; if there is any in game components.
+     */
+    boolean containsInGameComponents() {
+<span class="nc" id="L1113">        KeyListener[] keyListeners = getKeyListeners();</span>
+<span class="nc bnc" id="L1114" title="All 2 branches missed.">        if (keyListeners.length &gt; 0) {</span>
+<span class="nc" id="L1115">            return true;</span>
+        }
+
+<span class="nc" id="L1118">        MouseListener[] mouseListeners = getMouseListeners();</span>
+<span class="nc bnc" id="L1119" title="All 2 branches missed.">        if (mouseListeners.length &gt; 0) {</span>
+<span class="nc" id="L1120">            return true;</span>
+        }
+
+<span class="nc" id="L1123">        MouseMotionListener[] mouseMotionListeners = getMouseMotionListeners();</span>
+<span class="nc bnc" id="L1124" title="All 2 branches missed.">        if (mouseMotionListeners.length &gt; 0) {</span>
+<span class="nc" id="L1125">            return true;</span>
+        }
+
+<span class="nc" id="L1128">        return false;</span>
+    }
+
+    /**
+     * Tells that a chat message was received.
+     *
+     * @param message The chat message.
+     */
+    void displayChatMessage(GUIMessage message) {
+<span class="nc" id="L1137">        chatDisplay.addMessage(message);</span>
+<span class="nc" id="L1138">        repaint(0, 0, getWidth(), getHeight());</span>
+<span class="nc" id="L1139">    }</span>
+
+    /**
+     * Add a dialog to the current dialog list.
+     *
+     * @param fcd The dialog to add.
+     */
+    private void dialogAdd(FreeColDialog&lt;?&gt; fcd) {
+<span class="nc" id="L1147">        dialogs.add(fcd);</span>
+<span class="nc" id="L1148">    }</span>
+
+    /**
+     * Remove a dialog from the current dialog list.
+     *
+     * @param fcd The dialog to remove.
+     */
+    void dialogRemove(FreeColDialog&lt;?&gt; fcd) {
+<span class="nc" id="L1156">        dialogs.remove(fcd);</span>
+<span class="nc" id="L1157">    }</span>
+
+    /**
+     * Gets a currently displayed FreeColPanel of a given type.
+     *
+     * @param &lt;T&gt; The actual panel type.
+     * @param type The type of &lt;code&gt;FreeColPanel&lt;/code&gt; to look for.
+     * @return A currently displayed &lt;code&gt;FreeColPanel&lt;/code&gt; of the
+     *     requested type, or null if none found.
+     */
+    private &lt;T extends FreeColPanel&gt; T getExistingFreeColPanel(Class&lt;T&gt; type) {
+<span class="nc bnc" id="L1168" title="All 2 branches missed.">        for (Component c1 : getComponents()) {</span>
+<span class="nc bnc" id="L1169" title="All 2 branches missed.">            if (c1 instanceof JInternalFrame) {</span>
+<span class="nc bnc" id="L1170" title="All 2 branches missed.">                for (Component c2 : ((JInternalFrame)c1).getContentPane()</span>
+<span class="nc" id="L1171">                         .getComponents()) {</span>
+                    try {
+<span class="nc" id="L1173">                        T ret = type.cast(c2);</span>
+<span class="nc bnc" id="L1174" title="All 2 branches missed.">                        if (ret != null) {</span>
+<span class="nc" id="L1175">                            final JInternalFrame jif = (JInternalFrame)c1;</span>
+<span class="nc" id="L1176">                            SwingUtilities.invokeLater(() -&gt; {</span>
+<span class="nc" id="L1177">                                    jif.toFront();</span>
+<span class="nc" id="L1178">                                    jif.repaint();</span>
+<span class="nc" id="L1179">                                });</span>
+<span class="nc" id="L1180">                            return ret;</span>
+                        }
+<span class="nc" id="L1182">                    } catch (ClassCastException cce) {}</span>
+                }
+            }
+        }
+<span class="nc" id="L1186">        return null;</span>
+    }
+
+    /**
+     * Gets the last &lt;code&gt;LoadingSavegameDialog&lt;/code&gt;.
+     *
+     * FIXME: clean this up
+     *
+     * @return The &lt;code&gt;LoadingSavegameDialog&lt;/code&gt;.
+     */
+    LoadingSavegameDialog getLoadingSavegameDialog() {
+<span class="nc" id="L1197">        return loadingSavegameDialog;</span>
+    }
+
+    /**
+     * Get any panel this &lt;code&gt;Canvas&lt;/code&gt; is displaying.
+     *
+     * @return A &lt;code&gt;Component&lt;/code&gt; the &lt;code&gt;Canvas&lt;/code&gt; is
+     *         displaying, or null if none found.
+     */
+    Component getShowingSubPanel() {
+<span class="nc bnc" id="L1207" title="All 2 branches missed.">        for (Component c : getComponents()) {</span>
+<span class="nc bnc" id="L1208" title="All 2 branches missed.">            if (c instanceof ToolBoxFrame) {</span>
+<span class="nc" id="L1209">                continue;</span>
+            }
+<span class="nc bnc" id="L1211" title="All 2 branches missed.">            if (c instanceof JInternalFrame) {</span>
+<span class="nc" id="L1212">                return c;</span>
+<span class="nc bnc" id="L1213" title="All 2 branches missed.">            } else if (c instanceof JInternalFrame.JDesktopIcon) {</span>
+<span class="nc" id="L1214">                return c;</span>
+            }
+        }
+<span class="nc" id="L1217">        return null;</span>
+    }
+
+    /**
+     * Checks if a client options dialog is present.
+     *
+     * @return True if the client options are showing.
+     */
+    boolean isClientOptionsDialogShowing() {
+<span class="nc" id="L1226">        return clientOptionsDialogShowing;</span>
+    }
+
+    /**
+     * Checks if mapboard actions should be enabled.
+     *
+     * @return &lt;code&gt;true&lt;/code&gt; if no internal frames are open.
+     */
+    boolean isMapboardActionsEnabled() {
+<span class="nc bnc" id="L1235" title="All 2 branches missed.">        return !isShowingSubPanel();</span>
+    }
+
+    /**
+     * Checks if this &lt;code&gt;Canvas&lt;/code&gt; displaying another panel.
+     * &lt;p&gt;
+     * Note that the previous implementation could throw exceptions
+     * in some cases, thus the change.
+     *
+     * @return &lt;code&gt;true&lt;/code&gt; if the &lt;code&gt;Canvas&lt;/code&gt; is displaying an
+     *         internal frame.
+     */
+    boolean isShowingSubPanel() {
+<span class="nc bnc" id="L1248" title="All 2 branches missed.">        return getShowingSubPanel() != null;</span>
+    }
+
+    /**
+     * Refresh this canvas.
+     */
+    void refresh() {
+<span class="nc" id="L1255">        repaint(0, 0, getWidth(), getHeight());</span>
+<span class="nc" id="L1256">    }</span>
+
+    /**
+     * Removes the given component from this canvas.
+     *
+     * @param comp The &lt;code&gt;Component&lt;/code&gt; to remove.
+     */
+    public void removeFromCanvas(Component comp) {
+<span class="nc bnc" id="L1264" title="All 2 branches missed.">        if (comp == null) return;</span>
+
+<span class="nc" id="L1266">        final Rectangle updateBounds = comp.getBounds();</span>
+<span class="nc" id="L1267">        final JInternalFrame frame = getInternalFrame(comp);</span>
+<span class="nc" id="L1268">        notifyClose(comp, frame);</span>
+<span class="nc bnc" id="L1269" title="All 4 branches missed.">        if (frame != null &amp;&amp; frame != comp) {</span>
+<span class="nc" id="L1270">            frame.dispose();</span>
+<span class="nc" id="L1271">        } else {</span>
+            // Java 1.7.0 as seen on Fedora with:
+            //   Java version: 1.7.0_40
+            //   Java WM version: 24.0-b56
+            // crashes here deep in the java libraries.
+            try {
+<span class="nc" id="L1277">                super.remove(comp);</span>
+<span class="nc" id="L1278">            } catch (Exception e) {</span>
+<span class="nc" id="L1279">                logger.log(Level.WARNING, &quot;Java crash&quot;, e);</span>
+            }
+        }
+<span class="nc" id="L1282">        repaint(updateBounds.x, updateBounds.y,</span>
+<span class="nc" id="L1283">                updateBounds.width, updateBounds.height);</span>
+<span class="nc" id="L1284">    }</span>
+
+    /**
+     * Removes components that is only used when in game.
+     */
+    void removeInGameComponents() {
+        // remove listeners, they will be added when launching the new game...
+<span class="nc" id="L1291">        KeyListener[] keyListeners = getKeyListeners();</span>
+<span class="nc bnc" id="L1292" title="All 2 branches missed.">        for (KeyListener keyListener : keyListeners) {</span>
+<span class="nc" id="L1293">            removeKeyListener(keyListener);</span>
+        }
+
+<span class="nc" id="L1296">        MouseListener[] mouseListeners = getMouseListeners();</span>
+<span class="nc bnc" id="L1297" title="All 2 branches missed.">        for (MouseListener mouseListener : mouseListeners) {</span>
+<span class="nc" id="L1298">            removeMouseListener(mouseListener);</span>
+        }
+
+<span class="nc" id="L1301">        MouseMotionListener[] mouseMotionListeners = getMouseMotionListeners();</span>
+<span class="nc bnc" id="L1302" title="All 2 branches missed.">        for (MouseMotionListener mouseMotionListener : mouseMotionListeners) {</span>
+<span class="nc" id="L1303">            removeMouseMotionListener(mouseMotionListener);</span>
+        }
+
+<span class="nc bnc" id="L1306" title="All 2 branches missed.">        for (Component c : getComponents()) {</span>
+<span class="nc" id="L1307">            removeFromCanvas(c);</span>
+        }
+<span class="nc" id="L1309">    }</span>
+
+    /**
+     * Set preferred size to saved size, or to the given
+     * &lt;code&gt;Dimension&lt;/code&gt; if no saved size was found. Call this
+     * method in the constructor of a FreeColPanel in order to
+     * remember its size and position.
+     *
+     * @param comp The &lt;code&gt;Component&lt;/code&gt; to use.
+     * @param d The &lt;code&gt;Dimension&lt;/code&gt; to use as default.
+     */
+    void restoreSavedSize(Component comp, Dimension d) {
+<span class="nc" id="L1321">        final Dimension pref = comp.getPreferredSize();</span>
+<span class="nc bnc" id="L1322" title="All 2 branches missed.">        final Dimension sugg = (d == null) ? pref : d;</span>
+<span class="nc" id="L1323">        boolean save = false;</span>
+
+<span class="nc" id="L1325">        Dimension size = getSavedSize(comp);</span>
+<span class="nc bnc" id="L1326" title="All 2 branches missed.">        if (size == null) {</span>
+<span class="nc" id="L1327">            size = new Dimension(pref);</span>
+<span class="nc" id="L1328">            save = true;</span>
+        }
+
+        // Fix up broken/outdated saved sizes
+<span class="nc bnc" id="L1332" title="All 2 branches missed.">        if(size.width &lt; sugg.width) {</span>
+<span class="nc" id="L1333">            size.width = sugg.width;</span>
+<span class="nc" id="L1334">            save = true;</span>
+        }
+<span class="nc bnc" id="L1336" title="All 2 branches missed.">        if(size.height &lt; sugg.height) {</span>
+<span class="nc" id="L1337">            size.height = sugg.height;</span>
+<span class="nc" id="L1338">            save = true;</span>
+        }
+<span class="nc bnc" id="L1340" title="All 2 branches missed.">        if(size.width &lt; pref.width) {</span>
+<span class="nc" id="L1341">            size.width = pref.width;</span>
+<span class="nc" id="L1342">            save = true;</span>
+        }
+<span class="nc bnc" id="L1344" title="All 2 branches missed.">        if(size.height &lt; pref.height) {</span>
+<span class="nc" id="L1345">            size.height = pref.height;</span>
+<span class="nc" id="L1346">            save = true;</span>
+        }
+
+<span class="nc bnc" id="L1349" title="All 2 branches missed.">        if(save) {</span>
+<span class="nc" id="L1350">            saveSize(comp, size);</span>
+        }
+
+<span class="nc bnc" id="L1353" title="All 2 branches missed.">        if (!pref.equals(size)) {</span>
+<span class="nc" id="L1354">            comp.setPreferredSize(size);</span>
+        }
+<span class="nc" id="L1356">    }</span>
+
+    /**
+     * Closes all panels, changes the background and shows the main menu.
+     */
+    void returnToTitle() {
+        // FIXME: check if the GUI object knows that we're not
+        // inGame. (Retrieve value of GUI::inGame.)  If GUI thinks
+        // we're still in the game then log an error because at this
+        // point the GUI should have been informed.
+<span class="nc" id="L1366">        removeInGameComponents();</span>
+<span class="nc" id="L1367">        showMainPanel(null);</span>
+<span class="nc" id="L1368">        repaint();</span>
+<span class="nc" id="L1369">    }</span>
+
+    void setupMouseListeners() {
+<span class="nc" id="L1372">        addMouseListener(new CanvasMouseListener(freeColClient, this));</span>
+<span class="nc" id="L1373">        addMouseMotionListener(new CanvasMouseMotionListener(freeColClient, this));</span>
+<span class="nc" id="L1374">    }</span>
+
+    /**
+     * Updates the sizes of the components on this Canvas.
+     */
+    private void updateSizes() {
+<span class="nc bnc" id="L1380" title="All 2 branches missed.">        if (oldSize == null</span>
+<span class="nc bnc" id="L1381" title="All 2 branches missed.">                || oldSize.width != getWidth()</span>
+<span class="nc bnc" id="L1382" title="All 2 branches missed.">                || oldSize.height != getHeight()) {</span>
+<span class="nc" id="L1383">            gui.updateMapControlsInCanvas();</span>
+<span class="nc" id="L1384">            mapViewer.setSize(getSize());</span>
+<span class="nc" id="L1385">            mapViewer.forceReposition();</span>
+<span class="nc" id="L1386">            oldSize = getSize();</span>
+        }
+<span class="nc" id="L1388">    }</span>
+
+
+    // Override JComponent
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void paintComponent(Graphics g) {
+<span class="nc" id="L1398">        updateSizes();</span>
+<span class="nc" id="L1399">        Graphics2D g2d = (Graphics2D) g;</span>
+<span class="nc" id="L1400">        chatDisplay.removeOldMessages();</span>
+
+<span class="nc" id="L1402">        Dimension size = getSize();</span>
+<span class="nc bnc" id="L1403" title="All 2 branches missed.">        if ((freeColClient.getGame() != null)</span>
+<span class="nc bnc" id="L1404" title="All 2 branches missed.">                &amp;&amp; (freeColClient.getGame().getMap() != null)</span>
+<span class="nc bnc" id="L1405" title="All 2 branches missed.">                &amp;&amp; (mapViewer.getFocus() != null)</span>
+<span class="nc bnc" id="L1406" title="All 2 branches missed.">                &amp;&amp; freeColClient.isInGame()) {</span>
+            /* ingame view */
+
+            // paint map
+<span class="nc" id="L1410">            mapViewer.displayMap(g2d);</span>
+
+            // Grey out the map if it is not my turn (and a multiplayer game).
+<span class="nc bnc" id="L1413" title="All 4 branches missed.">            if (!freeColClient.isMapEditor() &amp;&amp; freeColClient.getGame() != null</span>
+<span class="nc bnc" id="L1414" title="All 2 branches missed.">                    &amp;&amp; !freeColClient.currentPlayerIsMyPlayer()) {</span>
+<span class="nc bnc" id="L1415" title="All 2 branches missed.">                if (greyLayer == null) {</span>
+<span class="nc" id="L1416">                    greyLayer = new GrayLayer(freeColClient);</span>
+                }
+<span class="nc bnc" id="L1418" title="All 2 branches missed.">                if (greyLayer.getParent() == null) {</span>
+<span class="nc" id="L1419">                    add(greyLayer, JLayeredPane.DRAG_LAYER);</span>
+                }
+<span class="nc" id="L1421">                greyLayer.setBounds(0, 0, size.width, size.height);</span>
+<span class="nc" id="L1422">                greyLayer.setPlayer(freeColClient.getGame().getCurrentPlayer());</span>
+<span class="nc" id="L1423">            } else {</span>
+<span class="nc bnc" id="L1424" title="All 4 branches missed.">                if (greyLayer != null &amp;&amp; greyLayer.getParent() != null) {</span>
+<span class="nc" id="L1425">                    removeFromCanvas(greyLayer);</span>
+                }
+            }
+
+            // paint chat display
+<span class="nc" id="L1430">            chatDisplay.display(g2d, mapViewer.getImageLibrary(), size);</span>
+
+<span class="nc" id="L1432">        } else {</span>
+<span class="nc bnc" id="L1433" title="All 2 branches missed.">            if (!freeColClient.isMapEditor()) {</span>
+                /* main menu */
+                // TODO: Check if its right to sometimes have an unfocused map
+                //       ingame and end up here after clicking outside map.
+
+<span class="nc" id="L1438">                final String bgImageKey = &quot;image.flavor.Canvas.map&quot;;</span>
+<span class="nc bnc" id="L1439" title="All 2 branches missed.">                if (ResourceManager.hasImageResource(bgImageKey)) {</span>
+                    // Get the background without scaling, to avoid wasting
+                    // memory needlessly keeping an unbounded number of rescaled
+                    // versions of the largest image in FreeCol, forever.
+<span class="nc" id="L1443">                    final Image bgImage = ResourceManager.getImage(bgImageKey);</span>
+                    // Draw background image with scaling.
+<span class="nc" id="L1445">                    g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,</span>
+<span class="nc" id="L1446">                        RenderingHints.VALUE_INTERPOLATION_BILINEAR);</span>
+<span class="nc" id="L1447">                    g2d.drawImage(bgImage, 0, 0, size.width, size.height, this);</span>
+<span class="nc" id="L1448">                    String versionStr = &quot;v. &quot; + FreeCol.getVersion();</span>
+<span class="nc" id="L1449">                    Font oldFont = g2d.getFont();</span>
+<span class="nc" id="L1450">                    Color oldColor = g2d.getColor();</span>
+<span class="nc" id="L1451">                    Font newFont = oldFont.deriveFont(Font.BOLD);</span>
+<span class="nc" id="L1452">                    TextLayout layout = new TextLayout(versionStr, newFont,</span>
+<span class="nc" id="L1453">                        g2d.getFontRenderContext());</span>
+<span class="nc" id="L1454">                    Rectangle2D bounds = layout.getBounds();</span>
+<span class="nc" id="L1455">                    float x = size.width - (float) bounds.getWidth() - 5;</span>
+<span class="nc" id="L1456">                    float y = size.height - (float) bounds.getHeight();</span>
+<span class="nc" id="L1457">                    g2d.setColor(Color.white);</span>
+<span class="nc" id="L1458">                    layout.draw(g2d, x, y);</span>
+<span class="nc" id="L1459">                    g2d.setFont(oldFont);</span>
+<span class="nc" id="L1460">                    g2d.setColor(oldColor);</span>
+<span class="nc" id="L1461">                } else {</span>
+<span class="nc" id="L1462">                    g2d.setColor(Color.BLACK);</span>
+<span class="nc" id="L1463">                    g2d.fillRect(0, 0, size.width, size.height);</span>
+                }
+
+<span class="nc" id="L1466">            } else {</span>
+                /* map editor??? */
+<span class="nc" id="L1468">                g2d.setColor(Color.BLACK);</span>
+<span class="nc" id="L1469">                g2d.fillRect(0, 0, size.width, size.height);</span>
+            }
+        }
+<span class="nc" id="L1472">    }</span>
+
+
+    // Override Container
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void remove(Component comp) {
+<span class="nc" id="L1482">        removeFromCanvas(comp);</span>
+<span class="nc" id="L1483">        gui.updateMenuBar();</span>
+<span class="nc bnc" id="L1484" title="All 4 branches missed.">        if (comp != statusPanel &amp;&amp; !isShowingSubPanel()) {</span>
+<span class="nc" id="L1485">            requestFocus();</span>
+        }
+<span class="nc" id="L1487">    }</span>
+
+
+    // Special handling for the startGamePanel.
+
+    /**
+     * Refresh the player's table (called when a new player is added
+     * from PreGameInputHandler.addPlayer).
+     */
+    void refreshPlayersTable() {
+<span class="nc" id="L1497">        startGamePanel.refreshPlayersTable();</span>
+<span class="nc" id="L1498">    }</span>
+
+    /**
+     * Update the game options in the start panel.
+     */
+    void updateGameOptions() {
+<span class="nc" id="L1504">        startGamePanel.updateGameOptions();</span>
+<span class="nc" id="L1505">    }</span>
+
+    /**
+     * Update the map generator options in the start panel.
+     */
+    void updateMapGeneratorOptions() {
+<span class="nc" id="L1511">        startGamePanel.updateMapGeneratorOptions();</span>
+<span class="nc" id="L1512">    }</span>
+
+
+    // Dialog display
+
+    /**
+     * Displays a modal dialog with text and a choice of options.
+     *
+     * @param &lt;T&gt; The type to be returned from the dialog.
+     * @param tile An optional &lt;code&gt;Tile&lt;/code&gt; to make visible (not
+     *     under the dialog!)
+     * @param obj An object that explains the choice for the user.
+     * @param icon An optional icon to display.
+     * @param cancelKey Key for the text of the optional cancel button.
+     * @param choices The &lt;code&gt;List&lt;/code&gt; containing the ChoiceItems to
+     *            create buttons for.
+     * @return The corresponding member of the values array to the selected
+     *     option.
+     */
+    public &lt;T&gt; T showChoiceDialog(Tile tile, Object obj, ImageIcon icon,
+        String cancelKey, List&lt;ChoiceItem&lt;T&gt;&gt; choices) {
+<span class="nc" id="L1533">        FreeColChoiceDialog&lt;T&gt; fcd</span>
+<span class="nc" id="L1534">            = new FreeColChoiceDialog&lt;&gt;(freeColClient, frame, true, obj, icon,</span>
+<span class="nc" id="L1535">                                         cancelKey, choices);</span>
+<span class="nc" id="L1536">        return showFreeColDialog(fcd, tile);</span>
+    }
+
+    /**
+     * Displays a modal dialog with a text and a ok/cancel option.
+     *
+     * @param tile An optional &lt;code&gt;Tile&lt;/code&gt; to make visible (not
+     *     under the dialog!)
+     * @param obj An object that explains the choice for the user.
+     * @param icon An optional icon to display.
+     * @param okKey The text displayed on the &quot;ok&quot;-button.
+     * @param cancelKey The text displayed on the &quot;cancel&quot;-button.
+     * @return True if the user clicked the &quot;ok&quot;-button.
+     */
+    boolean showConfirmDialog(Tile tile, Object obj, ImageIcon icon,
+                              String okKey, String cancelKey) {
+<span class="nc" id="L1552">        FreeColConfirmDialog fcd</span>
+<span class="nc" id="L1553">            = new FreeColConfirmDialog(freeColClient, frame, true, obj, icon,</span>
+<span class="nc" id="L1554">                                       okKey, cancelKey);</span>
+<span class="nc" id="L1555">        return showFreeColDialog(fcd, tile);</span>
+    }
+
+    /**
+     * Displays a modal dialog with a text field and a ok/cancel option.
+     *
+     * @param tile An optional tile to make visible (not under the dialog).
+     * @param template A &lt;code&gt;StringTemplate&lt;/code&gt; that explains the
+     *     action to the user.
+     * @param defaultValue The default value appearing in the text field.
+     * @param okKey A key displayed on the &quot;ok&quot;-button.
+     * @param cancelKey A key displayed on the optional &quot;cancel&quot;-button.
+     * @return The text the user entered, or null if cancelled.
+     */
+    String showInputDialog(Tile tile, StringTemplate template,
+                           String defaultValue,
+                           String okKey, String cancelKey) {
+<span class="nc" id="L1572">        FreeColStringInputDialog fcd</span>
+<span class="nc" id="L1573">            = new FreeColStringInputDialog(freeColClient, frame, true,</span>
+<span class="nc" id="L1574">                                           Messages.message(template),</span>
+<span class="nc" id="L1575">                                           defaultValue, okKey, cancelKey);</span>
+<span class="nc" id="L1576">        return showFreeColDialog(fcd, tile);</span>
+    }
+
+    /**
+     * Displays the given dialog, optionally making sure a tile is visible.
+     *
+     * @param &lt;T&gt; The type to be returned from the dialog.
+     * @param freeColDialog The dialog to be displayed
+     * @param tile An optional &lt;code&gt;Tile&lt;/code&gt; to make visible (not
+     *     under the dialog!)
+     */
+    private &lt;T&gt; void viewFreeColDialog(final FreeColDialog&lt;T&gt; freeColDialog,
+                                       Tile tile) {
+<span class="nc" id="L1589">        PopupPosition pp = setOffsetFocus(tile);</span>
+
+        // TODO: Remove compatibility code when all non-modal dialogs
+        //       have been converted into panels.
+<span class="nc bnc" id="L1593" title="All 2 branches missed.">        if(!freeColDialog.isModal()) {</span>
+<span class="nc" id="L1594">            int canvasWidth = getWidth();</span>
+<span class="nc" id="L1595">            int dialogWidth = freeColDialog.getWidth();</span>
+<span class="nc bnc" id="L1596" title="All 2 branches missed.">            if(dialogWidth*2 &lt;= canvasWidth) {</span>
+<span class="nc" id="L1597">                Point location = freeColDialog.getLocation();</span>
+<span class="nc bnc" id="L1598" title="All 2 branches missed.">                if(pp == PopupPosition.CENTERED_LEFT) {</span>
+<span class="nc" id="L1599">                    freeColDialog.setLocation(location.x - canvasWidth/4,</span>
+<span class="nc" id="L1600">                                              location.y);</span>
+<span class="nc bnc" id="L1601" title="All 2 branches missed.">                } else if(pp == PopupPosition.CENTERED_RIGHT) {</span>
+<span class="nc" id="L1602">                    freeColDialog.setLocation(location.x + canvasWidth/4,</span>
+<span class="nc" id="L1603">                                              location.y);</span>
+                }
+            }
+        }
+
+<span class="nc" id="L1608">        dialogAdd(freeColDialog);</span>
+<span class="nc bnc" id="L1609" title="All 2 branches missed.">        if (freeColDialog.isModal()) stopBlinking();</span>
+<span class="nc" id="L1610">        freeColDialog.requestFocus();</span>
+<span class="nc" id="L1611">        freeColDialog.setVisible(true);</span>
+<span class="nc" id="L1612">    }</span>
+
+
+    // Simple front ends to display each panel or dialog.
+
+    void removeTradeRoutePanel(TradeRoutePanel panel) {
+<span class="nc" id="L1618">        remove(panel);</span>
+<span class="nc" id="L1619">        TradeRouteInputPanel trip</span>
+<span class="nc" id="L1620">            = getExistingFreeColPanel(TradeRouteInputPanel.class);</span>
+<span class="nc bnc" id="L1621" title="All 2 branches missed.">        if (trip != null) trip.cancelTradeRoute();</span>
+<span class="nc" id="L1622">    }</span>
+        
+    /**
+     * Display the AboutPanel.
+     */
+    void showAboutPanel() {
+<span class="nc" id="L1628">        showSubPanel(new AboutPanel(freeColClient), false);</span>
+<span class="nc" id="L1629">    }</span>
+
+    /**
+     * Show the BuildQueuePanel for a given colony.
+     *
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; to show the build queue of.
+     */
+    void showBuildQueuePanel(Colony colony) {
+<span class="nc" id="L1637">        BuildQueuePanel panel = getExistingFreeColPanel(BuildQueuePanel.class);</span>
+<span class="nc bnc" id="L1638" title="All 4 branches missed.">        if (panel == null || panel.getColony() != colony) {</span>
+<span class="nc" id="L1639">            showSubPanel(new BuildQueuePanel(freeColClient, colony), true);</span>
+        }
+<span class="nc" id="L1641">    }</span>
+
+    /**
+     * Show a build queue panel, with a special callback when it is closed.
+     *
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; to show the build queue of.
+     * @param callBack The &lt;code&gt;Runnable&lt;/code&gt; that is run when the
+     *     panel closes.
+     */
+    void showBuildQueuePanel(Colony colony, Runnable callBack) {
+<span class="nc" id="L1651">        FreeColPanel panel = new BuildQueuePanel(freeColClient, colony);</span>
+<span class="nc" id="L1652">        panel.addClosingCallback(callBack);</span>
+<span class="nc" id="L1653">        showSubPanel(panel, true);</span>
+<span class="nc" id="L1654">    }</span>
+
+    /**
+     * Display the &lt;code&gt;CaptureGoodsDialog&lt;/code&gt;.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; capturing goods.
+     * @param gl The list of &lt;code&gt;Goods&lt;/code&gt; to choose from.
+     * @param handler A &lt;code&gt;DialogHandler&lt;/code&gt; for the dialog response.
+     */
+    void showCaptureGoodsDialog(Unit unit, List&lt;Goods&gt; gl,
+                                DialogHandler&lt;List&lt;Goods&gt;&gt; handler) {
+<span class="nc" id="L1665">        SwingUtilities.invokeLater(</span>
+<span class="nc" id="L1666">            new DialogCallback&lt;&gt;(</span>
+<span class="nc" id="L1667">                new CaptureGoodsDialog(freeColClient, frame, unit, gl),</span>
+<span class="nc" id="L1668">                null, handler));</span>
+<span class="nc" id="L1669">    }</span>
+
+    /**
+     * Displays the &lt;code&gt;ChatPanel&lt;/code&gt;.
+     *
+     * @see ChatPanel
+     */
+    void showChatPanel() {
+        // FIXME: does it have state, or can we create a new one?
+<span class="nc bnc" id="L1678" title="All 2 branches missed.">        if (freeColClient.isSinglePlayer()) return; // chat with who?</span>
+<span class="nc" id="L1679">        showSubPanel(chatPanel, true);</span>
+<span class="nc" id="L1680">    }</span>
+
+    /**
+     * Displays the &lt;code&gt;ChooseFoundingFatherDialog&lt;/code&gt;.
+     *
+     * @param ffs The &lt;code&gt;FoundingFather&lt;/code&gt;s to choose from.
+     * @param handler A &lt;code&gt;DialogHandler&lt;/code&gt; for the dialog response.
+     */
+    void showChooseFoundingFatherDialog(List&lt;FoundingFather&gt; ffs,
+                                        DialogHandler&lt;FoundingFather&gt; handler) {
+<span class="nc" id="L1690">        SwingUtilities.invokeLater(</span>
+<span class="nc" id="L1691">            new DialogCallback&lt;&gt;(</span>
+<span class="nc" id="L1692">                new ChooseFoundingFatherDialog(freeColClient, frame, ffs),</span>
+<span class="nc" id="L1693">                null, handler));</span>
+<span class="nc" id="L1694">    }</span>
+
+    /**
+     * Displays a dialog for setting client options.
+     *
+     * @return The modified &lt;code&gt;OptionGroup&lt;/code&gt;, or null if not modified.
+     */
+    OptionGroup showClientOptionsDialog() {
+<span class="nc" id="L1702">        ClientOptionsDialog dialog = new ClientOptionsDialog(freeColClient, frame);</span>
+<span class="nc" id="L1703">        OptionGroup group = null;</span>
+<span class="nc" id="L1704">        clientOptionsDialogShowing = true;</span>
+        try {
+<span class="nc" id="L1706">            group = showFreeColDialog(dialog, null);</span>
+<span class="nc" id="L1707">        } finally {</span>
+<span class="nc" id="L1708">            clientOptionsDialogShowing = false;</span>
+<span class="nc" id="L1709">        }</span>
+<span class="nc" id="L1710">        return group;</span>
+    }
+
+    /**
+     * Displays the colony panel of the given &lt;code&gt;Colony&lt;/code&gt;.
+     * Defends against duplicates as this can duplicate messages
+     * generated by multiple property change listeners registered
+     * against the same colony.
+     *
+     * @param colony The colony whose panel needs to be displayed.
+     * @param unit An optional &lt;code&gt;Unit&lt;/code&gt; to select within the panel.
+     * @return The colony panel.
+     * @see ColonyPanel
+     */
+    public ColonyPanel showColonyPanel(Colony colony, Unit unit) {
+<span class="nc bnc" id="L1725" title="All 2 branches missed.">        if (colony == null) return null;</span>
+<span class="nc" id="L1726">        ColonyPanel panel = getColonyPanel(colony);</span>
+<span class="nc bnc" id="L1727" title="All 2 branches missed.">        if (panel == null) {</span>
+            try {
+<span class="nc" id="L1729">                panel = new ColonyPanel(freeColClient, colony);</span>
+<span class="nc" id="L1730">            } catch (Exception e) {</span>
+                try {
+<span class="nc" id="L1732">                    logger.log(Level.WARNING, &quot;Exception in ColonyPanel for &quot;</span>
+<span class="nc" id="L1733">                        + colony.getId(), e);</span>
+<span class="nc" id="L1734">                } finally {</span>
+<span class="nc" id="L1735">                    return null;</span>
+                }
+            }
+<span class="nc" id="L1738">            showFreeColPanel(panel, colony.getTile(), true);</span>
+<span class="nc" id="L1739">        } else {</span>
+<span class="nc" id="L1740">            panel.requestFocus();</span>
+        }
+<span class="nc bnc" id="L1742" title="All 2 branches missed.">        if (unit != null) panel.setSelectedUnit(unit);</span>
+<span class="nc" id="L1743">        return panel;</span>
+    }
+
+    /**
+     * Show the colopedia entry for a given node.
+     *
+     * @param nodeId The node identifier to display.
+     */
+    void showColopediaPanel(String nodeId) {
+<span class="nc" id="L1752">        showSubPanel(new ColopediaPanel(freeColClient, nodeId), true);</span>
+<span class="nc" id="L1753">    }</span>
+
+    /**
+     * Show a &lt;code&gt;ColorChooserPanel&lt;/code&gt;.
+     *
+     * @param al An &lt;code&gt;ActionListener&lt;/code&gt; to handle panel button
+     *     presses.
+     * @return The &lt;code&gt;ColorChooserPanel&lt;/code&gt; created.
+     */
+    ColorChooserPanel showColorChooserPanel(ActionListener al) {
+<span class="nc" id="L1763">        ColorChooserPanel ccp = new ColorChooserPanel(freeColClient, al);</span>
+<span class="nc" id="L1764">        showFreeColPanel(ccp, null, false);</span>
+<span class="nc" id="L1765">        return ccp;</span>
+    }
+
+    /**
+     * Show the compact labour report.
+     */
+    void showCompactLabourReport() {
+<span class="nc" id="L1772">        CompactLabourReport details = new CompactLabourReport(freeColClient);</span>
+<span class="nc" id="L1773">        details.initialize();</span>
+<span class="nc" id="L1774">        showSubPanel(details, false);</span>
+
+<span class="nc" id="L1776">    }</span>
+
+    /**
+     * Show the compat labour report for the specified unit data.
+     *
+     * @param unitData The &lt;code&gt;UnitData&lt;/code&gt; to display.
+     */
+    void showCompactLabourReport(UnitData unitData) {
+<span class="nc" id="L1784">        CompactLabourReport details = new CompactLabourReport(freeColClient,</span>
+<span class="nc" id="L1785">                                                              unitData);</span>
+<span class="nc" id="L1786">        details.initialize();</span>
+<span class="nc" id="L1787">        showSubPanel(details, false);</span>
+<span class="nc" id="L1788">    }</span>
+
+    /**
+     * Display a dialog to confirm a declaration of independence.
+     *
+     * @return A list of names for a new nation.
+     */
+    List&lt;String&gt; showConfirmDeclarationDialog() {
+<span class="nc" id="L1796">        return showFreeColDialog(new ConfirmDeclarationDialog(freeColClient, frame),</span>
+<span class="nc" id="L1797">                                 null);</span>
+    }
+
+    /**
+     * Display a panel showing the declaration of independence with
+     * animated signature.
+     */
+    void showDeclarationPanel() {
+<span class="nc" id="L1805">        showSubPanel(new DeclarationPanel(freeColClient),</span>
+<span class="nc" id="L1806">                     PopupPosition.CENTERED, false);</span>
+<span class="nc" id="L1807">    }</span>
+
+    /**
+     * Display the difficulty dialog for a given group.
+     *
+     * @param spec The enclosing &lt;code&gt;Specification&lt;/code&gt;.
+     * @param group The &lt;code&gt;OptionGroup&lt;/code&gt; containing the difficulty.
+     * @param editable If the options should be editable.
+     * @return The resulting &lt;code&gt;OptionGroup&lt;/code&gt;.
+     */
+    OptionGroup showDifficultyDialog(Specification spec,
+                                     OptionGroup group, boolean editable) {
+<span class="nc" id="L1819">        return showFreeColDialog(new DifficultyDialog(freeColClient, frame,</span>
+<span class="nc" id="L1820">                spec, group, editable),</span>
+<span class="nc" id="L1821">            null);</span>
+    }
+
+    /**
+     * Displays the &lt;code&gt;DumpCargoDialog&lt;/code&gt;.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; that is dumping.
+     * @param handler A &lt;code&gt;DialogHandler&lt;/code&gt; for the dialog response.
+     */
+    void showDumpCargoDialog(Unit unit, DialogHandler&lt;List&lt;Goods&gt;&gt; handler) {
+<span class="nc" id="L1831">        SwingUtilities.invokeLater(</span>
+<span class="nc" id="L1832">            new DialogCallback&lt;&gt;(</span>
+<span class="nc" id="L1833">                new DumpCargoDialog(freeColClient, frame, unit),</span>
+<span class="nc" id="L1834">                unit.getTile(), handler));</span>
+<span class="nc" id="L1835">    }</span>
+
+    /**
+     * Display the EditOptionDialog.
+     *
+     * @param option The &lt;code&gt;Option&lt;/code&gt; to edit.
+     * @return The response returned by the dialog.
+     */
+    boolean showEditOptionDialog(Option option) {
+<span class="nc" id="L1844">        return showFreeColDialog(new EditOptionDialog(freeColClient, frame, option),</span>
+<span class="nc" id="L1845">                                 null);</span>
+    }
+
+    /**
+     * Display the EditSettlementDialog.
+     *
+     * @param settlement The &lt;code&gt;IndianSettlement&lt;/code&gt; to edit.
+     */
+    void showEditSettlementDialog(IndianSettlement settlement) {
+<span class="nc" id="L1854">        showFreeColDialog(new EditSettlementDialog(freeColClient, frame, settlement),</span>
+<span class="nc" id="L1855">                          null);</span>
+<span class="nc" id="L1856">    }</span>
+
+    /**
+     * Shows the panel that allows the user to choose which unit will emigrate
+     * from Europe.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; whose unit is emigrating.
+     * @param fountainOfYouth Is this dialog displayed as a result of a
+     *     fountain of youth.
+     * @param handler A &lt;code&gt;DialogHandler&lt;/code&gt; for the dialog response.
+     */
+    void showEmigrationDialog(Player player, boolean fountainOfYouth,
+                              DialogHandler&lt;Integer&gt; handler) {
+<span class="nc" id="L1869">        SwingUtilities.invokeLater(</span>
+<span class="nc" id="L1870">            new DialogCallback&lt;&gt;(</span>
+<span class="nc" id="L1871">                new EmigrationDialog(freeColClient, frame, player.getEurope(),</span>
+<span class="nc" id="L1872">                                     fountainOfYouth),</span>
+<span class="nc" id="L1873">                null, handler));</span>
+<span class="nc" id="L1874">    }</span>
+
+    /**
+     * Display the EndTurnDialog with given units that could still move.
+     *
+     * @param units A list of &lt;code&gt;Unit&lt;/code&gt;s that could still move.
+     * @param handler A &lt;code&gt;DialogHandler&lt;/code&gt; for the dialog response.
+     */
+    void showEndTurnDialog(List&lt;Unit&gt; units,
+                                  DialogHandler&lt;Boolean&gt; handler) {
+<span class="nc" id="L1884">        SwingUtilities.invokeLater(</span>
+<span class="nc" id="L1885">            new DialogCallback&lt;&gt;(</span>
+<span class="nc" id="L1886">                new EndTurnDialog(freeColClient, frame, units),</span>
+<span class="nc" id="L1887">                null, handler));</span>
+<span class="nc" id="L1888">    }</span>
+
+    /**
+     * Displays an error message.
+     *
+     * @param messageId The i18n-keyname of the error message to display.
+     */
+    public void showErrorMessage(String messageId) {
+<span class="nc" id="L1896">        showErrorMessage(messageId, &quot;Unspecified error: &quot; + messageId);</span>
+<span class="nc" id="L1897">    }</span>
+
+    /**
+     * Displays an error message.
+     *
+     * @param messageId The i18n-keyname of the error message to display.
+     * @param message An alternative (possibly non-i18n) message to
+     *     display if the resource specified by &lt;code&gt;messageId&lt;/code&gt;
+     *     is unavailable.
+     */
+    public void showErrorMessage(String messageId, String message) {
+<span class="nc bnc" id="L1908" title="All 2 branches missed.">        String display = (messageId == null) ? null</span>
+<span class="nc" id="L1909">            : Messages.message(messageId);</span>
+<span class="nc bnc" id="L1910" title="All 2 branches missed.">        if (message != null</span>
+<span class="nc bnc" id="L1911" title="All 2 branches missed.">            &amp;&amp; (FreeColDebugger.isInDebugMode(FreeColDebugger.DebugMode.COMMS)</span>
+<span class="nc bnc" id="L1912" title="All 2 branches missed.">                || display == null)) {</span>
+            // If debugging suppress the bland but i18n compliant
+            // failure message in favour of the higher detail non-i18n text.
+            // Otherwise use the message if the messageId failed to provide
+            // anything useful.
+<span class="nc" id="L1917">            display = message;</span>
+        }
+<span class="nc bnc" id="L1919" title="All 2 branches missed.">        if (display != null) {</span>
+<span class="nc" id="L1920">            ErrorPanel errorPanel = new ErrorPanel(freeColClient, display);</span>
+<span class="nc" id="L1921">            showSubPanel(errorPanel, true);</span>
+        }
+<span class="nc" id="L1923">    }</span>
+
+    /**
+     * Displays the &lt;code&gt;EuropePanel&lt;/code&gt;.
+     *
+     * @see EuropePanel
+     */
+    void showEuropePanel() {
+<span class="nc bnc" id="L1931" title="All 2 branches missed.">        if (freeColClient.getGame() == null) return;</span>
+<span class="nc" id="L1932">        EuropePanel panel = getExistingFreeColPanel(EuropePanel.class);</span>
+<span class="nc bnc" id="L1933" title="All 2 branches missed.">        if (panel == null) {</span>
+<span class="nc bnc" id="L1934" title="All 2 branches missed.">            panel = new EuropePanel(freeColClient, (getHeight() &gt; 780));</span>
+<span class="nc" id="L1935">            panel.addClosingCallback(() -&gt; { removeEuropeanSubpanels(); });</span>
+<span class="nc" id="L1936">            showSubPanel(panel, true);</span>
+        }
+<span class="nc" id="L1938">    }</span>
+
+    /**
+     * Display an event panel.
+     *
+     * @param header The title.
+     * @param image A resource key for the image to display.
+     * @param footer Optional footer text.
+     */
+    void showEventPanel(String header, String image, String footer) {
+<span class="nc" id="L1948">        showSubPanel(new EventPanel(freeColClient, header, image, footer),</span>
+<span class="nc" id="L1949">                     PopupPosition.CENTERED, false);</span>
+<span class="nc" id="L1950">    }</span>
+
+    /**
+     * Display the FindSettlementPanel.
+     */
+    void showFindSettlementPanel() {
+<span class="nc" id="L1956">        showSubPanel(new FindSettlementPanel(freeColClient),</span>
+<span class="nc" id="L1957">                     PopupPosition.ORIGIN, true);</span>
+<span class="nc" id="L1958">    }</span>
+
+    /**
+     * Display the first contact dialog (which is really just a
+     * non-modal confirm dialog).
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; making contact.
+     * @param other The &lt;code&gt;Player&lt;/code&gt; to contact.
+     * @param tile An optional &lt;code&gt;Tile&lt;/code&gt; on offer.
+     * @param settlementCount The number of settlements the other
+     *     player has (from the server, other.getNumberOfSettlements()
+     *     is wrong here!).
+     * @param handler A &lt;code&gt;DialogHandler&lt;/code&gt; for the dialog response.
+     */
+    void showFirstContactDialog(Player player, Player other,
+                                Tile tile, int settlementCount,
+                                DialogHandler&lt;Boolean&gt; handler) {
+<span class="nc" id="L1975">        SwingUtilities.invokeLater(</span>
+<span class="nc" id="L1976">            new DialogCallback&lt;&gt;(</span>
+<span class="nc" id="L1977">                new FirstContactDialog(freeColClient, frame, player, other, tile,</span>
+<span class="nc" id="L1978">                                       settlementCount),</span>
+<span class="nc" id="L1979">                tile, handler));</span>
+<span class="nc" id="L1980">    }</span>
+
+    /**
+     * Detailed view of a foreign colony when in debug mode.
+     *
+     * @param settlement The &lt;code&gt;Settlement&lt;/code&gt; with the colony
+     */
+    void showForeignColony(Settlement settlement) {
+<span class="nc bnc" id="L1988" title="All 2 branches missed.">        if (settlement instanceof Colony) {</span>
+<span class="nc" id="L1989">            Colony colony = freeColClient.getFreeColServer().getGame()</span>
+<span class="nc" id="L1990">                .getFreeColGameObject(settlement.getId(), Colony.class);</span>
+<span class="nc" id="L1991">            showColonyPanel(colony, null);</span>
+        }
+<span class="nc" id="L1993">    }</span>
+
+    /**
+     * Display the GameOptionsDialog.
+     *
+     * @param editable Should the game options be editable?
+     * @param custom Whether to load custom options.
+     * @return The &lt;code&gt;OptionGroup&lt;/code&gt; selected.
+     */
+    OptionGroup showGameOptionsDialog(boolean editable,
+                                             boolean custom) {
+<span class="nc" id="L2004">        GameOptionsDialog god = new GameOptionsDialog(freeColClient, frame, editable,</span>
+<span class="nc" id="L2005">                                                      custom);</span>
+<span class="nc" id="L2006">        return showFreeColDialog(god, null);</span>
+    }
+
+    /**
+     * Displays the high scores panel.
+     *
+     * @param messageId An optional message to add to the high scores panel.
+     * @param scores The list of &lt;code&gt;HighScore&lt;/code&gt;s to display.
+     */
+    void showHighScoresPanel(String messageId, List&lt;HighScore&gt; scores) {
+<span class="nc" id="L2016">        showSubPanel(new ReportHighScoresPanel(freeColClient, messageId, scores),</span>
+<span class="nc" id="L2017">                     PopupPosition.CENTERED, true);</span>
+<span class="nc" id="L2018">    }</span>
+
+    /**
+     * Displays the panel of the given native settlement.
+     *
+     * @param indianSettlement The &lt;code&gt;IndianSettlement&lt;/code&gt; to display.
+     */
+    void showIndianSettlementPanel(IndianSettlement indianSettlement) {
+<span class="nc" id="L2026">        IndianSettlementPanel panel</span>
+<span class="nc" id="L2027">            = new IndianSettlementPanel(freeColClient, indianSettlement);</span>
+<span class="nc" id="L2028">        showFreeColPanel(panel, indianSettlement.getTile(), true);</span>
+<span class="nc" id="L2029">    }</span>
+
+    /**
+     * Make image icon from an image.
+     * Use only if you know having null is possible!
+     *
+     * @param image The &lt;code&gt;Image&lt;/code&gt; to create an icon for.
+     * @return The &lt;code&gt;ImageIcon&lt;/code&gt;.
+     */
+    private static ImageIcon createImageIcon(Image image) {
+<span class="nc bnc" id="L2039" title="All 2 branches missed.">        return (image==null) ? null : new ImageIcon(image);</span>
+    }
+
+    /**
+     * Make image icon from an object.
+     *
+     * @param display The FreeColObject to find an icon for.
+     * @return The &lt;code&gt;ImageIcon&lt;/code&gt; found.
+     */
+    private ImageIcon createObjectImageIcon(FreeColObject display) {
+<span class="nc bnc" id="L2049" title="All 2 branches missed.">        return (display == null) ? null</span>
+<span class="nc" id="L2050">            : createImageIcon(gui.getImageLibrary().getObjectImage(display, 2f));</span>
+    }
+
+    /**
+     * Shows a message with some information and an &quot;OK&quot;-button.
+     *
+     * @param displayObject Optional object for displaying an icon.
+     * @param template The &lt;code&gt;StringTemplate&lt;/code&gt; to display.
+     */
+    void showInformationMessage(FreeColObject displayObject,
+                                       StringTemplate template) {
+<span class="nc" id="L2061">        ImageIcon icon = null;</span>
+<span class="nc" id="L2062">        Tile tile = null;</span>
+<span class="nc bnc" id="L2063" title="All 2 branches missed.">        if(displayObject != null) {</span>
+<span class="nc" id="L2064">            icon = createObjectImageIcon(displayObject);</span>
+<span class="nc bnc" id="L2065" title="All 2 branches missed.">            tile = (displayObject instanceof Location)</span>
+<span class="nc" id="L2066">                ? ((Location)displayObject).getTile()</span>
+<span class="nc" id="L2067">                : null;</span>
+        }
+<span class="nc" id="L2069">        showInformationMessage(displayObject, tile, icon, template);</span>
+<span class="nc" id="L2070">    }</span>
+
+    /**
+     * Shows a message with some information and an &quot;OK&quot;-button.
+     *
+     * @param displayObject Optional object for displaying.
+     * @param tile The Tile the object is at.
+     * @param icon The icon to display for the object.
+     * @param template The &lt;code&gt;StringTemplate&lt;/code&gt; to display.
+     */
+    void showInformationMessage(FreeColObject displayObject,
+                                       Tile tile, ImageIcon icon,
+                                       StringTemplate template) {
+<span class="nc" id="L2083">        String text = Messages.message(template);</span>
+<span class="nc" id="L2084">        showFreeColPanel(new InformationPanel(freeColClient, text, </span>
+<span class="nc" id="L2085">                                              displayObject, icon),</span>
+<span class="nc" id="L2086">                         tile, true);</span>
+<span class="nc" id="L2087">    }</span>
+
+    /**
+     * Displays a dialog where the user may choose a file.
+     *
+     * @param directory The directory containing the files.
+     * @param filters The file filters which the user can select in the dialog.
+     * @return The selected &lt;code&gt;File&lt;/code&gt;.
+     */
+    File showLoadDialog(File directory, FileFilter[] filters) {
+<span class="nc bnc" id="L2097" title="All 2 branches missed.">        if (filters == null) filters = getFileFilters();</span>
+<span class="nc" id="L2098">        File response = null;</span>
+<span class="nc" id="L2099">        for (;;) {</span>
+<span class="nc" id="L2100">            response = showFreeColDialog(new LoadDialog(freeColClient, frame,</span>
+<span class="nc" id="L2101">                                                        directory, filters),</span>
+<span class="nc" id="L2102">                                         null);</span>
+<span class="nc bnc" id="L2103" title="All 4 branches missed.">            if (response == null || response.isFile()) break;</span>
+<span class="nc" id="L2104">            showErrorMessage(&quot;error.noSuchFile&quot;);</span>
+        }
+<span class="nc" id="L2106">        return response;</span>
+    }
+
+    /**
+     * Displays a dialog for setting options when loading a savegame.  The
+     * settings can be retrieved directly from {@link LoadingSavegameDialog}
+     * after calling this method.
+     *
+     * @param publicServer Default value.
+     * @param singlePlayer Default value.
+     * @return &lt;code&gt;true&lt;/code&gt; if the &quot;ok&quot;-button was pressed and
+     *         &lt;code&gt;false&lt;/code&gt; otherwise.
+     */
+    boolean showLoadingSavegameDialog(boolean publicServer,
+                                             boolean singlePlayer) {
+<span class="nc" id="L2121">        loadingSavegameDialog = new LoadingSavegameDialog(freeColClient, frame);</span>
+<span class="nc" id="L2122">        return showFreeColDialog(loadingSavegameDialog, null);</span>
+    }
+
+    /**
+     * Show a panel containing the log file.
+     */
+    void showLogFilePanel() {
+<span class="nc" id="L2129">        showSubPanel(new ErrorPanel(freeColClient), true);</span>
+
+<span class="nc" id="L2131">    }</span>
+
+    /**
+     * Shows the &lt;code&gt;MainPanel&lt;/code&gt;.
+     *
+     * @param userMsg An option message key to show.
+     * @see MainPanel
+     */
+    void showMainPanel(String userMsg) {
+<span class="nc" id="L2140">        closeMenus();</span>
+<span class="nc" id="L2141">        frame.removeMenuBar();</span>
+<span class="nc" id="L2142">        mainPanel = new MainPanel(freeColClient);</span>
+<span class="nc" id="L2143">        addCentered(mainPanel, JLayeredPane.DEFAULT_LAYER);</span>
+<span class="nc bnc" id="L2144" title="All 2 branches missed.">        if (userMsg != null) gui.showInformationMessage(userMsg);</span>
+<span class="nc" id="L2145">        mainPanel.requestFocus();</span>
+<span class="nc" id="L2146">    }</span>
+
+    /**
+     * Display the map editor transform panel.
+     */
+    void showMapEditorTransformPanel() {
+<span class="nc" id="L2152">        JInternalFrame f = addAsFrame(new MapEditorTransformPanel(freeColClient),</span>
+<span class="nc" id="L2153">            true, PopupPosition.CENTERED, false);</span>
+<span class="nc" id="L2154">        f.setLocation(f.getX(), 50);</span>
+<span class="nc" id="L2155">        repaint();</span>
+<span class="nc" id="L2156">    }</span>
+
+    /**
+     * Display the map generator options dialog.
+     *
+     * @param editable Should these options be editable.
+     * @return The &lt;code&gt;OptionGroup&lt;/code&gt; as edited.
+     */
+    OptionGroup showMapGeneratorOptionsDialog(boolean editable) {
+<span class="nc" id="L2165">        MapGeneratorOptionsDialog mgod</span>
+<span class="nc" id="L2166">            = new MapGeneratorOptionsDialog(freeColClient, frame, editable);</span>
+<span class="nc" id="L2167">        return showFreeColDialog(mgod, null);</span>
+    }
+
+    /**
+     * Display the map size dialog.
+     * 
+     * @return The response returned by the dialog.
+     */
+    Dimension showMapSizeDialog() {
+<span class="nc" id="L2176">        return showFreeColDialog(new MapSizeDialog(freeColClient, frame), null);</span>
+    }
+
+    /**
+     * Displays a number of ModelMessages.
+     *
+     * @param messages The &lt;code&gt;ModelMessage&lt;/code&gt;s to display.
+     */
+    void showModelMessages(List&lt;ModelMessage&gt; messages) {
+<span class="nc bnc" id="L2185" title="All 2 branches missed.">        if (messages.isEmpty()) return;</span>
+<span class="nc" id="L2186">        final Game game = freeColClient.getGame();</span>
+<span class="nc" id="L2187">        int n = messages.size();</span>
+<span class="nc" id="L2188">        String[] texts = new String[n];</span>
+<span class="nc" id="L2189">        FreeColObject[] fcos = new FreeColObject[n];</span>
+<span class="nc" id="L2190">        ImageIcon[] icons = new ImageIcon[n];</span>
+<span class="nc" id="L2191">        Tile tile = null;</span>
+<span class="nc bnc" id="L2192" title="All 2 branches missed.">        for (int i = 0; i &lt; n; i++) {</span>
+<span class="nc" id="L2193">            ModelMessage m = messages.get(i);</span>
+<span class="nc" id="L2194">            texts[i] = Messages.message(m);</span>
+<span class="nc" id="L2195">            fcos[i] = game.getMessageSource(m);</span>
+<span class="nc" id="L2196">            icons[i] = createObjectImageIcon(game.getMessageDisplay(m));</span>
+<span class="nc bnc" id="L2197" title="All 4 branches missed.">            if (tile == null &amp;&amp; fcos[i] instanceof Location) {</span>
+<span class="nc" id="L2198">                tile = ((Location)fcos[i]).getTile();</span>
+            }
+        }
+
+<span class="nc" id="L2202">        showFreeColPanel(new InformationPanel(freeColClient, texts, fcos,</span>
+<span class="nc" id="L2203">                                              icons),</span>
+<span class="nc" id="L2204">                         tile, true);</span>
+<span class="nc" id="L2205">    }</span>
+
+    /**
+     * Display the monarch dialog.
+     *
+     * @param action The &lt;code&gt;MonarchAction&lt;/code&gt; underway.
+     * @param template The &lt;code&gt;StringTemplate&lt;/code&gt; describing the
+     *     situation.
+     * @param monarchKey The resource key for the monarch image.
+     * @param handler A &lt;code&gt;DialogHandler&lt;/code&gt; for the dialog response.
+     */
+    void showMonarchDialog(MonarchAction action,
+                           StringTemplate template, String monarchKey,
+                           DialogHandler&lt;Boolean&gt; handler) {
+<span class="nc" id="L2219">        SwingUtilities.invokeLater(</span>
+<span class="nc" id="L2220">            new DialogCallback&lt;&gt;(</span>
+<span class="nc" id="L2221">                new MonarchDialog(freeColClient, frame, action, template, monarchKey),</span>
+<span class="nc" id="L2222">                null, handler));</span>
+<span class="nc" id="L2223">    }</span>
+
+    /**
+     * Display a dialog to set a new name for something.
+     *
+     * @param template A &lt;code&gt;StringTemplate&lt;/code&gt; for the message
+     *     to explain the dialog.
+     * @param defaultName The default name.
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; discovering it.
+     * @param handler A &lt;code&gt;DialogHandler&lt;/code&gt; for the dialog response.
+     */
+    void showNamingDialog(StringTemplate template, String defaultName,
+                          Unit unit, DialogHandler&lt;String&gt; handler) {
+<span class="nc" id="L2236">        SwingUtilities.invokeLater(</span>
+<span class="nc" id="L2237">            new DialogCallback&lt;&gt;(</span>
+<span class="nc" id="L2238">                new FreeColStringInputDialog(freeColClient, frame, false,</span>
+<span class="nc" id="L2239">                                             Messages.message(template),</span>
+<span class="nc" id="L2240">                                             defaultName, &quot;ok&quot;, null),</span>
+<span class="nc" id="L2241">                unit.getTile(), handler));</span>
+<span class="nc" id="L2242">    }</span>
+
+    /**
+     * Displays the &lt;code&gt;NegotiationDialog&lt;/code&gt;.
+     *
+     * @param our Our &lt;code&gt;FreeColGameObject&lt;/code&gt; that is negotiating.
+     * @param other The other &lt;code&gt;FreeColGameObject&lt;/code&gt;.
+     * @param agreement The current &lt;code&gt;DiplomaticTrade&lt;/code&gt; agreement.
+     * @param comment An optional &lt;code&gt;StringTemplate&lt;/code&gt; containing a
+     *     commentary message.
+     * @return An updated agreement.
+     */
+    DiplomaticTrade showNegotiationDialog(FreeColGameObject our,
+                                          FreeColGameObject other,
+                                          DiplomaticTrade agreement,
+                                          StringTemplate comment) {
+<span class="nc bnc" id="L2258" title="All 4 branches missed.">        if ((!(our instanceof Unit) &amp;&amp; !(our instanceof Colony))</span>
+<span class="nc bnc" id="L2259" title="All 4 branches missed.">            || (!(other instanceof Unit) &amp;&amp; !(other instanceof Colony))</span>
+<span class="nc bnc" id="L2260" title="All 4 branches missed.">            || (our instanceof Colony &amp;&amp; other instanceof Colony)) {</span>
+<span class="nc" id="L2261">            throw new RuntimeException(&quot;Bad DTD args: &quot; + our + &quot;, &quot; + other);</span>
+        }
+<span class="nc" id="L2263">        NegotiationDialog dtd = new NegotiationDialog(freeColClient, frame,</span>
+<span class="nc" id="L2264">            our, other, agreement, comment);</span>
+<span class="nc" id="L2265">        return showFreeColDialog(dtd, ((Location)our).getTile());</span>
+    }
+
+    /**
+     * Display the NewPanel for a given optional specification.
+     *
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; to use.
+     */
+    void showNewPanel(Specification specification) {
+<span class="nc" id="L2274">        showSubPanel(new NewPanel(freeColClient, specification), false);</span>
+<span class="nc" id="L2275">    }</span>
+
+    /**
+     * Shows the given video Component.
+     *
+     * @param vp The video Component.
+     * @param ml A MouseListener for stopping the video.
+     * @param kl A KeyListener for stopping the video.
+     */
+    void showVideoComponent(final Component vp,
+                                   final MouseListener ml,
+                                   final KeyListener kl) {
+<span class="nc" id="L2287">        addMouseListener(ml);</span>
+<span class="nc" id="L2288">        addKeyListener(kl);</span>
+<span class="nc" id="L2289">        addCentered(vp, JLayeredPane.PALETTE_LAYER);</span>
+<span class="nc" id="L2290">    }</span>
+
+    /**
+     * Display the parameters dialog.
+     * 
+     * @return The response returned by the dialog.
+     */
+    Parameters showParametersDialog() {
+<span class="nc" id="L2298">        return showFreeColDialog(new ParametersDialog(freeColClient, frame),</span>
+<span class="nc" id="L2299">                                 null);</span>
+    }
+
+    /**
+     * Display a dialog to confirm a combat.
+     *
+     * @param attacker The attacker &lt;code&gt;Unit&lt;/code&gt;.
+     * @param defender The defender.
+     * @param tile A &lt;code&gt;Tile&lt;/code&gt; to make visible.
+     * @return True if the combat is to proceed.
+     */
+    boolean showPreCombatDialog(Unit attacker,
+                                       FreeColGameObject defender,
+                                       Tile tile) {
+<span class="nc" id="L2313">        return showFreeColDialog(new PreCombatDialog(freeColClient, frame,</span>
+<span class="nc" id="L2314">                                                     attacker, defender),</span>
+<span class="nc" id="L2315">                                 tile);</span>
+    }
+
+    /**
+     * Displays the purchase panel.
+     */
+    void showPurchasePanel() {
+<span class="nc" id="L2322">        PurchasePanel panel = getExistingFreeColPanel(PurchasePanel.class);</span>
+<span class="nc bnc" id="L2323" title="All 2 branches missed.">        if (panel == null) {</span>
+<span class="nc" id="L2324">            showFreeColPanel(new PurchasePanel(freeColClient), null, false);</span>
+        }
+<span class="nc" id="L2326">    }</span>
+
+    /**
+     * Displays the recruit panel.
+     */
+    void showRecruitPanel() {
+<span class="nc" id="L2332">        RecruitPanel panel = getExistingFreeColPanel(RecruitPanel.class);</span>
+<span class="nc bnc" id="L2333" title="All 2 branches missed.">        if (panel == null) {</span>
+<span class="nc" id="L2334">            showFreeColPanel(new RecruitPanel(freeColClient), null, false);</span>
+        }
+<span class="nc" id="L2336">    }</span>
+
+    /**
+     * Display the labour detail panel.
+     *
+     * @param unitType The &lt;code&gt;UnitType&lt;/code&gt; to display.
+     * @param data The labour data.
+     * @param unitCount A map of unit distribution.
+     * @param colonies The list of player &lt;code&gt;Colony&lt;/code&gt;s.
+     */
+    void showReportLabourDetailPanel(UnitType unitType,
+        Map&lt;UnitType, Map&lt;Location, Integer&gt;&gt; data,
+        TypeCountMap&lt;UnitType&gt; unitCount, List&lt;Colony&gt; colonies) {
+<span class="nc" id="L2349">        ReportLabourDetailPanel details</span>
+<span class="nc" id="L2350">            = new ReportLabourDetailPanel(freeColClient, unitType, data,</span>
+<span class="nc" id="L2351">                                          unitCount, colonies);</span>
+<span class="nc" id="L2352">        details.initialize();</span>
+<span class="nc" id="L2353">        showSubPanel(details, true);</span>
+<span class="nc" id="L2354">    }</span>
+
+    /**
+     * Display the river style dialog.
+     *
+     * @param tile An optional tile to make visible (not under the dialog).
+     * @return The response returned by the dialog.
+     */
+    String showRiverStyleDialog(Tile tile) {
+<span class="nc" id="L2363">        return showFreeColDialog(new RiverStyleDialog(freeColClient, frame), tile);</span>
+    }
+
+    /**
+     * Displays a dialog where the user may choose a filename.
+     *
+     * @param directory The directory containing the files in which
+     *     the user may overwrite.
+     * @param filters The available file filters in the dialog.
+     * @param defaultName Default filename for the savegame.
+     * @return The selected &lt;code&gt;File&lt;/code&gt;.
+     */
+    public File showSaveDialog(File directory, FileFilter[] filters,
+                               String defaultName) {
+<span class="nc bnc" id="L2377" title="All 2 branches missed.">        if (filters == null) filters = getFileFilters();</span>
+<span class="nc" id="L2378">        return showFreeColDialog(new SaveDialog(freeColClient, frame, directory,</span>
+<span class="nc" id="L2379">                                                filters, defaultName),</span>
+<span class="nc" id="L2380">                                 null);</span>
+    }
+
+    /**
+     * Display the scale map size dialog.
+     * 
+     * @return The response returned by the dialog.
+     */
+    Dimension showScaleMapSizeDialog() {
+<span class="nc" id="L2389">        return showFreeColDialog(new ScaleMapSizeDialog(freeColClient, frame),</span>
+<span class="nc" id="L2390">                                 null);</span>
+    }
+
+    /**
+     * Display the select-amount dialog.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to select an amount of.
+     * @param available The amount of goods available.
+     * @param defaultAmount The amount to select to start with.
+     * @param needToPay If true, check the player has sufficient funds.
+     * @return The amount selected.
+     */
+    int showSelectAmountDialog(GoodsType goodsType, int available,
+                                      int defaultAmount, boolean needToPay) {
+<span class="nc" id="L2404">        FreeColDialog&lt;Integer&gt; fcd</span>
+<span class="nc" id="L2405">            = new SelectAmountDialog(freeColClient, frame, goodsType, available,</span>
+<span class="nc" id="L2406">                                     defaultAmount, needToPay);</span>
+<span class="nc" id="L2407">        Integer result = showFreeColDialog(fcd, null);</span>
+<span class="nc bnc" id="L2408" title="All 2 branches missed.">        return (result == null) ? -1 : result;</span>
+    }
+
+    /**
+     * display the select-tribute-amount dialog.
+     *
+     * @param question a &lt;code&gt;stringtemplate&lt;/code&gt; describing the
+     *     amount of tribute to demand.
+     * @param maximum The maximum amount available.
+     * @return The amount selected.
+     */
+    int showSelectTributeAmountDialog(StringTemplate question,
+                                             int maximum) {
+<span class="nc" id="L2421">        FreeColDialog&lt;Integer&gt; fcd</span>
+<span class="nc" id="L2422">            = new SelectTributeAmountDialog(freeColClient, frame, question, maximum);</span>
+<span class="nc" id="L2423">        Integer result = showFreeColDialog(fcd, null);</span>
+<span class="nc bnc" id="L2424" title="All 2 branches missed.">        return (result == null) ? -1 : result;</span>
+    }
+
+    /**
+     * Display a dialog allowing the user to select a destination for
+     * a given unit.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; to select a destination for.
+     * @return A destination for the unit, or null.
+     */
+    Location showSelectDestinationDialog(Unit unit) {
+<span class="nc" id="L2435">        return showFreeColDialog(new SelectDestinationDialog(freeColClient, frame,</span>
+<span class="nc" id="L2436">                unit), unit.getTile());</span>
+    }
+
+    /**
+     * Displays the &lt;code&gt;ServerListPanel&lt;/code&gt;.
+     *
+     * @param serverList The list containing the servers retrieved from the
+     *            metaserver.
+     * @see ServerListPanel
+     */
+    void showServerListPanel(List&lt;ServerInfo&gt; serverList) {
+<span class="nc" id="L2447">        closeMenus();</span>
+
+<span class="nc" id="L2449">        serverListPanel.initialize(serverList);</span>
+<span class="nc" id="L2450">        showSubPanel(serverListPanel, true);</span>
+<span class="nc" id="L2451">    }</span>
+
+    /**
+     * Displays the colony panel of the given &lt;code&gt;Colony&lt;/code&gt;
+     * following a spying action.
+     *
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; containing the colony to display.
+     * @return The colony panel.
+     * @see ColonyPanel
+     */
+    ColonyPanel showSpyColonyPanel(Tile tile) {
+<span class="nc" id="L2462">        Colony colony = tile.getColony();</span>
+<span class="nc bnc" id="L2463" title="All 2 branches missed.">        if (colony == null) return null;</span>
+<span class="nc" id="L2464">        ColonyPanel panel = new ColonyPanel(freeColClient, colony);</span>
+<span class="nc" id="L2465">        showFreeColPanel(panel, tile, true);</span>
+<span class="nc" id="L2466">        return panel;</span>
+    }
+
+    /**
+     * Displays the &lt;code&gt;StartGamePanel&lt;/code&gt;.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; that is about to start.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; using this client.
+     * @param singlePlayerMode True to start a single player game.
+     * @see StartGamePanel
+     */
+    void showStartGamePanel(Game game, Player player,
+                                   boolean singlePlayerMode) {
+<span class="nc bnc" id="L2479" title="All 2 branches missed.">        if (game == null) {</span>
+<span class="nc" id="L2480">            logger.warning(&quot;StartGamePanel requires game != null.&quot;);</span>
+<span class="nc bnc" id="L2481" title="All 2 branches missed.">        } else if (player == null) {</span>
+<span class="nc" id="L2482">            logger.warning(&quot;StartGamePanel requires player != null.&quot;);</span>
+<span class="nc" id="L2483">        } else {</span>
+<span class="nc" id="L2484">            closeMenus();</span>
+<span class="nc" id="L2485">            startGamePanel.initialize(singlePlayerMode);</span>
+<span class="nc" id="L2486">            showSubPanel(startGamePanel, false);</span>
+        }
+<span class="nc" id="L2488">    }</span>
+
+    /**
+     * Display the statistics panel.
+     *
+     * @param serverStats A map of server statistics key,value pairs.
+     * @param clientStats A map of client statistics key,value pairs.
+     */
+    public void showStatisticsPanel(Map&lt;String, String&gt; serverStats,
+                                    Map&lt;String, String&gt; clientStats) {
+<span class="nc" id="L2498">        showSubPanel(new StatisticsPanel(freeColClient, serverStats,</span>
+<span class="nc" id="L2499">                                         clientStats), true);</span>
+<span class="nc" id="L2500">    }</span>
+
+    /**
+     * Shows a status message that cannot be dismissed.  The panel
+     * will be removed when another component is added to this
+     * &lt;code&gt;Canvas&lt;/code&gt;.  This includes all the
+     * &lt;code&gt;showXXX&lt;/code&gt;-methods. In addition,
+     * {@link #closeStatusPanel()} also removes this panel.
+     *
+     * @param message The text message to display on the status panel.
+     * @see StatusPanel
+     */
+    void showStatusPanel(String message) {
+<span class="nc" id="L2513">        statusPanel.setStatusMessage(message);</span>
+<span class="nc" id="L2514">        addCentered(statusPanel, JLayeredPane.POPUP_LAYER);</span>
+<span class="nc" id="L2515">    }</span>
+
+    /**
+     * Display the tile panel for a given tile.
+     *
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; to display.
+     */
+    void showTilePanel(Tile tile) {
+<span class="nc bnc" id="L2523" title="All 4 branches missed.">        if (tile == null || !tile.isExplored()) return;</span>
+<span class="nc" id="L2524">        showSubPanel(new TilePanel(freeColClient, tile), false);</span>
+<span class="nc" id="L2525">    }</span>
+
+    /**
+     * Shows a tile popup.
+     *
+     * @param tile The Tile where the popup occurred.
+     * @param x The x-coordinate on the screen where the popup needs to be
+     *            placed.
+     * @param y The y-coordinate on the screen where the popup needs to be
+     *            placed.
+     * @see TilePopup
+     */
+    void showTilePopup(Tile tile, int x, int y) {
+<span class="nc bnc" id="L2538" title="All 2 branches missed.">        if (tile == null)</span>
+<span class="nc" id="L2539">            return;</span>
+<span class="nc" id="L2540">        TilePopup tp = new TilePopup(freeColClient, this, tile);</span>
+<span class="nc bnc" id="L2541" title="All 2 branches missed.">        if (tp.hasItem()) {</span>
+<span class="nc" id="L2542">            tp.show(this, x, y);</span>
+<span class="nc" id="L2543">            tp.repaint();</span>
+<span class="nc bnc" id="L2544" title="All 2 branches missed.">        } else if (tile.isExplored()) {</span>
+<span class="nc" id="L2545">            showTilePanel(tile);</span>
+        }
+<span class="nc" id="L2547">    }</span>
+
+    /**
+     * Display a panel to select a trade route for a unit.
+     *
+     * @param unit An optional &lt;code&gt;Unit&lt;/code&gt; to select a trade route for.
+     */
+    void showTradeRoutePanel(Unit unit) {
+<span class="nc" id="L2555">        showFreeColPanel(new TradeRoutePanel(freeColClient, unit),</span>
+<span class="nc bnc" id="L2556" title="All 2 branches missed.">                         (unit == null) ? null : unit.getTile(), true);</span>
+<span class="nc" id="L2557">    }</span>
+
+    /**
+     * Display the trade route input panel for a given trade route.
+     *
+     * @param newRoute The &lt;code&gt;TradeRoute&lt;/code&gt; to display.
+     * @param callBack The &lt;code&gt;Runnable&lt;/code&gt; that is run when the
+     *     panel closes.
+     */
+    void showTradeRouteInputPanel(TradeRoute newRoute,
+                                         Runnable callBack) {
+<span class="nc" id="L2568">        FreeColPanel panel = new TradeRouteInputPanel(freeColClient, newRoute);</span>
+<span class="nc" id="L2569">        panel.addClosingCallback(callBack);</span>
+<span class="nc" id="L2570">        showSubPanel(panel, null, true);</span>
+<span class="nc" id="L2571">    }</span>
+
+    /**
+     * Displays the training panel.
+     */
+    void showTrainPanel() {
+<span class="nc" id="L2577">        TrainPanel panel = getExistingFreeColPanel(TrainPanel.class);</span>
+<span class="nc bnc" id="L2578" title="All 2 branches missed.">        if (panel == null) {</span>
+<span class="nc" id="L2579">            showFreeColPanel(new TrainPanel(freeColClient), null, false);</span>
+        }
+<span class="nc" id="L2581">    }</span>
+
+    /**
+     * Display the victory dialog.
+     *
+     * @param handler A &lt;code&gt;DialogHandler&lt;/code&gt; for the dialog response.
+     */
+    void showVictoryDialog(DialogHandler&lt;Boolean&gt; handler) {
+<span class="nc" id="L2589">        SwingUtilities.invokeLater(</span>
+<span class="nc" id="L2590">            new DialogCallback&lt;&gt;(new VictoryDialog(freeColClient, frame),</span>
+<span class="nc" id="L2591">                                        null, handler));</span>
+<span class="nc" id="L2592">    }</span>
+
+    /**
+     * Display the warehouse dialog for a colony.
+     *
+     * Run out of ColonyPanel, so the tile is already displayed.
+     *
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; to display.
+     * @return The response returned by the dialog.
+     */
+    boolean showWarehouseDialog(Colony colony) {
+<span class="nc" id="L2603">        return showFreeColDialog(new WarehouseDialog(freeColClient, frame, colony),</span>
+<span class="nc" id="L2604">                                 null);</span>
+    }
+
+    /**
+     * Display the production of a unit.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; to display.
+     */
+    void showWorkProductionPanel(Unit unit) {
+<span class="nc" id="L2613">        showSubPanel(new WorkProductionPanel(freeColClient, unit), true);</span>
+<span class="nc" id="L2614">    }</span>
+
+    /**
+     * Update all panels derived from the EuropePanel.
+     */
+    void updateEuropeanSubpanels() {
+<span class="nc" id="L2620">        RecruitPanel rp</span>
+<span class="nc" id="L2621">            = getExistingFreeColPanel(RecruitPanel.class);</span>
+<span class="nc bnc" id="L2622" title="All 2 branches missed.">        if (rp != null) rp.update();</span>
+<span class="nc" id="L2623">        PurchasePanel pp</span>
+<span class="nc" id="L2624">            = getExistingFreeColPanel(PurchasePanel.class);</span>
+<span class="nc bnc" id="L2625" title="All 2 branches missed.">        if (pp != null) pp.update();</span>
+<span class="nc" id="L2626">        TrainPanel tp</span>
+<span class="nc" id="L2627">            = getExistingFreeColPanel(TrainPanel.class);</span>
+<span class="nc bnc" id="L2628" title="All 2 branches missed.">        if (tp != null) tp.update();</span>
+<span class="nc" id="L2629">    }</span>
+
+    // Singleton specialist reports
+
+    void showReportCargoPanel() {
+<span class="nc" id="L2634">        ReportCargoPanel r</span>
+<span class="nc" id="L2635">            = getExistingFreeColPanel(ReportCargoPanel.class);</span>
+<span class="nc bnc" id="L2636" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc" id="L2637">            showSubPanel(new ReportCargoPanel(freeColClient), true);</span>
+        }
+<span class="nc" id="L2639">    }</span>
+
+    void showReportColonyPanel() {
+        boolean compact;
+        try {
+<span class="nc bnc" id="L2644" title="All 2 branches missed.">            compact = freeColClient.getClientOptions()</span>
+<span class="nc" id="L2645">                .getInteger(ClientOptions.COLONY_REPORT)</span>
+<span class="nc" id="L2646">                == ClientOptions.COLONY_REPORT_COMPACT;</span>
+<span class="nc" id="L2647">        } catch (Exception e) {</span>
+<span class="nc" id="L2648">            compact = false;</span>
+        }
+<span class="nc bnc" id="L2650" title="All 2 branches missed.">        ReportPanel r = (compact)</span>
+<span class="nc" id="L2651">            ? getExistingFreeColPanel(ReportCompactColonyPanel.class)</span>
+<span class="nc" id="L2652">            : getExistingFreeColPanel(ReportClassicColonyPanel.class);</span>
+<span class="nc bnc" id="L2653" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc bnc" id="L2654" title="All 2 branches missed.">            showSubPanel((compact)</span>
+<span class="nc" id="L2655">                ? new ReportCompactColonyPanel(freeColClient)</span>
+<span class="nc" id="L2656">                : new ReportClassicColonyPanel(freeColClient),</span>
+<span class="nc" id="L2657">                true);</span>
+        }
+<span class="nc" id="L2659">    }</span>
+
+    void showReportContinentalCongressPanel() {
+        ReportContinentalCongressPanel
+<span class="nc" id="L2663">            r = getExistingFreeColPanel(ReportContinentalCongressPanel.class);</span>
+<span class="nc bnc" id="L2664" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc" id="L2665">            showSubPanel(new ReportContinentalCongressPanel(freeColClient),</span>
+<span class="nc" id="L2666">                         true);</span>
+        }
+<span class="nc" id="L2668">    }</span>
+
+    void showReportEducationPanel() {
+<span class="nc" id="L2671">        ReportEducationPanel r</span>
+<span class="nc" id="L2672">            = getExistingFreeColPanel(ReportEducationPanel.class);</span>
+<span class="nc bnc" id="L2673" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc" id="L2674">            showSubPanel(new ReportEducationPanel(freeColClient), true);</span>
+        }
+<span class="nc" id="L2676">    }</span>
+
+    void showReportExplorationPanel() {
+<span class="nc" id="L2679">        ReportExplorationPanel r</span>
+<span class="nc" id="L2680">            = getExistingFreeColPanel(ReportExplorationPanel.class);</span>
+<span class="nc bnc" id="L2681" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc" id="L2682">            showSubPanel(new ReportExplorationPanel(freeColClient), true);</span>
+        }
+<span class="nc" id="L2684">    }</span>
+
+    void showReportForeignAffairPanel() {
+<span class="nc" id="L2687">        ReportForeignAffairPanel r</span>
+<span class="nc" id="L2688">            = getExistingFreeColPanel(ReportForeignAffairPanel.class);</span>
+<span class="nc bnc" id="L2689" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc" id="L2690">            showSubPanel(new ReportForeignAffairPanel(freeColClient), true);</span>
+        }
+<span class="nc" id="L2692">    }</span>
+
+    void showReportHistoryPanel() {
+<span class="nc" id="L2695">        ReportHistoryPanel r</span>
+<span class="nc" id="L2696">            = getExistingFreeColPanel(ReportHistoryPanel.class);</span>
+<span class="nc bnc" id="L2697" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc" id="L2698">            showSubPanel(new ReportHistoryPanel(freeColClient), true);</span>
+        }
+<span class="nc" id="L2700">    }</span>
+
+    void showReportIndianPanel() {
+<span class="nc" id="L2703">        ReportIndianPanel r</span>
+<span class="nc" id="L2704">            = getExistingFreeColPanel(ReportIndianPanel.class);</span>
+<span class="nc bnc" id="L2705" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc" id="L2706">            showSubPanel(new ReportIndianPanel(freeColClient), true);</span>
+        }
+<span class="nc" id="L2708">    }</span>
+
+    void showReportLabourPanel() {
+<span class="nc" id="L2711">        ReportLabourPanel r</span>
+<span class="nc" id="L2712">            = getExistingFreeColPanel(ReportLabourPanel.class);</span>
+<span class="nc bnc" id="L2713" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc" id="L2714">            showSubPanel(new ReportLabourPanel(freeColClient), true);</span>
+        }
+<span class="nc" id="L2716">    }</span>
+
+    void showReportMilitaryPanel() {
+<span class="nc" id="L2719">        ReportMilitaryPanel r</span>
+<span class="nc" id="L2720">            = getExistingFreeColPanel(ReportMilitaryPanel.class);</span>
+<span class="nc bnc" id="L2721" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc" id="L2722">            showSubPanel(new ReportMilitaryPanel(freeColClient), true);</span>
+        }
+<span class="nc" id="L2724">    }</span>
+
+    void showReportNavalPanel() {
+<span class="nc" id="L2727">        ReportNavalPanel r</span>
+<span class="nc" id="L2728">            = getExistingFreeColPanel(ReportNavalPanel.class);</span>
+<span class="nc bnc" id="L2729" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc" id="L2730">            showSubPanel(new ReportNavalPanel(freeColClient), true);</span>
+        }
+<span class="nc" id="L2732">    }</span>
+
+    void showReportProductionPanel() {
+<span class="nc" id="L2735">        ReportProductionPanel r</span>
+<span class="nc" id="L2736">            = getExistingFreeColPanel(ReportProductionPanel.class);</span>
+<span class="nc bnc" id="L2737" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc" id="L2738">            showSubPanel(new ReportProductionPanel(freeColClient), true);</span>
+        }
+<span class="nc" id="L2740">    }</span>
+
+    void showReportReligiousPanel() {
+<span class="nc" id="L2743">        ReportReligiousPanel r</span>
+<span class="nc" id="L2744">            = getExistingFreeColPanel(ReportReligiousPanel.class);</span>
+<span class="nc bnc" id="L2745" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc" id="L2746">            showSubPanel(new ReportReligiousPanel(freeColClient), true);</span>
+        }
+<span class="nc" id="L2748">    }</span>
+
+    void showReportRequirementsPanel() {
+<span class="nc" id="L2751">        ReportRequirementsPanel r</span>
+<span class="nc" id="L2752">            = getExistingFreeColPanel(ReportRequirementsPanel.class);</span>
+<span class="nc bnc" id="L2753" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc" id="L2754">            showSubPanel(new ReportRequirementsPanel(freeColClient), true);</span>
+        }
+<span class="nc" id="L2756">    }</span>
+
+    void showReportTradePanel() {
+<span class="nc" id="L2759">        ReportTradePanel r</span>
+<span class="nc" id="L2760">            = getExistingFreeColPanel(ReportTradePanel.class);</span>
+<span class="nc bnc" id="L2761" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc" id="L2762">            showSubPanel(new ReportTradePanel(freeColClient), true);</span>
+        }
+<span class="nc" id="L2764">    }</span>
+
+    /**
+     * Show the turn report.
+     *
+     * @param messages The &lt;code&gt;ModelMessage&lt;/code&gt;s to show.
+     */
+    void showReportTurnPanel(List&lt;ModelMessage&gt; messages) {
+<span class="nc" id="L2772">        ReportTurnPanel r = getExistingFreeColPanel(ReportTurnPanel.class);</span>
+<span class="nc bnc" id="L2773" title="All 2 branches missed.">        if (r == null) {</span>
+<span class="nc" id="L2774">            showSubPanel(new ReportTurnPanel(freeColClient, messages), true);</span>
+<span class="nc" id="L2775">        } else {</span>
+<span class="nc" id="L2776">            r.setMessages(messages);</span>
+        }
+<span class="nc" id="L2778">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

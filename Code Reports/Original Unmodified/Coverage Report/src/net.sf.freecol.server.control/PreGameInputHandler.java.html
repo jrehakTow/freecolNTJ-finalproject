@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>PreGameInputHandler.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.control</a> &gt; <span class="el_source">PreGameInputHandler.java</span></div><h1>PreGameInputHandler.java</h1><pre class="source lang-java linenums"><span class="fc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.control;
+
+import java.awt.Color;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+
+import net.sf.freecol.common.FreeColException;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Nation;
+import net.sf.freecol.common.model.NationOptions.Advantages;
+import net.sf.freecol.common.model.NationOptions.NationState;
+import net.sf.freecol.common.model.NationType;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.networking.Connection;
+import net.sf.freecol.common.networking.CurrentPlayerNetworkRequestHandler;
+import net.sf.freecol.common.networking.DOMMessage;
+import net.sf.freecol.common.networking.ErrorMessage;
+import net.sf.freecol.common.networking.UpdateGameOptionsMessage;
+import net.sf.freecol.common.networking.UpdateMapGeneratorOptionsMessage;
+import net.sf.freecol.common.option.OptionGroup;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * Handles the network messages that arrives before the game starts.
+ * 
+ * @see PreGameController
+ */
+public final class PreGameInputHandler extends ServerInputHandler {
+
+<span class="fc" id="L55">    private static final Logger logger = Logger.getLogger(PreGameInputHandler.class.getName());</span>
+
+    /** Is the game launching yet. */
+<span class="fc" id="L58">    private boolean launching = false;</span>
+
+
+    /**
+     * The constructor to use.
+     * 
+     * @param freeColServer The main server object.
+     */
+    public PreGameInputHandler(FreeColServer freeColServer) {
+<span class="fc" id="L67">        super(freeColServer);</span>
+        // FIXME: move and simplify methods later, for now just delegate
+<span class="fc" id="L69">        register(&quot;ready&quot;,</span>
+<span class="fc" id="L70">            (Connection connection, Element element) -&gt;</span>
+<span class="nc" id="L71">            ready(connection, element));</span>
+<span class="fc" id="L72">        register(&quot;requestLaunch&quot;,</span>
+<span class="fc" id="L73">            (Connection connection, Element element) -&gt; {</span>
+<span class="nc" id="L74">                Element reply = requestLaunch(connection, element);</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">                if (reply != null) {</span>
+<span class="nc" id="L76">                    launching = false;</span>
+                }
+<span class="nc" id="L78">                return reply;</span>
+            });
+<span class="fc" id="L80">        register(&quot;setColor&quot;,</span>
+<span class="fc" id="L81">            (Connection connection, Element element) -&gt;</span>
+<span class="nc" id="L82">            setColor(connection, element));</span>
+<span class="fc" id="L83">        register(&quot;setNation&quot;,</span>
+<span class="fc" id="L84">            (Connection connection, Element element) -&gt;</span>
+<span class="nc" id="L85">            setNation(connection, element));</span>
+<span class="fc" id="L86">        register(&quot;setNationType&quot;,</span>
+<span class="fc" id="L87">            (Connection connection, Element element) -&gt;</span>
+<span class="nc" id="L88">            setNationType(connection, element));</span>
+<span class="fc" id="L89">        register(&quot;setAvailable&quot;,</span>
+<span class="fc" id="L90">            (Connection connection, Element element) -&gt;</span>
+<span class="nc" id="L91">            setAvailable(connection, element));</span>
+<span class="fc" id="L92">        register(UpdateGameOptionsMessage.TAG,</span>
+<span class="fc" id="L93">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L97">                return new UpdateGameOptionsMessage(getGame(), element)</span>
+<span class="nc" id="L98">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="fc" id="L100">        register(UpdateMapGeneratorOptionsMessage.TAG,</span>
+<span class="fc" id="L101">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L105">                return new UpdateMapGeneratorOptionsMessage(getGame(), element)</span>
+<span class="nc" id="L106">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="fc" id="L108">    }</span>
+            
+    /**
+     * Handles a &quot;logout&quot;-message.
+     * 
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the message came from.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; containing the request.
+     * @return A logout reply message.
+     */
+    @Override
+    protected Element logout(Connection connection,
+                             @SuppressWarnings(&quot;unused&quot;) Element element) {
+<span class="nc" id="L120">        logger.info(&quot;Logout from: &quot; + connection);</span>
+<span class="nc" id="L121">        final FreeColServer freeColServer = getFreeColServer();</span>
+<span class="nc" id="L122">        final ServerPlayer player = freeColServer.getPlayer(connection);</span>
+
+<span class="nc" id="L124">        player.setConnected(false);</span>
+<span class="nc" id="L125">        getGame().removePlayer(player);</span>
+<span class="nc" id="L126">        freeColServer.sendToAll(new DOMMessage(&quot;logout&quot;,</span>
+<span class="nc" id="L127">                &quot;reason&quot;, &quot;User has logged out.&quot;,</span>
+<span class="nc" id="L128">                &quot;player&quot;, player.getId()),</span>
+<span class="nc" id="L129">            connection);</span>
+<span class="nc" id="L130">        freeColServer.updateMetaServer();</span>
+<span class="nc" id="L131">        return null;</span>
+    }
+
+    /**
+     * Handles a &quot;ready&quot;-message from a client.
+     * 
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the message came from.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; containing the request.
+     * @return Null.
+     */
+    private Element ready(Connection connection, Element element) {
+<span class="nc" id="L142">        final FreeColServer freeColServer = getFreeColServer();</span>
+<span class="nc" id="L143">        final ServerPlayer player = freeColServer.getPlayer(connection);</span>
+
+<span class="nc bnc" id="L145" title="All 2 branches missed.">        if (player != null) {</span>
+<span class="nc" id="L146">            boolean ready = Boolean.parseBoolean(element.getAttribute(&quot;value&quot;));</span>
+<span class="nc" id="L147">            player.setReady(ready);</span>
+<span class="nc" id="L148">            freeColServer.sendToAll(new DOMMessage(&quot;playerReady&quot;,</span>
+<span class="nc" id="L149">                    &quot;player&quot;, player.getId(),</span>
+<span class="nc" id="L150">                    &quot;value&quot;, Boolean.toString(ready)),</span>
+<span class="nc" id="L151">                player.getConnection());</span>
+<span class="nc" id="L152">        } else {</span>
+<span class="nc" id="L153">            logger.warning(&quot;Ready from unknown connection.&quot;);</span>
+        }
+<span class="nc" id="L155">        return null;</span>
+    }
+
+    /**
+     * Handles a &quot;requestLaunch&quot;-message from a client.
+     * 
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the message came from.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; containing the request.
+     * @return Null, or an error message on failure.
+     */
+    private Element requestLaunch(Connection connection,
+                                  @SuppressWarnings(&quot;unused&quot;) Element element) {
+<span class="nc" id="L167">        final FreeColServer freeColServer = getFreeColServer();</span>
+<span class="nc" id="L168">        final ServerPlayer player = freeColServer.getPlayer(connection);</span>
+<span class="nc" id="L169">        final Specification spec = getGame().getSpecification();</span>
+
+        // Check if launching player is an admin.
+<span class="nc bnc" id="L172" title="All 2 branches missed.">        if (!player.isAdmin()) {</span>
+<span class="nc" id="L173">            return new ErrorMessage(&quot;server.onlyAdminCanLaunch&quot;,</span>
+<span class="nc" id="L174">                &quot;Only the server admin can launch the game.&quot;).toXMLElement();</span>
+        }
+<span class="nc bnc" id="L176" title="All 2 branches missed.">        if (launching) return null;</span>
+<span class="nc" id="L177">        launching = true;</span>
+
+        // Check that no two players have the same nation
+<span class="nc" id="L180">        final Game game = getGame();</span>
+<span class="nc" id="L181">        List&lt;Nation&gt; nations = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">        for (Player p : game.getLivePlayers(null)) {</span>
+<span class="nc" id="L183">            final Nation nation = spec.getNation(p.getNationId());</span>
+<span class="nc bnc" id="L184" title="All 2 branches missed.">            if (nations.contains(nation)) {</span>
+<span class="nc" id="L185">                return new ErrorMessage(&quot;server.invalidPlayerNations&quot;,</span>
+<span class="nc" id="L186">                    &quot;All players need to pick a unique nation before the game can start.&quot;)</span>
+<span class="nc" id="L187">                    .toXMLElement();</span>
+            }
+<span class="nc" id="L189">            nations.add(nation);</span>
+        }
+
+        // Check if all players are ready.
+<span class="nc bnc" id="L193" title="All 2 branches missed.">        if (!game.allPlayersReadyToLaunch()) {</span>
+<span class="nc" id="L194">            return new ErrorMessage(&quot;server.notAllReady&quot;,</span>
+<span class="nc" id="L195">                &quot;Not all players are ready to begin the game!&quot;).toXMLElement();</span>
+        }
+        try {
+<span class="nc" id="L198">            ((PreGameController)freeColServer.getController()).startGame();</span>
+<span class="nc" id="L199">        } catch (FreeColException e) {</span>
+<span class="nc" id="L200">            return new ErrorMessage(&quot;server.errorStartingGame&quot;,</span>
+<span class="nc" id="L201">                                    e.getMessage()).toXMLElement();</span>
+        }
+
+<span class="nc" id="L204">        return null;</span>
+    }
+
+    /**
+     * Handles a &quot;setAvailable&quot;-message from a client.
+     * 
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the message came from.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; containing the request.
+     * @return Null, or an error message on failure.
+     */
+    private Element setAvailable(Connection connection, Element element) {
+<span class="nc" id="L215">        final FreeColServer freeColServer = getFreeColServer();</span>
+<span class="nc" id="L216">        final ServerPlayer player = freeColServer.getPlayer(connection);</span>
+<span class="nc" id="L217">        final Specification spec = getGame().getSpecification();</span>
+
+<span class="nc bnc" id="L219" title="All 2 branches missed.">        if (player != null) {</span>
+<span class="nc" id="L220">            Nation nation = spec.getNation(element.getAttribute(&quot;nation&quot;));</span>
+<span class="nc" id="L221">            NationState state = Enum.valueOf(NationState.class,</span>
+<span class="nc" id="L222">                                             element.getAttribute(&quot;state&quot;));</span>
+<span class="nc" id="L223">            getGame().getNationOptions().setNationState(nation, state);</span>
+<span class="nc" id="L224">            freeColServer.sendToAll(new DOMMessage(&quot;setAvailable&quot;,</span>
+<span class="nc" id="L225">                    &quot;nation&quot;, nation.getId(),</span>
+<span class="nc" id="L226">                    &quot;state&quot;, state.toString()),</span>
+<span class="nc" id="L227">                player.getConnection());</span>
+<span class="nc" id="L228">        } else {</span>
+<span class="nc" id="L229">            logger.warning(&quot;Available from unknown connection.&quot;);</span>
+        }
+<span class="nc" id="L231">        return null;</span>
+    }
+
+    /**
+     * Handles a &quot;setColor&quot;-message from a client.
+     * 
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the message came from.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; containing the request.
+     * @return Null, or an error message on failure.
+     */
+    private Element setColor(Connection connection, Element element) {
+<span class="nc" id="L242">        final FreeColServer freeColServer = getFreeColServer();</span>
+<span class="nc" id="L243">        final ServerPlayer player = freeColServer.getPlayer(connection);</span>
+<span class="nc" id="L244">        final Specification spec = getGame().getSpecification();</span>
+
+<span class="nc bnc" id="L246" title="All 2 branches missed.">        if (player != null) {</span>
+<span class="nc" id="L247">            Nation nation = spec.getNation(element.getAttribute(&quot;nation&quot;));</span>
+<span class="nc" id="L248">            String str = element.getAttribute(&quot;color&quot;);</span>
+            Color color;
+            try {
+<span class="nc" id="L251">                int rgb = Integer.decode(str);</span>
+<span class="nc" id="L252">                color = new Color(rgb);</span>
+<span class="nc" id="L253">            } catch (NumberFormatException nfe) {</span>
+<span class="nc" id="L254">                return new ErrorMessage(&quot;server.badColor&quot;,</span>
+<span class="nc" id="L255">                    &quot;Invalid color: &quot; + str).toXMLElement();</span>
+            }
+<span class="nc" id="L257">            nation.setColor(color);</span>
+<span class="nc" id="L258">            freeColServer.sendToAll(new DOMMessage(&quot;updateColor&quot;,</span>
+<span class="nc" id="L259">                    &quot;nation&quot;, nation.getId(),</span>
+<span class="nc" id="L260">                    &quot;color&quot;, Integer.toString(color.getRGB())),</span>
+<span class="nc" id="L261">                player.getConnection());</span>
+<span class="nc" id="L262">        } else {</span>
+<span class="nc" id="L263">            logger.warning(&quot;setColor from unknown connection.&quot;);</span>
+        }
+<span class="nc" id="L265">        return null;</span>
+    }
+
+    /**
+     * Handles a &quot;setNation&quot;-message from a client.
+     * 
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the message came from.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; containing the request.
+     * @return Null.
+     */
+    private Element setNation(Connection connection, Element element) {
+<span class="nc" id="L276">        final FreeColServer freeColServer = getFreeColServer();</span>
+<span class="nc" id="L277">        final ServerPlayer player = freeColServer.getPlayer(connection);</span>
+<span class="nc" id="L278">        final Specification spec = getGame().getSpecification();</span>
+
+<span class="nc bnc" id="L280" title="All 2 branches missed.">        if (player != null) {</span>
+<span class="nc" id="L281">            Nation nation = spec.getNation(element.getAttribute(&quot;value&quot;));</span>
+<span class="nc bnc" id="L282" title="All 2 branches missed.">            if (getGame().getNationOptions().getNations().get(nation)</span>
+<span class="nc" id="L283">                == NationState.AVAILABLE) {</span>
+<span class="nc" id="L284">                player.setNation(nation);</span>
+<span class="nc" id="L285">                freeColServer.sendToAll(new DOMMessage(&quot;updateNation&quot;,</span>
+<span class="nc" id="L286">                        &quot;player&quot;, player.getId(),</span>
+<span class="nc" id="L287">                        &quot;value&quot;, nation.getId()),</span>
+<span class="nc" id="L288">                    player.getConnection());</span>
+<span class="nc" id="L289">            } else {</span>
+<span class="nc" id="L290">                return new ErrorMessage(&quot;server.badNation&quot;,</span>
+<span class="nc" id="L291">                    &quot;Selected non-selectable nation: &quot; + nation)</span>
+<span class="nc" id="L292">                    .toXMLElement();</span>
+            }
+        } else {
+<span class="nc" id="L295">            logger.warning(&quot;setNation from unknown connection.&quot;);</span>
+        }
+<span class="nc" id="L297">        return null;</span>
+    }
+
+    /**
+     * Handles a &quot;setNationType&quot;-message from a client.
+     * 
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the message came from.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; containing the request.
+     * @return Null, or an error message on failure.
+     */
+    private Element setNationType(Connection connection, Element element) {
+<span class="nc" id="L308">        final FreeColServer freeColServer = getFreeColServer();</span>
+<span class="nc" id="L309">        final ServerPlayer player = freeColServer.getPlayer(connection);</span>
+<span class="nc" id="L310">        final Specification spec = getGame().getSpecification();</span>
+
+<span class="nc bnc" id="L312" title="All 2 branches missed.">        if (player != null) {</span>
+<span class="nc" id="L313">            NationType nationType = spec.getNationType(element.getAttribute(&quot;value&quot;));</span>
+<span class="nc" id="L314">            NationType fixedNationType = spec.getNation(player.getNationId())</span>
+<span class="nc" id="L315">                .getType();</span>
+<span class="nc" id="L316">            Advantages advantages = getGame().getNationOptions()</span>
+<span class="nc" id="L317">                .getNationalAdvantages();</span>
+            boolean ok;
+<span class="nc bnc" id="L319" title="All 4 branches missed.">            switch (advantages) {</span>
+            case SELECTABLE:
+<span class="nc" id="L321">                ok = true;</span>
+<span class="nc" id="L322">                break;</span>
+            case FIXED:
+<span class="nc" id="L324">                ok = nationType.equals(fixedNationType);</span>
+<span class="nc" id="L325">                break;</span>
+            case NONE:
+<span class="nc bnc" id="L327" title="All 2 branches missed.">                ok = nationType == spec.getDefaultNationType();</span>
+<span class="nc" id="L328">                break;</span>
+            default:
+<span class="nc" id="L330">                ok = false;</span>
+                break;
+            }
+<span class="nc bnc" id="L333" title="All 2 branches missed.">            if (ok) {</span>
+<span class="nc" id="L334">                player.changeNationType(nationType);</span>
+<span class="nc" id="L335">                freeColServer.sendToAll(new DOMMessage(&quot;updateNationType&quot;,</span>
+<span class="nc" id="L336">                        &quot;player&quot;, player.getId(),</span>
+<span class="nc" id="L337">                        &quot;value&quot;, nationType.getId()),</span>
+<span class="nc" id="L338">                    player.getConnection());</span>
+<span class="nc" id="L339">            } else {</span>
+<span class="nc" id="L340">                return new ErrorMessage(&quot;server.badNationType&quot;,</span>
+<span class="nc" id="L341">                    &quot;Selected non-selectable nation type: &quot; + nationType)</span>
+<span class="nc" id="L342">                    .toXMLElement();</span>
+            }
+        } else {
+<span class="nc" id="L345">            logger.warning(&quot;setNationType from unknown connection.&quot;);</span>
+        }
+<span class="nc" id="L347">        return null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

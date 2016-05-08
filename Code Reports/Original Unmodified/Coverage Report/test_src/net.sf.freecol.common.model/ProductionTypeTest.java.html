@@ -1,0 +1,874 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ProductionTypeTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">ProductionTypeTest.java</span></div><h1>ProductionTypeTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.freecol.common.model.BuildingType;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.TileType;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="fc" id="L33">public class ProductionTypeTest extends FreeColTestCase {</span>
+
+<span class="fc" id="L35">    private static final Specification s = spec(&quot;classic&quot;);</span>
+
+<span class="fc" id="L37">    private static final BuildingType armory</span>
+<span class="fc" id="L38">        = s.getBuildingType(&quot;model.building.armory&quot;);</span>
+<span class="fc" id="L39">    private static final BuildingType arsenal</span>
+<span class="fc" id="L40">        = s.getBuildingType(&quot;model.building.arsenal&quot;);</span>
+<span class="fc" id="L41">    private static final BuildingType blacksmithHouse</span>
+<span class="fc" id="L42">        = s.getBuildingType(&quot;model.building.blacksmithHouse&quot;);</span>
+<span class="fc" id="L43">    private static final BuildingType blacksmithShop</span>
+<span class="fc" id="L44">        = s.getBuildingType(&quot;model.building.blacksmithShop&quot;);</span>
+<span class="fc" id="L45">    private static final BuildingType carpenterHouse</span>
+<span class="fc" id="L46">        = s.getBuildingType(&quot;model.building.carpenterHouse&quot;);</span>
+<span class="fc" id="L47">    private static final BuildingType cathedral</span>
+<span class="fc" id="L48">        = s.getBuildingType(&quot;model.building.cathedral&quot;);</span>
+<span class="fc" id="L49">    private static final BuildingType chapel</span>
+<span class="fc" id="L50">        = s.getBuildingType(&quot;model.building.chapel&quot;);</span>
+<span class="fc" id="L51">    private static final BuildingType church</span>
+<span class="fc" id="L52">        = s.getBuildingType(&quot;model.building.church&quot;);</span>
+<span class="fc" id="L53">    private static final BuildingType cigarFactory</span>
+<span class="fc" id="L54">        = s.getBuildingType(&quot;model.building.cigarFactory&quot;);</span>
+<span class="fc" id="L55">    private static final BuildingType college</span>
+<span class="fc" id="L56">        = s.getBuildingType(&quot;model.building.college&quot;);</span>
+<span class="fc" id="L57">    private static final BuildingType country</span>
+<span class="fc" id="L58">        = s.getBuildingType(&quot;model.building.country&quot;);</span>
+<span class="fc" id="L59">    private static final BuildingType customHouse</span>
+<span class="fc" id="L60">        = s.getBuildingType(&quot;model.building.customHouse&quot;);</span>
+<span class="fc" id="L61">    private static final BuildingType depot</span>
+<span class="fc" id="L62">        = s.getBuildingType(&quot;model.building.depot&quot;);</span>
+<span class="fc" id="L63">    private static final BuildingType distillerHouse</span>
+<span class="fc" id="L64">        = s.getBuildingType(&quot;model.building.distillerHouse&quot;);</span>
+<span class="fc" id="L65">    private static final BuildingType docks</span>
+<span class="fc" id="L66">        = s.getBuildingType(&quot;model.building.docks&quot;);</span>
+<span class="fc" id="L67">    private static final BuildingType drydock</span>
+<span class="fc" id="L68">        = s.getBuildingType(&quot;model.building.drydock&quot;);</span>
+<span class="fc" id="L69">    private static final BuildingType fort</span>
+<span class="fc" id="L70">        = s.getBuildingType(&quot;model.building.fort&quot;);</span>
+<span class="fc" id="L71">    private static final BuildingType fortress</span>
+<span class="fc" id="L72">        = s.getBuildingType(&quot;model.building.fortress&quot;);</span>
+<span class="fc" id="L73">    private static final BuildingType furFactory</span>
+<span class="fc" id="L74">        = s.getBuildingType(&quot;model.building.furFactory&quot;);</span>
+<span class="fc" id="L75">    private static final BuildingType furTraderHouse</span>
+<span class="fc" id="L76">        = s.getBuildingType(&quot;model.building.furTraderHouse&quot;);</span>
+<span class="fc" id="L77">    private static final BuildingType furTradingPost</span>
+<span class="fc" id="L78">        = s.getBuildingType(&quot;model.building.furTradingPost&quot;);</span>
+<span class="fc" id="L79">    private static final BuildingType ironWorks</span>
+<span class="fc" id="L80">        = s.getBuildingType(&quot;model.building.ironWorks&quot;);</span>
+<span class="fc" id="L81">    private static final BuildingType lumberMill</span>
+<span class="fc" id="L82">        = s.getBuildingType(&quot;model.building.lumberMill&quot;);</span>
+<span class="fc" id="L83">    private static final BuildingType magazine</span>
+<span class="fc" id="L84">        = s.getBuildingType(&quot;model.building.magazine&quot;);</span>
+<span class="fc" id="L85">    private static final BuildingType newspaper</span>
+<span class="fc" id="L86">        = s.getBuildingType(&quot;model.building.newspaper&quot;);</span>
+<span class="fc" id="L87">    private static final BuildingType printingPress</span>
+<span class="fc" id="L88">        = s.getBuildingType(&quot;model.building.printingPress&quot;);</span>
+<span class="fc" id="L89">    private static final BuildingType rumDistillery</span>
+<span class="fc" id="L90">        = s.getBuildingType(&quot;model.building.rumDistillery&quot;);</span>
+<span class="fc" id="L91">    private static final BuildingType rumFactory</span>
+<span class="fc" id="L92">        = s.getBuildingType(&quot;model.building.rumFactory&quot;);</span>
+<span class="fc" id="L93">    private static final BuildingType schoolhouse</span>
+<span class="fc" id="L94">        = s.getBuildingType(&quot;model.building.schoolhouse&quot;);</span>
+<span class="fc" id="L95">    private static final BuildingType shipyard</span>
+<span class="fc" id="L96">        = s.getBuildingType(&quot;model.building.shipyard&quot;);</span>
+<span class="fc" id="L97">    private static final BuildingType stables</span>
+<span class="fc" id="L98">        = s.getBuildingType(&quot;model.building.stables&quot;);</span>
+<span class="fc" id="L99">    private static final BuildingType stockade</span>
+<span class="fc" id="L100">        = s.getBuildingType(&quot;model.building.stockade&quot;);</span>
+<span class="fc" id="L101">    private static final BuildingType textileMill</span>
+<span class="fc" id="L102">        = s.getBuildingType(&quot;model.building.textileMill&quot;);</span>
+<span class="fc" id="L103">    private static final BuildingType tobacconistHouse</span>
+<span class="fc" id="L104">        = s.getBuildingType(&quot;model.building.tobacconistHouse&quot;);</span>
+<span class="fc" id="L105">    private static final BuildingType tobacconistShop</span>
+<span class="fc" id="L106">        = s.getBuildingType(&quot;model.building.tobacconistShop&quot;);</span>
+<span class="fc" id="L107">    private static final BuildingType townHall</span>
+<span class="fc" id="L108">        = s.getBuildingType(&quot;model.building.townHall&quot;);</span>
+<span class="fc" id="L109">    private static final BuildingType university</span>
+<span class="fc" id="L110">        = s.getBuildingType(&quot;model.building.university&quot;);</span>
+<span class="fc" id="L111">    private static final BuildingType warehouse</span>
+<span class="fc" id="L112">        = s.getBuildingType(&quot;model.building.warehouse&quot;);</span>
+<span class="fc" id="L113">    private static final BuildingType warehouseExpansion</span>
+<span class="fc" id="L114">        = s.getBuildingType(&quot;model.building.warehouseExpansion&quot;);</span>
+<span class="fc" id="L115">    private static final BuildingType weaverHouse</span>
+<span class="fc" id="L116">        = s.getBuildingType(&quot;model.building.weaverHouse&quot;);</span>
+<span class="fc" id="L117">    private static final BuildingType weaverShop</span>
+<span class="fc" id="L118">        = s.getBuildingType(&quot;model.building.weaverShop&quot;);</span>
+
+<span class="fc" id="L120">    private static final GoodsType bells</span>
+<span class="fc" id="L121">        = s.getGoodsType(&quot;model.goods.bells&quot;);</span>
+<span class="fc" id="L122">    private static final GoodsType cigars</span>
+<span class="fc" id="L123">        = s.getGoodsType(&quot;model.goods.cigars&quot;);</span>
+<span class="fc" id="L124">    private static final GoodsType cloth</span>
+<span class="fc" id="L125">        = s.getGoodsType(&quot;model.goods.cloth&quot;);</span>
+<span class="fc" id="L126">    private static final GoodsType coats</span>
+<span class="fc" id="L127">        = s.getGoodsType(&quot;model.goods.coats&quot;);</span>
+<span class="fc" id="L128">    private static final GoodsType cotton</span>
+<span class="fc" id="L129">        = s.getGoodsType(&quot;model.goods.cotton&quot;);</span>
+<span class="fc" id="L130">    private static final GoodsType crosses</span>
+<span class="fc" id="L131">        = s.getGoodsType(&quot;model.goods.crosses&quot;);</span>
+<span class="fc" id="L132">    private static final GoodsType fish</span>
+<span class="fc" id="L133">        = s.getGoodsType(&quot;model.goods.fish&quot;);</span>
+<span class="fc" id="L134">    private static final GoodsType food</span>
+<span class="fc" id="L135">        = s.getGoodsType(&quot;model.goods.food&quot;);</span>
+<span class="fc" id="L136">    private static final GoodsType furs</span>
+<span class="fc" id="L137">        = s.getGoodsType(&quot;model.goods.furs&quot;);</span>
+<span class="fc" id="L138">    private static final GoodsType grain</span>
+<span class="fc" id="L139">        = s.getGoodsType(&quot;model.goods.grain&quot;);</span>
+<span class="fc" id="L140">    private static final GoodsType hammers</span>
+<span class="fc" id="L141">        = s.getGoodsType(&quot;model.goods.hammers&quot;);</span>
+<span class="fc" id="L142">    private static final GoodsType horses</span>
+<span class="fc" id="L143">        = s.getGoodsType(&quot;model.goods.horses&quot;);</span>
+<span class="fc" id="L144">    private static final GoodsType lumber</span>
+<span class="fc" id="L145">        = s.getGoodsType(&quot;model.goods.lumber&quot;);</span>
+<span class="fc" id="L146">    private static final GoodsType muskets</span>
+<span class="fc" id="L147">        = s.getGoodsType(&quot;model.goods.muskets&quot;);</span>
+<span class="fc" id="L148">    private static final GoodsType ore</span>
+<span class="fc" id="L149">        = s.getGoodsType(&quot;model.goods.ore&quot;);</span>
+<span class="fc" id="L150">    private static final GoodsType rum</span>
+<span class="fc" id="L151">        = s.getGoodsType(&quot;model.goods.rum&quot;);</span>
+<span class="fc" id="L152">    private static final GoodsType tobacco</span>
+<span class="fc" id="L153">        = s.getGoodsType(&quot;model.goods.tobacco&quot;);</span>
+<span class="fc" id="L154">    private static final GoodsType tools</span>
+<span class="fc" id="L155">        = s.getGoodsType(&quot;model.goods.tools&quot;);</span>
+<span class="fc" id="L156">    private static final GoodsType silver</span>
+<span class="fc" id="L157">        = s.getGoodsType(&quot;model.goods.silver&quot;);</span>
+<span class="fc" id="L158">    private static final GoodsType sugar</span>
+<span class="fc" id="L159">        = s.getGoodsType(&quot;model.goods.sugar&quot;);</span>
+
+<span class="fc" id="L161">    private static final TileType arctic</span>
+<span class="fc" id="L162">        = s.getTileType(&quot;model.tile.arctic&quot;);</span>
+<span class="fc" id="L163">    private static final TileType borealForest</span>
+<span class="fc" id="L164">        = s.getTileType(&quot;model.tile.borealForest&quot;);</span>
+<span class="fc" id="L165">    private static final TileType broadleafForest</span>
+<span class="fc" id="L166">        = s.getTileType(&quot;model.tile.broadleafForest&quot;);</span>
+<span class="fc" id="L167">    private static final TileType coniferForest</span>
+<span class="fc" id="L168">        = s.getTileType(&quot;model.tile.coniferForest&quot;);</span>
+<span class="fc" id="L169">    private static final TileType desert</span>
+<span class="fc" id="L170">        = s.getTileType(&quot;model.tile.desert&quot;);</span>
+<span class="fc" id="L171">    private static final TileType grassland</span>
+<span class="fc" id="L172">        = s.getTileType(&quot;model.tile.grassland&quot;);</span>
+<span class="fc" id="L173">    private static final TileType greatRiver</span>
+<span class="fc" id="L174">        = s.getTileType(&quot;model.tile.greatRiver&quot;);</span>
+<span class="fc" id="L175">    private static final TileType highSeas</span>
+<span class="fc" id="L176">        = s.getTileType(&quot;model.tile.highSeas&quot;);</span>
+<span class="fc" id="L177">    private static final TileType hills</span>
+<span class="fc" id="L178">        = s.getTileType(&quot;model.tile.hills&quot;);</span>
+<span class="fc" id="L179">    private static final TileType lake</span>
+<span class="fc" id="L180">        = s.getTileType(&quot;model.tile.lake&quot;);</span>
+<span class="fc" id="L181">    private static final TileType marsh</span>
+<span class="fc" id="L182">        = s.getTileType(&quot;model.tile.marsh&quot;);</span>
+<span class="fc" id="L183">    private static final TileType mixedForest</span>
+<span class="fc" id="L184">        = s.getTileType(&quot;model.tile.mixedForest&quot;);</span>
+<span class="fc" id="L185">    private static final TileType mountains</span>
+<span class="fc" id="L186">        = s.getTileType(&quot;model.tile.mountains&quot;);</span>
+<span class="fc" id="L187">    private static final TileType ocean</span>
+<span class="fc" id="L188">        = s.getTileType(&quot;model.tile.ocean&quot;);</span>
+<span class="fc" id="L189">    private static final TileType plains</span>
+<span class="fc" id="L190">        = s.getTileType(&quot;model.tile.plains&quot;);</span>
+<span class="fc" id="L191">    private static final TileType prairie</span>
+<span class="fc" id="L192">        = s.getTileType(&quot;model.tile.prairie&quot;);</span>
+<span class="fc" id="L193">    private static final TileType rainForest</span>
+<span class="fc" id="L194">        = s.getTileType(&quot;model.tile.rainForest&quot;);</span>
+<span class="fc" id="L195">    private static final TileType savannah</span>
+<span class="fc" id="L196">        = s.getTileType(&quot;model.tile.savannah&quot;);</span>
+<span class="fc" id="L197">    private static final TileType scrubForest</span>
+<span class="fc" id="L198">        = s.getTileType(&quot;model.tile.scrubForest&quot;);</span>
+<span class="fc" id="L199">    private static final TileType swamp</span>
+<span class="fc" id="L200">        = s.getTileType(&quot;model.tile.swamp&quot;);</span>
+<span class="fc" id="L201">    private static final TileType tropicalForest</span>
+<span class="fc" id="L202">        = s.getTileType(&quot;model.tile.tropicalForest&quot;);</span>
+<span class="fc" id="L203">    private static final TileType tundra</span>
+<span class="fc" id="L204">        = s.getTileType(&quot;model.tile.tundra&quot;);</span>
+<span class="fc" id="L205">    private static final TileType wetlandForest</span>
+<span class="fc" id="L206">        = s.getTileType(&quot;model.tile.wetlandForest&quot;);</span>
+
+<span class="fc" id="L208">    private static final UnitType colonistType = s.getDefaultUnitType();</span>
+
+<span class="fc" id="L210">    private Map&lt;GoodsType, Integer&gt; inputs = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L211">    private Map&lt;GoodsType, Integer&gt; outputs = new HashMap&lt;&gt;();</span>
+
+
+    private void testProduction(Map&lt;GoodsType, Integer&gt; inputs,
+                                Map&lt;GoodsType, Integer&gt; outputs,
+                                List&lt;ProductionType&gt; productionTypes) {
+<span class="fc bfc" id="L217" title="All 2 branches covered.">        for (ProductionType productionType : productionTypes) {</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">            for (AbstractGoods ag : productionType.getInputs()) {</span>
+<span class="fc" id="L219">                Integer i = inputs.get(ag.getType());</span>
+<span class="fc" id="L220">                assertNotNull(&quot;Input expected for &quot; + ag.getType(), i);</span>
+<span class="fc" id="L221">                assertEquals(&quot;Input amount mismatch for &quot; + ag.getType(),</span>
+<span class="fc" id="L222">                    i.intValue(), ag.getAmount());</span>
+<span class="fc" id="L223">                inputs.remove(ag.getType());</span>
+            }
+<span class="fc bfc" id="L225" title="All 2 branches covered.">            for (AbstractGoods ag : productionType.getOutputs()) {</span>
+<span class="fc" id="L226">                Integer i = outputs.get(ag.getType());</span>
+<span class="fc" id="L227">                assertNotNull(&quot;Output expected for &quot; + ag.getType(), i);</span>
+<span class="fc" id="L228">                assertEquals(&quot;Output amount mismatch for &quot; + ag.getType(),</span>
+<span class="fc" id="L229">                    i.intValue(), ag.getAmount());</span>
+<span class="fc" id="L230">                outputs.remove(ag.getType());</span>
+            }
+        }
+<span class="fc" id="L233">        assertEquals(&quot;Input remaining&quot;, 0, inputs.size());</span>
+<span class="fc" id="L234">        assertEquals(&quot;Output remaining&quot;, 0, outputs.size());</span>
+<span class="fc" id="L235">    }</span>
+
+    private int getGenericPotential(TileType tileType, GoodsType goodsType) {
+<span class="fc" id="L238">        return tileType.getPotentialProduction(goodsType, colonistType);</span>
+    }
+
+
+    public void testArctic() {
+<span class="fc" id="L243">        outputs.put(grain, 2);</span>
+<span class="fc" id="L244">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L245">                       arctic.getAvailableProductionTypes(true, &quot;veryHigh&quot;));</span>
+<span class="fc" id="L246">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L247">                       arctic.getAvailableProductionTypes(false, &quot;veryHigh&quot;));</span>
+
+<span class="fc" id="L249">        outputs.put(grain, 1);</span>
+<span class="fc" id="L250">        testProduction(inputs, outputs, </span>
+<span class="fc" id="L251">                       arctic.getAvailableProductionTypes(true, &quot;high&quot;));</span>
+<span class="fc" id="L252">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L253">                       arctic.getAvailableProductionTypes(false, &quot;high&quot;));</span>
+
+<span class="fc bfc" id="L255" title="All 2 branches covered.">        for (String level : new String[] { &quot;medium&quot;, &quot;low&quot;, &quot;veryLow&quot; }) {</span>
+<span class="fc" id="L256">            testProduction(inputs, outputs,</span>
+<span class="fc" id="L257">                           arctic.getAvailableProductionTypes(true, level));</span>
+<span class="fc" id="L258">            testProduction(inputs, outputs,</span>
+<span class="fc" id="L259">                           arctic.getAvailableProductionTypes(false, level));</span>
+        }
+
+<span class="fc" id="L262">        assertEquals(0, arctic.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L263">        assertEquals(0, getGenericPotential(arctic, grain));</span>
+<span class="fc" id="L264">    }</span>
+
+    public void testBorealForest() {
+<span class="fc" id="L267">        outputs.put(grain, 2);</span>
+<span class="fc" id="L268">        outputs.put(furs, 3);</span>
+<span class="fc" id="L269">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L270">                       borealForest.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L272">        outputs.put(grain, 2);</span>
+<span class="fc" id="L273">        outputs.put(furs, 3);</span>
+<span class="fc" id="L274">        outputs.put(lumber, 4);</span>
+<span class="fc" id="L275">        outputs.put(ore, 1);</span>
+<span class="fc" id="L276">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L277">                       borealForest.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L279">        assertEquals(2, borealForest.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L280">        assertEquals(2, getGenericPotential(borealForest, grain));</span>
+<span class="fc" id="L281">    }</span>
+
+    public void testBroadleafForest() {
+<span class="fc" id="L284">        outputs.put(grain, 2);</span>
+<span class="fc" id="L285">        outputs.put(furs, 2);</span>
+<span class="fc" id="L286">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L287">                       broadleafForest.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L289">        outputs.put(grain, 2);</span>
+<span class="fc" id="L290">        outputs.put(cotton, 1);</span>
+<span class="fc" id="L291">        outputs.put(furs, 2);</span>
+<span class="fc" id="L292">        outputs.put(lumber, 4);</span>
+<span class="fc" id="L293">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L294">                       broadleafForest.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L296">        assertEquals(2, broadleafForest.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L297">        assertEquals(2, getGenericPotential(broadleafForest, grain));</span>
+<span class="fc" id="L298">    }</span>
+
+    public void testConiferForest() {
+<span class="fc" id="L301">        outputs.put(grain, 2);</span>
+<span class="fc" id="L302">        outputs.put(furs, 2);</span>
+<span class="fc" id="L303">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L304">                       coniferForest.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L306">        outputs.put(grain, 2);</span>
+<span class="fc" id="L307">        outputs.put(tobacco, 1);</span>
+<span class="fc" id="L308">        outputs.put(furs, 2);</span>
+<span class="fc" id="L309">        outputs.put(lumber, 6);</span>
+<span class="fc" id="L310">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L311">                       coniferForest.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L313">        assertEquals(2, coniferForest.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L314">        assertEquals(2, getGenericPotential(coniferForest, grain));</span>
+<span class="fc" id="L315">    }</span>
+
+    public void testDesert() {
+<span class="fc" id="L318">        outputs.put(grain, 3);</span>
+<span class="fc" id="L319">        outputs.put(cotton, 1);</span>
+<span class="fc" id="L320">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L321">                       desert.getAvailableProductionTypes(true, &quot;veryHigh&quot;));</span>
+
+<span class="fc" id="L323">        outputs.put(grain, 2);</span>
+<span class="fc" id="L324">        outputs.put(cotton, 1);</span>
+<span class="fc" id="L325">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L326">                       desert.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L328">        outputs.put(grain, 1);</span>
+<span class="fc" id="L329">        outputs.put(cotton, 1);</span>
+<span class="fc" id="L330">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L331">                       desert.getAvailableProductionTypes(true, &quot;veryLow&quot;));</span>
+
+<span class="fc" id="L333">        outputs.put(grain, 2);</span>
+<span class="fc" id="L334">        outputs.put(cotton, 1);</span>
+<span class="fc" id="L335">        outputs.put(ore, 2);</span>
+<span class="fc" id="L336">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L337">                       desert.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L339">        assertEquals(2, desert.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L340">        assertEquals(2, getGenericPotential(desert, grain));</span>
+<span class="fc" id="L341">    }</span>
+
+    public void testGrassland() {
+<span class="fc" id="L344">        outputs.put(grain, 3);</span>
+<span class="fc" id="L345">        outputs.put(tobacco, 3);</span>
+<span class="fc" id="L346">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L347">                       grassland.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L349">        outputs.put(grain, 3);</span>
+<span class="fc" id="L350">        outputs.put(tobacco, 3);</span>
+<span class="fc" id="L351">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L352">                       grassland.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L354">        assertEquals(3, grassland.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L355">        assertEquals(3, getGenericPotential(grassland, grain));</span>
+<span class="fc" id="L356">    }</span>
+
+    public void testGreatRiver() {
+<span class="fc" id="L359">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L360">                       greatRiver.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L362">        outputs.put(fish, 2);</span>
+<span class="fc" id="L363">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L364">                       greatRiver.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L366">        assertEquals(0, greatRiver.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L367">        assertEquals(0, getGenericPotential(greatRiver, grain));</span>
+<span class="fc" id="L368">    }</span>
+
+    public void testHighSeas() {
+<span class="fc" id="L371">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L372">                       highSeas.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L374">        outputs.put(fish, 2);</span>
+<span class="fc" id="L375">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L376">                       highSeas.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L378">        assertEquals(0, highSeas.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L379">        assertEquals(0, getGenericPotential(highSeas, grain));</span>
+<span class="fc" id="L380">    }</span>
+
+    public void testHills() {
+<span class="fc" id="L383">        outputs.put(grain, 2);</span>
+<span class="fc" id="L384">        outputs.put(ore, 4);</span>
+<span class="fc" id="L385">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L386">                       hills.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L388">        outputs.put(grain, 2);</span>
+<span class="fc" id="L389">        outputs.put(ore, 4);</span>
+<span class="fc" id="L390">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L391">                       hills.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L393">        assertEquals(2, hills.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L394">        assertEquals(2, getGenericPotential(hills, grain));</span>
+<span class="fc" id="L395">    }</span>
+
+    public void testLake() {
+<span class="fc" id="L398">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L399">                       lake.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L401">        outputs.put(fish, 2);</span>
+<span class="fc" id="L402">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L403">                       lake.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L405">        assertEquals(0, lake.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L406">        assertEquals(0, getGenericPotential(lake, grain));</span>
+<span class="fc" id="L407">    }</span>
+
+    public void testMarsh() {
+<span class="fc" id="L410">        outputs.put(grain, 3);</span>
+<span class="fc" id="L411">        outputs.put(tobacco, 2);</span>
+<span class="fc" id="L412">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L413">                       marsh.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L415">        outputs.put(grain, 3);</span>
+<span class="fc" id="L416">        outputs.put(tobacco, 2);</span>
+<span class="fc" id="L417">        outputs.put(ore, 2);</span>
+<span class="fc" id="L418">        outputs.put(silver, 0);</span>
+<span class="fc" id="L419">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L420">                       marsh.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L422">        assertEquals(3, marsh.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L423">        assertEquals(3, getGenericPotential(marsh, grain));</span>
+<span class="fc" id="L424">    }</span>
+
+    public void testMixedForest() {
+<span class="fc" id="L427">        outputs.put(grain, 3);</span>
+<span class="fc" id="L428">        outputs.put(furs, 3);</span>
+<span class="fc" id="L429">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L430">                       mixedForest.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L432">        outputs.put(grain, 3);</span>
+<span class="fc" id="L433">        outputs.put(cotton, 1);</span>
+<span class="fc" id="L434">        outputs.put(furs, 3);</span>
+<span class="fc" id="L435">        outputs.put(lumber, 6);</span>
+<span class="fc" id="L436">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L437">                       mixedForest.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L439">        assertEquals(3, mixedForest.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L440">        assertEquals(3, getGenericPotential(mixedForest, grain));</span>
+<span class="fc" id="L441">    }</span>
+
+    public void testMountains() {
+<span class="fc" id="L444">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L445">                       mountains.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L447">        outputs.put(ore, 4);</span>
+<span class="fc" id="L448">        outputs.put(silver, 1);</span>
+<span class="fc" id="L449">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L450">                       mountains.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L452">        assertEquals(0, mountains.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L453">        assertEquals(0, getGenericPotential(mountains, grain));</span>
+<span class="fc" id="L454">    }</span>
+
+    public void testOcean() {
+<span class="fc" id="L457">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L458">                       ocean.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L460">        outputs.put(fish, 2);</span>
+<span class="fc" id="L461">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L462">                       ocean.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L464">        assertEquals(0, ocean.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L465">        assertEquals(0, getGenericPotential(ocean, grain));</span>
+<span class="fc" id="L466">    }</span>
+
+    public void testPlains() {
+<span class="fc" id="L469">        outputs.put(grain, 5);</span>
+<span class="fc" id="L470">        outputs.put(cotton, 2);</span>
+<span class="fc" id="L471">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L472">                       plains.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L474">        outputs.put(grain, 5);</span>
+<span class="fc" id="L475">        outputs.put(cotton, 2);</span>
+<span class="fc" id="L476">        outputs.put(ore, 1);</span>
+<span class="fc" id="L477">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L478">                       plains.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L480">        assertEquals(5, plains.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L481">        assertEquals(5, getGenericPotential(plains, grain));</span>
+<span class="fc" id="L482">    }</span>
+
+    public void testPrairie() {
+<span class="fc" id="L485">        outputs.put(grain, 3);</span>
+<span class="fc" id="L486">        outputs.put(cotton, 3);</span>
+<span class="fc" id="L487">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L488">                       prairie.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L490">        outputs.put(grain, 3);</span>
+<span class="fc" id="L491">        outputs.put(cotton, 3);</span>
+<span class="fc" id="L492">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L493">                       prairie.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L495">        assertEquals(3, prairie.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L496">        assertEquals(3, getGenericPotential(prairie, grain));</span>
+<span class="fc" id="L497">    }</span>
+
+    public void testRainForest() {
+<span class="fc" id="L500">        outputs.put(grain, 2);</span>
+<span class="fc" id="L501">        outputs.put(furs, 1);</span>
+<span class="fc" id="L502">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L503">                       rainForest.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L505">        outputs.put(grain, 2);</span>
+<span class="fc" id="L506">        outputs.put(sugar, 1);</span>
+<span class="fc" id="L507">        outputs.put(furs, 1);</span>
+<span class="fc" id="L508">        outputs.put(lumber, 4);</span>
+<span class="fc" id="L509">        outputs.put(ore, 1);</span>
+<span class="fc" id="L510">        outputs.put(silver, 0);</span>
+<span class="fc" id="L511">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L512">                       rainForest.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L514">        assertEquals(2, rainForest.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L515">        assertEquals(2, getGenericPotential(rainForest, grain));</span>
+<span class="fc" id="L516">    }</span>
+
+    public void testSavannah() {
+<span class="fc" id="L519">        outputs.put(grain, 4);</span>
+<span class="fc" id="L520">        outputs.put(sugar, 3);</span>
+<span class="fc" id="L521">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L522">                       savannah.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L524">        outputs.put(grain, 4);</span>
+<span class="fc" id="L525">        outputs.put(sugar, 3);</span>
+<span class="fc" id="L526">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L527">                       savannah.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L529">        assertEquals(4, savannah.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L530">        assertEquals(4, getGenericPotential(savannah, grain));</span>
+<span class="fc" id="L531">    }</span>
+
+    public void testScrubForest() {
+<span class="fc" id="L534">        outputs.put(grain, 3);</span>
+<span class="fc" id="L535">        outputs.put(furs, 2);</span>
+<span class="fc" id="L536">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L537">                       scrubForest.getAvailableProductionTypes(true, &quot;veryHigh&quot;));</span>
+
+<span class="fc" id="L539">        outputs.put(grain, 2);</span>
+<span class="fc" id="L540">        outputs.put(furs, 2);</span>
+<span class="fc" id="L541">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L542">                       scrubForest.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L544">        outputs.put(grain, 1);</span>
+<span class="fc" id="L545">        outputs.put(furs, 2);</span>
+<span class="fc" id="L546">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L547">                       scrubForest.getAvailableProductionTypes(true, &quot;veryLow&quot;));</span>
+
+<span class="fc" id="L549">        outputs.put(grain, 2);</span>
+<span class="fc" id="L550">        outputs.put(cotton, 1);</span>
+<span class="fc" id="L551">        outputs.put(furs, 2);</span>
+<span class="fc" id="L552">        outputs.put(lumber, 2);</span>
+<span class="fc" id="L553">        outputs.put(ore, 1);</span>
+<span class="fc" id="L554">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L555">                       scrubForest.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L557">        assertEquals(2, scrubForest.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L558">        assertEquals(2, getGenericPotential(scrubForest, grain));</span>
+<span class="fc" id="L559">    }</span>
+
+    public void testSwamp() {
+<span class="fc" id="L562">        outputs.put(grain, 3);</span>
+<span class="fc" id="L563">        outputs.put(sugar, 2);</span>
+<span class="fc" id="L564">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L565">                       swamp.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L567">        outputs.put(grain, 3);</span>
+<span class="fc" id="L568">        outputs.put(sugar, 2);</span>
+<span class="fc" id="L569">        outputs.put(ore, 2);</span>
+<span class="fc" id="L570">        outputs.put(silver, 0);</span>
+<span class="fc" id="L571">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L572">                       swamp.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L574">        assertEquals(3, swamp.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L575">        assertEquals(3, getGenericPotential(swamp, grain));</span>
+<span class="fc" id="L576">    }</span>
+
+    public void testTropicalForest() {
+<span class="fc" id="L579">        outputs.put(grain, 3);</span>
+<span class="fc" id="L580">        outputs.put(furs, 2);</span>
+<span class="fc" id="L581">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L582">                       tropicalForest.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L584">        outputs.put(grain, 3);</span>
+<span class="fc" id="L585">        outputs.put(sugar, 1);</span>
+<span class="fc" id="L586">        outputs.put(furs, 2);</span>
+<span class="fc" id="L587">        outputs.put(lumber, 4);</span>
+<span class="fc" id="L588">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L589">                       tropicalForest.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L591">        assertEquals(3, tropicalForest.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L592">        assertEquals(3, getGenericPotential(tropicalForest, grain));</span>
+<span class="fc" id="L593">    }</span>
+
+    public void testTundra() {
+<span class="fc" id="L596">        outputs.put(grain, 3);</span>
+<span class="fc" id="L597">        outputs.put(ore, 2);</span>
+<span class="fc" id="L598">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L599">                       tundra.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L601">        outputs.put(grain, 3);</span>
+<span class="fc" id="L602">        outputs.put(ore, 2);</span>
+<span class="fc" id="L603">        outputs.put(silver, 0);</span>
+<span class="fc" id="L604">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L605">                       tundra.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L607">        assertEquals(3, tundra.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L608">        assertEquals(3, getGenericPotential(tundra, grain));</span>
+<span class="fc" id="L609">    }</span>
+
+    public void testWetlandForest() {
+<span class="fc" id="L612">        outputs.put(grain, 2);</span>
+<span class="fc" id="L613">        outputs.put(furs, 2);</span>
+<span class="fc" id="L614">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L615">                       wetlandForest.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L617">        outputs.put(grain, 2);</span>
+<span class="fc" id="L618">        outputs.put(tobacco, 1);</span>
+<span class="fc" id="L619">        outputs.put(furs, 2);</span>
+<span class="fc" id="L620">        outputs.put(lumber, 4);</span>
+<span class="fc" id="L621">        outputs.put(ore, 1);</span>
+<span class="fc" id="L622">        outputs.put(silver, 0);</span>
+<span class="fc" id="L623">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L624">                       wetlandForest.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L626">        assertEquals(2, wetlandForest.getPotentialProduction(grain, null));</span>
+<span class="fc" id="L627">        assertEquals(2, getGenericPotential(wetlandForest, grain));</span>
+<span class="fc" id="L628">    }</span>
+
+    public void testBellProduction() {
+<span class="fc" id="L631">        outputs.put(bells, 1);</span>
+<span class="fc" id="L632">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L633">                       townHall.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L635">        outputs.put(bells, 3);</span>
+<span class="fc" id="L636">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L637">                       townHall.getAvailableProductionTypes(false));</span>
+<span class="fc" id="L638">    }        </span>
+
+    public void testHammerProduction() {
+<span class="fc" id="L641">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L642">                       carpenterHouse.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L644">        inputs.put(lumber, 3);</span>
+<span class="fc" id="L645">        outputs.put(hammers, 3);</span>
+<span class="fc" id="L646">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L647">                       carpenterHouse.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L649">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L650">                       lumberMill.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L652">        inputs.put(lumber, 6);</span>
+<span class="fc" id="L653">        outputs.put(hammers, 6);</span>
+<span class="fc" id="L654">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L655">                       lumberMill.getAvailableProductionTypes(false));</span>
+<span class="fc" id="L656">    }        </span>
+
+    public void testToolsProduction() {
+<span class="fc" id="L659">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L660">                       blacksmithHouse.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L662">        inputs.put(ore, 3);</span>
+<span class="fc" id="L663">        outputs.put(tools, 3);</span>
+<span class="fc" id="L664">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L665">                       blacksmithHouse.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L667">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L668">                       blacksmithShop.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L670">        inputs.put(ore, 6);</span>
+<span class="fc" id="L671">        outputs.put(tools, 6);</span>
+<span class="fc" id="L672">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L673">                       blacksmithShop.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L675">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L676">                       ironWorks.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L678">        inputs.put(ore, 6);</span>
+<span class="fc" id="L679">        outputs.put(tools, 9);</span>
+<span class="fc" id="L680">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L681">                       ironWorks.getAvailableProductionTypes(false));</span>
+<span class="fc" id="L682">    }</span>
+
+    public void testCigarProduction() {
+<span class="fc" id="L685">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L686">                       tobacconistHouse.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L688">        inputs.put(tobacco, 3);</span>
+<span class="fc" id="L689">        outputs.put(cigars, 3);</span>
+<span class="fc" id="L690">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L691">                       tobacconistHouse.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L693">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L694">                       tobacconistShop.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L696">        inputs.put(tobacco, 6);</span>
+<span class="fc" id="L697">        outputs.put(cigars, 6);</span>
+<span class="fc" id="L698">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L699">                       tobacconistShop.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L701">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L702">                       cigarFactory.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L704">        inputs.put(tobacco, 6);</span>
+<span class="fc" id="L705">        outputs.put(cigars, 9);</span>
+<span class="fc" id="L706">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L707">                       cigarFactory.getAvailableProductionTypes(false));</span>
+<span class="fc" id="L708">    }</span>
+
+    public void testClothProduction() {
+<span class="fc" id="L711">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L712">                       weaverHouse.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L714">        inputs.put(cotton, 3);</span>
+<span class="fc" id="L715">        outputs.put(cloth, 3);</span>
+<span class="fc" id="L716">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L717">                       weaverHouse.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L719">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L720">                       weaverShop.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L722">        inputs.put(cotton, 6);</span>
+<span class="fc" id="L723">        outputs.put(cloth, 6);</span>
+<span class="fc" id="L724">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L725">                       weaverShop.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L727">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L728">                       textileMill.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L730">        inputs.put(cotton, 6);</span>
+<span class="fc" id="L731">        outputs.put(cloth, 9);</span>
+<span class="fc" id="L732">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L733">                       textileMill.getAvailableProductionTypes(false));</span>
+<span class="fc" id="L734">    }</span>
+
+    public void testRumProduction() {
+<span class="fc" id="L737">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L738">                       distillerHouse.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L740">        inputs.put(sugar, 3);</span>
+<span class="fc" id="L741">        outputs.put(rum, 3);</span>
+<span class="fc" id="L742">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L743">                       distillerHouse.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L745">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L746">                       rumDistillery.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L748">        inputs.put(sugar, 6);</span>
+<span class="fc" id="L749">        outputs.put(rum, 6);</span>
+<span class="fc" id="L750">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L751">                       rumDistillery.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L753">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L754">                       rumFactory.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L756">        inputs.put(sugar, 6);</span>
+<span class="fc" id="L757">        outputs.put(rum, 9);</span>
+<span class="fc" id="L758">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L759">                       rumFactory.getAvailableProductionTypes(false));</span>
+<span class="fc" id="L760">    }</span>
+
+    public void testCoatProduction() {
+<span class="fc" id="L763">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L764">                       furTraderHouse.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L766">        inputs.put(furs, 3);</span>
+<span class="fc" id="L767">        outputs.put(coats, 3);</span>
+<span class="fc" id="L768">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L769">                       furTraderHouse.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L771">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L772">                       furTradingPost.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L774">        inputs.put(furs, 6);</span>
+<span class="fc" id="L775">        outputs.put(coats, 6);</span>
+<span class="fc" id="L776">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L777">                       furTradingPost.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L779">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L780">                       furFactory.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L782">        inputs.put(furs, 6);</span>
+<span class="fc" id="L783">        outputs.put(coats, 9);</span>
+<span class="fc" id="L784">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L785">                       furFactory.getAvailableProductionTypes(false));</span>
+<span class="fc" id="L786">    }</span>
+
+    public void testMusketProduction() {
+<span class="fc" id="L789">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L790">                       armory.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L792">        inputs.put(tools, 3);</span>
+<span class="fc" id="L793">        outputs.put(muskets, 3);</span>
+<span class="fc" id="L794">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L795">                       armory.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L797">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L798">                       magazine.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L800">        inputs.put(tools, 6);</span>
+<span class="fc" id="L801">        outputs.put(muskets, 6);</span>
+<span class="fc" id="L802">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L803">                       magazine.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L805">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L806">                       arsenal.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L808">        inputs.put(tools, 9);</span>
+<span class="fc" id="L809">        outputs.put(muskets, 9);</span>
+<span class="fc" id="L810">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L811">                       arsenal.getAvailableProductionTypes(false));</span>
+<span class="fc" id="L812">    }</span>
+
+    public void testCrossProduction() {
+<span class="fc" id="L815">        outputs.put(crosses, 1); </span>
+<span class="fc" id="L816">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L817">                       chapel.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L819">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L820">                       chapel.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L822">        outputs.put(crosses, 2); </span>
+<span class="fc" id="L823">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L824">                       church.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L826">        outputs.put(crosses, 3);</span>
+<span class="fc" id="L827">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L828">                       church.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L830">        outputs.put(crosses, 3); </span>
+<span class="fc" id="L831">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L832">                       cathedral.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L834">        outputs.put(crosses, 6);</span>
+<span class="fc" id="L835">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L836">                       cathedral.getAvailableProductionTypes(false));</span>
+<span class="fc" id="L837">    }</span>
+
+    public void testHorseProduction() {
+<span class="fc" id="L840">        inputs.put(food, 1);</span>
+<span class="fc" id="L841">        outputs.put(horses, 1);</span>
+<span class="fc" id="L842">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L843">                       country.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L845">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L846">                       country.getAvailableProductionTypes(false));</span>
+
+<span class="fc" id="L848">        inputs.put(food, 1);</span>
+<span class="fc" id="L849">        outputs.put(horses, 1);</span>
+<span class="fc" id="L850">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L851">                       stables.getAvailableProductionTypes(true));</span>
+
+<span class="fc" id="L853">        testProduction(inputs, outputs,</span>
+<span class="fc" id="L854">                       stables.getAvailableProductionTypes(false));</span>
+<span class="fc" id="L855">    }</span>
+
+    public void testOtherBuildings() {
+<span class="fc" id="L858">        inputs.clear();</span>
+
+<span class="fc bfc" id="L860" title="All 2 branches covered.">        for (BuildingType b : new BuildingType[] {</span>
+<span class="fc" id="L861">                schoolhouse, college, university,</span>
+<span class="fc" id="L862">                stockade, fort, fortress,</span>
+<span class="fc" id="L863">                docks, drydock, shipyard,</span>
+<span class="fc" id="L864">                depot, warehouse, warehouseExpansion,</span>
+<span class="fc" id="L865">                printingPress, newspaper,</span>
+<span class="fc" id="L866">                customHouse, }) {</span>
+<span class="fc" id="L867">            testProduction(inputs, outputs,</span>
+<span class="fc" id="L868">                           b.getAvailableProductionTypes(true));</span>
+<span class="fc" id="L869">            testProduction(inputs, outputs,</span>
+<span class="fc" id="L870">                           b.getAvailableProductionTypes(false));</span>
+        }
+<span class="fc" id="L872">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

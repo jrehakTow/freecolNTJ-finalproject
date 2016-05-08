@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>MovementTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">MovementTest.java</span></div><h1>MovementTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="fc" id="L26">public class MovementTest extends FreeColTestCase {</span>
+
+<span class="fc" id="L28">    private static final TileImprovementType riverType</span>
+<span class="fc" id="L29">        = spec().getTileImprovementType(&quot;model.improvement.river&quot;);</span>
+<span class="fc" id="L30">    private static final TileImprovementType roadType</span>
+<span class="fc" id="L31">        = spec().getTileImprovementType(&quot;model.improvement.road&quot;);</span>
+
+<span class="fc" id="L33">    private static final TileType hills</span>
+<span class="fc" id="L34">        = spec().getTileType(&quot;model.tile.hills&quot;);</span>
+<span class="fc" id="L35">    private static final TileType ocean</span>
+<span class="fc" id="L36">        = spec().getTileType(&quot;model.tile.ocean&quot;);</span>
+<span class="fc" id="L37">    private static final TileType plains</span>
+<span class="fc" id="L38">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+
+<span class="fc" id="L40">    private static final Role armedBraveRole</span>
+<span class="fc" id="L41">        = spec().getRole(&quot;model.role.armedBrave&quot;);</span>
+<span class="fc" id="L42">    private static final Role dragoonRole</span>
+<span class="fc" id="L43">        = spec().getRole(&quot;model.role.dragoon&quot;);</span>
+<span class="fc" id="L44">    private static final Role missionaryRole</span>
+<span class="fc" id="L45">        = spec().getRole(&quot;model.role.missionary&quot;);</span>
+<span class="fc" id="L46">    private static final Role mountedBraveRole</span>
+<span class="fc" id="L47">        = spec().getRole(&quot;model.role.mountedBrave&quot;);</span>
+<span class="fc" id="L48">    private static final Role nativeDragoonRole</span>
+<span class="fc" id="L49">        = spec().getRole(&quot;model.role.nativeDragoon&quot;);</span>
+<span class="fc" id="L50">    private static final Role pioneerRole</span>
+<span class="fc" id="L51">        = spec().getRole(&quot;model.role.pioneer&quot;);</span>
+<span class="fc" id="L52">    private static final Role scoutRole</span>
+<span class="fc" id="L53">        = spec().getRole(&quot;model.role.scout&quot;);</span>
+<span class="fc" id="L54">    private static final Role soldierRole</span>
+<span class="fc" id="L55">        = spec().getRole(&quot;model.role.soldier&quot;);</span>
+
+<span class="fc" id="L57">    private static final UnitType braveType</span>
+<span class="fc" id="L58">        = spec().getUnitType(&quot;model.unit.brave&quot;);</span>
+<span class="fc" id="L59">    private static final UnitType colonistType</span>
+<span class="fc" id="L60">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="fc" id="L61">    private static final UnitType galleonType</span>
+<span class="fc" id="L62">        = spec().getUnitType(&quot;model.unit.galleon&quot;);</span>
+
+
+    public void testMoveFromPlainsToPlains() throws Exception {
+
+<span class="fc" id="L67">        Game game = getStandardGame();</span>
+<span class="fc" id="L68">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L69">        Map map = getTestMap(plains);</span>
+<span class="fc" id="L70">        game.setMap(map);</span>
+<span class="fc" id="L71">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="fc" id="L72">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="fc" id="L73">        tile1.setExplored(dutch, true);</span>
+<span class="fc" id="L74">        tile2.setExplored(dutch, true);</span>
+
+<span class="fc" id="L76">        Unit colonist = new ServerUnit(game, tile1, dutch, colonistType);</span>
+
+<span class="fc" id="L78">        int moveCost = plains.getBasicMoveCost();</span>
+<span class="fc" id="L79">        assertEquals(moveCost, colonist.getMoveCost(tile2));</span>
+<span class="fc" id="L80">        assertEquals(Math.min(moveCost, colonistType.getMovement()),</span>
+<span class="fc" id="L81">                     colonist.getMoveCost(tile2));</span>
+
+        // Plowing should not change result
+<span class="fc" id="L84">        assertTrue(&quot;No improvements&quot;, tile2.getTileImprovements().isEmpty());</span>
+<span class="fc" id="L85">        TileImprovement ti = new TileImprovement(game, tile2, spec().getTileImprovementType(&quot;model.improvement.plow&quot;));</span>
+<span class="fc" id="L86">        ti.setTurnsToComplete(0);</span>
+<span class="fc" id="L87">        tile2.add(ti);</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">        assertTrue(&quot;Plowed&quot;, tile2.getCompleteTileImprovements().size() == 1);</span>
+<span class="fc" id="L89">        assertEquals(moveCost, colonist.getMoveCost(tile2));</span>
+<span class="fc" id="L90">        assertEquals(Math.min(moveCost, colonistType.getMovement()),</span>
+<span class="fc" id="L91">                     colonist.getMoveCost(tile2));</span>
+<span class="fc" id="L92">    }</span>
+
+    public void testMoveFromPlainsToHills() throws Exception {
+
+<span class="fc" id="L96">        Game game = getStandardGame();</span>
+<span class="fc" id="L97">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L98">        Map map = getTestMap(plains);</span>
+<span class="fc" id="L99">        game.setMap(map);</span>
+<span class="fc" id="L100">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="fc" id="L101">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="fc" id="L102">        tile2.setType(hills);</span>
+<span class="fc" id="L103">        tile1.setExplored(dutch, true);</span>
+<span class="fc" id="L104">        tile2.setExplored(dutch, true);</span>
+
+<span class="fc" id="L106">        Unit colonist = new ServerUnit(game, tile1, dutch, colonistType);</span>
+
+<span class="fc" id="L108">        int moveCost = hills.getBasicMoveCost();</span>
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">        assertTrue(moveCost &gt; colonist.getMovesLeft());</span>
+<span class="fc" id="L110">        assertEquals(Math.min(moveCost, colonistType.getMovement()),</span>
+<span class="fc" id="L111">                     colonist.getMoveCost(tile2));</span>
+
+<span class="fc" id="L113">    }</span>
+
+    public void testMoveAlongRoad() throws Exception {
+
+<span class="fc" id="L117">        Game game = getStandardGame();</span>
+<span class="fc" id="L118">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L119">        Map map = getTestMap(plains);</span>
+<span class="fc" id="L120">        game.setMap(map);</span>
+<span class="fc" id="L121">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="fc" id="L122">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="fc" id="L123">        tile1.setExplored(dutch, true);</span>
+<span class="fc" id="L124">        tile2.setExplored(dutch, true);</span>
+
+<span class="fc" id="L126">        TileImprovement road1 = tile1.addRoad();</span>
+<span class="fc" id="L127">        assertTrue(road1.isRoad());</span>
+<span class="fc" id="L128">        assertFalse(road1.isComplete());</span>
+<span class="fc" id="L129">        road1.setTurnsToComplete(0);</span>
+<span class="fc" id="L130">        assertTrue(road1.isComplete());</span>
+<span class="fc" id="L131">        road1.updateRoadConnections(true);</span>
+<span class="fc" id="L132">        assertEquals(road1, tile1.getRoad());</span>
+
+<span class="fc" id="L134">        TileImprovement road2 = tile2.addRoad();</span>
+<span class="fc" id="L135">        road2.setTurnsToComplete(0);</span>
+<span class="fc" id="L136">        road2.updateRoadConnections(true);</span>
+<span class="fc" id="L137">        assertTrue(road2.isComplete());</span>
+<span class="fc" id="L138">        assertEquals(road2, tile2.getRoad());</span>
+        
+<span class="fc" id="L140">        assertTrue(road1.isConnectedTo(tile1.getDirection(tile2)));</span>
+<span class="fc" id="L141">        assertTrue(road2.isConnectedTo(tile2.getDirection(tile1)));</span>
+
+<span class="fc" id="L143">        Unit colonist = new ServerUnit(game, tile1, dutch, colonistType);</span>
+<span class="fc" id="L144">        int moveCost = 1;</span>
+<span class="fc" id="L145">        assertEquals(moveCost, colonist.getMoveCost(tile2));</span>
+<span class="fc" id="L146">        assertEquals(Math.min(moveCost, colonistType.getMovement()),</span>
+<span class="fc" id="L147">                     colonist.getMoveCost(tile2));</span>
+<span class="fc" id="L148">    }</span>
+
+    public void testMoveAlongRiver() throws Exception {
+
+<span class="fc" id="L152">        Game game = getStandardGame();</span>
+<span class="fc" id="L153">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L154">        Map map = getTestMap(plains);</span>
+<span class="fc" id="L155">        game.setMap(map);</span>
+<span class="fc" id="L156">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="fc" id="L157">        Tile tile2 = tile1.getNeighbourOrNull(Direction.NE);</span>
+<span class="fc" id="L158">        tile1.setExplored(dutch, true);</span>
+<span class="fc" id="L159">        tile2.setExplored(dutch, true);</span>
+<span class="fc" id="L160">        assertEquals(Direction.NE, map.getDirection(tile1, tile2));</span>
+<span class="fc" id="L161">        assertEquals(Direction.SW, map.getDirection(tile2, tile1));</span>
+
+<span class="fc" id="L163">        TileImprovement river1 = tile1.addRiver(1, &quot;0101&quot;);</span>
+<span class="fc" id="L164">        assertTrue(river1.isRiver());</span>
+<span class="fc" id="L165">        assertTrue(river1.isComplete());</span>
+<span class="fc" id="L166">        assertTrue(tile1.hasRiver());</span>
+
+<span class="fc" id="L168">        TileImprovement river2 = tile2.addRiver(1, &quot;0101&quot;);</span>
+<span class="fc" id="L169">        assertTrue(river2.isRiver());</span>
+<span class="fc" id="L170">        assertTrue(river2.isComplete());</span>
+<span class="fc" id="L171">        assertTrue(tile2.hasRiver());</span>
+
+<span class="fc" id="L173">        assertFalse(river1.isConnectedTo(Direction.NE));</span>
+<span class="fc" id="L174">        assertTrue (river1.isConnectedTo(Direction.SE));</span>
+<span class="fc" id="L175">        assertFalse(river1.isConnectedTo(Direction.SW));</span>
+<span class="fc" id="L176">        assertTrue (river1.isConnectedTo(Direction.NW));</span>
+<span class="fc" id="L177">        assertFalse(river2.isConnectedTo(Direction.NE));</span>
+<span class="fc" id="L178">        assertTrue (river2.isConnectedTo(Direction.SE));</span>
+<span class="fc" id="L179">        assertFalse(river2.isConnectedTo(Direction.SW));</span>
+<span class="fc" id="L180">        assertTrue (river2.isConnectedTo(Direction.NW));</span>
+
+<span class="fc" id="L182">        Unit colonist = new ServerUnit(game, tile1, dutch, colonistType);</span>
+
+        // rivers start parallel, no cost reduction
+<span class="fc" id="L185">        int moveCost = 3;</span>
+<span class="fc" id="L186">        assertEquals(moveCost, colonist.getMoveCost(tile2));</span>
+<span class="fc" id="L187">        assertEquals(Math.min(moveCost, colonistType.getMovement()),</span>
+<span class="fc" id="L188">                     colonist.getMoveCost(tile2));</span>
+
+        // rivers are connected, cost reduction applies
+<span class="fc" id="L191">        river1.updateRiverConnections(&quot;1000&quot;);</span>
+<span class="fc" id="L192">        river2.updateRiverConnections(&quot;0010&quot;);</span>
+
+<span class="fc" id="L194">        assertTrue (river1.isConnectedTo(Direction.NE));</span>
+<span class="fc" id="L195">        assertFalse(river1.isConnectedTo(Direction.SE));</span>
+<span class="fc" id="L196">        assertFalse(river1.isConnectedTo(Direction.SW));</span>
+<span class="fc" id="L197">        assertFalse(river1.isConnectedTo(Direction.NW));</span>
+<span class="fc" id="L198">        assertFalse(river2.isConnectedTo(Direction.NE));</span>
+<span class="fc" id="L199">        assertFalse(river2.isConnectedTo(Direction.SE));</span>
+<span class="fc" id="L200">        assertTrue (river2.isConnectedTo(Direction.SW));</span>
+<span class="fc" id="L201">        assertFalse(river2.isConnectedTo(Direction.NW));</span>
+
+<span class="fc" id="L203">        moveCost = 1;</span>
+<span class="fc" id="L204">        assertEquals(moveCost, colonist.getMoveCost(tile2));</span>
+<span class="fc" id="L205">        assertEquals(Math.min(moveCost, colonistType.getMovement()),</span>
+<span class="fc" id="L206">                     colonist.getMoveCost(tile2));</span>
+<span class="fc" id="L207">    }</span>
+
+    public void testScoutColony() {
+<span class="fc" id="L210">        Game game = getGame();</span>
+<span class="fc" id="L211">        Map map = getTestMap(true);</span>
+<span class="fc" id="L212">        game.setMap(map);</span>
+
+<span class="fc" id="L214">        Player french = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="fc" id="L215">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L216">        Player iroquois = game.getPlayerByNationId(&quot;model.nation.iroquois&quot;);</span>
+
+<span class="fc" id="L218">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="fc" id="L219">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="fc" id="L220">        Tile tile3 = map.getTile(6, 8);</span>
+<span class="fc" id="L221">        tile1.setExplored(french, true);</span>
+<span class="fc" id="L222">        tile2.setExplored(french, true);</span>
+<span class="fc" id="L223">        tile3.setExplored(french, true);</span>
+<span class="fc" id="L224">        tile1.setExplored(dutch, true);</span>
+<span class="fc" id="L225">        tile2.setExplored(dutch, true);</span>
+<span class="fc" id="L226">        tile3.setExplored(dutch, true);</span>
+
+<span class="fc" id="L228">        Colony colony = getStandardColony();</span>
+<span class="fc" id="L229">        assertEquals(tile1.getColony(), colony);</span>
+
+<span class="fc" id="L231">        Unit colonist = new ServerUnit(game, tile2, french, colonistType);</span>
+<span class="fc" id="L232">        assertEquals(Unit.MoveType.MOVE_NO_ACCESS_SETTLEMENT,</span>
+<span class="fc" id="L233">                     colonist.getMoveType(tile1));</span>
+<span class="fc" id="L234">        colonist.setRole(pioneerRole);</span>
+<span class="fc" id="L235">        assertEquals(Unit.MoveType.MOVE_NO_ACCESS_SETTLEMENT,</span>
+<span class="fc" id="L236">                     colonist.getMoveType(tile1));</span>
+<span class="fc" id="L237">        colonist.setRole(missionaryRole);</span>
+<span class="fc" id="L238">        assertEquals(Unit.MoveType.MOVE_NO_ACCESS_SETTLEMENT,</span>
+<span class="fc" id="L239">                     colonist.getMoveType(tile1));</span>
+<span class="fc" id="L240">        colonist.setRole(scoutRole);</span>
+<span class="fc" id="L241">        assertEquals(Unit.MoveType.ENTER_FOREIGN_COLONY_WITH_SCOUT,</span>
+<span class="fc" id="L242">                     colonist.getMoveType(tile1));</span>
+<span class="fc" id="L243">        colonist.setRole(soldierRole);</span>
+<span class="fc" id="L244">        assertEquals(Unit.MoveType.ATTACK_SETTLEMENT,</span>
+<span class="fc" id="L245">                     colonist.getMoveType(tile1));</span>
+<span class="fc" id="L246">        colonist.setRole(dragoonRole);</span>
+<span class="fc" id="L247">        assertEquals(Unit.MoveType.ATTACK_SETTLEMENT,</span>
+<span class="fc" id="L248">                     colonist.getMoveType(tile1));</span>
+
+<span class="fc" id="L250">        Unit brave = new ServerUnit(game, tile3, iroquois, braveType);</span>
+<span class="fc" id="L251">        assertEquals(Unit.MoveType.ATTACK_SETTLEMENT, brave.getMoveType(tile1));</span>
+<span class="fc" id="L252">        brave.setRole(mountedBraveRole);</span>
+<span class="fc" id="L253">        assertEquals(Unit.MoveType.ATTACK_SETTLEMENT, brave.getMoveType(tile1));</span>
+<span class="fc" id="L254">        brave.setRole(armedBraveRole);</span>
+<span class="fc" id="L255">        assertEquals(Unit.MoveType.ATTACK_SETTLEMENT, brave.getMoveType(tile1));</span>
+<span class="fc" id="L256">        brave.setRole(nativeDragoonRole);</span>
+<span class="fc" id="L257">        assertEquals(Unit.MoveType.ATTACK_SETTLEMENT, brave.getMoveType(tile1));</span>
+<span class="fc" id="L258">    }</span>
+
+    public void testScoutIndianSettlement() {
+<span class="fc" id="L261">        Game game = getStandardGame();</span>
+<span class="fc" id="L262">        Map map = getTestMap(plains);</span>
+<span class="fc" id="L263">        game.setMap(map);</span>
+
+<span class="fc" id="L265">        Player french = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="fc" id="L266">        Player inca = game.getPlayerByNationId(&quot;model.nation.inca&quot;);</span>
+<span class="fc" id="L267">        Player iroquois = game.getPlayerByNationId(&quot;model.nation.iroquois&quot;);</span>
+
+<span class="fc" id="L269">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="fc" id="L270">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="fc" id="L271">        Tile tile3 = map.getTile(6, 8);</span>
+<span class="fc" id="L272">        tile1.setExplored(french, true);</span>
+<span class="fc" id="L273">        tile2.setExplored(french, true);</span>
+<span class="fc" id="L274">        tile3.setExplored(french, true);</span>
+
+        // Build settlement
+<span class="fc" id="L277">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="fc" id="L278">            = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="fc" id="L279">        builder.player(inca).settlementTile(tile1).skillToTeach(null).build();</span>
+
+<span class="fc" id="L281">        Unit colonist = new ServerUnit(game, tile2, french, colonistType);</span>
+<span class="fc" id="L282">        assertEquals(Unit.MoveType.MOVE_NO_ACCESS_CONTACT,</span>
+<span class="fc" id="L283">                     colonist.getMoveType(tile1));</span>
+<span class="fc" id="L284">        Player.makeContact(french, inca);</span>
+<span class="fc" id="L285">        assertEquals(Unit.MoveType.ENTER_INDIAN_SETTLEMENT_WITH_FREE_COLONIST,</span>
+<span class="fc" id="L286">                     colonist.getMoveType(tile1));</span>
+<span class="fc" id="L287">        colonist.setRole(spec().getRole(&quot;model.role.pioneer&quot;));</span>
+<span class="fc" id="L288">        assertEquals(Unit.MoveType.ENTER_INDIAN_SETTLEMENT_WITH_FREE_COLONIST,</span>
+<span class="fc" id="L289">                     colonist.getMoveType(tile1));</span>
+<span class="fc" id="L290">        colonist.setRole(spec().getRole(&quot;model.role.missionary&quot;));</span>
+<span class="fc" id="L291">        assertEquals(Unit.MoveType.ENTER_INDIAN_SETTLEMENT_WITH_MISSIONARY,</span>
+<span class="fc" id="L292">                     colonist.getMoveType(tile1));</span>
+<span class="fc" id="L293">        colonist.setRole(spec().getRole(&quot;model.role.scout&quot;));</span>
+<span class="fc" id="L294">        assertEquals(Unit.MoveType.ENTER_INDIAN_SETTLEMENT_WITH_SCOUT,</span>
+<span class="fc" id="L295">                     colonist.getMoveType(tile1));</span>
+<span class="fc" id="L296">        colonist.setRole(spec().getRole(&quot;model.role.soldier&quot;));</span>
+<span class="fc" id="L297">        assertEquals(Unit.MoveType.ATTACK_SETTLEMENT,</span>
+<span class="fc" id="L298">                     colonist.getMoveType(tile1));</span>
+<span class="fc" id="L299">        colonist.setRole(spec().getRole(&quot;model.role.dragoon&quot;));</span>
+<span class="fc" id="L300">        assertEquals(Unit.MoveType.ATTACK_SETTLEMENT,</span>
+<span class="fc" id="L301">                     colonist.getMoveType(tile1));</span>
+
+<span class="fc" id="L303">        Unit brave = new ServerUnit(game, tile3, iroquois, braveType);</span>
+<span class="fc" id="L304">        assertEquals(Unit.MoveType.ATTACK_SETTLEMENT, brave.getMoveType(tile1));</span>
+<span class="fc" id="L305">        brave.setRole(spec().getRole(&quot;model.role.mountedBrave&quot;));</span>
+<span class="fc" id="L306">        assertEquals(Unit.MoveType.ATTACK_SETTLEMENT, brave.getMoveType(tile1));</span>
+<span class="fc" id="L307">        brave.setRole(spec().getRole(&quot;model.role.armedBrave&quot;));</span>
+<span class="fc" id="L308">        assertEquals(Unit.MoveType.ATTACK_SETTLEMENT, brave.getMoveType(tile1));</span>
+<span class="fc" id="L309">        brave.setRole(spec().getRole(&quot;model.role.nativeDragoon&quot;));</span>
+<span class="fc" id="L310">        assertEquals(Unit.MoveType.ATTACK_SETTLEMENT, brave.getMoveType(tile1));</span>
+<span class="fc" id="L311">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

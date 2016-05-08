@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>AIMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai</a> &gt; <span class="el_source">AIMessage.java</span></div><h1>AIMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import net.sf.freecol.common.FreeColException;
+import net.sf.freecol.common.model.BuildableType;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.FreeColGameObject;
+import net.sf.freecol.common.model.FreeColObject;
+import net.sf.freecol.common.model.Goods;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.Location;
+import net.sf.freecol.common.model.NationSummary;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Role;
+import net.sf.freecol.common.model.Settlement;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TileImprovementType;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.Unit.UnitState;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.model.WorkLocation;
+
+
+/**
+ * Wrapper class for AI message handling.
+ */
+<span class="nc" id="L50">public class AIMessage {</span>
+
+    /**
+     * An AIUnit attacks in the given direction.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to attack with.
+     * @param direction The &lt;code&gt;Direction&lt;/code&gt; to attack in.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askAttack(AIUnit aiUnit, Direction direction) {
+<span class="nc" id="L60">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L61">            .attack(aiUnit.getUnit(), direction);</span>
+    }
+
+    /**
+     * An AIUnit builds a colony.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to build the colony.
+     * @param name The name of the colony.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askBuildColony(AIUnit aiUnit, String name) {
+<span class="nc" id="L72">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L73">            .buildColony(name, aiUnit.getUnit());</span>
+    }
+
+    /**
+     * An AIUnit cashes in.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; cashing in.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askCashInTreasureTrain(AIUnit aiUnit) {
+<span class="nc" id="L83">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L84">            .cashInTreasureTrain(aiUnit.getUnit());</span>
+    }
+
+    /**
+     * An AIUnit changes state.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to change the state of.
+     * @param state The new &lt;code&gt;UnitState&lt;/code&gt;.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askChangeState(AIUnit aiUnit, UnitState state) {
+<span class="nc" id="L95">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L96">            .changeState(aiUnit.getUnit(), state);</span>
+    }
+
+    /**
+     * An AIUnit changes its work type.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to change the work type of.
+     * @param type The &lt;code&gt;GoodsType&lt;/code&gt; to produce.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askChangeWorkType(AIUnit aiUnit, GoodsType type) {
+<span class="nc" id="L107">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L108">            .changeWorkType(aiUnit.getUnit(), type);</span>
+    }
+
+   /**
+     * An AIUnit changes its work improvement type.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to change the work type of.
+     * @param type The &lt;code&gt;TileImprovementType&lt;/code&gt; to produce.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askChangeWorkImprovementType(AIUnit aiUnit,
+        TileImprovementType type) {
+<span class="nc" id="L120">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L121">            .changeWorkImprovementType(aiUnit.getUnit(), type);</span>
+    }
+
+    /**
+     * Claims a tile for a colony.
+     *
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; to claim.
+     * @param aic The &lt;code&gt;AIColony&lt;/code&gt; that is claiming.
+     * @param price The price to pay.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askClaimLand(Tile tile, AIColony aic, int price) {
+<span class="nc" id="L133">        return aic.getAIOwner().askServer()</span>
+<span class="nc" id="L134">            .claimTile(tile, aic.getColony(), price);</span>
+    }
+
+    /**
+     * Claims a tile.
+     *
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; to claim.
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; that is claiming.
+     * @param price The price to pay.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askClaimLand(Tile tile, AIUnit aiUnit, int price) {
+<span class="nc" id="L146">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L147">            .claimTile(tile, aiUnit.getUnit(), price);</span>
+    }
+
+    /**
+     * Clears the speciality of a unit.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to clear.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askClearSpeciality(AIUnit aiUnit) {
+<span class="nc" id="L157">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L158">            .clearSpeciality(aiUnit.getUnit());</span>
+    }
+
+    /**
+     * An AIUnit closes a transaction.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; that closes the transaction.
+     * @param settlement The target &lt;code&gt;Settlement&lt;/code&gt;.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askCloseTransaction(AIUnit aiUnit,
+                                              Settlement settlement) {
+<span class="nc" id="L170">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L171">            .closeTransactionSession(aiUnit.getUnit(), settlement);</span>
+    }
+
+    /**
+     * An AIUnit delivers a gift.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; delivering the gift.
+     * @param settlement The &lt;code&gt;Settlement&lt;/code&gt; to give to.
+     * @param goods The &lt;code&gt;Goods&lt;/code&gt; to give.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askDeliverGift(AIUnit aiUnit, Settlement settlement,
+                                         Goods goods) {
+<span class="nc" id="L184">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L185">            .deliverGiftToSettlement(aiUnit.getUnit(), settlement, goods);</span>
+    }
+
+    /**
+     * An AIUnit disbands.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to disband.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askDisband(AIUnit aiUnit) {
+<span class="nc" id="L195">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L196">            .disbandUnit(aiUnit.getUnit());</span>
+    }
+
+    /**
+     * An AIUnit disembarks.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; disembarking.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askDisembark(AIUnit aiUnit) {
+<span class="nc" id="L206">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L207">            .disembark(aiUnit.getUnit());</span>
+    }
+
+    /**
+     * An AIUnit embarks.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; carrier.
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; that is embarking.
+     * @param direction The &lt;code&gt;Direction&lt;/code&gt; to embark in (may be null).
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askEmbark(AIUnit aiUnit, Unit unit,
+                                    Direction direction) {
+<span class="nc" id="L220">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L221">            .embark(unit, aiUnit.getUnit(), direction);</span>
+    }
+
+    /**
+     * A unit in Europe emigrates.
+     *
+     * @param aiPlayer The &lt;code&gt;AIPlayer&lt;/code&gt; requiring emigration.
+     * @param slot The slot to emigrate from.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askEmigrate(AIPlayer aiPlayer, int slot) {
+<span class="nc" id="L232">        return aiPlayer.askServer()</span>
+<span class="nc" id="L233">            .emigrate(aiPlayer.getGame(), slot);</span>
+    }
+
+    /**
+     * Ends the player turn.
+     *
+     * @param aiPlayer The &lt;code&gt;AIPlayer&lt;/code&gt; ending the turn.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askEndTurn(AIPlayer aiPlayer) {
+<span class="nc" id="L243">        return aiPlayer.askServer()</span>
+<span class="nc" id="L244">            .endTurn(aiPlayer.getGame());</span>
+    }
+
+    /**
+     * Change the role of a unit.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to equip.
+     * @param role The &lt;code&gt;Role&lt;/code&gt; to equip for.
+     * @param roleCount The role count.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askEquipForRole(AIUnit aiUnit, Role role,
+                                          int roleCount) {
+<span class="fc" id="L257">        return aiUnit.getAIOwner().askServer()</span>
+<span class="fc" id="L258">            .equipUnitForRole(aiUnit.getUnit(), role, roleCount);</span>
+    }
+
+    /**
+     * Establishes a mission in the given direction.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; establishing the mission.
+     * @param direction The &lt;code&gt;Direction&lt;/code&gt; to move the unit.
+     * @param denounce Is this a denunciation?
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askEstablishMission(AIUnit aiUnit,
+                                              Direction direction,
+                                              boolean denounce) {
+<span class="nc" id="L272">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L273">            .missionary(aiUnit.getUnit(), direction, denounce);</span>
+    }
+
+    /**
+     * Gets a nation summary for a player.
+     *
+     * @param owner The &lt;code&gt;AIPlayer&lt;/code&gt; making the inquiry.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; to summarize.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askNationSummary(AIPlayer owner, Player player) {
+<span class="fc" id="L284">        return owner.askServer()</span>
+<span class="fc" id="L285">            .nationSummary(owner.getPlayer(), player);</span>
+    }
+
+    /**
+     * An AIUnit gets a transaction.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; that gets a transaction.
+     * @param settlement The target &lt;code&gt;Settlement&lt;/code&gt;.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askGetTransaction(AIUnit aiUnit,
+                                            Settlement settlement) {
+<span class="nc bnc" id="L297" title="All 2 branches missed.">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L298">            .openTransactionSession(aiUnit.getUnit(), settlement) != null;</span>
+    }
+
+    /**
+     * Makes demands to a colony.  One and only one of goods or gold is valid.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; that is demanding.
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; to demand of.
+     * @param type The &lt;code&gt;GoodsType&lt;/code&gt; to demand.
+     * @param amount The amount of goods to demand.
+     * @return True if the message was sent, a non-error reply returned, and
+     *     the demand was accepted.
+     */
+    public static boolean askIndianDemand(AIUnit aiUnit, Colony colony,
+                                          GoodsType type, int amount) {
+<span class="nc" id="L313">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L314">            .indianDemand(aiUnit.getUnit(), colony, type, amount);</span>
+    }
+
+    /**
+     * An AI unit loads some cargo.
+     *
+     * @param loc The &lt;code&gt;Location&lt;/code&gt; where the goods are.
+     * @param type The &lt;code&gt;GoodsType&lt;/code&gt; to load.
+     * @param amount The amount of goods to load.
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; that is loading.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askLoadGoods(Location loc, GoodsType type,
+                                       int amount, AIUnit aiUnit) {
+<span class="nc" id="L328">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L329">            .loadGoods(loc, type, amount, aiUnit.getUnit());</span>
+    }
+
+    /**
+     * An AI unit loots some cargo.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; that is looting.
+     * @param defenderId The object identifier of the defending unit.
+     * @param goods A list of &lt;code&gt;Goods&lt;/code&gt; to loot.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askLoot(AIUnit aiUnit, String defenderId,
+                                  List&lt;Goods&gt; goods) {
+<span class="fc" id="L342">        return aiUnit.getAIOwner().askServer()</span>
+<span class="fc" id="L343">            .loot(aiUnit.getUnit(), defenderId, goods);</span>
+    }
+
+    /**
+     * Moves an AIUnit in the given direction.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to move.
+     * @param direction The &lt;code&gt;Direction&lt;/code&gt; to move the unit.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askMove(AIUnit aiUnit, Direction direction) {
+<span class="fc" id="L354">        return aiUnit.getAIOwner().askServer()</span>
+<span class="fc" id="L355">            .move(aiUnit.getUnit(), direction);</span>
+    }
+
+    /**
+     * Moves an AIUnit across the high seas.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to move.
+     * @param destination The &lt;code&gt;Location&lt;/code&gt; to move to.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askMoveTo(AIUnit aiUnit, Location destination) {
+<span class="nc" id="L366">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L367">            .moveTo(aiUnit.getUnit(), destination);</span>
+    }
+
+    /**
+     * An AIUnit is put outside a colony.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to put out.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askPutOutsideColony(AIUnit aiUnit) {
+<span class="nc" id="L377">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L378">            .putOutsideColony(aiUnit.getUnit());</span>
+    }
+
+    /**
+     * Rearrange an AI colony.
+     *
+     * @param aiColony The &lt;code&gt;AIColony&lt;/code&gt; to rearrange.
+     * @param workers A list of worker &lt;code&gt;Unit&lt;/code&gt;s that may change.
+     * @param scratch A copy of the underlying &lt;code&gt;Colony&lt;/code&gt; with the
+     *     workers arranged as required.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askRearrangeColony(AIColony aiColony,
+                                             List&lt;Unit&gt; workers,
+                                             Colony scratch) {
+<span class="fc" id="L393">        return aiColony.getAIOwner().askServer()</span>
+<span class="fc" id="L394">            .rearrangeColony(aiColony.getColony(), workers, scratch);</span>
+    }
+
+    /**
+     * An AI unit speaks to the chief of a native settlement.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; that is scouting.
+     * @param settlement The &lt;code&gt;IndianSettlement&lt;/code&gt; to scout.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askScoutSpeakToChief(AIUnit aiUnit,
+                                               IndianSettlement settlement) {
+<span class="nc" id="L406">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L407">            .scoutSpeakToChief(aiUnit.getUnit(), settlement);</span>
+    }
+
+    /**
+     * Set the build queue in a colony.
+     *
+     * @param aiColony The &lt;code&gt;AIColony&lt;/code&gt; that is building.
+     * @param queue The list of &lt;code&gt;BuildableType&lt;/code&gt;s to build.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askSetBuildQueue(AIColony aiColony,
+                                           List&lt;BuildableType&gt; queue) {
+<span class="fc" id="L419">        return aiColony.getAIOwner().askServer()</span>
+<span class="fc" id="L420">            .setBuildQueue(aiColony.getColony(), queue);</span>
+    }
+
+    /**
+     * Train unit in Europe.
+     *
+     * @param aiPlayer The &lt;code&gt;AIPlayer&lt;/code&gt; requiring training.
+     * @param type The &lt;code&gt;UnitType&lt;/code&gt; to train.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askTrainUnitInEurope(AIPlayer aiPlayer,
+                                               UnitType type) {
+<span class="nc" id="L432">        return aiPlayer.askServer()</span>
+<span class="nc" id="L433">            .trainUnitInEurope(aiPlayer.getGame(), type);</span>
+    }
+
+
+    /**
+     * An AI unit unloads some cargo.
+     *
+     * @param type The &lt;code&gt;GoodsType&lt;/code&gt; to unload.
+     * @param amount The amount of goods to unload.
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; that is unloading.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askUnloadGoods(GoodsType type, int amount,
+                                         AIUnit aiUnit) {
+<span class="nc" id="L447">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L448">            .unloadGoods(type, amount, aiUnit.getUnit());</span>
+    }
+
+    /**
+     * Set a unit to work in a work location.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to work.
+     * @param workLocation The &lt;code&gt;WorkLocation&lt;/code&gt; to work in.
+     * @return True if the message was sent, and a non-error reply returned.
+     */
+    public static boolean askWork(AIUnit aiUnit, WorkLocation workLocation) {
+<span class="nc" id="L459">        return aiUnit.getAIOwner().askServer()</span>
+<span class="nc" id="L460">            .work(aiUnit.getUnit(), workLocation);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

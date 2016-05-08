@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ClassicMapControls.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.gui.panel</a> &gt; <span class="el_source">ClassicMapControls.java</span></div><h1>ClassicMapControls.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.gui.panel;
+
+import java.awt.Font;
+
+import javax.swing.JButton;
+import javax.swing.JPanel;
+
+import net.miginfocom.swing.MigLayout;
+
+import net.sf.freecol.client.FreeColClient;
+import net.sf.freecol.client.gui.Canvas;
+import net.sf.freecol.client.gui.FontLibrary;
+import net.sf.freecol.client.gui.action.ActionManager;
+import net.sf.freecol.common.resources.ResourceManager;
+
+
+/**
+ * A collection of panels and buttons that are used to provide
+ * the user with a more detailed view of certain elements on the
+ * map and also to provide a means of input in case the user
+ * can't use the keyboard.
+ *
+ * The MapControls are useless by themselves, this object needs to
+ * be placed on a JComponent in order to be usable.
+ */
+public final class ClassicMapControls extends MapControls {
+
+    private final JPanel panel;
+    private final Font arrowFont;
+    private final ActionManager am;
+
+
+    /**
+     * The basic constructor.
+     *
+     * @param freeColClient The &lt;code&gt;FreeColClient&lt;/code&gt; for the game.
+     */
+    public ClassicMapControls(final FreeColClient freeColClient) {
+<span class="nc" id="L58">        super(freeColClient, false);</span>
+
+<span class="nc" id="L60">        am = freeColClient.getActionManager();</span>
+<span class="nc" id="L61">        arrowFont = FontLibrary.createFont(FontLibrary.FontType.SIMPLE,</span>
+<span class="nc" id="L62">            FontLibrary.FontSize.SMALL, Font.BOLD);</span>
+
+<span class="nc" id="L64">        panel = new MigPanel();</span>
+<span class="nc" id="L65">        panel.setLayout(new MigLayout(&quot;wrap 3&quot;));</span>
+<span class="nc" id="L66">        panel.add(miniMap, &quot;span, width &quot; + MAP_WIDTH</span>
+                           + &quot;, height &quot; + MAP_HEIGHT);
+
+<span class="nc" id="L69">        panel.add(miniMapZoomInButton, &quot;newline 10&quot;);</span>
+<span class="nc" id="L70">        panel.add(miniMapZoomOutButton, &quot;skip&quot;);</span>
+
+<span class="nc" id="L72">        panel.add(makeButton(&quot;NW&quot;, ResourceManager.getString(&quot;arrow.NW&quot;)),</span>
+<span class="nc" id="L73">                  &quot;newline 20&quot;);</span>
+<span class="nc" id="L74">        panel.add(makeButton(&quot;N&quot;,  ResourceManager.getString(&quot;arrow.N&quot;)));</span>
+<span class="nc" id="L75">        panel.add(makeButton(&quot;NE&quot;, ResourceManager.getString(&quot;arrow.NE&quot;)));</span>
+<span class="nc" id="L76">        panel.add(makeButton(&quot;W&quot;,  ResourceManager.getString(&quot;arrow.W&quot;)));</span>
+<span class="nc" id="L77">        panel.add(makeButton(&quot;E&quot;,  ResourceManager.getString(&quot;arrow.E&quot;)),</span>
+<span class="nc" id="L78">                  &quot;skip&quot;);</span>
+<span class="nc" id="L79">        panel.add(makeButton(&quot;SW&quot;, ResourceManager.getString(&quot;arrow.SW&quot;)));</span>
+<span class="nc" id="L80">        panel.add(makeButton(&quot;S&quot;,  ResourceManager.getString(&quot;arrow.S&quot;)));</span>
+<span class="nc" id="L81">        panel.add(makeButton(&quot;SE&quot;, ResourceManager.getString(&quot;arrow.SE&quot;)),</span>
+<span class="nc" id="L82">                  &quot;wrap 20&quot;);</span>
+
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        for (UnitButton button : unitButtons) {</span>
+<span class="nc" id="L85">            panel.add(button);</span>
+        }
+
+<span class="nc" id="L88">        panel.add(infoPanel, &quot;newline push, span, width &quot;</span>
+<span class="nc" id="L89">            + infoPanel.getWidth() + &quot;, height &quot; + infoPanel.getHeight());</span>
+<span class="nc" id="L90">    }</span>
+
+    /**
+     * Adds the map controls to the given component.
+     * @param component The component to add the map controls to.
+     */
+    @Override
+    public void addToComponent(Canvas component) {
+<span class="nc bnc" id="L98" title="All 4 branches missed.">        if (getGame() == null || getGame().getMap() == null) return;</span>
+<span class="nc" id="L99">        int width = (int) panel.getPreferredSize().getWidth();</span>
+<span class="nc" id="L100">        panel.setSize(width, component.getHeight());</span>
+<span class="nc" id="L101">        panel.setLocation(component.getWidth() - width, 0);</span>
+<span class="nc" id="L102">        component.add(panel, CONTROLS_LAYER);</span>
+<span class="nc" id="L103">    }</span>
+
+    @Override
+    public boolean isShowing() {
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        return panel.getParent() != null;</span>
+    }
+
+    /**
+     * Removes the map controls from the parent canvas component.
+     *
+     * @param canvas &lt;code&gt;Canvas&lt;/code&gt; parent
+     */
+    @Override
+    public void removeFromComponent(Canvas canvas) {
+<span class="nc" id="L117">        canvas.removeFromCanvas(panel);</span>
+<span class="nc" id="L118">    }</span>
+
+    /**
+     * Repaint
+     */
+    @Override
+    public void repaint() {
+<span class="nc" id="L125">        panel.repaint();</span>
+<span class="nc" id="L126">    }</span>
+
+    private JButton makeButton(String direction, String arrow) {
+<span class="nc" id="L129">        JButton button</span>
+<span class="nc" id="L130">            = new JButton(am.getFreeColAction(&quot;moveAction.&quot; + direction));</span>
+<span class="nc" id="L131">        button.setFont(arrowFont);</span>
+<span class="nc" id="L132">        button.setText(arrow);</span>
+<span class="nc" id="L133">        return button;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

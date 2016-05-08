@@ -1,0 +1,470 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ModelMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">ModelMessage.java</span></div><h1>ModelMessage.java</h1><pre class="source lang-java linenums"><span class="pc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.client.gui.panel.Utility;
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.networking.DOMMessage;
+import net.sf.freecol.common.util.Utils;
+import static net.sf.freecol.common.util.StringUtils.*;
+
+
+/**
+ * Contains a message about a change in the model.
+ */
+public class ModelMessage extends StringTemplate {
+
+    /** Constants describing the type of message. */
+<span class="fc" id="L42">    public static enum MessageType implements Named {</span>
+
+<span class="fc" id="L44">        DEFAULT(&quot;&quot;),</span>
+<span class="fc" id="L45">        WARNING(&quot;model.option.guiShowWarning&quot;),</span>
+<span class="fc" id="L46">        SONS_OF_LIBERTY(&quot;model.option.guiShowSonsOfLiberty&quot;),</span>
+<span class="fc" id="L47">        GOVERNMENT_EFFICIENCY(&quot;model.option.guiShowGovernmentEfficiency&quot;),</span>
+<span class="fc" id="L48">        WAREHOUSE_CAPACITY(&quot;model.option.guiShowWarehouseCapacity&quot;),</span>
+<span class="fc" id="L49">        UNIT_ADDED(&quot;model.option.guiShowUnitAdded&quot;),</span>
+<span class="fc" id="L50">        UNIT_IMPROVED(&quot;model.option.guiShowUnitImproved&quot;),</span>
+<span class="fc" id="L51">        UNIT_DEMOTED(&quot;model.option.guiShowUnitDemoted&quot;),</span>
+<span class="fc" id="L52">        UNIT_LOST(&quot;model.option.guiShowUnitLost&quot;),</span>
+<span class="fc" id="L53">        UNIT_REPAIRED(&quot;model.option.guiShowUnitRepaired&quot;),</span>
+<span class="fc" id="L54">        BUILDING_COMPLETED(&quot;model.option.guiShowBuildingCompleted&quot;),</span>
+<span class="fc" id="L55">        FOREIGN_DIPLOMACY(&quot;model.option.guiShowForeignDiplomacy&quot;),</span>
+<span class="fc" id="L56">        MARKET_PRICES(&quot;model.option.guiShowMarketPrices&quot;),</span>
+<span class="fc" id="L57">        LOST_CITY_RUMOUR(null), // Displayed during the turn</span>
+<span class="fc" id="L58">        MISSING_GOODS(&quot;model.option.guiShowMissingGoods&quot;),</span>
+<span class="fc" id="L59">        TUTORIAL(&quot;model.option.guiShowTutorial&quot;),</span>
+<span class="fc" id="L60">        COMBAT_RESULT(null), // No option, always display</span>
+<span class="fc" id="L61">        GIFT_GOODS(&quot;model.option.guiShowGifts&quot;),</span>
+<span class="fc" id="L62">        DEMANDS(&quot;model.option.guiShowDemands&quot;),</span>
+<span class="fc" id="L63">        GOODS_MOVEMENT(&quot;model.option.guiShowGoodsMovement&quot;);</span>
+
+        private final String optionName;
+
+<span class="fc" id="L67">        MessageType(String optionName) {</span>
+<span class="fc" id="L68">            this.optionName = optionName;</span>
+<span class="fc" id="L69">        }</span>
+
+        public String getOptionName() {
+<span class="nc" id="L72">            return optionName;</span>
+        }
+
+        /**
+         * Get a message key for this message type.
+         *
+         * @return A message key.
+         */
+        private String getKey() {
+<span class="nc" id="L81">            return &quot;messageType.&quot; + getEnumKey(this);</span>
+        }
+
+        // Implement Named
+
+        /**
+         * {@inheritDoc}
+         */
+        public String getNameKey() {
+<span class="nc" id="L90">            return Messages.nameKey(&quot;model.&quot; + getKey());</span>
+        }
+    }
+
+    private String sourceId;
+    private String displayId;
+    private MessageType messageType;
+<span class="pc" id="L97">    private boolean beenDisplayed = false;</span>
+
+
+    /**
+     * Trivial constructor to allow creation with FreeColObject.newInstance.
+     */
+<span class="nc" id="L103">    public ModelMessage() {}</span>
+        
+    /**
+     * Creates a new &lt;code&gt;ModelMessage&lt;/code&gt;.
+     *
+     * @param messageType The type of this model message.
+     * @param id The object identifier.
+     * @param defaultId The default identifier.
+     * @param source The source of the message. This is what the
+     *               message should be associated with.
+     * @param display The &lt;code&gt;FreeColObject&lt;/code&gt; to display.
+     */
+    public ModelMessage(MessageType messageType, String id, String defaultId,
+                        FreeColGameObject source, FreeColObject display) {
+<span class="fc" id="L117">        super(id, defaultId, TemplateType.TEMPLATE);</span>
+
+<span class="fc" id="L119">        this.messageType = messageType;</span>
+<span class="fc" id="L120">        this.sourceId = source.getId();</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        this.displayId = (display != null) ? display.getId() : source.getId();</span>
+<span class="fc" id="L122">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;ModelMessage&lt;/code&gt;.
+     *
+     * @param messageType The type of this model message.
+     * @param id The object identifier.
+     * @param source The source of the message. This is what the
+     *               message should be associated with.
+     * @param display The &lt;code&gt;FreeColObject&lt;/code&gt; to display.
+     */
+    public ModelMessage(MessageType messageType, String id,
+                        FreeColGameObject source, FreeColObject display) {
+<span class="fc" id="L135">        this(messageType, id, null, source, display);</span>
+<span class="fc" id="L136">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;ModelMessage&lt;/code&gt;.
+     *
+     * @param messageType The type of this model message.
+     * @param id The object identifier.
+     * @param source The source of the message. This is what the
+     *               message should be associated with.
+     */
+    public ModelMessage(MessageType messageType, String id,
+                        FreeColGameObject source) {
+<span class="fc" id="L148">        this(messageType, id, source, getDefaultDisplay(messageType, source));</span>
+<span class="fc" id="L149">    }</span>
+
+    /**
+     * Creates a new model message by reading a stream.
+     *
+     * @param xr The &lt;code&gt;FreeColXMLReader&lt;/code&gt; to read from.
+     * @exception XMLStreamException if there is a problem reading the stream.
+     */
+<span class="nc" id="L157">    public ModelMessage(FreeColXMLReader xr) throws XMLStreamException {</span>
+
+<span class="nc" id="L159">        readFromXML(xr);</span>
+<span class="nc" id="L160">    }</span>
+
+
+    /**
+     * Gets the source of the message.
+     *
+     * @return The identifier for the source of the message.
+     */
+    public String getSourceId() {
+<span class="nc" id="L169">        return sourceId;</span>
+    }
+
+    /**
+     * Sets the source object.
+     *
+     * @param sourceId A new source object identifier.
+     */
+    public void setSourceId(String sourceId) {
+<span class="nc" id="L178">        this.sourceId = sourceId;</span>
+<span class="nc" id="L179">    }</span>
+
+    /**
+     * Gets the object to display.
+     *
+     * @return The identifier of the object to display.
+     */
+    public String getDisplayId() {
+<span class="nc" id="L187">        return displayId;</span>
+    }
+
+    /**
+     * Sets the object to display.
+     *
+     * @param displayId A new display object identifier.
+     */
+    public void setDisplayId(String displayId) {
+<span class="nc" id="L196">        this.displayId = displayId;</span>
+<span class="nc" id="L197">    }</span>
+
+    /**
+     * Switch the source (and display if it is the same) to a new
+     * object.  Called when the source object becomes invalid.
+     *
+     * @param newSource A new source.
+     */
+    public void divert(FreeColGameObject newSource) {
+<span class="nc bnc" id="L206" title="All 2 branches missed.">        if (Utils.equals(displayId, sourceId)) displayId = newSource.getId();</span>
+<span class="nc" id="L207">        sourceId = newSource.getId();</span>
+<span class="nc" id="L208">    }</span>
+
+    /**
+     * Gets the messageType of the message to display.
+     *
+     * @return The messageType.
+     */
+    public MessageType getMessageType() {
+<span class="nc" id="L216">        return messageType;</span>
+    }
+
+    /**
+     * Sets the type of the message.
+     *
+     * @param messageType The new messageType.
+     */
+    public void setMessageType(MessageType messageType) {
+<span class="nc" id="L225">        this.messageType = messageType;</span>
+<span class="nc" id="L226">    }</span>
+
+    /**
+     * Has this message been displayed?
+     *
+     * @return True if this message has been displayed.
+     */
+    public boolean hasBeenDisplayed() {
+<span class="nc" id="L234">        return beenDisplayed;</span>
+    }
+
+    /**
+     * Sets whether this message has been displayed.
+     *
+     * @param beenDisplayed The new displayed state.
+     */
+    public void setBeenDisplayed(boolean beenDisplayed) {
+<span class="nc" id="L243">        this.beenDisplayed = beenDisplayed;</span>
+<span class="nc" id="L244">    }</span>
+
+    /**
+     * Set a default identifier.
+     *
+     * @param id The new default identifier.
+     * @return This &lt;code&gt;ModelMessage&lt;/code&gt;.
+     */
+    public ModelMessage addDefaultId(String id) {
+<span class="fc" id="L253">        return super.setDefaultId(id, ModelMessage.class);</span>
+    }
+
+    /**
+     * Gets the default display object for the given type.
+     *
+     * @param messageType The type to find the default display object for.
+     * @param source The source object
+     * @return An object to be displayed for the message.
+     */
+    static private FreeColObject getDefaultDisplay(MessageType messageType,
+                                                   FreeColGameObject source) {
+<span class="fc" id="L265">        FreeColObject o = null;</span>
+<span class="fc bfc" id="L266" title="All 4 branches covered.">        switch (messageType) {</span>
+        case SONS_OF_LIBERTY:
+        case GOVERNMENT_EFFICIENCY:
+<span class="fc" id="L269">            o = source.getSpecification().getGoodsType(&quot;model.goods.bells&quot;);</span>
+<span class="fc" id="L270">            break;</span>
+        case UNIT_IMPROVED:
+        case UNIT_DEMOTED:
+        case UNIT_LOST:
+        case UNIT_ADDED:
+        case LOST_CITY_RUMOUR:
+        case COMBAT_RESULT:
+        case DEMANDS:
+        case GOODS_MOVEMENT:
+<span class="fc" id="L279">            o = source;</span>
+<span class="fc" id="L280">            break;</span>
+        case BUILDING_COMPLETED:
+<span class="fc" id="L282">            o = source.getSpecification().getGoodsType(&quot;model.goods.hammers&quot;);</span>
+<span class="fc" id="L283">            break;</span>
+        case DEFAULT:
+        case WARNING:
+        case WAREHOUSE_CAPACITY:
+        case FOREIGN_DIPLOMACY:
+        case MARKET_PRICES:
+        case MISSING_GOODS:
+        case TUTORIAL:
+        case GIFT_GOODS:
+        default:
+<span class="fc bfc" id="L293" title="All 2 branches covered.">            if (source instanceof Player) o = source;</span>
+            break;
+        }
+<span class="fc" id="L296">        return o;</span>
+    }
+
+    /**
+     * Get a key for a message that might be ignored.
+     *
+     * @return A key, or null if the message should not be ignored.
+     */
+    public String getIgnoredMessageKey() {
+<span class="nc bnc" id="L305" title="All 2 branches missed.">        switch (getMessageType()) {</span>
+        case WAREHOUSE_CAPACITY:
+<span class="nc" id="L307">            String key = getSourceId();</span>
+<span class="nc bnc" id="L308" title="All 2 branches missed.">            switch (getTemplateType()) {</span>
+            case TEMPLATE:
+<span class="nc bnc" id="L310" title="All 2 branches missed.">                for (String k : getKeys()) {</span>
+<span class="nc bnc" id="L311" title="All 2 branches missed.">                    if (&quot;%goods%&quot;.equals(k)) {</span>
+<span class="nc" id="L312">                        key += &quot;-&quot; + getReplacement(k).getId();</span>
+                    }
+                }
+                break;
+            }
+<span class="nc" id="L317">            return key;</span>
+        default:
+            break;
+        }
+<span class="nc" id="L321">        return null;</span>
+    }
+
+    /**
+     * Split a message into a list of text and link objects.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; who will see the result.
+     * @return A list of strings and buttons.
+     */
+    public List&lt;Object&gt; splitLinks(Player player) {
+<span class="nc" id="L331">        final FreeColGameObject source = player.getGame()</span>
+<span class="nc" id="L332">            .getMessageSource(this);</span>
+
+        // Build a list of objects, initially containing just the plain
+        // text of the message.
+<span class="nc" id="L336">        List&lt;Object&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L337">        result.add(Messages.message(this));</span>
+
+<span class="nc bnc" id="L339" title="All 2 branches missed.">        for (String key : getKeys()) {</span>
+            // Then for each key, check if it can be made into a link.
+            // If not, ignore it.
+<span class="nc" id="L342">            String val = Messages.message(getReplacement(key));</span>
+<span class="nc" id="L343">            Object b = Utility.getMessageButton(key, val, player, source);</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">            if (b == null) continue;</span>
+
+            // ...if so, find all instances of the replacement of the key
+            // in the object list texts, and replace them with buttons.
+<span class="nc" id="L348">            List&lt;Object&gt; next = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L349" title="All 2 branches missed.">            for (Object o : result) {</span>
+<span class="nc bnc" id="L350" title="All 2 branches missed.">                if (o instanceof String) {</span>
+<span class="nc" id="L351">                    String str = (String)o;</span>
+<span class="nc" id="L352">                    int index, start = 0;</span>
+<span class="nc bnc" id="L353" title="All 2 branches missed.">                    while ((index = str.indexOf(val, start)) &gt;= 0) {</span>
+<span class="nc bnc" id="L354" title="All 2 branches missed.">                        if (index &gt; start) {</span>
+<span class="nc" id="L355">                            next.add(str.substring(start, index));</span>
+                        }
+<span class="nc" id="L357">                        next.add(b);</span>
+<span class="nc" id="L358">                        start = index + val.length();</span>
+                    }
+<span class="nc" id="L360">                    next.add(str.substring(start, str.length()));</span>
+<span class="nc" id="L361">                } else {</span>
+<span class="nc" id="L362">                    next.add(o);</span>
+                }
+            }
+<span class="nc" id="L365">            result = next;</span>
+        }
+<span class="nc" id="L367">        return result;</span>
+    }
+
+
+    // Override Object
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object o) {
+<span class="pc bpc" id="L378" title="1 of 2 branches missed.">        if (this == o) return true;</span>
+<span class="pc bpc" id="L379" title="1 of 2 branches missed.">        if (o instanceof ModelMessage) {</span>
+<span class="fc" id="L380">            ModelMessage m = (ModelMessage)o;</span>
+<span class="pc bpc" id="L381" title="1 of 2 branches missed.">            return sourceId.equals(m.sourceId)</span>
+<span class="pc bpc" id="L382" title="1 of 2 branches missed.">                &amp;&amp; messageType == m.messageType</span>
+<span class="pc bpc" id="L383" title="1 of 2 branches missed.">                &amp;&amp; super.equals(m);</span>
+        }
+<span class="nc" id="L385">        return false;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int hashCode() {
+<span class="fc" id="L393">        int hash = super.hashCode();</span>
+<span class="fc" id="L394">        hash = 37 * hash + sourceId.hashCode();</span>
+<span class="fc" id="L395">        return 37 * hash + messageType.ordinal();</span>
+    }
+
+
+    // Serialization
+
+    private static final String DISPLAY_TAG = &quot;display&quot;;
+    private static final String HAS_BEEN_DISPLAYED_TAG = &quot;hasBeenDisplayed&quot;;
+    private static final String MESSAGE_TYPE_TAG = &quot;messageType&quot;;
+    private static final String SOURCE_TAG = &quot;source&quot;;
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="fc" id="L412">        super.writeAttributes(xw);</span>
+
+<span class="fc" id="L414">        xw.writeAttribute(SOURCE_TAG, sourceId);</span>
+
+<span class="pc bpc" id="L416" title="1 of 2 branches missed.">        if (displayId != null) xw.writeAttribute(DISPLAY_TAG, displayId);</span>
+
+<span class="fc" id="L418">        xw.writeAttribute(MESSAGE_TYPE_TAG, messageType);</span>
+
+<span class="fc" id="L420">        xw.writeAttribute(HAS_BEEN_DISPLAYED_TAG, beenDisplayed);</span>
+<span class="fc" id="L421">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L428">        super.readAttributes(xr);</span>
+
+<span class="nc" id="L430">        sourceId = xr.getAttribute(SOURCE_TAG, (String)null);</span>
+
+<span class="nc" id="L432">        displayId = xr.getAttribute(DISPLAY_TAG, (String)null);</span>
+
+<span class="nc" id="L434">        messageType = xr.getAttribute(MESSAGE_TYPE_TAG, </span>
+<span class="nc" id="L435">                                      MessageType.class, MessageType.DEFAULT);</span>
+
+<span class="nc" id="L437">        beenDisplayed = xr.getAttribute(HAS_BEEN_DISPLAYED_TAG, false);</span>
+<span class="nc" id="L438">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L445">        StringBuilder sb = new StringBuilder(128);</span>
+<span class="nc" id="L446">        sb.append(&quot;ModelMessage&lt;&quot;).append(hashCode())</span>
+<span class="nc bnc" id="L447" title="All 2 branches missed.">            .append(&quot;, &quot;).append((sourceId == null) ? &quot;null&quot; : sourceId)</span>
+<span class="nc bnc" id="L448" title="All 2 branches missed.">            .append(&quot;, &quot;).append((displayId == null) ? &quot;null&quot; : displayId)</span>
+<span class="nc" id="L449">            .append(&quot;, &quot;).append(super.toString())</span>
+<span class="nc" id="L450">            .append(&quot;, &quot;).append(messageType)</span>
+<span class="nc" id="L451">            .append(&quot; &gt;&quot;);</span>
+<span class="nc" id="L452">        return sb.toString();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="fc" id="L459">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;modelMessage&quot;
+     */
+    public static String getTagName() {
+<span class="fc" id="L467">        return &quot;modelMessage&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>UpdateGameOptionsMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">UpdateGameOptionsMessage.java</span></div><h1>UpdateGameOptionsMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.common.model.FreeColGameObject;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.option.OptionGroup;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent to update the game options.
+ */
+public class UpdateGameOptionsMessage extends DOMMessage {
+
+    public static final String TAG = &quot;updateGameOptions&quot;;
+
+    /** The options. */
+    private final OptionGroup options;
+
+
+    /**
+     * Create a new &lt;code&gt;UpdateGameOptionsMessage&lt;/code&gt; with the
+     * supplied name.
+     *
+     * @param options The game options &lt;code&gt;OptionGroup&lt;/code&gt;.
+     */
+    public UpdateGameOptionsMessage(OptionGroup options) {
+<span class="nc" id="L51">        super(getTagName());</span>
+
+<span class="nc" id="L53">        this.options = options;</span>
+<span class="nc" id="L54">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;UpdateGameOptionsMessage&lt;/code&gt; from a
+     * supplied element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public UpdateGameOptionsMessage(Game game, Element element) {
+<span class="nc" id="L64">        this(getChild(game, element, 0, OptionGroup.class));</span>
+<span class="nc" id="L65">    }</span>
+
+
+    // Public interface
+
+    /**
+     * Get the associated option group.
+     *
+     * @return The options.
+     */
+    public OptionGroup getGameOptions() {
+<span class="nc" id="L76">        return this.options;</span>
+    }
+
+    /**
+     * Merge the options in this message into the given game.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to merge to.
+     * @return True if the merge succeeds.
+     */
+    public boolean mergeOptions(Game game) {
+<span class="nc" id="L86">        boolean result = false;        </span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">        if (this.options != null) {</span>
+<span class="nc" id="L88">            OptionGroup gameOptions = game.getGameOptions();</span>
+<span class="nc" id="L89">            result = gameOptions.merge(this.options);</span>
+        }
+<span class="nc" id="L91">        return result;</span>
+    }
+
+
+    /**
+     * Handle a &quot;updateGameOptions&quot;-message.
+     *
+     * @param freeColServer The &lt;code&gt;FreeColServer&lt;/code&gt; handling
+     *     the message.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; that sent the message.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message was received on.
+     * @return Null (although other players are updated on success) or
+     *     an error message if the options do not update.
+     */
+    public Element handle(FreeColServer freeColServer, Player player,
+                          Connection connection) {
+<span class="nc" id="L107">        final ServerPlayer serverPlayer = freeColServer.getPlayer(connection);</span>
+<span class="nc bnc" id="L108" title="All 4 branches missed.">        if (player == null || !player.isAdmin()) {</span>
+<span class="nc" id="L109">            return serverPlayer.clientError(&quot;Not an admin: &quot; + player)</span>
+<span class="nc" id="L110">                .build(serverPlayer);</span>
+        }
+<span class="nc" id="L112">        final Game game = freeColServer.getGame();</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        if (!mergeOptions(game)) {</span>
+<span class="nc" id="L114">            return serverPlayer.clientError(&quot;Option merge failed&quot;)</span>
+<span class="nc" id="L115">                .build(serverPlayer);</span>
+        }
+
+<span class="nc" id="L118">        final Specification spec = game.getSpecification();</span>
+<span class="nc" id="L119">        spec.clean(&quot;update game options (server)&quot;);</span>
+<span class="nc" id="L120">        UpdateGameOptionsMessage message</span>
+<span class="nc" id="L121">            = new UpdateGameOptionsMessage(game.getGameOptions());</span>
+<span class="nc" id="L122">        freeColServer.sendToAll(message, connection);</span>
+<span class="nc" id="L123">        return null;</span>
+    }
+
+
+    // Override DOMMessage
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="nc" id="L134">        return new DOMMessage(getTagName())</span>
+<span class="nc" id="L135">            .add(this.options).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;updateGameOptions&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L144">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

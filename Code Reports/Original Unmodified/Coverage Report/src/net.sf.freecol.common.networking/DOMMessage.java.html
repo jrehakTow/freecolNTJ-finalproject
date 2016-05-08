@@ -1,0 +1,945 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>DOMMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">DOMMessage.java</span></div><h1>DOMMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.function.Function;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.io.FreeColXMLWriter.WriteScope;
+import net.sf.freecol.common.debug.FreeColDebugger;
+import net.sf.freecol.common.model.FreeColGameObject;
+import net.sf.freecol.common.model.FreeColObject;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.networking.DOMMessage;
+import net.sf.freecol.common.util.Introspector;
+import net.sf.freecol.server.control.ChangeSet;
+import net.sf.freecol.server.control.ServerInputHandler;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+
+
+/**
+ * Class for parsing raw message data into an XML-tree and for creating new
+ * XML-trees.
+ */
+public class DOMMessage {
+
+<span class="fc" id="L76">    protected static final Logger logger = Logger.getLogger(DOMMessage.class.getName());</span>
+
+    private static final String FREECOL_PROTOCOL_VERSION = &quot;0.1.6&quot;;
+
+    private static final String INVALID_MESSAGE = &quot;invalid&quot;;
+
+<span class="fc" id="L82">    private static DocumentBuilder builder = null, parser = null;</span>
+    static {
+        try {
+<span class="fc" id="L85">            builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();</span>
+<span class="fc" id="L86">            parser = DocumentBuilderFactory.newInstance().newDocumentBuilder();</span>
+<span class="pc" id="L87">        } catch (ParserConfigurationException pce) {</span>
+            // Never seen this in practice.  Apparently thrown if a
+            // parser with specified options can not be built.
+<span class="nc" id="L90">            logger.log(Level.WARNING, &quot;Parser failure&quot;, pce);</span>
+        }
+<span class="fc" id="L92">    };</span>
+
+    /** The actual message data. */
+    protected Document document;
+
+
+    /**
+     * Constructs a new DOMMessage with data from the given InputStream. The
+     * constructor to use if this is an INCOMING message.
+     *
+     * @param inputStream The &lt;code&gt;InputStream&lt;/code&gt; to get the XML-data
+     *            from.
+     * @exception IOException if thrown by the &lt;code&gt;InputStream&lt;/code&gt;.
+     * @exception SAXException if thrown during parsing.
+     */
+<span class="fc" id="L107">    public DOMMessage(InputStream inputStream)</span>
+        throws SAXException, IOException {
+<span class="fc" id="L109">        this.document = readDocument(new InputSource(inputStream));</span>
+<span class="fc" id="L110">    }</span>
+
+    /**
+     * Create a DOMMessage with given tag and attributes.
+     *
+     * @param tag The main tag.
+     * @param attributes Attribute,value pairs.
+     */
+<span class="fc" id="L118">    public DOMMessage(String tag, String... attributes) {</span>
+<span class="fc" id="L119">        this.document = createNewDocument();</span>
+<span class="fc" id="L120">        Element root = this.document.createElement(tag);</span>
+<span class="fc" id="L121">        this.document.appendChild(root);</span>
+<span class="fc" id="L122">        String[] all = attributes;</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">        for (int i = 0; i &lt; all.length; i += 2) {</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">            if (all[i+1] != null) root.setAttribute(all[i], all[i+1]);</span>
+        }
+<span class="fc" id="L126">    }</span>
+
+
+    /**
+     * Create a DOMMessage from an element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to create the message in.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to create the message from.
+     * @return The message created, or null on failure.
+     */
+    public static DOMMessage createMessage(Game game, Element element) {
+<span class="nc bnc" id="L137" title="All 2 branches missed.">        if (element == null) return null;</span>
+<span class="nc" id="L138">        String tag = element.getTagName();</span>
+<span class="nc" id="L139">        tag = &quot;net.sf.freecol.common.networking.&quot;</span>
+<span class="nc" id="L140">            + tag.substring(0, 1).toUpperCase() + tag.substring(1)</span>
+<span class="nc" id="L141">            + &quot;Message&quot;;</span>
+<span class="nc" id="L142">        Class[] types = { Game.class, Element.class };</span>
+<span class="nc" id="L143">        Object[] params = { game, element };</span>
+        DOMMessage message;
+        try {
+<span class="nc" id="L146">            message = (DOMMessage)Introspector.instantiate(tag, types, params);</span>
+<span class="nc" id="L147">        } catch (Introspector.IntrospectorException ex) {</span>
+<span class="nc" id="L148">            logger.log(Level.WARNING, &quot;Instantiation fail for message type:&quot;</span>
+<span class="nc" id="L149">                + tag, ex);</span>
+<span class="nc" id="L150">            message = null;</span>
+        }
+<span class="nc" id="L152">        return message;</span>
+    }
+
+    /**
+     * Gets the root element of the document.
+     *
+     * @return The root element.
+     */
+    private Element getElement() {
+<span class="fc" id="L161">        return this.document.getDocumentElement();</span>
+    }
+    
+    /**
+     * Gets the type of this DOMMessage.
+     *
+     * @return The type of this DOMMessage.
+     */
+    public String getType() {
+<span class="pc bpc" id="L170" title="2 of 4 branches missed.">        return (this.document != null &amp;&amp; getElement() != null)</span>
+<span class="fc" id="L171">            ? getElement().getTagName()</span>
+<span class="nc" id="L172">            : INVALID_MESSAGE;</span>
+    }
+
+    /**
+     * Checks if this message is of a given type.
+     *
+     * @param type The type you wish to test against.
+     * @return &lt;code&gt;true&lt;/code&gt; if the type of this message equals the given
+     *         type and &lt;code&gt;false&lt;/code&gt; otherwise.
+     */
+    public boolean isType(String type) {
+<span class="nc" id="L183">        return getType().equals(type);</span>
+    }
+
+    /**
+     * Gets an attribute from the root element.
+     *
+     * @param key The key of the attribute.
+     * @return The value of the attribute with the given key.
+     */
+    public String getAttribute(String key) {
+<span class="nc" id="L193">        return getElement().getAttribute(key);</span>
+    }
+
+    /**
+     * Sets an attribute on the root element.
+     *
+     * @param key The key of the attribute.
+     * @param value The value of the attribute.
+     */
+    public void setAttribute(String key, String value) {
+<span class="fc" id="L203">        getElement().setAttribute(key, value);</span>
+<span class="fc" id="L204">    }</span>
+
+    /**
+     * Sets an attribute on the root element.
+     *
+     * @param key The key of the attribute.
+     * @param value The value of the attribute.
+     */
+    public void setAttribute(String key, int value) {
+<span class="nc" id="L213">        setAttribute(key, Integer.toString(value));</span>
+<span class="nc" id="L214">    }</span>
+
+    /**
+     * Set a list of attributes as an array.
+     *
+     * @param attributes The list of attribute strings.
+     * @return This message.
+     */
+    public DOMMessage setArrayAttributes(List&lt;String&gt; attributes) {
+<span class="nc bnc" id="L223" title="All 2 branches missed.">        if (!attributes.isEmpty()) {</span>
+<span class="nc" id="L224">            int i = 0;</span>
+            String key;
+<span class="nc bnc" id="L226" title="All 2 branches missed.">            for (String a : attributes) {</span>
+<span class="nc" id="L227">                key = &quot;x&quot; + Integer.toString(i);</span>
+<span class="nc" id="L228">                setAttribute(key, a);</span>
+<span class="nc" id="L229">                i++;</span>
+            }
+        }
+<span class="nc" id="L232">        return this;</span>
+    }                
+
+    /**
+     * Set a array of attributes.
+     *
+     * @param attributes The array of attribute strings.
+     * @return This message.
+     */
+    public DOMMessage setArrayAttributes(String[] attributes) {
+<span class="pc bpc" id="L242" title="1 of 2 branches missed.">        if (attributes != null) {</span>
+<span class="fc bfc" id="L243" title="All 2 branches covered.">            for (int i = 0; i &lt; attributes.length; i++) {</span>
+<span class="fc" id="L244">                String key = &quot;x&quot; + Integer.toString(i);</span>
+<span class="fc" id="L245">                setAttribute(key, attributes[i]);</span>
+            }
+        }
+<span class="fc" id="L248">        return this;</span>
+    }                
+    
+    /**
+     * Set all the attributes in a map.
+     *
+     * @param attributes The map of attribute strings.
+     * @return This message.
+     */
+    public DOMMessage setAttributes(Map&lt;String, String&gt; attributes) {
+<span class="nc bnc" id="L258" title="All 2 branches missed.">        if (!attributes.isEmpty()) {</span>
+<span class="nc bnc" id="L259" title="All 2 branches missed.">            for (Entry&lt;String, String&gt; e : attributes.entrySet()) {</span>
+<span class="nc" id="L260">                setAttribute(e.getKey(), e.getValue());</span>
+            }
+        }
+<span class="nc" id="L263">        return this;</span>
+    }
+
+    /**
+     * Checks if an attribute is set on the root element.
+     *
+     * @param attribute The attribute in which to verify the existence of.
+     * @return &lt;code&gt;true&lt;/code&gt; if the root element has the given attribute.
+     */
+    public boolean hasAttribute(String attribute) {
+<span class="nc" id="L273">        return getElement().hasAttribute(attribute);</span>
+    }
+
+    public DOMMessage add(Element e) {
+<span class="pc bpc" id="L277" title="1 of 2 branches missed.">        if (e != null) getElement().appendChild(this.document.importNode(e, true));</span>
+<span class="fc" id="L278">        return this;</span>
+    }
+    public DOMMessage add(FreeColObject fco) {
+<span class="fc bfc" id="L281" title="All 2 branches covered.">        if (fco != null) add(toXMLElement(fco, this.document, (Player)null));</span>
+<span class="fc" id="L282">        return this;</span>
+    }
+    public DOMMessage add(FreeColObject fco, Player player) {
+<span class="pc bpc" id="L285" title="1 of 2 branches missed.">        if (fco != null) add(toXMLElement(fco, this.document, player));</span>
+<span class="fc" id="L286">        return this;</span>
+    }
+    public DOMMessage add(List&lt;? extends FreeColObject&gt; fcos) {
+<span class="pc bpc" id="L289" title="1 of 4 branches missed.">        if (fcos != null) for (FreeColObject fco : fcos) add(fco);</span>
+<span class="fc" id="L290">        return this;</span>
+    }
+    public DOMMessage add(DOMMessage msg) {
+<span class="nc bnc" id="L293" title="All 2 branches missed.">        if (msg != null) add(msg.toXMLElement());</span>
+<span class="nc" id="L294">        return this;</span>
+    }
+    public DOMMessage addMessages(List&lt;DOMMessage&gt; msgs) {
+<span class="nc bnc" id="L297" title="All 4 branches missed.">        if (msgs != null) for (DOMMessage msg : msgs) add(msg);</span>
+<span class="nc" id="L298">        return this;</span>
+    }
+
+    public void clearChildren() {
+<span class="nc" id="L302">        Element element = getElement();</span>
+<span class="nc" id="L303">        NodeList nl = element.getChildNodes();</span>
+<span class="nc bnc" id="L304" title="All 2 branches missed.">        for (int i = nl.getLength() - 1; i &gt;= 0; i--) {</span>
+<span class="nc" id="L305">            element.removeChild(nl.item(i));</span>
+        }
+<span class="nc" id="L307">    }</span>
+
+    /**
+     * Dummy serialization stub.
+     * Must be overridden by subclasses.
+     *
+     * @return The document element.
+     */
+    public Element toXMLElement() {
+<span class="fc" id="L316">        return getElement();</span>
+    }
+
+
+    // Collection of static methods.
+    // Much of the Element manipulation needs to go away.
+
+    /**
+     * Gets the current version of the FreeCol protocol.
+     *
+     * @return The version of the FreeCol protocol.
+     */
+    public static String getFreeColProtocolVersion() {
+<span class="nc" id="L329">        return FREECOL_PROTOCOL_VERSION;</span>
+    }
+
+    /**
+     * Creates and returns a new XML-document.
+     *
+     * @return the new XML-document.
+     */
+    public static Document createNewDocument() {
+<span class="pc" id="L338">        synchronized (builder) {</span>
+<span class="fc" id="L339">            return builder.newDocument();</span>
+        }
+    }
+
+    /**
+     * Collapses a list of elements into a &quot;multiple&quot; element
+     * with the original elements added as child nodes.
+     *
+     * @param elements A list of &lt;code&gt;Element&lt;/code&gt;s to collapse.
+     * @return A new &quot;multiple&quot; element, or the singleton element of the list,
+     *     or null if the list is empty.
+     */
+    public static Element collapseElements(List&lt;Element&gt; elements) {
+<span class="pc bpc" id="L352" title="1 of 3 branches missed.">        switch (elements.size()) {</span>
+        case 0:
+<span class="fc" id="L354">            return null;</span>
+        case 1:
+<span class="fc" id="L356">            return elements.get(0);</span>
+        default:
+            break;
+        }
+<span class="nc" id="L360">        return new MultipleMessage(elements).toXMLElement();</span>
+    }
+
+
+    /**
+     * Handle the child nodes of an element.
+     *
+     * @param mh The &lt;code&gt;MessageHandler&lt;/code&gt; to handle the nodes.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the element arrived on.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return An &lt;code&gt;Element&lt;/code&gt; containing the response/s.
+     */
+    public static final Element handleChildren(MessageHandler mh,
+        Connection connection, Element element) {
+<span class="nc" id="L374">        return handleList(mh, connection, mapChildren(element, e -&gt; e));</span>
+    }
+
+    /**
+     * Handle a list of messages.
+     *
+     * @param mh The &lt;code&gt;MessageHandler&lt;/code&gt; to handle the messages.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the messages arrived on.
+     * @param elements The list of &lt;code&gt;Element&lt;/code&gt;s to process.
+     * @return An &lt;code&gt;Element&lt;/code&gt; containing the response/s.
+     */
+    public static final Element handleList(MessageHandler mh,
+        Connection connection, List&lt;Element&gt; elements) {
+<span class="fc" id="L387">        List&lt;Element&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L388">        int i = 0;</span>
+<span class="fc bfc" id="L389" title="All 2 branches covered.">        for (Element e : elements) {</span>
+<span class="fc" id="L390">            final String tag = e.getTagName();</span>
+            try {
+<span class="fc" id="L392">                Element reply = mh.handle(connection, e);</span>
+<span class="fc bfc" id="L393" title="All 2 branches covered.">                if (reply != null) results.add(reply);</span>
+<span class="pc" id="L394">            } catch (Exception ex) {</span>
+<span class="nc" id="L395">                logger.log(Level.WARNING, &quot;Crash in multiple &quot; + i</span>
+<span class="nc" id="L396">                    + &quot;, tag &quot; + tag + &quot;, continuing.&quot;, ex);</span>
+            }
+<span class="fc" id="L398">            i++;</span>
+        }
+<span class="fc" id="L400">        return collapseElements(results);</span>
+    }    
+    
+    /**
+     * Convenience method to find the first child element with the
+     * specified tagname.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to search for the child
+     *     element in.
+     * @param tagName The tag name of the child element to be found.
+     * @return The first child element with the given name.
+     */
+    public static Element getChildElement(Element element, String tagName) {
+<span class="nc" id="L413">        NodeList n = element.getChildNodes();</span>
+<span class="nc bnc" id="L414" title="All 2 branches missed.">        for (int i = 0; i &lt; n.getLength(); i++) {</span>
+<span class="nc bnc" id="L415" title="All 2 branches missed.">            if (n.item(i) instanceof Element</span>
+<span class="nc bnc" id="L416" title="All 2 branches missed.">                &amp;&amp; ((Element)n.item(i)).getTagName().equals(tagName)) {</span>
+<span class="nc" id="L417">                return (Element)n.item(i);</span>
+            }
+        }
+<span class="nc" id="L420">        return null;</span>
+    }
+
+    /**
+     * Convenience method to extract a child element of a particular class.
+     *
+     * @param &lt;T&gt; The actual return type.
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to instantiate within.
+     * @param element The parent &lt;code&gt;Element&lt;/code&gt;.
+     * @param index The index of the child element.
+     * @param intern Whether to intern the object found.
+     * @param returnClass The expected class of the child.
+     * @return A new instance of the return class, or null on error.
+     */
+    public static &lt;T extends FreeColGameObject&gt; T getChild(Game game,
+        Element element, int index, boolean intern, Class&lt;T&gt; returnClass) {
+<span class="fc" id="L436">        NodeList nl = element.getChildNodes();</span>
+        Element e;
+<span class="pc bpc" id="L438" title="1 of 2 branches missed.">        return (index &lt; nl.getLength()</span>
+<span class="nc bnc" id="L439" title="All 2 branches missed.">            &amp;&amp; (e = (Element)nl.item(index)) != null)</span>
+<span class="nc" id="L440">            ? readGameElement(game, e, intern, returnClass)</span>
+<span class="fc" id="L441">            : null;</span>
+    }
+
+    /**
+     * Convenience method to extract a child element of a particular class.
+     *
+     * @param &lt;T&gt; The actual return type.
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to instantiate within.
+     * @param element The parent &lt;code&gt;Element&lt;/code&gt;.
+     * @param index The index of the child element.
+     * @param returnClass The expected class of the child.
+     * @return A new instance of the return class, or null on error.
+     */
+    public static &lt;T extends FreeColObject&gt; T getChild(Game game,
+        Element element, int index, Class&lt;T&gt; returnClass) {
+<span class="fc" id="L456">        NodeList nl = element.getChildNodes();</span>
+        Element e;
+<span class="fc bfc" id="L458" title="All 2 branches covered.">        return (index &lt; nl.getLength()</span>
+<span class="pc bpc" id="L459" title="1 of 2 branches missed.">            &amp;&amp; (e = (Element)nl.item(index)) != null)</span>
+<span class="fc" id="L460">            ? readElement(game, e, returnClass)</span>
+<span class="fc" id="L461">            : null;</span>
+    }
+
+    /**
+     * Convenience method to extract all child elements of a
+     * particular class.
+     *
+     * @param &lt;T&gt; The actual list member return type.
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to instantiate within.
+     * @param element The parent &lt;code&gt;Element&lt;/code&gt;.
+     * @param returnClass The expected class of the child.
+     * @return A list of new instances of the return class.
+     */
+    public static &lt;T extends FreeColObject&gt; List&lt;T&gt; getChildren(Game game,
+        Element element, Class&lt;T&gt; returnClass) {
+<span class="fc" id="L476">        List&lt;T&gt; ret = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L477">        NodeList nl = element.getChildNodes();</span>
+<span class="fc bfc" id="L478" title="All 2 branches covered.">        for (int i = 0; i &lt; nl.getLength(); i++) {</span>
+<span class="fc" id="L479">            T t = getChild(game, element, i, returnClass);</span>
+<span class="pc bpc" id="L480" title="1 of 2 branches missed.">            if (t != null) ret.add(t);</span>
+        }
+<span class="fc" id="L482">        return ret;</span>
+    }
+
+    /**
+     * Convenience method to map a function over the children of an Element.
+     *
+     * @param &lt;T&gt; The actual list member return type.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to extract children from.
+     * @param mapper A mapper function.
+     * @return A list of results of the mapping.
+     */
+    public static &lt;T&gt; List&lt;T&gt; mapChildren(Element element,
+        Function&lt;? super Element, ? extends T&gt; mapper) {
+<span class="fc" id="L495">        List&lt;T&gt; ret = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L496">        NodeList nl = element.getChildNodes();</span>
+<span class="fc bfc" id="L497" title="All 2 branches covered.">        for (int i = 0; i &lt; nl.getLength(); i++) {</span>
+<span class="fc" id="L498">            Element e = (Element)nl.item(i);</span>
+<span class="pc bpc" id="L499" title="1 of 2 branches missed.">            if (e == null) continue;</span>
+<span class="fc" id="L500">            T x = mapper.apply((Element)nl.item(i));</span>
+<span class="pc bpc" id="L501" title="1 of 2 branches missed.">            if (x != null) ret.add(x);</span>
+        }
+<span class="fc" id="L503">        return ret;</span>
+    }
+
+    /**
+     * Get a boolean attribute value from an element.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to query.
+     * @param tag The attribute name.
+     * @param defaultValue A default value to return on failure.
+     * @return The boolean value found, or the default value on error.
+     */
+    public static boolean getBooleanAttribute(Element element, String tag,
+                                              boolean defaultValue) {
+<span class="pc bpc" id="L516" title="2 of 4 branches missed.">        if (element != null &amp;&amp; element.hasAttribute(tag)) {</span>
+<span class="fc" id="L517">            String str = element.getAttribute(tag);</span>
+            try {
+<span class="fc" id="L519">                return Boolean.parseBoolean(str);</span>
+<span class="nc" id="L520">            } catch (NumberFormatException e) {}</span>
+        }
+<span class="nc" id="L522">        return defaultValue;</span>
+    }
+
+    /**
+     * Get an integer attribute value from an element.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to query.
+     * @param tag The attribute name.
+     * @param defaultValue A default value to return on failure.
+     * @return The integer value found, or the default value on error.
+     */
+    public static int getIntegerAttribute(Element element, String tag,
+                                          int defaultValue) {
+<span class="nc bnc" id="L535" title="All 4 branches missed.">        if (element != null &amp;&amp; element.hasAttribute(tag)) {</span>
+<span class="nc" id="L536">            String str = element.getAttribute(tag);</span>
+            try {
+<span class="nc" id="L538">                return Integer.parseInt(str);</span>
+<span class="nc" id="L539">            } catch (NumberFormatException e) {}</span>
+        }
+<span class="nc" id="L541">        return defaultValue;</span>
+    }
+
+    /**
+     * Get a string attribute value from an element.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to query.
+     * @param tag The attribute name.
+     * @return The string value found, or the default value on error.
+     */
+    public static String getStringAttribute(Element element, String tag) {
+<span class="pc bpc" id="L552" title="1 of 4 branches missed.">        return (element != null &amp;&amp; element.hasAttribute(tag))</span>
+<span class="fc" id="L553">            ? element.getAttribute(tag)</span>
+<span class="fc" id="L554">            : (String)null;</span>
+    }
+
+    /**
+     * Get an enum attribute value from an element.
+     *
+     * @param &lt;T&gt; The actual enum return type.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to query.
+     * @param tag The attribute name.
+     * @param returnClass The class of the return value.
+     * @param defaultValue A default value to return on failure.
+     * @return The string value found, or the default value on error.
+     */
+    public static &lt;T extends Enum&lt;T&gt;&gt; T getEnumAttribute(Element element,
+        String tag, Class&lt;T&gt; returnClass, T defaultValue) {
+<span class="nc" id="L569">        String value = getStringAttribute(element, tag);</span>
+<span class="nc bnc" id="L570" title="All 2 branches missed.">        if (value != null) {</span>
+            try {
+<span class="nc" id="L572">                return Enum.valueOf(returnClass, value.toUpperCase(Locale.US));</span>
+<span class="nc" id="L573">            } catch (Exception ex) {}</span>
+        }
+<span class="nc" id="L575">        return defaultValue;</span>
+    }
+
+    /**
+     * Get all the attributes of an element as a map.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to query.
+     * @return A map of the attribute pairs found.
+     */
+    public static Map&lt;String, String&gt; getAttributes(Element element) {
+<span class="nc" id="L585">        Map&lt;String, String&gt; result = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L586">        final NamedNodeMap map = element.getAttributes();</span>
+<span class="nc" id="L587">        final int n = map.getLength();</span>
+<span class="nc bnc" id="L588" title="All 2 branches missed.">        for (int i = 0; i &lt; n; i++) {</span>
+<span class="nc" id="L589">            Node node = map.item(i);</span>
+<span class="nc" id="L590">            result.put(node.getNodeName(), node.getNodeValue());</span>
+        }
+<span class="nc" id="L592">        return result;</span>
+    }
+        
+    /**
+     * Get an array of string attributes from an element.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to query.
+     * @return A list of the attributes found.
+     */
+    public static List&lt;String&gt; getArrayAttributes(Element element) {
+<span class="fc" id="L602">        List&lt;String&gt; result = new ArrayList&lt;&gt;();</span>
+        String key;
+<span class="fc" id="L604">        int i = 0;</span>
+<span class="fc" id="L605">        for (;;) {</span>
+<span class="fc" id="L606">            key = &quot;x&quot; + Integer.toString(i);</span>
+<span class="fc bfc" id="L607" title="All 2 branches covered.">            if (!element.hasAttribute(key)) break;</span>
+<span class="fc" id="L608">            result.add(element.getAttribute(key));</span>
+<span class="fc" id="L609">            i++;</span>
+        }
+<span class="fc" id="L611">        return result;</span>
+    }
+
+    /**
+     * Read a Document from an input source.
+     * 
+     * @param inputSource An &lt;code&gt;InputSource&lt;/code&gt; to read from.
+     * @return The resulting &lt;code&gt;Document&lt;/code&gt;.
+     * @exception IOException if thrown by the &lt;code&gt;InputStream&lt;/code&gt;.
+     * @exception SAXException if thrown during parsing.
+     */
+    public static Document readDocument(InputSource inputSource)
+        throws SAXException, IOException {
+<span class="fc" id="L624">        Document tempDocument = null;</span>
+<span class="fc" id="L625">        boolean dumpMsgOnError = true;</span>
+<span class="pc bpc" id="L626" title="1 of 2 branches missed.">        if (dumpMsgOnError) {</span>
+<span class="fc" id="L627">            inputSource.setByteStream(new BufferedInputStream(inputSource.getByteStream()));</span>
+
+<span class="fc" id="L629">            inputSource.getByteStream().mark(1000000);</span>
+        }
+        try {
+<span class="pc" id="L632">            synchronized (parser) {</span>
+<span class="fc" id="L633">                tempDocument = parser.parse(inputSource);</span>
+            }
+<span class="nc" id="L635">        } catch (IOException ex) {</span>
+            //} catch (IOException|SAXException ex) {
+<span class="nc" id="L637">            throw ex;</span>
+<span class="nc" id="L638">        } catch (Exception ex) {</span>
+            // Xerces throws ArrayIndexOutOfBoundsException when it barfs on
+            // some FreeCol messages. I'd like to see the messages upon which
+            // it barfs.
+            // Its also throwing SAXParseException in BR#2925
+<span class="nc bnc" id="L643" title="All 2 branches missed.">            if (dumpMsgOnError) {</span>
+<span class="nc" id="L644">                ByteArrayOutputStream baos = new ByteArrayOutputStream();</span>
+<span class="nc" id="L645">                inputSource.getByteStream().reset();</span>
+<span class="nc" id="L646">                while (true) {</span>
+<span class="nc" id="L647">                    int i = inputSource.getByteStream().read();</span>
+<span class="nc bnc" id="L648" title="All 2 branches missed.">                    if (-1 == i) {</span>
+<span class="nc" id="L649">                        break;</span>
+                    }
+<span class="nc" id="L651">                    baos.write(i);</span>
+                }
+<span class="nc" id="L653">                logger.log(Level.SEVERE, baos.toString(&quot;UTF-8&quot;), ex);</span>
+<span class="nc" id="L654">            } else {</span>
+<span class="nc" id="L655">                logger.log(Level.WARNING, &quot;Parse error&quot;, ex);</span>
+            }
+<span class="nc" id="L657">            throw ex;</span>
+        }
+<span class="fc" id="L659">        return tempDocument;</span>
+    }
+
+    /**
+     * Convert an element to a string.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to convert.
+     * @return The &lt;code&gt;String&lt;/code&gt; representation of an element.
+     */
+    public static String elementToString(Element element) {
+        try {
+<span class="nc" id="L670">            TransformerFactory factory = TransformerFactory.newInstance();</span>
+<span class="nc" id="L671">            Transformer xt = factory.newTransformer();</span>
+<span class="nc" id="L672">            StringWriter sw = new StringWriter();</span>
+<span class="nc" id="L673">            xt.transform(new DOMSource(element), new StreamResult(sw));</span>
+<span class="nc" id="L674">            String result = sw.toString();</span>
+
+            // Drop the &lt;?xml...?&gt; part if present to keep logging concise.
+<span class="nc bnc" id="L677" title="All 2 branches missed.">            if (result.startsWith(&quot;&lt;?xml&quot;)) {</span>
+<span class="nc" id="L678">                final String xmlEnd = &quot;?&gt;&quot;;</span>
+<span class="nc" id="L679">                int index = result.indexOf(xmlEnd);</span>
+<span class="nc bnc" id="L680" title="All 2 branches missed.">                if (index &gt; 0) {</span>
+<span class="nc" id="L681">                    result = result.substring(index + xmlEnd.length());</span>
+                }
+            }
+<span class="nc" id="L684">            return result;</span>
+<span class="nc" id="L685">        } catch (TransformerException e) {</span>
+<span class="nc" id="L686">            logger.log(Level.WARNING, &quot;TransformerException&quot;, e);</span>
+        }
+<span class="nc" id="L688">        return null;</span>
+    }
+
+    // @compat 0.10.x
+    /**
+     * Version of readId(FreeColXMLReader) that reads from an element.
+     *
+     * To be replaced with just:
+     *   element.getAttribute(FreeColObject.ID_ATTRIBUTE_TAG);
+     *
+     * @param element An element to read the id attribute from.
+     * @return The identifier attribute value.
+     */
+    public static String readId(Element element) {
+<span class="nc" id="L702">        String id = element.getAttribute(FreeColObject.ID_ATTRIBUTE_TAG);</span>
+<span class="nc bnc" id="L703" title="All 2 branches missed.">        if (id == null) id = element.getAttribute(FreeColObject.ID_ATTRIBUTE);</span>
+<span class="nc" id="L704">        return id;</span>
+    }
+    // end @compat
+
+    /**
+     * Read a new FreeCol game object from an element.
+     *
+     * @param &lt;T&gt; The actual return type.
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to check for existing objects.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to read from.
+     * @param intern Whether to intern the instantiated object.
+     * @param returnClass The expected return class.
+     * @return The object found or instantiated, or null on error.
+     */
+    public static &lt;T extends FreeColGameObject&gt; T readGameElement(Game game,
+        Element element, boolean intern, Class&lt;T&gt; returnClass) {
+<span class="nc" id="L720">        T ret = null;</span>
+<span class="nc" id="L721">        try (</span>
+<span class="nc" id="L722">            FreeColXMLReader xr = makeElementReader(element);</span>
+        ) {
+<span class="nc bnc" id="L724" title="All 2 branches missed.">            xr.setReadScope((intern)</span>
+<span class="nc" id="L725">                ? FreeColXMLReader.ReadScope.NORMAL</span>
+<span class="nc" id="L726">                : FreeColXMLReader.ReadScope.NOINTERN);</span>
+<span class="nc" id="L727">            xr.nextTag();</span>
+<span class="nc" id="L728">            ret = xr.readFreeColGameObject(game, returnClass);</span>
+<span class="nc bnc" id="L729" title="All 8 branches missed.">        } catch (XMLStreamException|IOException ex) {</span>
+<span class="nc" id="L730">            logger.log(Level.WARNING, &quot;Reader fail&quot;, ex);</span>
+        }
+<span class="nc" id="L732">        return ret;</span>
+    }
+
+    /**
+     * Update an existing game object from an element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to update in.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; containing the object.
+     * @return The updated &lt;code&gt;FreeColGameObject&lt;/code&gt;.
+     */
+    public static FreeColGameObject updateFromElement(Game game,
+                                                      Element element) {
+<span class="nc" id="L744">        String id = readId(element);</span>
+<span class="nc" id="L745">        FreeColGameObject fcgo = game.getFreeColGameObject(id);</span>
+<span class="nc bnc" id="L746" title="All 2 branches missed.">        if (fcgo == null) {</span>
+<span class="nc" id="L747">            logger.warning(&quot;Update object not present: &quot; + id);</span>
+<span class="nc" id="L748">            return null;</span>
+        }
+<span class="nc" id="L750">        readFromXMLElement(fcgo, element, true);</span>
+<span class="nc" id="L751">        return fcgo;</span>
+    }
+        
+    /**
+     * Read a new FreeCol object from an element.
+     *
+     * @param &lt;T&gt; The actual return type.
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to check for existing objects.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to read from.
+     * @param returnClass The expected return class.
+     * @return The object found or instantiated, or null on error.
+     */
+    public static &lt;T extends FreeColObject&gt; T readElement(Game game,
+        Element element, Class&lt;T&gt; returnClass) {
+<span class="fc" id="L765">        T ret = FreeColGameObject.newInstance(game, returnClass);</span>
+<span class="pc bpc" id="L766" title="1 of 2 branches missed.">        if (ret != null) readFromXMLElement(ret, element, true);</span>
+<span class="fc" id="L767">        return ret;</span>
+    }
+
+    /**
+     * Initialize a FreeColObject from an Element.
+     *
+     * @param fco The &lt;code&gt;FreeColObject&lt;/code&gt; to read into.
+     * @param element An XML-element that will be used to initialize
+     *      the object.
+     */
+    public static void readFromXMLElement(FreeColObject fco, Element element) {
+<span class="nc" id="L778">        readFromXMLElement(fco, element, true);</span>
+<span class="nc" id="L779">    }</span>
+
+    /**
+     * Make a new reader for an element.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to read.
+     * @return A new &lt;code&gt;FreeColXMLReader&lt;/code&gt; to read from.
+     * @exception IOException if the reader can not be created,
+     *     and miscellaneous run time exceptions for problems with the
+     *     transformer mechanisms.
+     */
+    private static FreeColXMLReader makeElementReader(Element element)
+        throws IOException {
+        try {
+<span class="fc" id="L793">            TransformerFactory factory = TransformerFactory.newInstance();</span>
+<span class="fc" id="L794">            Transformer xmlTransformer = factory.newTransformer();</span>
+<span class="fc" id="L795">            StringWriter stringWriter = new StringWriter();</span>
+<span class="fc" id="L796">            xmlTransformer.transform(new DOMSource(element),</span>
+<span class="fc" id="L797">                                     new StreamResult(stringWriter));</span>
+<span class="fc" id="L798">            String xml = stringWriter.toString();</span>
+<span class="fc" id="L799">            StringReader sr = new StringReader(xml);</span>
+<span class="fc" id="L800">            return new FreeColXMLReader(sr);</span>
+<span class="nc" id="L801">        } catch (TransformerException ex) {</span>
+<span class="nc" id="L802">            throw new RuntimeException(&quot;Reader creation failure&quot;, ex);</span>
+        }
+    }
+
+    /**
+     * Initialize a FreeColObject from an Element.
+     *
+     * @param fco The &lt;code&gt;FreeColObject&lt;/code&gt; to read into.
+     * @param intern Whether to intern the instantiated object.
+     * @param element An XML-element that will be used to initialize
+     *      the object.
+     */
+    public static void readFromXMLElement(FreeColObject fco, Element element,
+                                          boolean intern) {
+<span class="fc" id="L816">        try (</span>
+<span class="fc" id="L817">            FreeColXMLReader xr = makeElementReader(element);</span>
+        ) {
+<span class="pc bpc" id="L819" title="1 of 2 branches missed.">            xr.setReadScope((intern) ? FreeColXMLReader.ReadScope.NORMAL</span>
+<span class="nc" id="L820">                : FreeColXMLReader.ReadScope.NOINTERN);</span>
+<span class="fc" id="L821">            xr.nextTag();</span>
+<span class="fc" id="L822">            fco.readFromXML(xr);</span>
+<span class="pc bpc" id="L823" title="7 of 8 branches missed.">        } catch (IOException|XMLStreamException ex) {</span>
+<span class="nc" id="L824">            throw new RuntimeException(&quot;XML failure&quot;, ex);</span>
+        }
+<span class="fc" id="L826">    }</span>
+
+    /**
+     * This method writes an XML-representation of this object to
+     * the given stream.
+     *
+     * Only attributes visible to the given &lt;code&gt;Player&lt;/code&gt; will
+     * be added to that representation if &lt;code&gt;showAll&lt;/code&gt; is
+     * set to &lt;code&gt;false&lt;/code&gt;.
+     *
+     * @param fco The &lt;code&gt;FreeColObject&lt;/code&gt; to write.
+     * @param document The &lt;code&gt;Document&lt;/code&gt;.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; to send to, or to server if null.
+     * @return An XML-representation of this object.
+     */
+    public static Element toXMLElement(FreeColObject fco, Document document,
+                                       Player player) {
+<span class="fc bfc" id="L843" title="All 2 branches covered.">        return toXMLElement(fco, document, ((player == null)</span>
+<span class="fc" id="L844">                ? WriteScope.toServer()</span>
+<span class="fc" id="L845">                : WriteScope.toClient(player)), null);</span>
+    }
+
+    /**
+     * This method writes an XML-representation of this object to
+     * the given stream.
+     *
+     * Only attributes visible to the given &lt;code&gt;Player&lt;/code&gt; will
+     * be added to that representation if &lt;code&gt;showAll&lt;/code&gt; is
+     * set to &lt;code&gt;false&lt;/code&gt;.
+     *
+     * @param fco The &lt;code&gt;FreeColObject&lt;/code&gt; to write.
+     * @param document The &lt;code&gt;Document&lt;/code&gt;.
+     * @param writeScope The &lt;code&gt;WriteScope&lt;/code&gt; to apply.
+     * @return An XML-representation of this object.
+     */
+    public static Element toXMLElement(FreeColObject fco, Document document,
+                                       WriteScope writeScope) {
+<span class="nc bnc" id="L863" title="All 2 branches missed.">        if (!writeScope.isValid()) {</span>
+<span class="nc" id="L864">            throw new IllegalStateException(&quot;Invalid write scope: &quot;</span>
+<span class="nc" id="L865">                + writeScope);</span>
+        }
+<span class="nc" id="L867">        return toXMLElement(fco, document, writeScope, null);</span>
+    }
+
+    /**
+     * This method writes a partial XML-representation of this object to
+     * an element using only the mandatory and specified fields.
+     *
+     * @param fco The &lt;code&gt;FreeColObject&lt;/code&gt; to write.
+     * @param document The &lt;code&gt;Document&lt;/code&gt;.
+     * @param fields The fields to write.
+     * @return An XML-representation of this object.
+     */
+    public static Element toXMLElementPartial(FreeColObject fco,
+                                              Document document,
+                                              String... fields) {
+<span class="fc" id="L882">        return toXMLElement(fco, document, WriteScope.toServer(), fields);</span>
+    }
+
+    /**
+     * This method writes an XML-representation of this object to
+     * the given stream.
+     *
+     * Only attributes visible to the given &lt;code&gt;Player&lt;/code&gt; will
+     * be added to that representation if &lt;code&gt;showAll&lt;/code&gt; is
+     * set to &lt;code&gt;false&lt;/code&gt;.
+     *
+     * @param fco The &lt;code&gt;FreeColObject&lt;/code&gt; to write.
+     * @param document The &lt;code&gt;Document&lt;/code&gt;.
+     * @param writeScope The &lt;code&gt;WriteScope&lt;/code&gt; to apply.
+     * @param fields An array of field names, which if non-null
+     *               indicates this should be a partial write.
+     * @return An XML-representation of this object.
+     */
+    private static Element toXMLElement(FreeColObject fco, Document document,
+                                        WriteScope writeScope, String[] fields) {
+<span class="fc" id="L902">        StringWriter sw = new StringWriter();</span>
+<span class="fc" id="L903">        FreeColXMLWriter xw = null;</span>
+        try {
+<span class="fc" id="L905">            xw = new FreeColXMLWriter(sw, writeScope);</span>
+<span class="pc" id="L906">        } catch (IOException ioe) {</span>
+<span class="nc" id="L907">            logger.log(Level.WARNING, &quot;Error creating FreeColXMLWriter,&quot;, ioe);</span>
+<span class="nc" id="L908">            return null;</span>
+        }
+
+        try {
+<span class="fc bfc" id="L912" title="All 2 branches covered.">            if (fields == null) {</span>
+<span class="fc" id="L913">                fco.toXML(xw);</span>
+<span class="fc" id="L914">            } else {</span>
+<span class="fc" id="L915">                fco.toXMLPartial(xw, fields);</span>
+            }
+<span class="fc" id="L917">            xw.close();</span>
+
+<span class="fc" id="L919">            DocumentBuilderFactory factory</span>
+<span class="fc" id="L920">                = DocumentBuilderFactory.newInstance();</span>
+<span class="fc" id="L921">            Document tempDocument = null;</span>
+            try {
+<span class="fc" id="L923">                DocumentBuilder builder = factory.newDocumentBuilder();</span>
+<span class="fc" id="L924">                tempDocument = builder.parse(new InputSource(new StringReader(sw.toString())));</span>
+<span class="fc" id="L925">                return (Element)document.importNode(tempDocument.getDocumentElement(), true);</span>
+<span class="nc" id="L926">            } catch (IOException|ParserConfigurationException|SAXException ex) {</span>
+<span class="nc" id="L927">                throw new RuntimeException(&quot;Parse fail&quot;, ex);</span>
+            }
+<span class="nc" id="L929">        } catch (XMLStreamException e) {</span>
+<span class="nc" id="L930">            throw new IllegalStateException(&quot;Error writing stream&quot;, e);</span>
+        }
+    }
+
+
+    // Override Object
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L942">        return getElement().toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

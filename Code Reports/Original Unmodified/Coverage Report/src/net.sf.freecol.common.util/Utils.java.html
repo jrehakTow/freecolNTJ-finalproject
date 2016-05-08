@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>Utils.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.util</a> &gt; <span class="el_source">Utils.java</span></div><h1>Utils.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.util;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
+
+import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+
+
+/**
+ * Collection of small static helper methods.
+ */
+<span class="nc" id="L47">public class Utils {</span>
+
+<span class="fc" id="L49">    private static final Logger logger = Logger.getLogger(Utils.class.getName());</span>
+
+    /** Hex constant digits for get/restoreRandomState. */
+<span class="fc" id="L52">    private static final String HEX_DIGITS = &quot;0123456789ABCDEF&quot;;</span>
+
+
+    /**
+     * Check if two objects are equal but also checks for null.
+     *
+     * @param &lt;T&gt; The object type.
+     * @param one First object to compare
+     * @param two Second object to compare
+     * @return True if the arguments are either both null or equal in the
+     *     sense of their equals() method.
+     */
+    public static &lt;T&gt; boolean equals(T one, T two) {
+<span class="fc bfc" id="L65" title="All 4 branches covered.">        return (one == null) ? (two == null) : one.equals(two);</span>
+    }
+
+    /**
+     * Get a hash code for an object, even null.
+     *
+     * @param object The &lt;code&gt;Object&lt;/code&gt; to use.
+     * @return A hash code.
+     */
+    public static int hashCode(Object object) {
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        return (object == null) ? 31 : object.hashCode();</span>
+    }
+
+    /**
+     * Get the internal state of a random number generator as a
+     * string.  It would have been more convenient to simply return
+     * the current seed, but unfortunately it is private.
+     *
+     * @param random A pseudo-random number source.
+     * @return A &lt;code&gt;String&lt;/code&gt; encapsulating the object state.
+     */
+    public static synchronized String getRandomState(Random random) {
+<span class="fc" id="L87">        ByteArrayOutputStream bos = new ByteArrayOutputStream();</span>
+        try {
+<span class="fc" id="L89">            ObjectOutputStream oos = new ObjectOutputStream(bos);</span>
+<span class="fc" id="L90">            oos.writeObject(random);</span>
+<span class="fc" id="L91">            oos.flush();</span>
+<span class="pc" id="L92">        } catch (IOException e) {</span>
+<span class="nc" id="L93">            throw new IllegalStateException(&quot;IO exception in memory!?&quot;, e);</span>
+        }
+<span class="fc" id="L95">        byte[] bytes = bos.toByteArray();</span>
+<span class="fc" id="L96">        StringBuilder sb = new StringBuilder(bytes.length * 2);</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">        for (byte b : bytes) {</span>
+<span class="fc" id="L98">            sb.append(HEX_DIGITS.charAt((b &gt;&gt; 4) &amp; 0x0F));</span>
+<span class="fc" id="L99">            sb.append(HEX_DIGITS.charAt(b &amp; 0x0F));</span>
+        }
+<span class="fc" id="L101">        return sb.toString();</span>
+    }
+
+    /**
+     * Restore a previously saved state.
+     *
+     * @param state The saved state (@see #getRandomState()).
+     * @return The restored &lt;code&gt;Random&lt;/code&gt;.
+     */
+    public static synchronized Random restoreRandomState(String state) {
+<span class="pc bpc" id="L111" title="2 of 4 branches missed.">        if (state == null || state.isEmpty()) return null;</span>
+<span class="fc" id="L112">        byte[] bytes = new byte[state.length() / 2];</span>
+<span class="fc" id="L113">        int pos = 0;</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        for (int i = 0; i &lt; bytes.length; i++) {</span>
+<span class="fc" id="L115">            bytes[i] = (byte) HEX_DIGITS.indexOf(state.charAt(pos++));</span>
+<span class="fc" id="L116">            bytes[i] &lt;&lt;= 4;</span>
+<span class="fc" id="L117">            bytes[i] |= (byte) HEX_DIGITS.indexOf(state.charAt(pos++));</span>
+        }
+<span class="fc" id="L119">        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);</span>
+        try {
+<span class="fc" id="L121">            ObjectInputStream ois = new ObjectInputStream(bis);</span>
+<span class="fc" id="L122">            return (Random) ois.readObject();</span>
+<span class="nc" id="L123">        } catch (IOException | ClassNotFoundException e) {</span>
+<span class="nc" id="L124">            logger.log(Level.WARNING, &quot;Unable to restore random state.&quot;, e);</span>
+        }
+<span class="nc" id="L126">        return null;</span>
+    }
+
+    /**
+     * Create a new file writer that uses UTF-8.
+     *
+     * @param file A &lt;code&gt;File&lt;/code&gt; to write to.
+     * @return A &lt;code&gt;Writer&lt;/code&gt; for this file.
+     */
+    public static Writer getFileUTF8Writer(File file) {
+        FileOutputStream fos;
+        try {
+<span class="nc" id="L138">            fos = new FileOutputStream(file);</span>
+<span class="nc" id="L139">        } catch (FileNotFoundException e) {</span>
+<span class="nc" id="L140">            logger.log(Level.WARNING, &quot;No FileOutputStream for &quot;</span>
+<span class="nc" id="L141">                + file.getName(), e);</span>
+<span class="nc" id="L142">            return null;</span>
+        }
+        OutputStreamWriter osw;
+        try {
+<span class="nc" id="L146">            osw = new OutputStreamWriter(fos, &quot;UTF-8&quot;);</span>
+<span class="nc" id="L147">        } catch (UnsupportedEncodingException e) {</span>
+<span class="nc" id="L148">            logger.log(Level.WARNING, &quot;No OutputStreamWriter for &quot;</span>
+<span class="nc" id="L149">                + file.getName(), e);</span>
+            try {
+<span class="nc" id="L151">                fos.close();</span>
+<span class="nc" id="L152">            } catch (IOException ioe) {</span>
+<span class="nc" id="L153">                logger.log(Level.WARNING, &quot;Failed to close&quot;, ioe);</span>
+            }
+<span class="nc" id="L155">            return null;</span>
+        }
+<span class="nc" id="L157">        return osw;</span>
+    }
+
+    /**
+     * Helper to make an XML Transformer.
+     *
+     * @param declaration If true, include the XML declaration.
+     * @param indent If true, set up the transformer to indent.
+     * @return A suitable &lt;code&gt;Transformer&lt;/code&gt;.
+     */
+    public static Transformer makeTransformer(boolean declaration,
+                                              boolean indent) {
+<span class="fc" id="L169">        Transformer tf = null;</span>
+        try {
+<span class="fc" id="L171">            TransformerFactory factory = TransformerFactory.newInstance();</span>
+<span class="fc" id="L172">            tf = factory.newTransformer();</span>
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">            if (!declaration) {</span>
+<span class="fc" id="L174">                tf.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, &quot;yes&quot;);</span>
+            }
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">            if (indent) {</span>
+<span class="nc" id="L177">                tf.setOutputProperty(OutputKeys.INDENT, &quot;yes&quot;);</span>
+<span class="nc" id="L178">                tf.setOutputProperty(&quot;{http://xml.apache.org/xslt}indent-amount&quot;, &quot;2&quot;);</span>
+            }
+<span class="nc" id="L180">        } catch (TransformerException e) {</span>
+<span class="nc" id="L181">            logger.log(Level.WARNING, &quot;Failed to install transformer!&quot;, e);</span>
+        }
+<span class="fc" id="L183">        return tf;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

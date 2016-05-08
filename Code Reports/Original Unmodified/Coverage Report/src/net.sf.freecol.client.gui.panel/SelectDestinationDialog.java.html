@@ -1,0 +1,624 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>SelectDestinationDialog.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.gui.panel</a> &gt; <span class="el_source">SelectDestinationDialog.java</span></div><h1>SelectDestinationDialog.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.gui.panel;
+
+import java.awt.Dimension;
+import java.awt.event.ItemEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JScrollPane;
+import javax.swing.ListSelectionModel;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+
+import net.miginfocom.swing.MigLayout;
+
+import net.sf.freecol.client.FreeColClient;
+import net.sf.freecol.client.gui.ChoiceItem;
+import net.sf.freecol.client.gui.ImageLibrary;
+import net.sf.freecol.client.gui.plaf.FreeColComboBoxRenderer;
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.Europe;
+import net.sf.freecol.common.model.FreeColObject;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Goods;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.Location;
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Market;
+import net.sf.freecol.common.model.Nation;
+import net.sf.freecol.common.model.PathNode;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Settlement;
+import net.sf.freecol.common.model.Stance;
+import net.sf.freecol.common.model.StringTemplate;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.model.UnitTypeChange.ChangeType;
+import net.sf.freecol.common.model.pathfinding.GoalDeciders.MultipleAdjacentDecider;
+import net.sf.freecol.common.resources.ResourceManager;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+import net.sf.freecol.common.util.LogBuilder;
+
+
+/**
+ * Select a location as the destination for a given unit.
+ */
+public final class SelectDestinationDialog extends FreeColDialog&lt;Location&gt;
+    implements ListSelectionListener {
+
+    @SuppressWarnings(&quot;unused&quot;)
+<span class="nc" id="L87">    private static final Logger logger = Logger.getLogger(SelectDestinationDialog.class.getName());</span>
+
+
+    /**
+     * A container for a destination location, with associated
+     * distance and extra characteristics.
+     */
+    private class Destination {
+
+        public final Unit unit;
+        public final Location location;
+        public final int turns;
+        public final String extras;
+        public final String text;
+        public final int score;
+        public ImageIcon icon;
+
+
+        /**
+         * Create a destination.
+         *
+         * @param location The &lt;code&gt;Location&lt;/code&gt; to go to.
+         * @param turns The number of turns it takes to get to the location.
+         * @param unit The &lt;code&gt;Unit&lt;/code&gt; that is moving.
+         * @param goodsTypes A list of goods types the unit is carrying.
+         */
+<span class="nc" id="L113">        public Destination(Location location, int turns, Unit unit,</span>
+<span class="nc" id="L114">                           List&lt;GoodsType&gt; goodsTypes) {</span>
+<span class="nc" id="L115">            this.unit = unit;</span>
+<span class="nc" id="L116">            this.location = location;</span>
+<span class="nc" id="L117">            this.turns = turns;</span>
+<span class="nc" id="L118">            this.extras = getExtras(location, unit, goodsTypes);</span>
+<span class="nc" id="L119">            this.score = calculateScore();</span>
+<span class="nc" id="L120">            this.icon = null;</span>
+
+<span class="nc" id="L122">            final Player player = getMyPlayer();</span>
+<span class="nc" id="L123">            final ImageLibrary lib = getImageLibrary();</span>
+<span class="nc" id="L124">            String name = &quot;&quot;;</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">            if (location instanceof Europe) {</span>
+<span class="nc" id="L126">                Europe europe = (Europe)location;</span>
+<span class="nc" id="L127">                Nation nation = europe.getOwner().getNation();</span>
+<span class="nc" id="L128">                name = Messages.getName(europe);</span>
+<span class="nc" id="L129">                this.icon = new ImageIcon(ImageLibrary.getMiscIconImage(nation,</span>
+<span class="nc" id="L130">                    new Dimension(-1, CELL_HEIGHT)));</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">            } else if (location instanceof Map) {</span>
+<span class="nc" id="L132">                name = Messages.message(location.getLocationLabelFor(player));</span>
+<span class="nc" id="L133">                this.icon = new ImageIcon(lib.getMiscImage(</span>
+<span class="nc" id="L134">                    ImageLibrary.LOST_CITY_RUMOUR));</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">            } else if (location instanceof Settlement) {</span>
+<span class="nc" id="L136">                Settlement settlement = (Settlement) location;</span>
+<span class="nc" id="L137">                name = Messages.message(settlement.getLocationLabelFor(player));</span>
+<span class="nc" id="L138">                this.icon = new ImageIcon(ImageLibrary.getSettlementImage(</span>
+<span class="nc" id="L139">                    settlement,</span>
+<span class="nc" id="L140">                    new Dimension(64, -1)));</span>
+            }
+<span class="nc" id="L142">            StringTemplate template = StringTemplate</span>
+<span class="nc" id="L143">                .template(&quot;selectDestinationDialog.destinationTurns&quot;)</span>
+<span class="nc" id="L144">                .addName(&quot;%location%&quot;, name)</span>
+<span class="nc" id="L145">                .addAmount(&quot;%turns%&quot;, this.turns)</span>
+<span class="nc" id="L146">                .addName(&quot;%extras%&quot;, this.extras);</span>
+<span class="nc" id="L147">            this.text = Messages.message(template);</span>
+<span class="nc" id="L148">        }</span>
+
+        /**
+         * Collected extra annotations of interest to a unit proposing to
+         * visit a location.
+         *
+         * @param loc The &lt;code&gt;Location&lt;/code&gt; to visit.
+         * @param unit The &lt;code&gt;Unit&lt;/code&gt; proposing to visit.
+         * @param goodsTypes A list of goods types the unit is carrying.
+         * @return A string containing interesting annotations about the visit
+         *         or an empty string if nothing is of interest.
+         */
+        private String getExtras(Location loc, Unit unit,
+                                 List&lt;GoodsType&gt; goodsTypes) {
+<span class="nc" id="L162">            final String sep = &quot;, &quot;;</span>
+<span class="nc" id="L163">            final Player owner = unit.getOwner();</span>
+<span class="nc" id="L164">            LogBuilder lb = new LogBuilder(32);</span>
+<span class="nc" id="L165">            boolean dropSep = false;</span>
+
+            // Always show our missions, it may influence our choice of
+            // units to bring, and/or goods.
+<span class="nc bnc" id="L169" title="All 2 branches missed.">            if (loc instanceof IndianSettlement</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">                &amp;&amp; ((IndianSettlement)loc).hasMissionary(owner)) {</span>
+<span class="nc" id="L171">                lb.add(ResourceManager.getString(&quot;cross&quot;));</span>
+            }
+
+<span class="nc bnc" id="L174" title="All 4 branches missed.">            if (loc instanceof Europe &amp;&amp; !goodsTypes.isEmpty()) {</span>
+<span class="nc" id="L175">                Market market = owner.getMarket();</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">                for (GoodsType goodsType : goodsTypes) {</span>
+<span class="nc" id="L177">                    lb.add(Messages.getName(goodsType), &quot; &quot;,</span>
+<span class="nc" id="L178">                           market.getSalePrice(goodsType, 1), sep);</span>
+<span class="nc" id="L179">                    dropSep = true;</span>
+                }
+
+<span class="nc bnc" id="L182" title="All 2 branches missed.">            } else if (loc instanceof Settlement</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">                &amp;&amp; owner.owns((Settlement)loc)) {</span>
+                ; // Do nothing
+
+<span class="nc bnc" id="L186" title="All 2 branches missed.">            } else if (loc instanceof Settlement</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">                &amp;&amp; ((Settlement)loc).getOwner().atWarWith(owner)) {</span>
+<span class="nc" id="L188">                lb.add(&quot;[&quot;, Messages.getName(Stance.WAR), &quot;]&quot;);</span>
+
+<span class="nc bnc" id="L190" title="All 2 branches missed.">            } else if (loc instanceof Settlement) {</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">                if (loc instanceof IndianSettlement) {</span>
+                    // Show skill if relevant
+<span class="nc" id="L193">                    IndianSettlement is = (IndianSettlement)loc;</span>
+<span class="nc" id="L194">                    UnitType sk = is.getLearnableSkill();</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">                    if (sk != null) {</span>
+<span class="nc" id="L196">                        Unit up = (unit.getType().canBeUpgraded(sk,</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">                                ChangeType.NATIVES)) ? unit : null;</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">                        if (unit.isCarrier()) {</span>
+<span class="nc" id="L199">                            up = find(unit.getUnitList(),</span>
+<span class="nc" id="L200">                                u -&gt; u.getType().canBeUpgraded(sk, ChangeType.NATIVES));</span>
+                        }
+<span class="nc bnc" id="L202" title="All 2 branches missed.">                        if (up != null) {</span>
+<span class="nc" id="L203">                            lb.add(&quot;[&quot;, Messages.getName(sk), &quot;]&quot;);</span>
+                        }
+                    }
+                }
+<span class="nc bnc" id="L207" title="All 2 branches missed.">                if (!goodsTypes.isEmpty()) {</span>
+                    // Show goods prices if relevant
+<span class="nc bnc" id="L209" title="All 2 branches missed.">                    for (GoodsType g : goodsTypes) {</span>
+<span class="nc" id="L210">                        String sale = owner.getLastSaleString(loc, g);</span>
+<span class="nc" id="L211">                        String more = null;</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">                        if (loc instanceof IndianSettlement) {</span>
+<span class="nc" id="L213">                            GoodsType[] wanted</span>
+<span class="nc" id="L214">                                = ((IndianSettlement)loc).getWantedGoods();</span>
+<span class="nc bnc" id="L215" title="All 4 branches missed.">                            if (wanted.length &gt; 0 &amp;&amp; g == wanted[0]) {</span>
+<span class="nc" id="L216">                                more = &quot;***&quot;;</span>
+<span class="nc bnc" id="L217" title="All 4 branches missed.">                            } else if (wanted.length &gt; 1 &amp;&amp; g == wanted[1]) {</span>
+<span class="nc" id="L218">                                more = &quot;**&quot;;</span>
+<span class="nc bnc" id="L219" title="All 4 branches missed.">                            } else if (wanted.length &gt; 2 &amp;&amp; g == wanted[2]) {</span>
+<span class="nc" id="L220">                                more = &quot;*&quot;;</span>
+                            }
+                        }
+<span class="nc bnc" id="L223" title="All 4 branches missed.">                        if (sale != null &amp;&amp; more != null) {</span>
+<span class="nc" id="L224">                            lb.add(Messages.getName(g), &quot; &quot;, sale, more, sep);</span>
+<span class="nc" id="L225">                            dropSep = true;</span>
+                        }
+                    }
+                }
+            } // else do nothing
+
+<span class="nc bnc" id="L231" title="All 2 branches missed.">            if (dropSep) lb.shrink(sep);</span>
+<span class="nc" id="L232">            return lb.toString();</span>
+        }
+
+        private int calculateScore() {
+<span class="nc bnc" id="L236" title="All 4 branches missed.">            return (location instanceof Europe || location instanceof Map)</span>
+<span class="nc" id="L237">                ? 10</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">                : (location instanceof Colony)</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">                ? ((unit.getOwner().owns((Colony)location)) ? 20 : 30)</span>
+<span class="nc bnc" id="L240" title="All 2 branches missed.">                : (location instanceof IndianSettlement)</span>
+<span class="nc" id="L241">                ? 40</span>
+<span class="nc" id="L242">                : 100;</span>
+        }
+    }
+
+    private class DestinationComparator implements Comparator&lt;Destination&gt; {
+
+        protected final Player owner;
+
+<span class="nc" id="L250">        public DestinationComparator(Player player) {</span>
+<span class="nc" id="L251">            this.owner = player;</span>
+<span class="nc" id="L252">        }</span>
+
+        @Override
+        public int compare(Destination choice1, Destination choice2) {
+<span class="nc" id="L256">            int score1 = choice1.score;</span>
+<span class="nc" id="L257">            int score2 = choice2.score;</span>
+<span class="nc bnc" id="L258" title="All 2 branches missed.">            return (score1 != score2) ? score1 - score2</span>
+<span class="nc" id="L259">                : compareNames(choice1.location, choice2.location);</span>
+        }
+
+        /**
+         * Compare the names of two locations.
+         *
+         * @param loc1 The first &lt;code&gt;Location&lt;/code&gt;.
+         * @param loc2 The second &lt;code&gt;Location&lt;/code&gt;.
+         * @return The comparison result.
+         */
+        protected int compareNames(Location loc1, Location loc2) {
+<span class="nc bnc" id="L270" title="All 2 branches missed.">            if (!(loc1 instanceof Settlement)) return -1;</span>
+<span class="nc bnc" id="L271" title="All 2 branches missed.">            if (!(loc2 instanceof Settlement)) return 1;</span>
+<span class="nc" id="L272">            Settlement s1 = (Settlement)loc1;</span>
+<span class="nc" id="L273">            String name1 = Messages.message(s1.getLocationLabelFor(owner));</span>
+<span class="nc" id="L274">            Settlement s2 = (Settlement)loc2;</span>
+<span class="nc" id="L275">            String name2 = Messages.message(s2.getLocationLabelFor(owner));</span>
+<span class="nc" id="L276">            return name1.compareTo(name2);</span>
+        }
+    }
+
+    private class NameComparator extends DestinationComparator {
+
+<span class="nc" id="L282">        public NameComparator(Player player) {</span>
+<span class="nc" id="L283">            super(player);</span>
+<span class="nc" id="L284">        }</span>
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public int compare(Destination choice1, Destination choice2) {
+<span class="nc" id="L291">            return compareNames(choice1.location, choice2.location);</span>
+        }
+    }
+
+    private class DistanceComparator extends DestinationComparator {
+
+<span class="nc" id="L297">        public DistanceComparator(Player player) {</span>
+<span class="nc" id="L298">            super(player);</span>
+<span class="nc" id="L299">        }</span>
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public int compare(Destination choice1, Destination choice2) {
+<span class="nc" id="L306">            int result = choice1.turns - choice2.turns;</span>
+<span class="nc bnc" id="L307" title="All 2 branches missed.">            return (result != 0) ? result</span>
+<span class="nc" id="L308">                : compareNames(choice1.location, choice2.location);</span>
+        }
+    }
+
+<span class="nc" id="L312">    private static class LocationRenderer</span>
+        extends FreeColComboBoxRenderer&lt;Destination&gt; {
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void setLabelValues(JLabel label, Destination value) {
+<span class="nc bnc" id="L320" title="All 2 branches missed.">            if (value.icon != null) label.setIcon(value.icon);</span>
+<span class="nc" id="L321">            label.setText(value.text);</span>
+<span class="nc" id="L322">        }</span>
+    }
+
+    /** The size of each destination cell. */
+    private static final int CELL_HEIGHT = 48;
+
+    /** Show only the player colonies.  FIXME: make a client option. */
+<span class="nc" id="L329">    private static boolean showOnlyMyColonies = true;</span>
+
+    /** How to order the destinations. */
+<span class="nc" id="L332">    private static Comparator&lt;Destination&gt; destinationComparator = null;</span>
+
+    /** The available destinations. */
+<span class="nc" id="L335">    private final List&lt;Destination&gt; destinations = new ArrayList&lt;&gt;();</span>
+
+    /** The list of destinations. */
+    private final JList&lt;Destination&gt; destinationList;
+
+    /** Restrict to only the player colonies? */
+    private JCheckBox onlyMyColoniesBox;
+
+    /** Choice of the comparator. */
+    private JComboBox&lt;String&gt; comparatorBox;
+
+
+    /**
+     * The constructor to use.
+     *
+     * @param freeColClient The &lt;code&gt;FreeColClient&lt;/code&gt; for the game.
+     * @param frame The owner frame.
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; to plan for.
+     */
+    public SelectDestinationDialog(FreeColClient freeColClient, JFrame frame,
+                                   Unit unit) {
+<span class="nc" id="L356">        super(freeColClient, frame);</span>
+
+        // Collect the goods the unit is carrying and set this.destinations.
+<span class="nc" id="L359">        final List&lt;GoodsType&gt; goodsTypes = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L360" title="All 2 branches missed.">        for (Goods goods : unit.getCompactGoodsList()) {</span>
+<span class="nc" id="L361">            goodsTypes.add(goods.getType());</span>
+        }
+<span class="nc" id="L363">        loadDestinations(unit, goodsTypes);</span>
+
+<span class="nc" id="L365">        DefaultListModel&lt;Destination&gt; model</span>
+<span class="nc" id="L366">            = new DefaultListModel&lt;&gt;();</span>
+<span class="nc" id="L367">        this.destinationList = new JList&lt;&gt;(model);</span>
+<span class="nc" id="L368">        this.destinationList.setCellRenderer(new LocationRenderer());</span>
+<span class="nc" id="L369">        this.destinationList.setFixedCellHeight(CELL_HEIGHT);</span>
+<span class="nc" id="L370">        this.destinationList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);</span>
+<span class="nc" id="L371">        this.destinationList.addListSelectionListener(this);</span>
+<span class="nc" id="L372">        this.destinationList.addMouseListener(new MouseAdapter() {</span>
+                @Override
+                public void mouseClicked(MouseEvent e) {
+<span class="nc bnc" id="L375" title="All 2 branches missed.">                    if (e.getClickCount() != 2) return;</span>
+<span class="nc" id="L376">                    Destination d = destinationList.getSelectedValue();</span>
+<span class="nc bnc" id="L377" title="All 2 branches missed.">                    if (d != null) setValue(options.get(0));</span>
+<span class="nc" id="L378">                }</span>
+            });
+<span class="nc" id="L380">        updateDestinationList();</span>
+
+<span class="nc" id="L382">        JScrollPane listScroller = new JScrollPane(destinationList);</span>
+<span class="nc" id="L383">        listScroller.setPreferredSize(new Dimension(300, 300));</span>
+
+<span class="nc" id="L385">        String omcb = Messages.message(&quot;selectDestinationDialog.onlyMyColonies&quot;);</span>
+<span class="nc" id="L386">        this.onlyMyColoniesBox = new JCheckBox(omcb, showOnlyMyColonies);</span>
+<span class="nc" id="L387">        this.onlyMyColoniesBox.addChangeListener((ChangeEvent event) -&gt; {</span>
+<span class="nc" id="L388">                showOnlyMyColonies = onlyMyColoniesBox.isSelected();</span>
+<span class="nc" id="L389">                updateDestinationList();</span>
+<span class="nc" id="L390">            });</span>
+
+<span class="nc" id="L392">        this.comparatorBox = new JComboBox&lt;&gt;(new String[] {</span>
+<span class="nc" id="L393">                Messages.message(&quot;selectDestinationDialog.sortByOwner&quot;),</span>
+<span class="nc" id="L394">                Messages.message(&quot;selectDestinationDialog.sortByName&quot;),</span>
+<span class="nc" id="L395">                Messages.message(&quot;selectDestinationDialog.sortByDistance&quot;)</span>
+            });
+<span class="nc" id="L397">        this.comparatorBox.addItemListener((ItemEvent event) -&gt; {</span>
+<span class="nc" id="L398">                updateDestinationComparator();</span>
+<span class="nc" id="L399">                Collections.sort(SelectDestinationDialog.this.destinations,</span>
+<span class="nc" id="L400">                    SelectDestinationDialog.this.destinationComparator);</span>
+<span class="nc" id="L401">                updateDestinationList();</span>
+<span class="nc" id="L402">            });</span>
+<span class="nc" id="L403">        this.comparatorBox.setSelectedIndex(</span>
+<span class="nc bnc" id="L404" title="All 2 branches missed.">            (this.destinationComparator instanceof NameComparator) ? 1</span>
+<span class="nc bnc" id="L405" title="All 2 branches missed.">            : (this.destinationComparator instanceof DistanceComparator) ? 2</span>
+<span class="nc" id="L406">            : 0);</span>
+
+<span class="nc" id="L408">        MigPanel panel = new MigPanel(new MigLayout(&quot;wrap 1, fill&quot;,</span>
+<span class="nc" id="L409">                                                    &quot;[align center]&quot;, &quot;&quot;));</span>
+<span class="nc" id="L410">        panel.add(Utility.localizedHeader(&quot;selectDestinationDialog.text&quot;, true));</span>
+
+<span class="nc" id="L412">        panel.add(listScroller, &quot;newline 30, growx, growy&quot;);</span>
+<span class="nc" id="L413">        panel.add(this.onlyMyColoniesBox, &quot;left&quot;);</span>
+<span class="nc" id="L414">        panel.add(this.comparatorBox, &quot;left&quot;);</span>
+<span class="nc" id="L415">        panel.setSize(panel.getPreferredSize());</span>
+
+<span class="nc" id="L417">        List&lt;ChoiceItem&lt;Location&gt;&gt; c = choices();</span>
+<span class="nc" id="L418">        c.add(new ChoiceItem&lt;&gt;(Messages.message(&quot;ok&quot;),</span>
+<span class="nc" id="L419">                (Location)null).okOption());</span>
+<span class="nc" id="L420">        c.add(new ChoiceItem&lt;&gt;(Messages.message(&quot;selectDestinationDialog.cancel&quot;),</span>
+<span class="nc" id="L421">                (Location)null).cancelOption().defaultOption());</span>
+<span class="nc" id="L422">        initializeDialog(frame, DialogType.QUESTION, true, panel, new ImageIcon(</span>
+<span class="nc" id="L423">            getImageLibrary().getSmallUnitImage(unit)), c);</span>
+<span class="nc" id="L424">    }</span>
+
+
+    /**
+     * Helper to quickly decide is a unit can reach a settlement.
+     *
+     * Does *not* do the full path finding, this is intentionally a quick
+     * check to eliminate obvious failures before calling the (expensive)
+     * path finder to determine the precise travel time.
+     *
+     * @param u The &lt;code&gt;Unit&lt;/code&gt; to check.
+     * @param s The &lt;code&gt;Settlement&lt;/code&gt; to check.
+     * @return True if a unit can reach a settlement, assuming no blockages.
+     */
+    private boolean canReach(Unit u, Settlement s) {
+<span class="nc bnc" id="L439" title="All 2 branches missed.">        return (u.isNaval()) ? s.isConnectedPort()</span>
+<span class="nc" id="L440">            : Map.isSameContiguity(u.getLocation(), s.getTile());</span>
+    }
+
+    /**
+     * Load destinations for a given unit and carried goods types.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; to select destinations for.
+     * @param goodsTypes A list of &lt;code&gt;GoodsType&lt;/code&gt;s carried.
+     */
+    private void loadDestinations(Unit unit, List&lt;GoodsType&gt; goodsTypes) {
+<span class="nc" id="L450">        final Player player = unit.getOwner();</span>
+<span class="nc" id="L451">        final Settlement inSettlement = unit.getSettlement();</span>
+<span class="nc" id="L452">        final boolean canTrade</span>
+<span class="nc" id="L453">            = player.hasAbility(Ability.TRADE_WITH_FOREIGN_COLONIES);</span>
+<span class="nc" id="L454">        final Europe europe = player.getEurope();</span>
+<span class="nc" id="L455">        final Game game = getGame();</span>
+<span class="nc" id="L456">        final Map map = game.getMap();</span>
+<span class="nc bnc" id="L457" title="All 2 branches missed.">        if (this.destinationComparator == null) {</span>
+<span class="nc" id="L458">            this.destinationComparator = new DestinationComparator(player);</span>
+        }
+        
+<span class="nc bnc" id="L461" title="All 4 branches missed.">        if (unit.isInEurope() &amp;&amp; !unit.getType().canMoveToHighSeas()) return;</span>
+
+        // Add Europe or &quot;New World&quot; (the map) depending where the unit is
+<span class="nc bnc" id="L464" title="All 2 branches missed.">        if (unit.isInEurope()) {</span>
+<span class="nc" id="L465">            this.destinations.add(new Destination(map, unit.getSailTurns(),</span>
+<span class="nc" id="L466">                                                  unit, goodsTypes));</span>
+<span class="nc bnc" id="L467" title="All 2 branches missed.">        } else if (europe != null</span>
+<span class="nc bnc" id="L468" title="All 2 branches missed.">            &amp;&amp; player.canMoveToEurope()</span>
+<span class="nc bnc" id="L469" title="All 2 branches missed.">            &amp;&amp; unit.getType().canMoveToHighSeas()) {</span>
+<span class="nc" id="L470">            int turns = unit.getTurnsToReach(europe);</span>
+<span class="nc bnc" id="L471" title="All 2 branches missed.">            if (turns &lt; Unit.MANY_TURNS) {</span>
+<span class="nc" id="L472">                this.destinations.add(new Destination(europe, turns, </span>
+<span class="nc" id="L473">                                                      unit, goodsTypes));</span>
+            }
+        }
+
+        // Add all the player accessible settlements except the current one.
+<span class="nc" id="L478">        this.destinations.addAll(player.getSettlements().stream()</span>
+<span class="nc bnc" id="L479" title="All 4 branches missed.">            .filter(s -&gt; s != inSettlement &amp;&amp; canReach(unit, s))</span>
+<span class="nc" id="L480">            .map(s -&gt; new Destination(s, unit.getTurnsToReach(s),</span>
+<span class="nc" id="L481">                                      unit, goodsTypes))</span>
+<span class="nc bnc" id="L482" title="All 2 branches missed.">            .filter(d -&gt; d.turns &lt; Unit.MANY_TURNS)</span>
+<span class="nc" id="L483">            .collect(Collectors.toList()));</span>
+
+        // Add all other player accessible settlements.  Build a list
+        // of accessible settlement locations and do a bulk path search
+        // to determine the travel times, and create Destinations from
+        // the results.
+<span class="nc" id="L489">        List&lt;Location&gt; locs = game.getLivePlayers(player).stream()</span>
+<span class="nc bnc" id="L490" title="All 2 branches missed.">            .filter(p -&gt; p.hasContacted(player)</span>
+<span class="nc bnc" id="L491" title="All 4 branches missed.">                &amp;&amp; (canTrade || !p.isEuropean()))</span>
+<span class="nc" id="L492">            .flatMap(p -&gt; p.getSettlements().stream()</span>
+<span class="nc bnc" id="L493" title="All 4 branches missed.">                .filter(s -&gt; canReach(unit, s) &amp;&amp; s.hasContacted(p)))</span>
+<span class="nc" id="L494">            .map(s -&gt; s.getTile()).collect(Collectors.toList());</span>
+<span class="nc" id="L495">        MultipleAdjacentDecider md = new MultipleAdjacentDecider(locs);</span>
+<span class="nc" id="L496">        unit.search(unit.getLocation(), md.getGoalDecider(), null,</span>
+<span class="nc" id="L497">                    FreeColObject.INFINITY, null);</span>
+<span class="nc" id="L498">        this.destinations.addAll(md.getResults().entrySet().stream()</span>
+<span class="nc" id="L499">            .map(e -&gt; {</span>
+<span class="nc" id="L500">                    Settlement s = e.getKey().getTile().getSettlement();</span>
+<span class="nc" id="L501">                    PathNode p = e.getValue();</span>
+<span class="nc" id="L502">                    int turns = p.getTotalTurns();</span>
+<span class="nc bnc" id="L503" title="All 2 branches missed.">                    if (unit.isInEurope()) turns += unit.getSailTurns();</span>
+<span class="nc bnc" id="L504" title="All 2 branches missed.">                    if (p.getMovesLeft() &lt; unit.getInitialMovesLeft()) turns++;</span>
+<span class="nc" id="L505">                    return new Destination(s, turns, unit, goodsTypes);</span>
+                })
+<span class="nc bnc" id="L507" title="All 2 branches missed.">            .filter(d -&gt; d.turns &lt; Unit.MANY_TURNS)</span>
+<span class="nc" id="L508">            .collect(Collectors.toList()));</span>
+
+        // Finally sort the results.
+<span class="nc" id="L511">        Collections.sort(this.destinations, this.destinationComparator);</span>
+<span class="nc" id="L512">    }</span>
+
+    /**
+     * Reset the destinations in the model.
+     */
+    private void updateDestinationList() {
+<span class="nc" id="L518">        final Player player = getMyPlayer();</span>
+<span class="nc" id="L519">        Destination selected = this.destinationList.getSelectedValue();</span>
+<span class="nc" id="L520">        DefaultListModel&lt;Destination&gt; model</span>
+<span class="nc" id="L521">            = new DefaultListModel&lt;&gt;();</span>
+<span class="nc bnc" id="L522" title="All 2 branches missed.">        for (Destination d : this.destinations) {</span>
+<span class="nc bnc" id="L523" title="All 2 branches missed.">            if (showOnlyMyColonies) {</span>
+<span class="nc bnc" id="L524" title="All 2 branches missed.">                if (d.location instanceof Europe</span>
+<span class="nc bnc" id="L525" title="All 2 branches missed.">                    || d.location instanceof Map</span>
+<span class="nc bnc" id="L526" title="All 2 branches missed.">                    || (d.location instanceof Colony</span>
+<span class="nc bnc" id="L527" title="All 2 branches missed.">                        &amp;&amp; player.owns((Colony)d.location))) {</span>
+<span class="nc" id="L528">                    model.addElement(d);</span>
+                }
+<span class="nc" id="L530">            } else {</span>
+<span class="nc" id="L531">                model.addElement(d);</span>
+            }
+        }
+<span class="nc" id="L534">        this.destinationList.setModel(model);</span>
+<span class="nc" id="L535">        this.destinationList.setSelectedValue(selected, true);</span>
+<span class="nc bnc" id="L536" title="All 2 branches missed.">        if (this.destinationList.getSelectedIndex() &lt; 0) {</span>
+<span class="nc" id="L537">            this.destinationList.setSelectedIndex(0);</span>
+        }
+<span class="nc" id="L539">        recenter(this.destinationList.getSelectedValue());</span>
+<span class="nc" id="L540">    }</span>
+
+    /**
+     * Show a destination on the map.
+     *
+     * @param destination The &lt;code&gt;Destination&lt;/code&gt; to display.
+     */
+    private void recenter(Destination destination) {
+<span class="nc bnc" id="L548" title="All 2 branches missed.">        if (destination != null</span>
+<span class="nc bnc" id="L549" title="All 2 branches missed.">            &amp;&amp; destination.location.getTile() != null) {</span>
+<span class="nc" id="L550">            getGUI().setFocus(destination.location.getTile());</span>
+        }
+<span class="nc" id="L552">    }</span>
+
+    /**
+     * Set the selected destination comparator.
+     */
+    private void updateDestinationComparator() {
+<span class="nc" id="L558">        final Player player = getMyPlayer();</span>
+<span class="nc bnc" id="L559" title="All 3 branches missed.">        switch (this.comparatorBox.getSelectedIndex()) {</span>
+        case 1:
+<span class="nc" id="L561">            this.destinationComparator = new NameComparator(player);</span>
+<span class="nc" id="L562">            break;</span>
+        case 2:
+<span class="nc" id="L564">            this.destinationComparator = new DistanceComparator(player);</span>
+<span class="nc" id="L565">            break;</span>
+        case 0: default:
+<span class="nc" id="L567">            this.destinationComparator = new DestinationComparator(player);</span>
+            break;
+        }
+<span class="nc" id="L570">    }</span>
+
+
+    // Interface ListSelectionListener
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void valueChanged(ListSelectionEvent e) {
+<span class="nc bnc" id="L580" title="All 2 branches missed.">        if (e.getValueIsAdjusting()) return;</span>
+<span class="nc" id="L581">        recenter(this.destinationList.getSelectedValue());</span>
+<span class="nc" id="L582">    }</span>
+
+
+    // Implement FreeColDialog
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Location getResponse() {
+<span class="nc" id="L592">        Object value = getValue();</span>
+<span class="nc bnc" id="L593" title="All 2 branches missed.">        if (options.get(0).equals(value)) {</span>
+<span class="nc" id="L594">            Destination d = this.destinationList.getSelectedValue();</span>
+<span class="nc bnc" id="L595" title="All 2 branches missed.">            if (d != null) return d.location;</span>
+        }
+<span class="nc" id="L597">        return null;</span>
+    }
+
+
+    // Override Component
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void removeNotify() {
+<span class="nc" id="L608">        super.removeNotify();</span>
+
+<span class="nc" id="L610">        removeAll();</span>
+<span class="nc" id="L611">        this.destinations.clear();</span>
+<span class="nc" id="L612">        this.onlyMyColoniesBox = null;</span>
+<span class="nc" id="L613">        this.comparatorBox = null;</span>
+<span class="nc" id="L614">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void requestFocus() {
+<span class="nc" id="L621">        this.destinationList.requestFocus();</span>
+<span class="nc" id="L622">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

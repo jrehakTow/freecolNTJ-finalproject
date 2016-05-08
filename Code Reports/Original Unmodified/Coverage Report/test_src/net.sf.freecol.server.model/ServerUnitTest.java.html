@@ -1,0 +1,523 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ServerUnitTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.model</a> &gt; <span class="el_source">ServerUnitTest.java</span></div><h1>ServerUnitTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.model;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import net.sf.freecol.common.model.BuildingType;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.ColonyTile;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.GameOptions;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Modifier;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Role;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TileImprovement;
+import net.sf.freecol.common.model.TileImprovementType;
+import net.sf.freecol.common.model.TileType;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.model.UnitTypeChange.ChangeType;
+import net.sf.freecol.common.model.WorkLocation;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.server.control.InGameController;
+import net.sf.freecol.util.test.FreeColTestCase;
+import net.sf.freecol.util.test.MockPseudoRandom;
+
+
+<span class="fc" id="L50">public class ServerUnitTest extends FreeColTestCase {</span>
+
+<span class="fc" id="L52">    private static final BuildingType carpenterHouseType</span>
+<span class="fc" id="L53">        = spec().getBuildingType(&quot;model.building.carpenterHouse&quot;);</span>
+<span class="fc" id="L54">    private static final BuildingType townHallType</span>
+<span class="fc" id="L55">        = spec().getBuildingType(&quot;model.building.townHall&quot;);</span>
+
+<span class="fc" id="L57">    private static final GoodsType foodType</span>
+<span class="fc" id="L58">        = spec().getPrimaryFoodType();</span>
+<span class="fc" id="L59">    private static final GoodsType grainType</span>
+<span class="fc" id="L60">        = spec().getGoodsType(&quot;model.goods.grain&quot;);</span>
+<span class="fc" id="L61">    private static final GoodsType lumberType</span>
+<span class="fc" id="L62">        = spec().getGoodsType(&quot;model.goods.lumber&quot;);</span>
+
+<span class="fc" id="L64">    private static final TileImprovementType road</span>
+<span class="fc" id="L65">        = spec().getTileImprovementType(&quot;model.improvement.road&quot;);</span>
+<span class="fc" id="L66">    private static final TileImprovementType plow</span>
+<span class="fc" id="L67">        = spec().getTileImprovementType(&quot;model.improvement.plow&quot;);</span>
+<span class="fc" id="L68">    private static final TileImprovementType clear</span>
+<span class="fc" id="L69">        = spec().getTileImprovementType(&quot;model.improvement.clearForest&quot;);</span>
+
+<span class="fc" id="L71">    private static final TileType plains</span>
+<span class="fc" id="L72">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+<span class="fc" id="L73">    private static final TileType savannah</span>
+<span class="fc" id="L74">        = spec().getTileType(&quot;model.tile.savannah&quot;);</span>
+<span class="fc" id="L75">    private static final TileType savannahForest</span>
+<span class="fc" id="L76">        = spec().getTileType(&quot;model.tile.tropicalForest&quot;);</span>
+
+<span class="fc" id="L78">    private static final Role pioneerRole</span>
+<span class="fc" id="L79">        = spec().getRole(&quot;model.role.pioneer&quot;);</span>
+<span class="fc" id="L80">    private static final Role scoutRole</span>
+<span class="fc" id="L81">        = spec().getRole(&quot;model.role.scout&quot;);</span>
+
+<span class="fc" id="L83">    private static final UnitType colonistType</span>
+<span class="fc" id="L84">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="fc" id="L85">    private static final UnitType expertFarmerType</span>
+<span class="fc" id="L86">        = spec().getUnitType(&quot;model.unit.expertFarmer&quot;);</span>
+<span class="fc" id="L87">    private static final UnitType pioneerType</span>
+<span class="fc" id="L88">        = spec().getUnitType(&quot;model.unit.hardyPioneer&quot;);</span>
+<span class="fc" id="L89">    private static final UnitType soldierType</span>
+<span class="fc" id="L90">        = spec().getUnitType(&quot;model.unit.veteranSoldier&quot;);</span>
+
+
+    /**
+     * Does a tile have a completed improvement of the given type?
+     *
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; to check.
+     * @param type The &lt;code&gt;TileImprovementType&lt;/code&gt; to check.
+     * @return True if this &lt;code&gt;Tile&lt;/code&gt; has the improvement type and
+     *      it is complete.
+     */
+    private static boolean hasImprovement(Tile tile, TileImprovementType type) {
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">        if (type.changeContainsTarget(tile.getType())) {</span>
+<span class="nc" id="L103">            return true;</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        } else if (tile.getTileItemContainer() != null) {</span>
+<span class="fc" id="L105">            return tile.getTileItemContainer().hasImprovement(type);</span>
+        }
+<span class="fc" id="L107">        return false;</span>
+    }
+
+    public void testToggleHorses() {
+<span class="fc" id="L111">        Game game = ServerTestHelper.startServerGame(getTestMap(plains));</span>
+
+<span class="fc" id="L113">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L114">        Tile tile1 = game.getMap().getTile(5, 8);</span>
+<span class="fc" id="L115">        tile1.setExplored(dutch, true);</span>
+<span class="fc" id="L116">        ServerUnit scout = new ServerUnit(game, tile1, dutch, colonistType);</span>
+
+        // make sure unit has all moves left
+<span class="fc" id="L119">        ServerTestHelper.newTurn();</span>
+
+<span class="fc" id="L121">        assertEquals(scout.getInitialMovesLeft(), scout.getMovesLeft());</span>
+<span class="fc" id="L122">        int colonistMoves = scout.getMovesLeft();</span>
+<span class="fc" id="L123">        scout.changeRole(scoutRole, 1);</span>
+
+<span class="fc" id="L125">        ServerTestHelper.newTurn();</span>
+
+<span class="fc" id="L127">        assertTrue(&quot;Scout should have more moves than a colonist&quot;,</span>
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">                   scout.getMovesLeft() &gt; colonistMoves);</span>
+<span class="fc" id="L129">        scout.changeRole(spec().getDefaultRole(), 0);</span>
+
+<span class="fc" id="L131">        ServerTestHelper.newTurn();</span>
+
+<span class="fc" id="L133">        assertEquals(scout.getMovesLeft(), colonistMoves);</span>
+<span class="fc" id="L134">    }</span>
+
+    /**
+     * Test Plowing with a hardy pioneer
+     */
+    public void testDoAssignedWorkHardyPioneerPlowPlain() {
+<span class="fc" id="L140">        Game game = ServerTestHelper.startServerGame(getTestMap(plains));</span>
+<span class="fc" id="L141">        InGameController igc = ServerTestHelper.getInGameController();</span>
+
+<span class="fc" id="L143">        ServerPlayer dutch = (ServerPlayer)game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L144">        Tile plain = game.getMap().getTile(5, 8);</span>
+<span class="fc" id="L145">        plain.setExplored(dutch, true);</span>
+<span class="fc" id="L146">        plain.setOwner(dutch);</span>
+
+<span class="fc" id="L148">        ServerUnit hardyPioneer = new ServerUnit(game, plain, dutch,</span>
+<span class="fc" id="L149">                                                 pioneerType);</span>
+<span class="fc" id="L150">        hardyPioneer.setRoleCount(1);</span>
+
+        // Before
+<span class="fc" id="L153">        assertFalse(hasImprovement(plain, plow));</span>
+<span class="fc" id="L154">        assertEquals(3, hardyPioneer.getMovesLeft());</span>
+<span class="fc" id="L155">        assertEquals(Unit.UnitState.ACTIVE, hardyPioneer.getState());</span>
+<span class="fc" id="L156">        assertEquals(-1, hardyPioneer.getWorkLeft());</span>
+<span class="fc" id="L157">        assertEquals(pioneerRole, hardyPioneer.getRole());</span>
+
+        //TileImprovement plowImprovement
+        //    = new TileImprovement(game, plain, plow);
+        //plain.add(plowImprovement);
+<span class="fc" id="L162">        igc.changeWorkImprovementType(dutch, hardyPioneer, plow);</span>
+
+<span class="fc" id="L164">        assertFalse(hasImprovement(plain, plow));</span>
+<span class="fc" id="L165">        assertEquals(0, hardyPioneer.getMovesLeft());</span>
+<span class="fc" id="L166">        assertEquals(Unit.UnitState.IMPROVING, hardyPioneer.getState());</span>
+<span class="fc" id="L167">        assertEquals(5, hardyPioneer.getWorkLeft());</span>
+<span class="fc" id="L168">        assertEquals(pioneerRole, hardyPioneer.getRole());</span>
+
+        // Advance to finish
+<span class="fc bfc" id="L171" title="All 2 branches covered.">        while (hardyPioneer.getWorkLeft() &gt; 0) {</span>
+<span class="fc" id="L172">            ServerTestHelper.newTurn();</span>
+        }
+
+        // Pioneer finished work
+<span class="fc" id="L176">        assertTrue(hasImprovement(plain, plow));</span>
+<span class="fc" id="L177">        assertEquals(0, hardyPioneer.getMovesLeft());</span>
+<span class="fc" id="L178">        assertEquals(Unit.UnitState.ACTIVE, hardyPioneer.getState());</span>
+<span class="fc" id="L179">        assertEquals(-1, hardyPioneer.getWorkLeft());</span>
+<span class="fc" id="L180">        assertEquals(spec().getDefaultRole(), hardyPioneer.getRole());</span>
+<span class="fc" id="L181">    }</span>
+
+    public void testColonyProfitFromEnhancement() {
+<span class="fc" id="L184">        Game game = ServerTestHelper.startServerGame(getTestMap(plains));</span>
+<span class="fc" id="L185">        InGameController igc = ServerTestHelper.getInGameController();</span>
+
+<span class="fc" id="L187">        ServerPlayer dutch = (ServerPlayer)game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L188">        Map map = game.getMap();</span>
+<span class="fc" id="L189">        map.getTile(5, 8).setExplored(dutch, true);</span>
+<span class="fc" id="L190">        map.getTile(6, 8).setExplored(dutch, true);</span>
+<span class="fc" id="L191">        Tile plain58 = map.getTile(5, 8);</span>
+
+        //assertEquals(2, dutch.getDifficulty().getIndex());
+        //assertEquals(&quot;model.difficulty.medium&quot;, dutch.getDifficulty().getId());
+<span class="fc" id="L195">        assertEquals(6, spec().getInteger(GameOptions.BAD_GOVERNMENT_LIMIT));</span>
+<span class="fc" id="L196">        assertEquals(10, spec().getInteger(GameOptions.VERY_BAD_GOVERNMENT_LIMIT));</span>
+
+        // Found colony on 6,8
+<span class="fc" id="L199">        ServerUnit soldier = new ServerUnit(game, map.getTile(6, 8), dutch,</span>
+<span class="fc" id="L200">                                            soldierType);</span>
+
+<span class="fc" id="L202">        ServerColony colony = new ServerColony(game, dutch, &quot;New Amsterdam&quot;,</span>
+<span class="fc" id="L203">                                               soldier.getTile());</span>
+<span class="fc" id="L204">        dutch.addSettlement(colony);</span>
+
+<span class="fc" id="L206">        soldier.changeWorkType(foodType);</span>
+<span class="fc" id="L207">        nonServerBuildColony(soldier, colony);</span>
+<span class="fc" id="L208">        soldier.setLocation(colony.getColonyTile(plain58));</span>
+<span class="fc" id="L209">        ServerUnit hardyPioneer = new ServerUnit(game, plain58, dutch,</span>
+<span class="fc" id="L210">                                                 pioneerType);</span>
+
+        // Before
+<span class="fc" id="L213">        assertEquals(0, colony.getGoodsCount(foodType));</span>
+<span class="fc" id="L214">        assertEquals(2, colony.getFoodConsumption());</span>
+<span class="fc" id="L215">        assertEquals(5 + 5, colony.getFoodProduction());</span>
+<span class="fc" id="L216">        assertFalse(hasImprovement(plain58, plow));</span>
+<span class="fc" id="L217">        assertEquals(0, colony.getProductionBonus());</span>
+<span class="fc" id="L218">        assertEquals(&quot;&quot; + soldier.getLocation(), colony.getColonyTile(map.getTile(5, 8)), soldier.getLocation());</span>
+
+        // One turn to check production
+<span class="fc" id="L221">        ServerTestHelper.newTurn();</span>
+
+<span class="fc" id="L223">        assertFalse(hasImprovement(plain58, plow));</span>
+<span class="fc" id="L224">        assertEquals(8, colony.getGoodsCount(foodType));</span>
+<span class="fc" id="L225">        assertEquals(2, colony.getFoodConsumption());</span>
+<span class="fc" id="L226">        assertEquals(0, colony.getProductionBonus());</span>
+<span class="fc" id="L227">        assertEquals(5 + 5, colony.getFoodProduction());</span>
+
+        // Start Plowing
+        //TileImprovement plowImprovement
+        //    = new TileImprovement(game, plain58, plow);
+        //plain58.add(plowImprovement);
+<span class="fc" id="L233">        igc.changeWorkImprovementType(dutch, hardyPioneer, plow);</span>
+
+<span class="fc" id="L235">        int n = 0;</span>
+<span class="fc bfc" id="L236" title="All 2 branches covered.">        while (hardyPioneer.getWorkLeft() &gt; 0) {</span>
+<span class="fc" id="L237">            ServerTestHelper.newTurn();</span>
+<span class="fc" id="L238">            n++;</span>
+        }
+<span class="fc" id="L240">        colony.invalidateCache();</span>
+
+<span class="fc" id="L242">        assertTrue(hasImprovement(plain58, plow));</span>
+        // Production for next turn is updated
+<span class="fc" id="L244">        assertEquals(5 + 6, colony.getFoodProduction());</span>
+<span class="fc" id="L245">        assertEquals(2, colony.getFoodConsumption());</span>
+        // But in only 10 - 2 == 8 are added from last turn
+<span class="fc" id="L247">        assertEquals(8 + n * 8, colony.getGoodsCount(foodType));</span>
+
+        // In game, this should happen via a Tile update
+<span class="fc" id="L250">        colony.invalidateCache();</span>
+        // Advance last turn
+<span class="fc" id="L252">        ServerTestHelper.newTurn();</span>
+
+<span class="fc" id="L254">        assertTrue(hasImprovement(plain58, plow));</span>
+<span class="fc" id="L255">        assertEquals(5 + 6, colony.getFoodProduction());</span>
+<span class="fc" id="L256">        assertEquals(2, colony.getFoodConsumption());</span>
+<span class="fc" id="L257">        assertEquals(8 + n * 8 + 9, colony.getGoodsCount(foodType));</span>
+<span class="fc" id="L258">    }</span>
+
+    /**
+     * Test Building a road with a hardy pioneer.
+     *
+     * The road is available directly, but the pioneer can only move on the next
+     * turn.
+     *
+     */
+    public void testDoAssignedWorkHardyPioneerBuildRoad() {
+<span class="fc" id="L268">        Game game = ServerTestHelper.startServerGame(getTestMap(savannahForest));</span>
+<span class="fc" id="L269">        InGameController igc = ServerTestHelper.getInGameController();</span>
+
+<span class="fc" id="L271">        ServerPlayer dutch = (ServerPlayer)game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L272">        Map map = game.getMap();</span>
+<span class="fc" id="L273">        Tile tile = map.getTile(5, 8);</span>
+<span class="fc" id="L274">        map.getTile(5, 8).setExplored(dutch, true);</span>
+
+<span class="fc" id="L276">        ServerUnit hardyPioneer1 = new ServerUnit(game, tile, dutch,</span>
+<span class="fc" id="L277">                                                  pioneerType, pioneerRole);</span>
+<span class="fc" id="L278">        ServerUnit hardyPioneer2 = new ServerUnit(game, tile, dutch,</span>
+<span class="fc" id="L279">                                                  pioneerType, pioneerRole);</span>
+<span class="fc" id="L280">        ServerUnit hardyPioneer3 = new ServerUnit(game, tile, dutch,</span>
+<span class="fc" id="L281">                                                  pioneerType, pioneerRole);</span>
+
+        // Before
+<span class="fc" id="L284">        assertEquals(false, tile.hasRoad());</span>
+<span class="fc" id="L285">        assertEquals(3, hardyPioneer1.getMovesLeft());</span>
+<span class="fc" id="L286">        assertEquals(-1, hardyPioneer1.getWorkLeft());</span>
+<span class="fc" id="L287">        assertEquals(5, hardyPioneer1.getRoleCount());</span>
+<span class="fc" id="L288">        assertEquals(Unit.UnitState.ACTIVE, hardyPioneer1.getState());</span>
+<span class="fc" id="L289">        assertEquals(3, hardyPioneer2.getMovesLeft());</span>
+<span class="fc" id="L290">        assertEquals(-1, hardyPioneer2.getWorkLeft());</span>
+<span class="fc" id="L291">        assertEquals(5, hardyPioneer2.getRoleCount());</span>
+<span class="fc" id="L292">        assertEquals(Unit.UnitState.ACTIVE, hardyPioneer2.getState());</span>
+
+        // Now do it
+<span class="fc" id="L295">        tile.setOwner(dutch);</span>
+<span class="fc" id="L296">        igc.changeWorkImprovementType(dutch, hardyPioneer1, road);</span>
+<span class="fc" id="L297">        igc.changeWorkImprovementType(dutch, hardyPioneer2, road);</span>
+<span class="fc" id="L298">        igc.changeWorkImprovementType(dutch, hardyPioneer3, clear);</span>
+<span class="fc" id="L299">        assertEquals(6, hardyPioneer1.getWorkLeft());</span>
+<span class="fc" id="L300">        assertEquals(6, hardyPioneer2.getWorkLeft());</span>
+<span class="fc" id="L301">        assertEquals(8, hardyPioneer3.getWorkLeft());</span>
+
+<span class="fc" id="L303">        TileImprovement roadImprovement = tile.getRoad();</span>
+<span class="fc bfc" id="L304" title="All 2 branches covered.">        while (roadImprovement.getTurnsToComplete() &gt; 0) {</span>
+<span class="fc" id="L305">            ServerTestHelper.newTurn();</span>
+        }
+
+        // After: both pioneers building road have used up their tools
+<span class="fc" id="L309">        assertTrue(tile.hasRoad());</span>
+<span class="fc" id="L310">        assertTrue(roadImprovement.isComplete());</span>
+<span class="fc" id="L311">        assertEquals(savannahForest, tile.getType());</span>
+
+        //assertEquals(0, hardyPioneer1.getMovesLeft());
+<span class="fc" id="L314">        assertEquals(-1, hardyPioneer1.getWorkLeft());</span>
+<span class="fc" id="L315">        assertEquals(Unit.UnitState.ACTIVE, hardyPioneer1.getState());</span>
+
+        //assertEquals(0, hardyPioneer2.getMovesLeft());
+<span class="fc" id="L318">        assertEquals(-1, hardyPioneer2.getWorkLeft());</span>
+<span class="fc" id="L319">        assertEquals(Unit.UnitState.ACTIVE, hardyPioneer2.getState());</span>
+
+<span class="fc" id="L321">        assertEquals(9,</span>
+<span class="fc" id="L322">            hardyPioneer1.getRoleCount() + hardyPioneer2.getRoleCount());</span>
+
+        // Pioneer clearing forest is not affected
+<span class="fc" id="L325">        assertEquals(3, hardyPioneer3.getMovesLeft());</span>
+<span class="fc" id="L326">        assertEquals(4, hardyPioneer3.getWorkLeft());</span>
+<span class="fc" id="L327">        assertEquals(Unit.UnitState.IMPROVING, hardyPioneer3.getState());</span>
+<span class="fc" id="L328">        assertEquals(5, hardyPioneer3.getRoleCount());</span>
+
+        // Finish
+<span class="fc bfc" id="L331" title="All 2 branches covered.">        while (hardyPioneer3.getWorkLeft() &gt; 0) {</span>
+<span class="fc" id="L332">            ServerTestHelper.newTurn();</span>
+        }
+
+<span class="fc" id="L335">        assertEquals(savannah, tile.getType());</span>
+<span class="fc" id="L336">        assertEquals(0, hardyPioneer3.getMovesLeft());</span>
+<span class="fc" id="L337">        assertEquals(-1, hardyPioneer3.getWorkLeft());</span>
+<span class="fc" id="L338">        assertEquals(Unit.UnitState.ACTIVE, hardyPioneer3.getState());</span>
+<span class="fc" id="L339">        assertEquals(4, hardyPioneer3.getRoleCount());</span>
+<span class="fc" id="L340">    }</span>
+
+    public void testUnitGetsExperienceThroughWork() {
+<span class="fc" id="L343">        Game game = ServerTestHelper.startServerGame(getTestMap());</span>
+
+<span class="fc" id="L345">        Colony colony = getStandardColony();</span>
+<span class="fc" id="L346">        Unit colonist = colony.getUnitList().get(0);</span>
+
+<span class="fc" id="L348">        assertEquals(&quot;Colonist should not have any experience&quot;,</span>
+<span class="fc" id="L349">                     0, colonist.getExperience());</span>
+<span class="fc" id="L350">        assertEquals(&quot;Colonist should be free colonist&quot;,</span>
+<span class="fc" id="L351">                     colonistType, colonist.getType());</span>
+
+        // make sure colonist is on a colony tile
+<span class="fc" id="L354">        WorkLocation loc = colonist.getWorkLocation();</span>
+<span class="pc bpc" id="L355" title="1 of 2 branches missed.">        if (!(loc instanceof ColonyTile)) {</span>
+<span class="nc" id="L356">            colonist.setLocation(colony.getWorkLocationFor(colonist, foodType));</span>
+        }
+<span class="fc" id="L358">        assertTrue(colonist.getLocation() instanceof ColonyTile);</span>
+<span class="fc" id="L359">        assertNotNull(colonist.getWorkType());</span>
+<span class="fc" id="L360">        assertTrue(colonist.getWorkType().isFoodType());</span>
+
+        // produces goods
+<span class="fc" id="L363">        ServerTestHelper.newTurn();</span>
+
+<span class="fc" id="L365">        assertTrue(&quot;Colonist should have gained some experience&quot;,</span>
+<span class="pc bpc" id="L366" title="1 of 2 branches missed.">                   colonist.getExperience() &gt; 0);</span>
+<span class="fc" id="L367">    }</span>
+
+    public void testUnitPromotionWorkingInWorkTile() {
+<span class="fc" id="L370">        Game game = ServerTestHelper.startServerGame(getTestMap(plains));</span>
+
+<span class="fc" id="L372">        Colony colony = getStandardColony();</span>
+<span class="fc" id="L373">        assertTrue(&quot;Colony should only have 1 colonist for test setup&quot;,</span>
+<span class="pc bpc" id="L374" title="1 of 2 branches missed.">                   colony.getUnitCount() == 1);</span>
+
+<span class="fc" id="L376">        Unit colonist = colony.getUnitList().get(0);</span>
+<span class="fc" id="L377">        String errMsg = &quot;Error setting test, colonist should not be an expert&quot;;</span>
+<span class="pc bpc" id="L378" title="1 of 2 branches missed.">        assertTrue(errMsg, colonist.getType() == colonistType);</span>
+
+        // set colonist as farmer
+<span class="fc" id="L381">        Tile tile = colony.getTile().getNeighbourOrNull(Direction.N);</span>
+<span class="fc" id="L382">        assertTrue(colony.getOwner().canOwnTile(tile));</span>
+<span class="fc" id="L383">        ColonyTile colonyTile = colony.getColonyTile(tile);</span>
+<span class="pc bpc" id="L384" title="1 of 2 branches missed.">        if (!colonyTile.isEmpty()) {</span>
+<span class="nc" id="L385">            colonyTile.getUnitList().get(0).setLocation(colony.getBuilding(townHallType));</span>
+        }
+<span class="fc" id="L387">        assertTrue(colonyTile.canBeWorked());</span>
+<span class="fc" id="L388">        colonist.setLocation(colonyTile);</span>
+<span class="fc" id="L389">        colonist.changeWorkType(grainType);</span>
+<span class="fc" id="L390">        assertEquals(&quot;Wrong work allocation&quot;,</span>
+<span class="fc" id="L391">                     grainType, colonist.getWorkType());</span>
+<span class="fc" id="L392">        assertEquals(colonyTile.getUnitList().get(0), colonist);</span>
+        // Will colonist gain experience?
+<span class="pc bpc" id="L394" title="1 of 2 branches missed.">        assertTrue(colonyTile.getTotalProductionOf(colonist.getWorkType()) &gt; 0);</span>
+        // Can colonist be upgraded
+<span class="fc" id="L396">        UnitType learn = spec().getExpertForProducing(colonist.getWorkType());</span>
+<span class="fc" id="L397">        assertNotNull(learn);</span>
+<span class="pc bpc" id="L398" title="1 of 2 branches missed.">        assertTrue(learn != colonist.getType());</span>
+<span class="fc" id="L399">        assertTrue(colonist.getType().canBeUpgraded(learn,</span>
+<span class="fc" id="L400">                                                    ChangeType.EXPERIENCE));</span>
+
+        // set some experience
+<span class="fc" id="L403">        int expectXP = 10;</span>
+<span class="fc" id="L404">        colonist.modifyExperience(expectXP);</span>
+<span class="fc" id="L405">        assertEquals(&quot;Wrong colonist experience&quot;,</span>
+<span class="fc" id="L406">                     expectXP, colonist.getExperience());</span>
+
+        // We need a deterministic random
+<span class="fc" id="L409">        List&lt;Integer&gt; setValues = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L410">        setValues.add(1);</span>
+<span class="fc" id="L411">        MockPseudoRandom mockRandom = new MockPseudoRandom(setValues, true);</span>
+<span class="fc" id="L412">        ServerTestHelper.setRandom(mockRandom);</span>
+
+        // Verify initial state
+<span class="pc bpc" id="L415" title="1 of 2 branches missed.">        boolean isExpert = colonist.getType() == expertFarmerType;</span>
+<span class="fc" id="L416">        assertFalse(&quot;Unit should not be an expert&quot;, isExpert);</span>
+
+        // Make upgrade
+<span class="fc" id="L419">        ServerTestHelper.newTurn();</span>
+<span class="pc bpc" id="L420" title="1 of 2 branches missed.">        assertTrue(colonist.getExperience() &gt; expectXP);</span>
+
+        // verify upgrade
+<span class="pc bpc" id="L423" title="1 of 2 branches missed.">        isExpert = colonist.getType() == expertFarmerType;</span>
+<span class="fc" id="L424">        assertTrue(&quot;Unit should now be an expert&quot;, isExpert);</span>
+<span class="fc" id="L425">    }</span>
+
+    public void testExposeResource() {
+<span class="fc" id="L428">        Game game = ServerTestHelper.startServerGame(getTestMap(savannahForest));</span>
+<span class="fc" id="L429">        InGameController igc = ServerTestHelper.getInGameController();</span>
+
+<span class="fc" id="L431">        ServerPlayer dutch = (ServerPlayer)game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L432">        Map map = game.getMap();</span>
+<span class="fc" id="L433">        Tile tile = map.getTile(5, 8);</span>
+<span class="fc" id="L434">        tile.setOwner(dutch);</span>
+<span class="fc" id="L435">        tile.setExplored(dutch, true);</span>
+
+        // Almost clear the tile
+<span class="fc" id="L438">        Role pioneerRole = spec().getRole(&quot;model.role.pioneer&quot;);</span>
+<span class="fc" id="L439">        ServerUnit hardyPioneer = new ServerUnit(game, tile, dutch,</span>
+<span class="fc" id="L440">                                                 pioneerType, pioneerRole);</span>
+        //TileImprovement clearImprovement
+        //    = new TileImprovement(game, tile, clear);
+        //tile.add(clearImprovement);
+<span class="fc" id="L444">        igc.changeWorkImprovementType(dutch, hardyPioneer, clear);</span>
+
+        // Verify initial state
+<span class="fc" id="L447">        assertEquals(8, hardyPioneer.getWorkLeft());</span>
+<span class="fc" id="L448">        assertEquals(savannahForest, tile.getType());</span>
+<span class="fc" id="L449">        assertFalse(tile.hasResource());</span>
+
+        // Almost finish clearing
+<span class="fc" id="L452">        ServerTestHelper.newTurn();</span>
+<span class="fc" id="L453">        ServerTestHelper.newTurn();</span>
+<span class="fc" id="L454">        ServerTestHelper.newTurn();</span>
+
+        // We need a deterministic random
+<span class="fc" id="L457">        List&lt;Integer&gt; setValues = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L458">        setValues.add(1);</span>
+<span class="fc" id="L459">        MockPseudoRandom mockRandom = new MockPseudoRandom(setValues, true);</span>
+<span class="fc" id="L460">        ServerTestHelper.setRandom(mockRandom);</span>
+
+        // Finish clearing
+<span class="fc" id="L463">        ServerTestHelper.newTurn();</span>
+
+        // Verify clearing succeeded and has revealed a resource
+<span class="fc" id="L466">        assertEquals(savannah, tile.getType());</span>
+<span class="fc" id="L467">        assertTrue(tile.hasResource());</span>
+<span class="fc" id="L468">    }</span>
+
+    public void testUnitLumberDelivery() {
+<span class="fc" id="L471">        Game game = ServerTestHelper.startServerGame(getTestMap(savannahForest));</span>
+<span class="fc" id="L472">        InGameController igc = ServerTestHelper.getInGameController();</span>
+<span class="fc" id="L473">        Colony colony = getStandardColony(3);</span>
+<span class="fc" id="L474">        ServerPlayer player = (ServerPlayer)colony.getOwner();</span>
+<span class="fc" id="L475">        Tile tile = colony.getTile();</span>
+        
+        // Set up a hardy pioneer to clear the colony tile
+<span class="fc" id="L478">        Role pioneerRole = spec().getRole(&quot;model.role.pioneer&quot;);</span>
+<span class="fc" id="L479">        ServerUnit hardyPioneer = new ServerUnit(game, tile, player,</span>
+<span class="fc" id="L480">                                                 pioneerType, pioneerRole);</span>
+<span class="fc" id="L481">        igc.changeWorkImprovementType(player, hardyPioneer, clear);</span>
+
+        // Verify initial state
+<span class="fc" id="L484">        assertEquals(8, hardyPioneer.getWorkLeft());</span>
+<span class="fc" id="L485">        assertEquals(savannahForest, tile.getType());</span>
+<span class="fc" id="L486">        assertEquals(colony, tile.getOwningSettlement());</span>
+        
+        // Almost finish clearing
+<span class="fc" id="L489">        ServerTestHelper.newTurn();</span>
+<span class="fc" id="L490">        ServerTestHelper.newTurn();</span>
+<span class="fc" id="L491">        ServerTestHelper.newTurn();</span>
+
+        // Lumber should be delivered on this turn
+<span class="fc" id="L494">        int lumber = colony.getGoodsCount(lumberType);</span>
+<span class="fc" id="L495">        ServerTestHelper.newTurn();</span>
+<span class="fc" id="L496">        assertEquals(&quot;Lumber delivery with hardy pioneer&quot;, lumber + 20 * 2,</span>
+<span class="fc" id="L497">                     colony.getGoodsCount(lumberType));</span>
+
+        // Upgrade to lumber mill
+<span class="fc" id="L500">        assertEquals(0,</span>
+<span class="fc" id="L501">            colony.getModifiers(Modifier.TILE_TYPE_CHANGE_PRODUCTION).size());</span>
+<span class="fc" id="L502">        colony.getBuilding(carpenterHouseType).upgrade();</span>
+<span class="fc" id="L503">        assertEquals(1,</span>
+<span class="fc" id="L504">            colony.getModifiers(Modifier.TILE_TYPE_CHANGE_PRODUCTION).size());</span>
+
+        // Almost clear another tile
+<span class="fc" id="L507">        Tile tile2 = tile.getNeighbourOrNull(Direction.N);</span>
+<span class="fc" id="L508">        assertEquals(colony, tile2.getOwningSettlement());</span>
+<span class="fc" id="L509">        hardyPioneer.setLocation(tile2);</span>
+<span class="fc" id="L510">        hardyPioneer.setMovesLeft(1);</span>
+<span class="fc" id="L511">        igc.changeWorkImprovementType(player, hardyPioneer, clear);</span>
+<span class="fc" id="L512">        ServerTestHelper.newTurn();</span>
+<span class="fc" id="L513">        ServerTestHelper.newTurn();</span>
+<span class="fc" id="L514">        ServerTestHelper.newTurn();</span>
+
+        // Lumber should be delivered on this turn
+<span class="fc" id="L517">        lumber = colony.getGoodsCount(lumberType);</span>
+<span class="fc" id="L518">        ServerTestHelper.newTurn();</span>
+<span class="fc" id="L519">        assertEquals(&quot;Lumber delivered with hardy pioneer and mill&quot;,</span>
+<span class="fc" id="L520">                     lumber + 20 * 2 * 3, colony.getGoodsCount(lumberType));</span>
+<span class="fc" id="L521">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>FoundingFatherTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">FoundingFatherTest.java</span></div><h1>FoundingFatherTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import net.sf.freecol.common.model.FoundingFather.FoundingFatherType;
+import net.sf.freecol.common.model.Modifier;
+import net.sf.freecol.common.model.Modifier.ModifierType;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+/**
+ * Test cases that apply to all Founding Fathers, or to the
+ * FoundingFather class in general.
+ */
+<span class="fc" id="L36">public class FoundingFatherTest extends FreeColTestCase {</span>
+
+<span class="fc" id="L38">    private static final GoodsType musketsType</span>
+<span class="fc" id="L39">        = spec().getGoodsType(&quot;model.goods.muskets&quot;);</span>
+
+<span class="fc" id="L41">    private static final UnitType servantType</span>
+<span class="fc" id="L42">        = spec().getUnitType(&quot;model.unit.indenturedServant&quot;);</span>
+<span class="fc" id="L43">    private static final UnitType colonistType</span>
+<span class="fc" id="L44">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="fc" id="L45">    private static final UnitType statesmanType</span>
+<span class="fc" id="L46">        = spec().getUnitType(&quot;model.unit.elderStatesman&quot;);</span>
+
+
+    public void testFeatures() {
+<span class="fc" id="L50">        Game game = getStandardGame();</span>
+<span class="fc" id="L51">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+
+<span class="fc" id="L53">        FoundingFather father1 = new FoundingFather(&quot;father1&quot;, spec());</span>
+<span class="fc" id="L54">        father1.setType(FoundingFatherType.TRADE);</span>
+<span class="fc" id="L55">        Ability ability = new Ability(&quot;some.new.ability&quot;);</span>
+<span class="fc" id="L56">        spec().addAbility(ability);</span>
+<span class="fc" id="L57">        father1.addAbility(ability);</span>
+<span class="fc" id="L58">        dutch.addFather(father1);</span>
+
+<span class="fc" id="L60">        assertTrue(dutch.hasAbility(&quot;some.new.ability&quot;));</span>
+
+<span class="fc" id="L62">        FoundingFather father2 = new FoundingFather(&quot;father2&quot;, spec());</span>
+<span class="fc" id="L63">        father2.setType(FoundingFatherType.TRADE);</span>
+<span class="fc" id="L64">        Modifier modifier = new Modifier(&quot;some.new.modifier&quot;, 2f,</span>
+<span class="fc" id="L65">                                         ModifierType.ADDITIVE, father2);</span>
+<span class="fc" id="L66">        father2.addModifier(modifier);</span>
+<span class="fc" id="L67">        spec().addModifier(modifier);</span>
+<span class="fc" id="L68">        dutch.addFather(father2);</span>
+
+<span class="fc" id="L70">        Set&lt;Modifier&gt; modifierSet = dutch.getModifiers(&quot;some.new.modifier&quot;);</span>
+<span class="fc" id="L71">        assertEquals(1, modifierSet.size());</span>
+<span class="fc" id="L72">        assertEquals(2f, modifierSet.iterator().next().getValue());</span>
+<span class="fc" id="L73">        assertEquals(4f, FeatureContainer.applyModifiers(2, null,</span>
+<span class="fc" id="L74">                modifierSet));</span>
+
+<span class="fc" id="L76">        FoundingFather father3 = new FoundingFather(&quot;father3&quot;, spec());</span>
+<span class="fc" id="L77">        father3.setType(FoundingFatherType.TRADE);</span>
+<span class="fc" id="L78">        father3.addModifier(new Modifier(&quot;some.new.modifier&quot;, 2f,</span>
+<span class="fc" id="L79">                                         ModifierType.ADDITIVE, father3));</span>
+<span class="fc" id="L80">        dutch.addFather(father3);</span>
+
+<span class="fc" id="L82">        assertFalse(dutch.getModifiers(&quot;some.new.modifier&quot;).isEmpty());</span>
+<span class="fc" id="L83">        assertEquals(6f, dutch.applyModifiers(2, null, &quot;some.new.modifier&quot;));</span>
+
+<span class="fc" id="L85">        FoundingFather father4 = new FoundingFather(&quot;father4&quot;, spec());</span>
+<span class="fc" id="L86">        father4.setType(FoundingFatherType.TRADE);</span>
+<span class="fc" id="L87">        Ability ability2 = new Ability(&quot;some.new.ability&quot;, false);</span>
+<span class="fc" id="L88">        assertFalse(ability.equals(ability2));</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">        assertFalse(ability.hashCode() == ability2.hashCode());</span>
+<span class="fc" id="L90">        father4.addAbility(ability2);</span>
+<span class="fc" id="L91">        dutch.addFather(father4);</span>
+<span class="fc" id="L92">        assertFalse(dutch.hasAbility(&quot;some.new.ability&quot;));</span>
+<span class="fc" id="L93">    }</span>
+
+    public void testAddAllFathers() {
+        // check that all fathers can be added
+<span class="fc" id="L97">        Game game = getGame();</span>
+<span class="fc" id="L98">        game.setMap(getTestMap(true));</span>
+
+<span class="fc" id="L100">        Colony colony = getStandardColony(4);</span>
+<span class="fc" id="L101">        Player player = colony.getOwner();</span>
+
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        for (FoundingFather father : spec().getFoundingFathers()) {</span>
+<span class="fc" id="L104">            player.addFather(father);</span>
+        }
+<span class="fc" id="L106">    }</span>
+
+    public void testBellsRequired() {
+<span class="fc" id="L109">        int[] expectedValues = new int[] { 40, 161, 241, 321, 401 };</span>
+
+<span class="fc" id="L111">        Game game = getGame();</span>
+<span class="fc" id="L112">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+        //assertEquals(2, getGame().getGameOptions().getInteger(GameOptions.DIFFICULTY));
+<span class="fc" id="L114">        assertEquals(40, spec().getInteger(GameOptions.FOUNDING_FATHER_FACTOR));</span>
+
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        for (int index = 0; index &lt; expectedValues.length; index++) {</span>
+<span class="fc" id="L117">            assertEquals(index, dutch.getFatherCount());</span>
+<span class="fc" id="L118">            assertEquals(expectedValues[index], dutch.getTotalFoundingFatherCost());</span>
+<span class="fc" id="L119">            FoundingFather father = new FoundingFather(&quot;father&quot; + index, spec());</span>
+<span class="fc" id="L120">            dutch.addFather(father);</span>
+        }
+
+<span class="fc" id="L123">    }</span>
+
+    public void testAvailableTo() {
+        // this feature is not used at the moment
+<span class="fc" id="L127">        Game game = getGame();</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">        for (FoundingFather father : spec().getFoundingFathers()) {</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">            for (Player player : game.getPlayers()) {</span>
+<span class="fc" id="L130">                assertEquals(player.getNationId(), player.isEuropean(), </span>
+<span class="fc" id="L131">                             father.isAvailableTo(player));</span>
+            }
+        }
+
+<span class="fc" id="L135">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L136">        Player french = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="fc" id="L137">        FoundingFather newFather = new FoundingFather(&quot;father&quot;, spec());</span>
+<span class="fc" id="L138">        newFather.setType(FoundingFatherType.TRADE);</span>
+
+<span class="fc" id="L140">        Scope dutchScope = new Scope();</span>
+<span class="fc" id="L141">        dutchScope.setMethodName(&quot;getNationId&quot;);</span>
+<span class="fc" id="L142">        dutchScope.setMethodValue(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L143">        assertTrue(dutchScope.appliesTo(dutch));</span>
+
+<span class="fc" id="L145">        Scope frenchScope = new Scope();</span>
+<span class="fc" id="L146">        frenchScope.setMethodName(&quot;getNationType&quot;);</span>
+<span class="fc" id="L147">        frenchScope.setMethodValue(&quot;model.nationType.cooperation&quot;);</span>
+<span class="fc" id="L148">        assertTrue(frenchScope.appliesTo(french));</span>
+
+<span class="fc" id="L150">        List&lt;Scope&gt; scopes = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L151">        scopes.add(dutchScope);</span>
+<span class="fc" id="L152">        scopes.add(frenchScope);</span>
+<span class="fc" id="L153">        newFather.setScopes(scopes);</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        for (Player player : game.getPlayers()) {</span>
+<span class="fc" id="L155">            assertEquals(player.getNationId(),</span>
+<span class="fc bfc" id="L156" title="All 4 branches covered.">                         (player == french || player == dutch),</span>
+<span class="fc" id="L157">                         newFather.isAvailableTo(player));</span>
+        }
+<span class="fc" id="L159">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>PlayerTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">PlayerTest.java</span></div><h1>PlayerTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.Iterator;
+
+import net.sf.freecol.server.model.ServerGame;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="fc" id="L30">public class PlayerTest extends FreeColTestCase {</span>
+    
+<span class="fc" id="L32">    private static final UnitType freeColonist</span>
+<span class="fc" id="L33">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="fc" id="L34">    private static final UnitType galleonType</span>
+<span class="fc" id="L35">        = spec().getUnitType(&quot;model.unit.galleon&quot;);</span>
+
+
+    public void testUnits() {
+<span class="fc" id="L39">        Game game = getStandardGame();</span>
+<span class="fc" id="L40">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L41">        Player french = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="fc" id="L42">        Map map = getTestMap(spec().getTileType(&quot;model.tile.plains&quot;));</span>
+<span class="fc" id="L43">        game.setMap(map);</span>
+<span class="fc" id="L44">        map.getTile(4, 7).setExplored(dutch, true);</span>
+<span class="fc" id="L45">        map.getTile(4, 8).setExplored(dutch, true);</span>
+<span class="fc" id="L46">        map.getTile(5, 7).setExplored(dutch, true);</span>
+<span class="fc" id="L47">        map.getTile(5, 8).setExplored(dutch, true);</span>
+
+<span class="fc" id="L49">        UnitType freeColonist = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+
+<span class="fc" id="L51">        Unit unit1 = new ServerUnit(game, map.getTile(4, 7), dutch,</span>
+<span class="fc" id="L52">                                    freeColonist);</span>
+<span class="fc" id="L53">        Unit unit2 = new ServerUnit(game, map.getTile(4, 8), dutch,</span>
+<span class="fc" id="L54">                                    freeColonist);</span>
+<span class="fc" id="L55">        Unit unit3 = new ServerUnit(game, map.getTile(5, 7), dutch,</span>
+<span class="fc" id="L56">                                    freeColonist);</span>
+<span class="fc" id="L57">        Unit unit4 = new ServerUnit(game, map.getTile(5, 8), dutch,</span>
+<span class="fc" id="L58">                                    freeColonist);</span>
+
+<span class="fc" id="L60">        int count = 0;</span>
+<span class="fc" id="L61">        Iterator&lt;Unit&gt; unitIterator = dutch.getUnitIterator();</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">        while (unitIterator.hasNext()) {</span>
+<span class="fc" id="L63">            unitIterator.next();</span>
+<span class="fc" id="L64">            count++;</span>
+        }
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">        assertTrue(count == 4);</span>
+
+<span class="fc" id="L68">        unit1.dispose();</span>
+<span class="fc" id="L69">        assertFalse(dutch.hasUnit(unit1));</span>
+
+<span class="fc" id="L71">        unit2.changeOwner(french);</span>
+<span class="fc" id="L72">        assertFalse(dutch.hasUnit(unit2));</span>
+<span class="fc" id="L73">        assertTrue(french.hasUnit(unit2));</span>
+<span class="fc" id="L74">    }</span>
+
+    public void testEuropeanPlayer(Player player) {
+<span class="fc" id="L77">        assertTrue(player.canBuildColonies());</span>
+<span class="fc" id="L78">        assertTrue(player.canHaveFoundingFathers());</span>
+<span class="fc" id="L79">        assertTrue(player.canMoveToEurope());</span>
+<span class="fc" id="L80">        assertTrue(player.isColonial());</span>
+<span class="fc" id="L81">        assertFalse(player.isDead());</span>
+<span class="fc" id="L82">        assertTrue(player.isEuropean());</span>
+<span class="fc" id="L83">        assertFalse(player.isIndian());</span>
+<span class="fc" id="L84">        assertFalse(player.isREF());</span>
+<span class="fc" id="L85">        assertEquals(2, player.getMaximumFoodConsumption());</span>
+<span class="fc" id="L86">    }</span>
+
+    public void testIndianPlayer(Player player) {
+<span class="fc" id="L89">        assertFalse(player.canBuildColonies());</span>
+<span class="fc" id="L90">        assertFalse(player.canHaveFoundingFathers());</span>
+<span class="fc" id="L91">        assertFalse(player.canMoveToEurope());</span>
+<span class="fc" id="L92">        assertFalse(player.isColonial());</span>
+<span class="fc" id="L93">        assertFalse(player.isDead());</span>
+<span class="fc" id="L94">        assertFalse(player.isEuropean());</span>
+<span class="fc" id="L95">        assertTrue(player.isIndian());</span>
+<span class="fc" id="L96">        assertFalse(player.isREF());</span>
+<span class="fc" id="L97">        assertEquals(2, player.getMaximumFoodConsumption());</span>
+<span class="fc" id="L98">    }</span>
+
+    public void testRoyalPlayer(Player player) {
+<span class="fc" id="L101">        assertFalse(player.canBuildColonies());</span>
+<span class="fc" id="L102">        assertFalse(player.canHaveFoundingFathers());</span>
+<span class="fc" id="L103">        assertTrue(player.canMoveToEurope());</span>
+<span class="fc" id="L104">        assertFalse(player.isColonial());</span>
+<span class="fc" id="L105">        assertEquals(player.getPlayerType(), Player.PlayerType.ROYAL);</span>
+<span class="fc" id="L106">        assertFalse(player.isDead());</span>
+<span class="fc" id="L107">        assertTrue(player.isEuropean());</span>
+<span class="fc" id="L108">        assertFalse(player.isIndian());</span>
+<span class="fc" id="L109">        assertTrue(player.isREF());</span>
+<span class="fc" id="L110">        assertEquals(2, player.getMaximumFoodConsumption());</span>
+<span class="fc" id="L111">    }</span>
+
+    public void testClassicPlayers() {
+<span class="fc" id="L114">        Game game = getStandardGame(&quot;classic&quot;);</span>
+
+        // europeans
+<span class="fc" id="L117">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L118">        Player french = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="fc" id="L119">        Player english = game.getPlayerByNationId(&quot;model.nation.english&quot;);</span>
+<span class="fc" id="L120">        Player spanish = game.getPlayerByNationId(&quot;model.nation.spanish&quot;);</span>
+
+<span class="fc" id="L122">        testEuropeanPlayer(dutch);</span>
+<span class="fc" id="L123">        testEuropeanPlayer(french);</span>
+<span class="fc" id="L124">        testEuropeanPlayer(english);</span>
+<span class="fc" id="L125">        testEuropeanPlayer(spanish);</span>
+
+        // indians
+<span class="fc" id="L128">        Player inca = game.getPlayerByNationId(&quot;model.nation.inca&quot;);</span>
+<span class="fc" id="L129">        Player aztec = game.getPlayerByNationId(&quot;model.nation.aztec&quot;);</span>
+<span class="fc" id="L130">        Player arawak = game.getPlayerByNationId(&quot;model.nation.arawak&quot;);</span>
+<span class="fc" id="L131">        Player cherokee = game.getPlayerByNationId(&quot;model.nation.cherokee&quot;);</span>
+<span class="fc" id="L132">        Player iroquois = game.getPlayerByNationId(&quot;model.nation.iroquois&quot;);</span>
+<span class="fc" id="L133">        Player sioux = game.getPlayerByNationId(&quot;model.nation.sioux&quot;);</span>
+<span class="fc" id="L134">        Player apache = game.getPlayerByNationId(&quot;model.nation.apache&quot;);</span>
+<span class="fc" id="L135">        Player tupi = game.getPlayerByNationId(&quot;model.nation.tupi&quot;);</span>
+<span class="fc" id="L136">        testIndianPlayer(inca);</span>
+<span class="fc" id="L137">        testIndianPlayer(aztec);</span>
+<span class="fc" id="L138">        testIndianPlayer(arawak);</span>
+<span class="fc" id="L139">        testIndianPlayer(cherokee);</span>
+<span class="fc" id="L140">        testIndianPlayer(iroquois);</span>
+<span class="fc" id="L141">        testIndianPlayer(sioux);</span>
+<span class="fc" id="L142">        testIndianPlayer(apache);</span>
+<span class="fc" id="L143">        testIndianPlayer(tupi);</span>
+
+        // royal
+<span class="fc" id="L146">        Player dutchREF = game.getPlayerByNationId(&quot;model.nation.dutchREF&quot;);</span>
+<span class="fc" id="L147">        Player frenchREF = game.getPlayerByNationId(&quot;model.nation.frenchREF&quot;);</span>
+<span class="fc" id="L148">        Player englishREF = game.getPlayerByNationId(&quot;model.nation.englishREF&quot;);</span>
+<span class="fc" id="L149">        Player spanishREF = game.getPlayerByNationId(&quot;model.nation.spanishREF&quot;);</span>
+<span class="fc" id="L150">        testRoyalPlayer(dutchREF);</span>
+<span class="fc" id="L151">        testRoyalPlayer(frenchREF);</span>
+<span class="fc" id="L152">        testRoyalPlayer(englishREF);</span>
+<span class="fc" id="L153">        testRoyalPlayer(spanishREF);</span>
+<span class="fc" id="L154">        assertEquals(dutchREF, dutch.getREFPlayer());</span>
+<span class="fc" id="L155">        assertEquals(frenchREF, french.getREFPlayer());</span>
+<span class="fc" id="L156">        assertEquals(englishREF, english.getREFPlayer());</span>
+<span class="fc" id="L157">        assertEquals(spanishREF, spanish.getREFPlayer());</span>
+
+<span class="fc" id="L159">    }</span>
+
+    public void testFreecolPlayers() {
+        // the initialization code is basically the same as in
+        // getStandardGame(), except that all European nations are
+        // available
+<span class="fc" id="L165">        Specification specification = spec(&quot;freecol&quot;);</span>
+<span class="fc" id="L166">        Game game = new ServerGame(specification);</span>
+<span class="fc" id="L167">        NationOptions nationOptions = new NationOptions(specification);</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">        for (Nation nation : specification.getEuropeanNations()) {</span>
+<span class="fc" id="L169">            nationOptions.setNationState(nation, NationOptions.NationState.AVAILABLE);</span>
+        }
+<span class="fc" id="L171">        game.setNationOptions(nationOptions);</span>
+
+<span class="fc" id="L173">        specification.applyDifficultyLevel(&quot;model.difficulty.medium&quot;);</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">        for (Nation n : specification.getNations()) {</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">            if (n.isUnknownEnemy()) continue;</span>
+<span class="fc" id="L176">            Player p = new ServerPlayer(game, false, n, null, null);</span>
+<span class="fc bfc" id="L177" title="All 4 branches covered.">            p.setAI(!n.getType().isEuropean() || n.getType().isREF());</span>
+<span class="fc" id="L178">            game.addPlayer(p);</span>
+        }
+
+        // europeans
+<span class="fc" id="L182">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L183">        Player french = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="fc" id="L184">        Player english = game.getPlayerByNationId(&quot;model.nation.english&quot;);</span>
+<span class="fc" id="L185">        Player spanish = game.getPlayerByNationId(&quot;model.nation.spanish&quot;);</span>
+<span class="fc" id="L186">        Player portuguese = game.getPlayerByNationId(&quot;model.nation.portuguese&quot;);</span>
+<span class="fc" id="L187">        Player swedish = game.getPlayerByNationId(&quot;model.nation.swedish&quot;);</span>
+<span class="fc" id="L188">        Player danish = game.getPlayerByNationId(&quot;model.nation.danish&quot;);</span>
+<span class="fc" id="L189">        Player russian = game.getPlayerByNationId(&quot;model.nation.russian&quot;);</span>
+
+<span class="fc" id="L191">        testEuropeanPlayer(dutch);</span>
+<span class="fc" id="L192">        testEuropeanPlayer(french);</span>
+<span class="fc" id="L193">        testEuropeanPlayer(english);</span>
+<span class="fc" id="L194">        testEuropeanPlayer(spanish);</span>
+<span class="fc" id="L195">        testEuropeanPlayer(portuguese);</span>
+<span class="fc" id="L196">        testEuropeanPlayer(swedish);</span>
+<span class="fc" id="L197">        testEuropeanPlayer(danish);</span>
+<span class="fc" id="L198">        testEuropeanPlayer(russian);</span>
+
+        // indians
+<span class="fc" id="L201">        Player inca = game.getPlayerByNationId(&quot;model.nation.inca&quot;);</span>
+<span class="fc" id="L202">        Player aztec = game.getPlayerByNationId(&quot;model.nation.aztec&quot;);</span>
+<span class="fc" id="L203">        Player arawak = game.getPlayerByNationId(&quot;model.nation.arawak&quot;);</span>
+<span class="fc" id="L204">        Player cherokee = game.getPlayerByNationId(&quot;model.nation.cherokee&quot;);</span>
+<span class="fc" id="L205">        Player iroquois = game.getPlayerByNationId(&quot;model.nation.iroquois&quot;);</span>
+<span class="fc" id="L206">        Player sioux = game.getPlayerByNationId(&quot;model.nation.sioux&quot;);</span>
+<span class="fc" id="L207">        Player apache = game.getPlayerByNationId(&quot;model.nation.apache&quot;);</span>
+<span class="fc" id="L208">        Player tupi = game.getPlayerByNationId(&quot;model.nation.tupi&quot;);</span>
+<span class="fc" id="L209">        testIndianPlayer(inca);</span>
+<span class="fc" id="L210">        testIndianPlayer(aztec);</span>
+<span class="fc" id="L211">        testIndianPlayer(arawak);</span>
+<span class="fc" id="L212">        testIndianPlayer(cherokee);</span>
+<span class="fc" id="L213">        testIndianPlayer(iroquois);</span>
+<span class="fc" id="L214">        testIndianPlayer(sioux);</span>
+<span class="fc" id="L215">        testIndianPlayer(apache);</span>
+<span class="fc" id="L216">        testIndianPlayer(tupi);</span>
+
+        // royal
+<span class="fc" id="L219">        Player dutchREF = game.getPlayerByNationId(&quot;model.nation.dutchREF&quot;);</span>
+<span class="fc" id="L220">        Player frenchREF = game.getPlayerByNationId(&quot;model.nation.frenchREF&quot;);</span>
+<span class="fc" id="L221">        Player englishREF = game.getPlayerByNationId(&quot;model.nation.englishREF&quot;);</span>
+<span class="fc" id="L222">        Player spanishREF = game.getPlayerByNationId(&quot;model.nation.spanishREF&quot;);</span>
+<span class="fc" id="L223">        Player portugueseREF = game.getPlayerByNationId(&quot;model.nation.portugueseREF&quot;);</span>
+<span class="fc" id="L224">        Player swedishREF = game.getPlayerByNationId(&quot;model.nation.swedishREF&quot;);</span>
+<span class="fc" id="L225">        Player danishREF = game.getPlayerByNationId(&quot;model.nation.danishREF&quot;);</span>
+<span class="fc" id="L226">        Player russianREF = game.getPlayerByNationId(&quot;model.nation.russianREF&quot;);</span>
+<span class="fc" id="L227">        testRoyalPlayer(dutchREF);</span>
+<span class="fc" id="L228">        testRoyalPlayer(frenchREF);</span>
+<span class="fc" id="L229">        testRoyalPlayer(englishREF);</span>
+<span class="fc" id="L230">        testRoyalPlayer(spanishREF);</span>
+<span class="fc" id="L231">        testRoyalPlayer(portugueseREF);</span>
+<span class="fc" id="L232">        testRoyalPlayer(swedishREF);</span>
+<span class="fc" id="L233">        testRoyalPlayer(danishREF);</span>
+<span class="fc" id="L234">        testRoyalPlayer(russianREF);</span>
+<span class="fc" id="L235">        assertEquals(dutchREF, dutch.getREFPlayer());</span>
+<span class="fc" id="L236">        assertEquals(frenchREF, french.getREFPlayer());</span>
+<span class="fc" id="L237">        assertEquals(englishREF, english.getREFPlayer());</span>
+<span class="fc" id="L238">        assertEquals(spanishREF, spanish.getREFPlayer());</span>
+<span class="fc" id="L239">        assertEquals(portugueseREF, portuguese.getREFPlayer());</span>
+<span class="fc" id="L240">        assertEquals(swedishREF, swedish.getREFPlayer());</span>
+<span class="fc" id="L241">        assertEquals(danishREF, danish.getREFPlayer());</span>
+<span class="fc" id="L242">        assertEquals(russianREF, russian.getREFPlayer());</span>
+<span class="fc" id="L243">    }</span>
+
+    public void testTension(){
+<span class="fc" id="L246">        String errMsg = &quot;&quot;;</span>
+<span class="fc" id="L247">        Game game = getStandardGame();</span>
+
+<span class="fc" id="L249">        ServerPlayer dutch = (ServerPlayer)game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L250">        ServerPlayer french = (ServerPlayer)game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+
+<span class="fc" id="L252">        int initialTension = 500;</span>
+<span class="fc" id="L253">        int change = 250;</span>
+
+<span class="fc" id="L255">        dutch.setTension(french, new Tension(initialTension));</span>
+<span class="fc" id="L256">        french.setTension(dutch, new Tension(initialTension));</span>
+
+<span class="fc" id="L258">        dutch.getTension(french).modify(change);</span>
+
+<span class="fc" id="L260">        int expectedDutchTension = initialTension + change;</span>
+<span class="fc" id="L261">        int expectedFrenchTension = initialTension;</span>
+
+<span class="fc" id="L263">        errMsg = &quot;Dutch tension value should have changed&quot;;</span>
+<span class="fc" id="L264">        assertEquals(errMsg, expectedDutchTension, dutch.getTension(french).getValue());</span>
+<span class="fc" id="L265">        errMsg = &quot;French tension value should have remained the same&quot;;</span>
+<span class="fc" id="L266">        assertEquals(errMsg, expectedFrenchTension ,french.getTension(dutch).getValue());</span>
+<span class="fc" id="L267">    }</span>
+
+    public void testAddAnotherPlayersUnit(){
+<span class="fc" id="L270">        Game game = getStandardGame();</span>
+<span class="fc" id="L271">        Map map = getTestMap();</span>
+<span class="fc" id="L272">        game.setMap(map);</span>
+
+<span class="fc" id="L274">        Player dutch =  game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L275">        Player french = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+
+<span class="fc" id="L277">        assertEquals(&quot;Wrong number of units for dutch player&quot;,0,dutch.getUnits().size());</span>
+<span class="fc" id="L278">        assertEquals(&quot;Wrong number of units for french player&quot;,0,french.getUnits().size());</span>
+
+<span class="fc" id="L280">        Unit colonist = new ServerUnit(game, map.getTile(6, 8), dutch,</span>
+<span class="fc" id="L281">                                       freeColonist);</span>
+<span class="pc bpc" id="L282" title="1 of 2 branches missed.">        assertTrue(&quot;Colonist should be dutch&quot;, colonist.getOwner() == dutch);</span>
+<span class="fc" id="L283">        assertEquals(&quot;Wrong number of units for dutch player&quot;,1,dutch.getUnits().size());</span>
+
+        try{
+<span class="nc" id="L286">            french.addUnit(colonist);</span>
+<span class="nc" id="L287">            fail(&quot;An IllegalStateException should have been raised&quot;);</span>
+<span class="nc" id="L288">        }</span>
+<span class="fc" id="L289">        catch (IllegalStateException e) {</span>
+<span class="pc bpc" id="L290" title="1 of 2 branches missed.">            assertTrue(&quot;Colonist owner should not have been changed&quot;, colonist.getOwner() == dutch);</span>
+<span class="fc" id="L291">            assertEquals(&quot;Wrong number of units for dutch player&quot;,1,dutch.getUnits().size());</span>
+<span class="fc" id="L292">            assertEquals(&quot;Wrong number of units for french player&quot;,0,french.getUnits().size());</span>
+
+        }
+
+<span class="fc" id="L296">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

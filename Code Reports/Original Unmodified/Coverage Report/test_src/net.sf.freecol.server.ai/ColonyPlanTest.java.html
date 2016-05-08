@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ColonyPlanTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai</a> &gt; <span class="el_source">ColonyPlanTest.java</span></div><h1>ColonyPlanTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import net.sf.freecol.common.model.Building;
+import net.sf.freecol.common.model.BuildingType;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.ColonyTile;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.GoodsContainer;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TileImprovementType;
+import net.sf.freecol.common.model.TileType;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.util.LogBuilder;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="fc" id="L45">public class ColonyPlanTest extends FreeColTestCase {</span>
+
+<span class="fc" id="L47">    private static final BuildingType blacksmithShopType</span>
+<span class="fc" id="L48">        = spec().getBuildingType(&quot;model.building.blacksmithShop&quot;);</span>
+<span class="fc" id="L49">    private static final BuildingType lumberMillType</span>
+<span class="fc" id="L50">        = spec().getBuildingType(&quot;model.building.lumberMill&quot;);</span>
+<span class="fc" id="L51">    private static final BuildingType townHallType</span>
+<span class="fc" id="L52">        = spec().getBuildingType(&quot;model.building.townHall&quot;);</span>
+
+<span class="fc" id="L54">    private static final GoodsType bellsType</span>
+<span class="fc" id="L55">        = spec().getGoodsType(&quot;model.goods.bells&quot;);</span>
+<span class="fc" id="L56">    private static final GoodsType cottonType</span>
+<span class="fc" id="L57">        = spec().getGoodsType(&quot;model.goods.cotton&quot;);</span>
+<span class="fc" id="L58">    private static final GoodsType clothType</span>
+<span class="fc" id="L59">        = spec().getGoodsType(&quot;model.goods.cloth&quot;);</span>
+<span class="fc" id="L60">    private static final GoodsType foodType</span>
+<span class="fc" id="L61">        = spec().getPrimaryFoodType();</span>
+<span class="fc" id="L62">    private static final GoodsType grainType</span>
+<span class="fc" id="L63">        = spec().getGoodsType(&quot;model.goods.grain&quot;);</span>
+<span class="fc" id="L64">    private static final GoodsType sugarType</span>
+<span class="fc" id="L65">        = spec().getGoodsType(&quot;model.goods.sugar&quot;);</span>
+<span class="fc" id="L66">    private static final GoodsType tobaccoType</span>
+<span class="fc" id="L67">        = spec().getGoodsType(&quot;model.goods.tobacco&quot;);</span>
+<span class="fc" id="L68">    private static final GoodsType rumType</span>
+<span class="fc" id="L69">        = spec().getGoodsType(&quot;model.goods.rum&quot;);</span>
+
+<span class="fc" id="L71">    private static final GoodsType hammersType</span>
+<span class="fc" id="L72">        = spec().getGoodsType(&quot;model.goods.hammers&quot;);</span>
+<span class="fc" id="L73">    private static final GoodsType lumberType</span>
+<span class="fc" id="L74">        = spec().getGoodsType(&quot;model.goods.lumber&quot;);</span>
+<span class="fc" id="L75">    private static final GoodsType oreType</span>
+<span class="fc" id="L76">        = spec().getGoodsType(&quot;model.goods.ore&quot;);</span>
+<span class="fc" id="L77">    private static final GoodsType toolsType</span>
+<span class="fc" id="L78">        = spec().getGoodsType(&quot;model.goods.tools&quot;);</span>
+
+<span class="fc" id="L80">    private static final TileType forestType</span>
+<span class="fc" id="L81">        = spec().getTileType(&quot;model.tile.coniferForest&quot;);</span>
+<span class="fc" id="L82">    private static final TileType mountainType</span>
+<span class="fc" id="L83">        = spec().getTileType(&quot;model.tile.mountains&quot;);</span>
+<span class="fc" id="L84">    private static final TileType prairieType</span>
+<span class="fc" id="L85">        = spec().getTileType(&quot;model.tile.prairie&quot;);</span>
+<span class="fc" id="L86">    private static final TileType savannahType</span>
+<span class="fc" id="L87">        = spec().getTileType(&quot;model.tile.savannah&quot;);</span>
+
+<span class="fc" id="L89">    private static final TileImprovementType clearForest</span>
+<span class="fc" id="L90">        = spec().getTileImprovementType(&quot;model.improvement.clearForest&quot;);</span>
+<span class="fc" id="L91">    private static final TileImprovementType fishBonusLand</span>
+<span class="fc" id="L92">        = spec().getTileImprovementType(&quot;model.improvement.fishBonusLand&quot;);</span>
+<span class="fc" id="L93">    private static final TileImprovementType fishBonusRiver</span>
+<span class="fc" id="L94">        = spec().getTileImprovementType(&quot;model.improvement.fishBonusRiver&quot;);</span>
+<span class="fc" id="L95">    private static final TileImprovementType plow</span>
+<span class="fc" id="L96">        = spec().getTileImprovementType(&quot;model.improvement.plow&quot;);</span>
+<span class="fc" id="L97">    private static final TileImprovementType river</span>
+<span class="fc" id="L98">        = spec().getTileImprovementType(&quot;model.improvement.river&quot;);</span>
+<span class="fc" id="L99">    private static final TileImprovementType road</span>
+<span class="fc" id="L100">        = spec().getTileImprovementType(&quot;model.improvement.road&quot;);</span>
+
+<span class="fc" id="L102">    private static final TileType arctic</span>
+<span class="fc" id="L103">        = spec().getTileType(&quot;model.tile.arctic&quot;);</span>
+<span class="fc" id="L104">    private static final TileType desert</span>
+<span class="fc" id="L105">        = spec().getTileType(&quot;model.tile.desert&quot;);</span>
+<span class="fc" id="L106">    private static final TileType desertForest</span>
+<span class="fc" id="L107">        = spec().getTileType(&quot;model.tile.scrubForest&quot;);</span>
+<span class="fc" id="L108">    private static final TileType grassland</span>
+<span class="fc" id="L109">        = spec().getTileType(&quot;model.tile.grassland&quot;);</span>
+<span class="fc" id="L110">    private static final TileType grasslandForest</span>
+<span class="fc" id="L111">        = spec().getTileType(&quot;model.tile.coniferForest&quot;);</span>
+<span class="fc" id="L112">    private static final TileType highSeas</span>
+<span class="fc" id="L113">        = spec().getTileType(&quot;model.tile.highSeas&quot;);</span>
+<span class="fc" id="L114">    private static final TileType hills</span>
+<span class="fc" id="L115">        = spec().getTileType(&quot;model.tile.hills&quot;);</span>
+<span class="fc" id="L116">    private static final TileType marsh</span>
+<span class="fc" id="L117">        = spec().getTileType(&quot;model.tile.marsh&quot;);</span>
+<span class="fc" id="L118">    private static final TileType marshForest</span>
+<span class="fc" id="L119">        = spec().getTileType(&quot;model.tile.wetlandForest&quot;);</span>
+<span class="fc" id="L120">    private static final TileType mountains</span>
+<span class="fc" id="L121">        = spec().getTileType(&quot;model.tile.mountains&quot;);</span>
+<span class="fc" id="L122">    private static final TileType ocean</span>
+<span class="fc" id="L123">        = spec().getTileType(&quot;model.tile.ocean&quot;);</span>
+<span class="fc" id="L124">    private static final TileType plains</span>
+<span class="fc" id="L125">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+<span class="fc" id="L126">    private static final TileType plainsForest</span>
+<span class="fc" id="L127">        = spec().getTileType(&quot;model.tile.mixedForest&quot;);</span>
+<span class="fc" id="L128">    private static final TileType prairie</span>
+<span class="fc" id="L129">        = spec().getTileType(&quot;model.tile.prairie&quot;);</span>
+<span class="fc" id="L130">    private static final TileType prairieForest</span>
+<span class="fc" id="L131">        = spec().getTileType(&quot;model.tile.broadleafForest&quot;);</span>
+<span class="fc" id="L132">    private static final TileType savannah</span>
+<span class="fc" id="L133">        = spec().getTileType(&quot;model.tile.savannah&quot;);</span>
+<span class="fc" id="L134">    private static final TileType savannahForest</span>
+<span class="fc" id="L135">        = spec().getTileType(&quot;model.tile.tropicalForest&quot;);</span>
+<span class="fc" id="L136">    private static final TileType swamp</span>
+<span class="fc" id="L137">        = spec().getTileType(&quot;model.tile.swamp&quot;);</span>
+<span class="fc" id="L138">    private static final TileType swampForest</span>
+<span class="fc" id="L139">        = spec().getTileType(&quot;model.tile.rainForest&quot;);</span>
+<span class="fc" id="L140">    private static final TileType tundra</span>
+<span class="fc" id="L141">        = spec().getTileType(&quot;model.tile.tundra&quot;);</span>
+<span class="fc" id="L142">    private static final TileType tundraForest</span>
+<span class="fc" id="L143">        = spec().getTileType(&quot;model.tile.borealForest&quot;);</span>
+
+<span class="fc" id="L145">    private static final UnitType farmerType</span>
+<span class="fc" id="L146">        = spec().getUnitType(&quot;model.unit.expertFarmer&quot;);</span>
+<span class="fc" id="L147">    private static final UnitType colonistType</span>
+<span class="fc" id="L148">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="fc" id="L149">    private static final UnitType servantType</span>
+<span class="fc" id="L150">        = spec().getUnitType(&quot;model.unit.indenturedServant&quot;);</span>
+<span class="fc" id="L151">    private static final UnitType convertType</span>
+<span class="fc" id="L152">        = spec().getUnitType(&quot;model.unit.indianConvert&quot;);</span>
+<span class="fc" id="L153">    private static final UnitType criminalType</span>
+<span class="fc" id="L154">        = spec().getUnitType(&quot;model.unit.pettyCriminal&quot;);</span>
+<span class="fc" id="L155">    private static final UnitType sugarPlanterType</span>
+<span class="fc" id="L156">        = spec().getUnitType(&quot;model.unit.masterSugarPlanter&quot;);</span>
+
+<span class="fc" id="L158">    private static final LogBuilder lb = new LogBuilder(0);</span>
+
+    @Override
+    public void tearDown() throws Exception {
+<span class="fc" id="L162">        ServerTestHelper.stopServerGame();</span>
+<span class="fc" id="L163">        super.tearDown();</span>
+<span class="fc" id="L164">    }</span>
+
+
+    /**
+     * Creates the special map for the tests
+     * map will have:
+     *    - a colony in (5,8) (built after)
+     *    - a forest in (4,8) for lumber
+     *    - a mountain in (6,8) for ore
+     */
+    private Map buildMap(boolean withBuildRawMat) {
+<span class="fc" id="L175">        MapBuilder builder = new MapBuilder(getGame());</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">        if(withBuildRawMat){</span>
+<span class="fc" id="L177">            builder.setTile(4, 8, forestType);</span>
+<span class="fc" id="L178">            builder.setTile(6, 8, mountainType);</span>
+        }
+<span class="fc" id="L180">        return builder.build();</span>
+    }
+    
+    /**
+     * Should a plan produce a type of goods?
+     *
+     * @param plan The &lt;code&gt;ColonyPlan&lt;/code&gt; to examine.
+     * @param type The &lt;code&gt;GoodsType&lt;/code&gt; to check.
+     * @return True is there is a work location plan for the required goods
+     *     type in the colony plan.
+     */
+    private boolean shouldProduce(ColonyPlan plan, GoodsType type) {
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">        List&lt;WorkLocationPlan&gt; plans = (type.isFoodType()) ? plan.getFoodPlans()</span>
+<span class="fc" id="L193">            : plan.getWorkPlans();</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        for (WorkLocationPlan wlp : plans) {</span>
+<span class="fc bfc" id="L195" title="All 2 branches covered.">            if (wlp.getGoodsType() == type) return true;</span>
+        }
+<span class="fc" id="L197">        return false;</span>
+    }
+
+    public void testReqLumberAndHammersForBuild() {
+<span class="fc" id="L201">        Game game = ServerTestHelper.startServerGame(buildMap(true));</span>
+<span class="fc" id="L202">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+<span class="fc" id="L203">        Colony colony = getStandardColony(4);</span>
+
+<span class="fc" id="L205">        ColonyPlan plan = new ColonyPlan(aiMain,colony);</span>
+<span class="fc" id="L206">        plan.update();</span>
+
+<span class="fc" id="L208">        assertEquals(&quot;The colony should plan to build the lumber mill&quot;,</span>
+<span class="fc" id="L209">            lumberMillType, plan.getBuildableTypes().get(0));</span>
+<span class="fc" id="L210">        assertTrue(&quot;The colony should plan to produce lumber&quot;,</span>
+<span class="fc" id="L211">            shouldProduce(plan, lumberType));</span>
+<span class="fc" id="L212">        assertTrue(&quot;The colony should plan to produce hammers&quot;,</span>
+<span class="fc" id="L213">            shouldProduce(plan, hammersType));</span>
+<span class="fc" id="L214">    }</span>
+
+    public void testReqOreAndToolsWithEnoughHammersForBuild() {
+<span class="fc" id="L217">        Game game = ServerTestHelper.startServerGame(buildMap(true));</span>
+<span class="fc" id="L218">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+<span class="fc" id="L219">        Colony colony = getStandardColony(4);</span>
+
+        // Set colony to have enough hammers.  Should still require tools.
+<span class="fc" id="L222">        ColonyPlan plan = new ColonyPlan(aiMain, colony);</span>
+<span class="fc" id="L223">        plan.update();</span>
+<span class="fc" id="L224">        colony.addGoods(hammersType,</span>
+<span class="fc" id="L225">            blacksmithShopType.getRequiredAmountOf(hammersType));</span>
+<span class="fc" id="L226">        colony.setCurrentlyBuilding(blacksmithShopType);</span>
+<span class="fc" id="L227">        plan.refine(blacksmithShopType, lb);</span>
+
+<span class="fc" id="L229">        assertTrue(&quot;The colony should plan to produce ore&quot;,</span>
+<span class="fc" id="L230">            shouldProduce(plan, oreType));</span>
+<span class="fc" id="L231">        assertTrue(&quot;The colony should plan to produce tools&quot;,</span>
+<span class="fc" id="L232">            shouldProduce(plan, toolsType));</span>
+<span class="fc" id="L233">        assertFalse(&quot;The colony should not produce hammers, has enough&quot;,</span>
+<span class="fc" id="L234">            shouldProduce(plan, hammersType));</span>
+<span class="fc" id="L235">    }</span>
+
+    /**
+     * This test verifies behavior when the colony has no tiles that
+     * provide the raw materials for the build, but has them in stock
+     */
+    public void testNoBuildRawMatTiles() {
+<span class="fc" id="L242">        Game game = ServerTestHelper.startServerGame(buildMap(false));</span>
+<span class="fc" id="L243">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+<span class="fc" id="L244">        Colony colony = getStandardColony(4);</span>
+
+        // Add enough raw materials for build
+<span class="fc" id="L247">        colony.addGoods(lumberType, GoodsContainer.CARGO_SIZE);</span>
+<span class="fc" id="L248">        colony.addGoods(oreType, GoodsContainer.CARGO_SIZE);</span>
+
+<span class="fc" id="L250">        ColonyPlan plan = new ColonyPlan(aiMain, colony);</span>
+<span class="fc" id="L251">        plan.update();</span>
+<span class="fc" id="L252">        plan.refine(colony.getCurrentlyBuilding(), lb);</span>
+
+<span class="fc" id="L254">        assertFalse(&quot;The colony can not produce lumber, none available&quot;,</span>
+<span class="fc" id="L255">            shouldProduce(plan, lumberType));</span>
+<span class="fc" id="L256">        assertTrue(&quot;The colony should produce hammers, has lumber in stock&quot;,</span>
+<span class="fc" id="L257">            shouldProduce(plan, hammersType));</span>
+
+        // Simulate that enough hammers have been gathered, re-plan building
+        // with a tools requirement.
+<span class="fc" id="L261">        plan.update();</span>
+<span class="fc" id="L262">        colony.addGoods(hammersType,</span>
+<span class="fc" id="L263">            blacksmithShopType.getRequiredAmountOf(hammersType));</span>
+<span class="fc" id="L264">        colony.setCurrentlyBuilding(blacksmithShopType);</span>
+<span class="fc" id="L265">        plan.refine(blacksmithShopType, lb);</span>
+
+<span class="fc" id="L267">        assertFalse(&quot;The colony should not produce hammers, has enough&quot;,</span>
+<span class="fc" id="L268">            shouldProduce(plan, hammersType));</span>
+<span class="fc" id="L269">        assertFalse(&quot;The colony can not produce ore, none available&quot;,</span>
+<span class="fc" id="L270">            shouldProduce(plan, oreType));</span>
+<span class="fc" id="L271">        assertTrue(&quot;The colony should produce tools, has ore in stock&quot;,</span>
+<span class="fc" id="L272">            shouldProduce(plan, toolsType));</span>
+<span class="fc" id="L273">    }</span>
+
+    public void testGetBestWorker() {
+<span class="fc" id="L276">        Game game = ServerTestHelper.startServerGame(getTestMap(savannahType));</span>
+<span class="fc" id="L277">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+
+<span class="fc" id="L279">        Colony colony = getStandardColony();</span>
+<span class="fc" id="L280">        game.setCurrentPlayer(colony.getOwner());</span>
+<span class="fc" id="L281">        Player dutch = getGame().getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L282">        List&lt;Unit&gt; units = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L283">        Unit servant = new ServerUnit(getGame(), colony.getTile(),</span>
+<span class="fc" id="L284">                                      dutch, servantType);</span>
+<span class="fc" id="L285">        units.add(servant);</span>
+
+<span class="fc" id="L287">        Building townHall = colony.getBuilding(townHallType);</span>
+<span class="fc" id="L288">        ColonyTile colonyTile = null;</span>
+<span class="pc bpc" id="L289" title="1 of 2 branches missed.">        for (ColonyTile ct : colony.getColonyTiles()) {</span>
+<span class="fc bfc" id="L290" title="All 2 branches covered.">            if (!ct.isFull()) {</span>
+<span class="fc" id="L291">                colonyTile = ct;</span>
+<span class="fc" id="L292">                break;</span>
+            }
+        }
+<span class="fc" id="L295">        assertNotNull(colonyTile);</span>
+<span class="fc" id="L296">        assertNull(ColonyPlan.getBestWorker(colonyTile, sugarType, null));</span>
+<span class="fc" id="L297">        assertNull(ColonyPlan.getBestWorker(colonyTile, sugarType,</span>
+<span class="fc" id="L298">                                            new ArrayList&lt;Unit&gt;()));</span>
+
+        // Should always pick a singleton as long as it is productive.
+<span class="fc" id="L301">        assertEquals(servant, ColonyPlan.getBestWorker(colonyTile, sugarType, units));</span>
+<span class="fc" id="L302">        assertEquals(servant, ColonyPlan.getBestWorker(colonyTile, grainType, units));</span>
+<span class="fc" id="L303">        assertEquals(servant, ColonyPlan.getBestWorker(townHall, bellsType, units));</span>
+<span class="fc" id="L304">        assertNull(ColonyPlan.getBestWorker(townHall, grainType, units));</span>
+
+        // The criminal should be preferred to the servant when their
+        // productivity is equal because it has lower skill.
+<span class="fc" id="L308">        Unit criminal = new ServerUnit(getGame(), colony.getTile(), dutch, criminalType);</span>
+<span class="fc" id="L309">        units.add(criminal);</span>
+<span class="fc" id="L310">        assertEquals(criminal, ColonyPlan.getBestWorker(colonyTile, sugarType, units));</span>
+<span class="fc" id="L311">        assertEquals(criminal, ColonyPlan.getBestWorker(colonyTile, grainType, units));</span>
+<span class="fc" id="L312">        assertEquals(servant, ColonyPlan.getBestWorker(townHall, bellsType, units));</span>
+
+        // The colonist will displace the servant in the town hall
+        // because it is more productive, and elsewhere because it can
+        // upgrade.
+<span class="fc" id="L317">        Unit colonist1 = new ServerUnit(getGame(), colony.getTile(), dutch, colonistType);</span>
+<span class="fc" id="L318">        units.add(colonist1);</span>
+<span class="fc" id="L319">        assertEquals(colonist1, ColonyPlan.getBestWorker(colonyTile, sugarType, units));</span>
+<span class="fc" id="L320">        assertEquals(colonist1, ColonyPlan.getBestWorker(colonyTile, grainType, units));</span>
+<span class="fc" id="L321">        assertEquals(colonist1, ColonyPlan.getBestWorker(townHall, bellsType, units));</span>
+
+        // When there is a colonist with relevant experience it will win,
+        // otherwise it will lose to the inexperienced colonist.
+<span class="fc" id="L325">        Unit colonist2 = new ServerUnit(getGame(), colony.getTile(), dutch, colonistType);</span>
+<span class="fc" id="L326">        units.add(colonist2);</span>
+<span class="fc" id="L327">        colonist2.changeWorkType(sugarType);</span>
+<span class="fc" id="L328">        colonist2.modifyExperience(100);</span>
+<span class="fc" id="L329">        assertEquals(colonist2, ColonyPlan.getBestWorker(colonyTile, sugarType, units));</span>
+<span class="fc" id="L330">        assertEquals(colonist1, ColonyPlan.getBestWorker(colonyTile, grainType, units));</span>
+<span class="fc" id="L331">        assertEquals(colonist1, ColonyPlan.getBestWorker(townHall, bellsType, units));</span>
+
+        // colonist1 still has *less* experience to waste.  Experience
+        // now causes a preference when production is zero, but only for
+        // singletons.
+<span class="fc" id="L336">        colonist1.changeWorkType(lumberType);</span>
+<span class="fc" id="L337">        colonist1.modifyExperience(80);</span>
+<span class="fc" id="L338">        assertNull(ColonyPlan.getBestWorker(colonyTile, lumberType, units));</span>
+<span class="fc" id="L339">        assertEquals(colonist2, ColonyPlan.getBestWorker(colonyTile, sugarType, units));</span>
+<span class="fc" id="L340">        assertEquals(colonist1, ColonyPlan.getBestWorker(colonyTile, grainType, units));</span>
+<span class="fc" id="L341">        assertEquals(colonist1, ColonyPlan.getBestWorker(townHall, bellsType, units));</span>
+<span class="fc" id="L342">        Unit convert = new ServerUnit(getGame(), colony.getTile(), dutch, convertType);</span>
+<span class="fc" id="L343">        units.add(convert);</span>
+<span class="fc" id="L344">        assertEquals(convert, ColonyPlan.getBestWorker(colonyTile, sugarType, units));</span>
+<span class="fc" id="L345">        assertEquals(convert, ColonyPlan.getBestWorker(colonyTile, grainType, units));</span>
+<span class="fc" id="L346">        units.remove(convert);</span>
+
+        // The sugarPlanter will prevail in its expertise, and in the
+        // town hall because it can not be upgraded.
+<span class="fc" id="L350">        Unit sugarPlanter = new ServerUnit(getGame(), colony.getTile(), dutch, sugarPlanterType);</span>
+<span class="fc" id="L351">        units.add(sugarPlanter);</span>
+<span class="fc" id="L352">        assertEquals(sugarPlanter, ColonyPlan.getBestWorker(colonyTile, sugarType, units));</span>
+<span class="fc" id="L353">        assertEquals(colonist1, ColonyPlan.getBestWorker(colonyTile, grainType, units));</span>
+<span class="fc" id="L354">        assertEquals(sugarPlanter, ColonyPlan.getBestWorker(townHall, bellsType, units));</span>
+<span class="fc" id="L355">        units.remove(sugarPlanter);</span>
+
+        // Similarly with the farmer.
+<span class="fc" id="L358">        Unit farmer = new ServerUnit(getGame(), colony.getTile(), dutch, farmerType);</span>
+<span class="fc" id="L359">        units.add(farmer);</span>
+<span class="fc" id="L360">        assertEquals(colonist2, ColonyPlan.getBestWorker(colonyTile, sugarType, units));</span>
+<span class="fc" id="L361">        assertEquals(farmer, ColonyPlan.getBestWorker(colonyTile, grainType, units));</span>
+<span class="fc" id="L362">        assertEquals(farmer, ColonyPlan.getBestWorker(townHall, bellsType, units));</span>
+
+        // But with both we can not expect to tell who wins the town hall.
+<span class="fc" id="L365">        units.add(convert);</span>
+<span class="fc" id="L366">        units.add(sugarPlanter);</span>
+
+<span class="fc" id="L368">        assertEquals(sugarPlanter, ColonyPlan.getBestWorker(colonyTile, sugarType, units));</span>
+<span class="fc" id="L369">        assertEquals(farmer, ColonyPlan.getBestWorker(colonyTile, grainType, units));</span>
+<span class="fc" id="L370">    }</span>
+
+    public void testBestImprovements() throws Exception {
+<span class="fc" id="L373">        Map map = getTestMap(plains);</span>
+<span class="fc" id="L374">        Game game = getStandardGame();</span>
+<span class="fc" id="L375">        game.setMap(map);</span>
+<span class="fc" id="L376">        Tile tile1 = map.getTile(5, 8);</span>
+
+<span class="fc" id="L378">        tile1.setType(savannah);</span>
+<span class="fc" id="L379">        assertEquals(plow, TileImprovementPlan.getBestTileImprovementType(tile1, grainType));</span>
+<span class="fc" id="L380">        assertEquals(plow, TileImprovementPlan.getBestTileImprovementType(tile1, sugarType));</span>
+<span class="fc" id="L381">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, tobaccoType));</span>
+<span class="fc" id="L382">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, lumberType));</span>
+<span class="fc" id="L383">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, oreType));</span>
+
+<span class="fc" id="L385">        tile1.setType(marsh);</span>
+<span class="fc" id="L386">        assertEquals(plow, TileImprovementPlan.getBestTileImprovementType(tile1, grainType));</span>
+<span class="fc" id="L387">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, sugarType));</span>
+<span class="fc" id="L388">        assertEquals(plow, TileImprovementPlan.getBestTileImprovementType(tile1, tobaccoType));</span>
+<span class="fc" id="L389">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, lumberType));</span>
+<span class="fc" id="L390">        assertEquals(road, TileImprovementPlan.getBestTileImprovementType(tile1, oreType));</span>
+
+<span class="fc" id="L392">        tile1.setType(savannahForest);</span>
+<span class="fc" id="L393">        assertEquals(clearForest, TileImprovementPlan.getBestTileImprovementType(tile1, grainType));</span>
+<span class="fc" id="L394">        assertEquals(clearForest, TileImprovementPlan.getBestTileImprovementType(tile1, sugarType));</span>
+<span class="fc" id="L395">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, tobaccoType));</span>
+<span class="fc" id="L396">        assertEquals(road, TileImprovementPlan.getBestTileImprovementType(tile1, lumberType));</span>
+<span class="fc" id="L397">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, oreType));</span>
+
+<span class="fc" id="L399">        tile1.setType(hills);</span>
+<span class="fc" id="L400">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, grainType));</span>
+<span class="fc" id="L401">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, sugarType));</span>
+<span class="fc" id="L402">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, tobaccoType));</span>
+<span class="fc" id="L403">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, lumberType));</span>
+<span class="fc" id="L404">        assertEquals(road, TileImprovementPlan.getBestTileImprovementType(tile1, oreType));</span>
+
+<span class="fc" id="L406">        tile1.setType(arctic);</span>
+<span class="fc" id="L407">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, grainType));</span>
+<span class="fc" id="L408">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, sugarType));</span>
+<span class="fc" id="L409">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, tobaccoType));</span>
+<span class="fc" id="L410">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, lumberType));</span>
+<span class="fc" id="L411">        assertEquals(null, TileImprovementPlan.getBestTileImprovementType(tile1, oreType));</span>
+<span class="fc" id="L412">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

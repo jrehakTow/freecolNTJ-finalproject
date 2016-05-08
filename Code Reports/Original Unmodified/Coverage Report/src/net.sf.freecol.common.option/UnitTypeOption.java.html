@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>UnitTypeOption.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.option</a> &gt; <span class="el_source">UnitTypeOption.java</span></div><h1>UnitTypeOption.java</h1><pre class="source lang-java linenums"><span class="pc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.option;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.model.UnitType;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+
+
+/**
+ * Option wrapping a UnitType.
+ */
+public class UnitTypeOption extends AbstractOption&lt;UnitType&gt; {
+
+    @SuppressWarnings(&quot;unused&quot;)
+<span class="fc" id="L43">    private static final Logger logger = Logger.getLogger(UnitTypeOption.class</span>
+<span class="fc" id="L44">            .getName());</span>
+
+    /**
+     * FIXME: replace with Predicates.
+     */
+<span class="fc" id="L49">    public static enum TypeSelector {</span>
+<span class="fc" id="L50">        UNITS, IMMIGRANTS, LAND_UNITS, NAVAL_UNITS</span>
+    }
+
+    /** The option value. */
+    private UnitType value;
+
+    /** Whether to add &quot;none&quot; to the list of choices to be generated. */
+    private boolean addNone;
+
+    /** Which choices to generate. */
+<span class="pc" id="L60">    private TypeSelector selector = TypeSelector.UNITS;</span>
+
+    /** A list of choices to provide to the UI. */
+<span class="pc" id="L63">    private final List&lt;UnitType&gt; choices = new ArrayList&lt;&gt;();</span>
+
+
+    /**
+     * Creates a new &lt;code&gt;UnitTypeOption&lt;/code&gt;.
+     *
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; to refer to.
+     */
+    public UnitTypeOption(Specification specification) {
+<span class="nc" id="L72">        super(specification);</span>
+<span class="nc" id="L73">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;UnitTypeOption&lt;/code&gt;.
+     *
+     * @param id The object identifier.
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; to refer to.
+     */
+    public UnitTypeOption(String id, Specification specification) {
+<span class="fc" id="L82">        super(id, specification);</span>
+<span class="fc" id="L83">    }</span>
+
+
+    /**
+     * Is &quot;none&quot; a valid choice for this option?
+     *
+     * @return True if &quot;none&quot; is a valid choice.
+     */
+    public final boolean addNone() {
+<span class="nc" id="L92">        return addNone;</span>
+    }
+
+    /**
+     * Get the list of choices for this option.
+     *
+     * @return A list of &lt;code&gt;UnitType&lt;/code&gt;s.
+     */
+    public final List&lt;UnitType&gt; getChoices() {
+<span class="nc" id="L101">        return choices;</span>
+    }
+
+    /**
+     * Get the type of choices to generate.
+     *
+     * @return The type of choices to generate.
+     */
+    public final TypeSelector getGenerateChoices() {
+<span class="nc" id="L110">        return selector;</span>
+    }
+
+
+    // Interface Option
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public UnitTypeOption clone() {
+<span class="nc" id="L121">        UnitTypeOption result = new UnitTypeOption(getId(), getSpecification());</span>
+<span class="nc" id="L122">        result.value = value;</span>
+<span class="nc" id="L123">        result.addNone = addNone;</span>
+<span class="nc" id="L124">        result.selector = selector;</span>
+<span class="nc" id="L125">        result.generateChoices();</span>
+<span class="nc" id="L126">        result.isDefined = true;</span>
+<span class="nc" id="L127">        return result;</span>
+    }
+
+    /**
+     * Gets the current value of this &lt;code&gt;UnitTypeOption&lt;/code&gt;.
+     *
+     * @return The &lt;code&gt;UnitType&lt;/code&gt; value.
+     */
+    @Override
+    public UnitType getValue() {
+<span class="fc" id="L137">        return value;</span>
+    }
+
+    /**
+     * Sets the current value of this &lt;code&gt;UnitTypeOption&lt;/code&gt;.
+     *
+     * @param value The new &lt;code&gt;UnitType&lt;/code&gt; value.
+     */
+    @Override
+    public void setValue(UnitType value) {
+<span class="fc" id="L147">        final UnitType oldValue = this.value;</span>
+<span class="fc" id="L148">        this.value = value;</span>
+        
+<span class="pc bpc" id="L150" title="2 of 4 branches missed.">        if (value != oldValue &amp;&amp; isDefined) {</span>
+<span class="nc" id="L151">            firePropertyChange(VALUE_TAG, oldValue, value);</span>
+        }
+<span class="fc" id="L153">        isDefined = true;</span>
+<span class="fc" id="L154">    }</span>
+
+
+    // Override AbstractOption
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void setValue(String valueString, String defaultValueString) {
+<span class="pc bpc" id="L164" title="1 of 2 branches missed.">        if (valueString != null) {</span>
+<span class="fc" id="L165">            setValue(getSpecification().getUnitType(valueString));</span>
+<span class="pc bnc" id="L166" title="All 2 branches missed.">        } else if (defaultValueString != null) {</span>
+<span class="nc" id="L167">            setValue(getSpecification().getUnitType(defaultValueString));</span>
+<span class="nc" id="L168">        } else {</span>
+<span class="nc" id="L169">            setValue(null);</span>
+        }
+<span class="fc" id="L171">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isNullValueOK() {
+<span class="nc" id="L178">        return true;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void generateChoices() {
+<span class="nc bnc" id="L186" title="All 2 branches missed.">        if (selector == null) {</span>
+<span class="nc" id="L187">            choices.add(getValue());</span>
+<span class="nc" id="L188">        } else {</span>
+<span class="nc" id="L189">            List&lt;UnitType&gt; unitTypeList = getSpecification().getUnitTypeList();</span>
+<span class="nc" id="L190">            choices.clear();</span>
+<span class="nc bnc" id="L191" title="All 5 branches missed.">            switch (selector) {</span>
+            case UNITS:
+<span class="nc" id="L193">                choices.addAll(unitTypeList);</span>
+<span class="nc" id="L194">                break;</span>
+            case IMMIGRANTS:
+<span class="nc" id="L196">                choices.addAll(transform(unitTypeList, UnitType::isRecruitable,</span>
+<span class="nc" id="L197">                                         Collectors.toList()));</span>
+<span class="nc" id="L198">                break;</span>
+            case NAVAL_UNITS:
+<span class="nc" id="L200">                choices.addAll(transform(unitTypeList, UnitType::isNaval,</span>
+<span class="nc" id="L201">                                         Collectors.toList()));</span>
+<span class="nc" id="L202">                break;</span>
+            case LAND_UNITS:
+<span class="nc bnc" id="L204" title="All 2 branches missed.">                choices.addAll(transform(unitTypeList, ut -&gt; !ut.isNaval(),</span>
+<span class="nc" id="L205">                                         Collectors.toList()));</span>
+                break;
+            }
+<span class="nc bnc" id="L208" title="All 2 branches missed.">            if (addNone) {</span>
+<span class="nc" id="L209">                choices.add(0, null);</span>
+            }
+        }
+<span class="nc" id="L212">    }</span>
+
+
+    // Serialization
+
+    private static final String ADD_NONE_TAG = &quot;addNone&quot;;
+    private static final String CHOICE_TAG = &quot;choice&quot;;
+<span class="fc" id="L219">    private static final String GENERATE_TAG = &quot;generate&quot;;</span>
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="fc" id="L227">        super.writeAttributes(xw);</span>
+
+<span class="pc bpc" id="L229" title="1 of 2 branches missed.">        if (value != null) {</span>
+<span class="fc" id="L230">            xw.writeAttribute(VALUE_TAG, value);</span>
+        }
+
+<span class="pc bpc" id="L233" title="1 of 2 branches missed.">        if (selector != null) {</span>
+<span class="fc" id="L234">            xw.writeAttribute(GENERATE_TAG, selector);</span>
+        }
+
+<span class="pc bpc" id="L237" title="1 of 2 branches missed.">        if (addNone) {</span>
+<span class="nc" id="L238">            xw.writeAttribute(ADD_NONE_TAG, addNone);</span>
+        }
+<span class="fc" id="L240">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeChildren(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="fc" id="L247">        super.writeChildren(xw);</span>
+
+<span class="pc bpc" id="L249" title="2 of 4 branches missed.">        if (choices != null &amp;&amp; !choices.isEmpty()) {</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">            for (UnitType choice : choices) {</span>
+<span class="nc" id="L251">                xw.writeStartElement(CHOICE_TAG);</span>
+
+<span class="nc" id="L253">                xw.writeAttribute(VALUE_TAG, choice);</span>
+
+<span class="nc" id="L255">                xw.writeEndElement();</span>
+            }
+        }
+<span class="fc" id="L258">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L265">        super.readAttributes(xr); // value is read here</span>
+
+<span class="fc" id="L267">        selector = xr.getAttribute(GENERATE_TAG,</span>
+<span class="fc" id="L268">                                   TypeSelector.class, (TypeSelector)null);</span>
+
+<span class="fc" id="L270">        addNone = xr.getAttribute(ADD_NONE_TAG, false);</span>
+<span class="fc" id="L271">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChildren(FreeColXMLReader xr) throws XMLStreamException {
+        // Clear containers.
+<span class="fc" id="L279">        choices.clear();</span>
+
+<span class="fc" id="L281">        super.readChildren(xr);</span>
+<span class="fc" id="L282">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChild(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L289">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L290">        final String tag = xr.getLocalName();</span>
+
+<span class="nc bnc" id="L292" title="All 2 branches missed.">        if (CHOICE_TAG.equals(tag)) {</span>
+<span class="nc" id="L293">            choices.add(xr.getType(spec, VALUE_TAG,</span>
+<span class="nc" id="L294">                                   UnitType.class, (UnitType)null));</span>
+<span class="nc" id="L295">            xr.closeTag(CHOICE_TAG);</span>
+
+<span class="nc" id="L297">        } else {</span>
+<span class="nc" id="L298">            super.readChild(xr);</span>
+        }
+<span class="nc" id="L300">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L307">        StringBuilder sb = new StringBuilder(64);</span>
+<span class="nc" id="L308">        sb.append(&quot;[&quot;).append(getId())</span>
+<span class="nc" id="L309">            .append(&quot; value=&quot;).append(value)</span>
+<span class="nc" id="L310">            .append(&quot; addNone=&quot;).append(addNone)</span>
+<span class="nc" id="L311">            .append(&quot; selector=&quot;).append(selector)</span>
+<span class="nc" id="L312">            .append(&quot;]&quot;);</span>
+<span class="nc" id="L313">        return sb.toString();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="nc" id="L320">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;unitTypeOption&quot;.
+     */
+    public static String getTagName() {
+<span class="fc" id="L328">        return &quot;unitTypeOption&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

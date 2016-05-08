@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>UserServerAPI.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.networking</a> &gt; <span class="el_source">UserServerAPI.java</span></div><h1>UserServerAPI.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.networking;
+
+import java.io.IOException;
+
+import net.sf.freecol.FreeCol;
+import net.sf.freecol.client.gui.GUI;
+import net.sf.freecol.common.debug.FreeColDebugger;
+import net.sf.freecol.common.networking.ClientConnection;
+import net.sf.freecol.common.networking.Connection;
+import net.sf.freecol.common.networking.MessageHandler;
+import net.sf.freecol.common.networking.ServerAPI;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * Implementation of the ServerAPI for a player with attached GUI and
+ * real connection to the server.
+ */
+public class UserServerAPI extends ServerAPI {
+
+    /** The GUI to use for error and client processing. */
+    private final GUI gui;
+
+    /** The connection used to communicate with the server. */
+    private ClientConnection clientConnection;
+
+
+    /**
+     * Create the new user wrapper for the server API.
+     *
+     * @param gui The &lt;code&gt;GUI&lt;/code&gt; to use for user interaction.
+     */
+    public UserServerAPI(GUI gui) {
+<span class="fc" id="L54">        super();</span>
+
+<span class="fc" id="L56">        this.gui = gui;</span>
+<span class="fc" id="L57">    }</span>
+
+
+    // Client manipulation
+
+    /**
+     * Connects a client to host:port (or more).
+     *
+     * @param threadName The name for the thread.
+     * @param host The name of the machine running the
+     *     &lt;code&gt;FreeColServer&lt;/code&gt;.
+     * @param port The port to use when connecting to the host.
+     * @param messageHandler The &lt;code&gt;MessageHandler&lt;/code&gt; to use on this
+     *     connection.
+     * @return True if the connection succeeded.
+     * @exception IOException on connection failure.
+     */
+    public boolean connect(String threadName, String host, int port,
+                           MessageHandler messageHandler) 
+        throws IOException {
+        int tries;
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">        if (port &lt; 0) {</span>
+<span class="nc" id="L79">            port = FreeCol.getServerPort();</span>
+<span class="nc" id="L80">            tries = 10;</span>
+<span class="nc" id="L81">        } else {</span>
+<span class="fc" id="L82">            tries = 1;</span>
+        }
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        for (int i = tries; i &gt; 0; i--) {</span>
+            try {
+<span class="fc" id="L86">                this.clientConnection = new ClientConnection(host, port,</span>
+<span class="fc" id="L87">                    messageHandler, threadName);</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">                if (this.clientConnection != null) break;</span>
+<span class="nc" id="L89">            } catch (IOException e) {</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">                if (i &lt;= 1) throw e;</span>
+            }
+        }
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">        return this.clientConnection != null;</span>
+    }
+
+    /**
+     * Disconnect the client connection..
+     *
+     * @exception IOException on failure to send the required messages.
+     */
+    public void disconnect() throws IOException {
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">        if (this.clientConnection != null) {</span>
+<span class="nc" id="L103">            this.clientConnection.disconnect();</span>
+<span class="nc" id="L104">            reset();</span>
+        }
+<span class="fc" id="L106">    }</span>
+
+    /**
+     * Get the host we are connected to.
+     *
+     * @return The current host, or null if none.
+     */
+    public String getHost() {
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        return (this.clientConnection == null) ? null</span>
+<span class="nc" id="L115">            : this.clientConnection.getHost();</span>
+    }
+
+    /**
+     * Get the port we are connected to.
+     *
+     * @return The current port, or negative if none.
+     */     
+    public int getPort() {
+<span class="nc bnc" id="L124" title="All 2 branches missed.">        return (this.clientConnection == null) ? -1</span>
+<span class="nc" id="L125">            : this.clientConnection.getPort();</span>
+    }
+
+    /**
+     * Just forget about the client.
+     *
+     * Only call this if we are sure it is dead.
+     */
+    public void reset() {
+<span class="fc" id="L134">        this.clientConnection = null;</span>
+<span class="fc" id="L135">    }</span>
+
+    /**
+     * Sets the message handler for the connection.
+     *
+     * @param mh The new &lt;code&gt;MessageHandler&lt;/code&gt;.
+     */
+    public void setMessageHandler(MessageHandler mh) {
+<span class="nc bnc" id="L143" title="All 2 branches missed.">        if (this.clientConnection != null) {</span>
+<span class="nc" id="L144">            this.clientConnection.setMessageHandler(mh);</span>
+        }
+<span class="nc" id="L146">    }</span>
+
+
+    // Implement ServerAPI
+    
+    /**
+     * {@inheritDoc}
+     */
+    protected void doClientProcessingFor(Element reply) {
+<span class="nc" id="L155">        String sound = reply.getAttribute(&quot;sound&quot;);</span>
+<span class="nc bnc" id="L156" title="All 4 branches missed.">        if (sound != null &amp;&amp; !sound.isEmpty()) {</span>
+<span class="nc" id="L157">            this.gui.playSound(sound);</span>
+        }
+<span class="nc" id="L159">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    public Connection getConnection() {
+<span class="fc" id="L165">        return this.clientConnection;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

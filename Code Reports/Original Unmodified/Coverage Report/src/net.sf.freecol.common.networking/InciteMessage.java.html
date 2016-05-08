@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>InciteMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">InciteMessage.java</span></div><h1>InciteMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.Unit.MoveType;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerIndianSettlement;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent when inciting a native settlement.
+ */
+public class InciteMessage extends DOMMessage {
+
+    public static final String TAG = &quot;incite&quot;;
+    private static final String ENEMY_TAG = &quot;enemy&quot;;
+    private static final String GOLD_TAG = &quot;gold&quot;;
+    private static final String SETTLEMENT_TAG = &quot;settlement&quot;;
+    private static final String UNIT_TAG = &quot;unit&quot;;
+
+    /** The identifier of the unit inciting. */
+    private final String unitId;
+
+    /** The identifier for the settlement. */
+    private final String settlementId;
+
+    /** The identifier of the enemy to incite against. */
+    private final String enemyId;
+
+    /** The amount of gold in the bribe. */
+    private final String goldString;
+
+
+    /**
+     * Create a new &lt;code&gt;InciteMessage&lt;/code&gt; with the
+     * supplied name.
+     *
+     * @param unit The inciting &lt;code&gt;Unit&lt;/code&gt;.
+     * @param settlement The &lt;code&gt;IndianSettlement&lt;/code&gt; to incite.
+     * @param enemy The enemy &lt;code&gt;Player&lt;/code&gt;.
+     * @param gold The amount of gold in the bribe (negative for the
+     *             initial inquiry).
+     */
+    public InciteMessage(Unit unit, IndianSettlement settlement, Player enemy,
+                         int gold) {
+<span class="nc" id="L71">        super(getTagName());</span>
+
+<span class="nc" id="L73">        this.unitId = unit.getId();</span>
+<span class="nc" id="L74">        this.settlementId = settlement.getId();</span>
+<span class="nc" id="L75">        this.enemyId = enemy.getId();</span>
+<span class="nc" id="L76">        this.goldString = Integer.toString(gold);</span>
+<span class="nc" id="L77">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;InciteMessage&lt;/code&gt; from a
+     * supplied element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public InciteMessage(Game game, Element element) {
+<span class="nc" id="L87">        super(getTagName());</span>
+
+<span class="nc" id="L89">        this.unitId = getStringAttribute(element, UNIT_TAG);</span>
+<span class="nc" id="L90">        this.settlementId = getStringAttribute(element, SETTLEMENT_TAG);</span>
+<span class="nc" id="L91">        this.enemyId = getStringAttribute(element, ENEMY_TAG);</span>
+<span class="nc" id="L92">        this.goldString = getStringAttribute(element, GOLD_TAG);</span>
+<span class="nc" id="L93">    }</span>
+
+
+    // Public interface
+
+    public Unit getUnit(Player player) {
+<span class="nc" id="L99">        return player.getOurFreeColGameObject(this.unitId, Unit.class);</span>
+    }
+
+    public IndianSettlement getSettlement(Unit unit) {
+<span class="nc" id="L103">        return unit.getAdjacentIndianSettlementSafely(this.settlementId);</span>
+    }
+
+    public Player getEnemy(Game game) {
+<span class="nc" id="L107">        return game.getFreeColGameObject(this.enemyId, Player.class);</span>
+    }
+
+    public int getGold() {
+<span class="nc" id="L111">        return Integer.parseInt(this.goldString);</span>
+    }
+
+
+    /**
+     * Handle a &quot;incite&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; handling the message.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; the message applies to.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message was received on.
+     * @return An element containing the result of the incite, or an
+     *     error &lt;code&gt;Element&lt;/code&gt; on failure.
+     */
+    public Element handle(FreeColServer server, Player player,
+                          Connection connection) {
+<span class="nc" id="L126">        final ServerPlayer serverPlayer = server.getPlayer(connection);</span>
+<span class="nc" id="L127">        final Game game = server.getGame();</span>
+
+        Unit unit;
+        try {
+<span class="nc" id="L131">            unit = getUnit(serverPlayer);</span>
+<span class="nc" id="L132">        } catch (Exception e) {</span>
+<span class="nc" id="L133">            return serverPlayer.clientError(e.getMessage())</span>
+<span class="nc" id="L134">                .build(serverPlayer);</span>
+        }
+
+        IndianSettlement is;
+        try {
+<span class="nc" id="L139">            is = (ServerIndianSettlement)getSettlement(unit);</span>
+<span class="nc" id="L140">        } catch (Exception e) {</span>
+<span class="nc" id="L141">            return serverPlayer.clientError(e.getMessage())</span>
+<span class="nc" id="L142">                .build(serverPlayer);</span>
+        }
+
+        MoveType type;
+<span class="nc" id="L146">        ServerPlayer enemy = (ServerPlayer)getEnemy(game);</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">        if (enemy == null) {</span>
+<span class="nc" id="L148">            return serverPlayer.clientError(&quot;Not a player: &quot; + this.enemyId)</span>
+<span class="nc" id="L149">                .build(serverPlayer);</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        } else if (enemy == player) {</span>
+<span class="nc" id="L151">            return serverPlayer.clientError(&quot;Inciting against oneself!&quot;)</span>
+<span class="nc" id="L152">                .build(serverPlayer);</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">        } else if (!enemy.isEuropean()) {</span>
+<span class="nc" id="L154">            return serverPlayer.clientError(&quot;Inciting against non-European!&quot;)</span>
+<span class="nc" id="L155">                .build(serverPlayer);</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">        } else if ((type = unit.getMoveType(is.getTile()))</span>
+<span class="nc" id="L157">            != MoveType.ENTER_INDIAN_SETTLEMENT_WITH_MISSIONARY) {</span>
+<span class="nc" id="L158">            return serverPlayer.clientError(&quot;Unable to enter &quot;</span>
+<span class="nc" id="L159">                + is.getName() + &quot;: &quot; + type.whyIllegal())</span>
+<span class="nc" id="L160">                .build(serverPlayer);</span>
+        }
+
+        int gold;
+        try {
+<span class="nc" id="L165">            gold = getGold();</span>
+<span class="nc" id="L166">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L167">            return serverPlayer.clientError(&quot;Bad gold: &quot; + this.goldString)</span>
+<span class="nc" id="L168">                .build(serverPlayer);</span>
+        }
+
+        // Valid, proceed to incite.
+<span class="nc" id="L172">        return server.getInGameController()</span>
+<span class="nc" id="L173">            .incite(serverPlayer, unit, is, enemy, gold)</span>
+<span class="nc" id="L174">            .build(serverPlayer);</span>
+    }
+
+    /**
+     * Convert this InciteMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="nc" id="L184">        return new DOMMessage(getTagName(),</span>
+<span class="nc" id="L185">            UNIT_TAG, this.unitId,</span>
+<span class="nc" id="L186">            SETTLEMENT_TAG, this.settlementId,</span>
+<span class="nc" id="L187">            ENEMY_TAG, this.enemyId,</span>
+<span class="nc" id="L188">            GOLD_TAG, this.goldString).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;incite&quot;.
+     */
+    public static String getTagName() {
+<span class="fc" id="L197">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

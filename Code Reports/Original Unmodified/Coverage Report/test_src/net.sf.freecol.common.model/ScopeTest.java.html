@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ScopeTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">ScopeTest.java</span></div><h1>ScopeTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="fc" id="L27">public class ScopeTest extends FreeColTestCase {</span>
+
+
+<span class="fc" id="L30">    UnitType carpenter = spec().getUnitType(&quot;model.unit.masterCarpenter&quot;);</span>
+<span class="fc" id="L31">    UnitType frigate = spec().getUnitType(&quot;model.unit.frigate&quot;);</span>
+
+    public void testEmptyScope(){
+    	
+<span class="fc" id="L35">        Scope testScope = new Scope();</span>
+
+        // empty scope applies to all
+<span class="fc" id="L38">        assertTrue(testScope.appliesTo(carpenter));</span>
+<span class="fc" id="L39">        assertTrue(testScope.appliesTo(frigate));</span>
+
+        // unless negated
+<span class="fc" id="L42">        testScope.setMatchNegated(true);</span>
+<span class="fc" id="L43">        assertFalse(testScope.appliesTo(carpenter));</span>
+<span class="fc" id="L44">        assertFalse(testScope.appliesTo(frigate));</span>
+
+<span class="fc" id="L46">    }</span>
+
+    public void testTypeScope() {
+
+<span class="fc" id="L50">        Scope testScope = new Scope();</span>
+
+<span class="fc" id="L52">        testScope.setType(&quot;model.unit.frigate&quot;);</span>
+<span class="fc" id="L53">        assertTrue(testScope.appliesTo(frigate));</span>
+<span class="fc" id="L54">        assertFalse(testScope.appliesTo(carpenter));</span>
+<span class="fc" id="L55">        testScope.setMatchNegated(true);</span>
+<span class="fc" id="L56">        assertFalse(testScope.appliesTo(frigate));</span>
+<span class="fc" id="L57">        assertTrue(testScope.appliesTo(carpenter));</span>
+
+<span class="fc" id="L59">        testScope.setMatchNegated(false);</span>
+<span class="fc" id="L60">        testScope.setType(&quot;model.unit.masterCarpenter&quot;);</span>
+<span class="fc" id="L61">        assertFalse(testScope.appliesTo(frigate));</span>
+<span class="fc" id="L62">        assertTrue(testScope.appliesTo(carpenter));</span>
+<span class="fc" id="L63">        testScope.setMatchNegated(true);</span>
+<span class="fc" id="L64">        assertTrue(testScope.appliesTo(frigate));</span>
+<span class="fc" id="L65">        assertFalse(testScope.appliesTo(carpenter));</span>
+
+<span class="fc" id="L67">    }</span>
+
+    public void testAbilityScope() {
+
+<span class="fc" id="L71">        Scope testScope = new Scope();</span>
+
+<span class="fc" id="L73">        testScope.setAbilityId(Ability.NAVAL_UNIT);</span>
+<span class="fc" id="L74">        assertEquals(frigate.hasAbility(Ability.NAVAL_UNIT),</span>
+<span class="fc" id="L75">                     testScope.appliesTo(frigate));</span>
+<span class="fc" id="L76">        assertEquals(carpenter.hasAbility(Ability.NAVAL_UNIT),</span>
+<span class="fc" id="L77">                     testScope.appliesTo(carpenter));</span>
+
+<span class="fc" id="L79">    }</span>
+    
+    public void testMethodScope() {
+
+<span class="fc" id="L83">        Scope testScope = new Scope();</span>
+
+<span class="fc" id="L85">        testScope.setMethodName(&quot;getLineOfSight&quot;);</span>
+<span class="fc" id="L86">        testScope.setMethodValue(&quot;1&quot;);</span>
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">        assertTrue(frigate.getLineOfSight() != 1);</span>
+<span class="fc" id="L88">        assertFalse(testScope.appliesTo(frigate));</span>
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">        assertTrue(carpenter.getLineOfSight() == 1);</span>
+<span class="fc" id="L90">        assertTrue(testScope.appliesTo(carpenter));</span>
+
+<span class="fc" id="L92">    }</span>
+
+    public void testCombinedScope() {
+
+<span class="fc" id="L96">        Scope testScope = new Scope();</span>
+
+<span class="fc" id="L98">        testScope.setType(&quot;model.unit.frigate&quot;);</span>
+<span class="fc" id="L99">        testScope.setAbilityId(Ability.NAVAL_UNIT);</span>
+<span class="fc" id="L100">        testScope.setMethodName(&quot;getLineOfSight&quot;);</span>
+<span class="fc" id="L101">        testScope.setMethodValue(&quot;2&quot;);</span>
+<span class="fc" id="L102">        assertTrue(testScope.appliesTo(frigate));</span>
+
+<span class="fc" id="L104">        testScope.setMethodValue(&quot;1&quot;);</span>
+<span class="fc" id="L105">        assertFalse(testScope.appliesTo(frigate));</span>
+
+<span class="fc" id="L107">        testScope.setMethodValue(&quot;2&quot;);</span>
+<span class="fc" id="L108">        testScope.setAbilityId(Ability.FOUND_COLONY);</span>
+<span class="fc" id="L109">        assertFalse(testScope.appliesTo(frigate));</span>
+<span class="fc" id="L110">    }</span>
+
+    public void testMatchesNull() {
+
+<span class="fc" id="L114">        Scope testScope = new Scope();</span>
+<span class="fc" id="L115">        testScope.setType(&quot;model.unit.frigate&quot;);</span>
+
+<span class="fc" id="L117">        assertTrue(testScope.appliesTo(frigate));</span>
+<span class="fc" id="L118">        assertTrue(testScope.appliesTo(null));</span>
+<span class="fc" id="L119">        testScope.setMatchesNull(false);</span>
+<span class="fc" id="L120">        assertTrue(testScope.appliesTo(frigate));</span>
+<span class="fc" id="L121">        assertFalse(testScope.appliesTo(null));</span>
+
+<span class="fc" id="L123">    }</span>
+
+    public void testEquality() {
+
+<span class="fc" id="L127">        Scope testScope1 = new Scope();</span>
+<span class="fc" id="L128">        testScope1.setType(&quot;model.unit.frigate&quot;);</span>
+<span class="fc" id="L129">        testScope1.setAbilityId(Ability.NAVAL_UNIT);</span>
+<span class="fc" id="L130">        testScope1.setMethodName(&quot;getLineOfSight&quot;);</span>
+<span class="fc" id="L131">        testScope1.setMethodValue(&quot;2&quot;);</span>
+<span class="fc" id="L132">        testScope1.setMatchesNull(true);</span>
+<span class="fc" id="L133">        testScope1.setMatchNegated(false);</span>
+<span class="fc" id="L134">        assertTrue(testScope1.equals(testScope1));</span>
+
+<span class="fc" id="L136">        Scope testScope2 = new Scope();</span>
+<span class="fc" id="L137">        testScope2.setType(&quot;model.unit.frigate&quot;);</span>
+<span class="fc" id="L138">        testScope2.setAbilityId(Ability.NAVAL_UNIT);</span>
+<span class="fc" id="L139">        testScope2.setMethodName(&quot;getLineOfSight&quot;);</span>
+<span class="fc" id="L140">        testScope2.setMethodValue(&quot;2&quot;);</span>
+<span class="fc" id="L141">        testScope2.setMatchesNull(true);</span>
+<span class="fc" id="L142">        testScope2.setMatchNegated(false);</span>
+<span class="fc" id="L143">        assertTrue(testScope2.equals(testScope2));</span>
+
+<span class="fc" id="L145">        assertTrue(testScope1.equals(testScope2));</span>
+<span class="fc" id="L146">        assertTrue(testScope2.equals(testScope1));</span>
+
+<span class="fc" id="L148">        testScope1.setType(&quot;model.unit.carpenter&quot;);</span>
+
+<span class="fc" id="L150">        assertFalse(testScope1.equals(testScope2));</span>
+<span class="fc" id="L151">        assertFalse(testScope2.equals(testScope1));</span>
+
+<span class="fc" id="L153">        testScope1.setType(&quot;model.unit.frigate&quot;);</span>
+<span class="fc" id="L154">        testScope1.setAbilityId(Ability.FOUND_COLONY);</span>
+
+<span class="fc" id="L156">        assertFalse(testScope1.equals(testScope2));</span>
+<span class="fc" id="L157">        assertFalse(testScope2.equals(testScope1));</span>
+
+<span class="fc" id="L159">        testScope1.setAbilityId(Ability.NAVAL_UNIT);</span>
+<span class="fc" id="L160">        testScope1.setAbilityValue(false);</span>
+
+<span class="fc" id="L162">        assertFalse(testScope1.equals(testScope2));</span>
+<span class="fc" id="L163">        assertFalse(testScope2.equals(testScope1));</span>
+
+<span class="fc" id="L165">        testScope1.setAbilityValue(true);</span>
+<span class="fc" id="L166">        testScope1.setMethodName(&quot;getOffence&quot;);</span>
+
+<span class="fc" id="L168">        assertFalse(testScope1.equals(testScope2));</span>
+<span class="fc" id="L169">        assertFalse(testScope2.equals(testScope1));</span>
+
+<span class="fc" id="L171">        testScope1.setMethodName(&quot;getLineOfSight&quot;);</span>
+<span class="fc" id="L172">        testScope1.setMethodValue(&quot;9&quot;);</span>
+
+<span class="fc" id="L174">        assertFalse(testScope1.equals(testScope2));</span>
+<span class="fc" id="L175">        assertFalse(testScope2.equals(testScope1));</span>
+
+<span class="fc" id="L177">        testScope1.setMethodValue(&quot;2&quot;);</span>
+
+<span class="fc" id="L179">        assertTrue(testScope1.equals(testScope2));</span>
+<span class="fc" id="L180">        assertTrue(testScope2.equals(testScope1));</span>
+
+<span class="fc" id="L182">        testScope1.setMatchesNull(false);</span>
+
+<span class="fc" id="L184">        assertFalse(testScope1.equals(testScope2));</span>
+<span class="fc" id="L185">        assertFalse(testScope2.equals(testScope1));</span>
+
+<span class="fc" id="L187">        testScope1.setMatchesNull(true);</span>
+
+<span class="fc" id="L189">        assertTrue(testScope1.equals(testScope2));</span>
+<span class="fc" id="L190">        assertTrue(testScope2.equals(testScope1));</span>
+
+<span class="fc" id="L192">        testScope1.setMatchNegated(true);</span>
+
+<span class="fc" id="L194">        assertFalse(testScope1.equals(testScope2));</span>
+<span class="fc" id="L195">        assertFalse(testScope2.equals(testScope1));</span>
+
+<span class="fc" id="L197">        testScope1.setMatchNegated(false);</span>
+
+<span class="fc" id="L199">        assertTrue(testScope1.equals(testScope2));</span>
+<span class="fc" id="L200">        assertTrue(testScope2.equals(testScope1));</span>
+
+<span class="fc" id="L202">    }</span>
+
+    public void testGameObjects() {
+<span class="fc" id="L205">        Game game = getStandardGame();</span>
+<span class="fc" id="L206">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="fc" id="L207">        Map map = getTestMap();</span>
+<span class="fc" id="L208">        game.setMap(map);</span>
+
+<span class="fc" id="L210">        Tile unitTile = map.getTile(6, 8);</span>
+<span class="fc" id="L211">        UnitType colonistType = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+        
+<span class="fc" id="L213">        Unit unit = new ServerUnit(game, unitTile, dutch, colonistType);</span>
+
+<span class="fc" id="L215">        Scope scope = new Scope();</span>
+<span class="fc" id="L216">        scope.setAbilityId(Ability.FOUND_COLONY);</span>
+<span class="fc" id="L217">        assertTrue(scope.appliesTo(unit));</span>
+<span class="fc" id="L218">        scope.setType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="fc" id="L219">        assertTrue(scope.appliesTo(unit));</span>
+<span class="fc" id="L220">        scope.setType(&quot;model.unit.hardyPioneer&quot;);</span>
+<span class="fc" id="L221">        assertFalse(scope.appliesTo(unit));</span>
+
+<span class="fc" id="L223">    }</span>
+        
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

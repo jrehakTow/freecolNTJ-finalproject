@@ -1,0 +1,451 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>PreGameInputHandler.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.control</a> &gt; <span class="el_source">PreGameInputHandler.java</span></div><h1>PreGameInputHandler.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.control;
+
+import java.awt.Color;
+import java.util.logging.Logger;
+
+import javax.swing.SwingUtilities;
+
+import net.sf.freecol.FreeCol;
+import net.sf.freecol.client.FreeColClient;
+import net.sf.freecol.common.model.FreeColGameObject;
+import net.sf.freecol.common.model.FreeColObject;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.GameOptions;
+import net.sf.freecol.common.model.Nation;
+import net.sf.freecol.common.model.NationOptions.NationState;
+import net.sf.freecol.common.model.NationType;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.model.StringTemplate;
+import net.sf.freecol.common.networking.AddPlayerMessage;
+import net.sf.freecol.common.networking.ChatMessage;
+import net.sf.freecol.common.networking.Connection;
+import net.sf.freecol.common.networking.DOMMessage;
+import net.sf.freecol.common.networking.ErrorMessage;
+import net.sf.freecol.common.networking.LoginMessage;
+import net.sf.freecol.common.networking.MultipleMessage;
+import net.sf.freecol.common.networking.UpdateMessage;
+import net.sf.freecol.common.networking.UpdateGameOptionsMessage;
+import net.sf.freecol.common.networking.UpdateMapGeneratorOptionsMessage;
+import net.sf.freecol.common.option.MapGeneratorOptions;
+import net.sf.freecol.common.option.OptionGroup;
+
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+
+/**
+ * Handles the network messages that arrives before the game starts.
+ */
+public final class PreGameInputHandler extends ClientInputHandler {
+
+<span class="fc" id="L61">    private static final Logger logger = Logger.getLogger(PreGameInputHandler.class.getName());</span>
+
+
+    /**
+     * The constructor to use.
+     *
+     * @param freeColClient The &lt;code&gt;FreeColClient&lt;/code&gt; for the game.
+     */
+    public PreGameInputHandler(FreeColClient freeColClient) {
+<span class="fc" id="L70">        super(freeColClient);</span>
+
+<span class="fc" id="L72">        register(AddPlayerMessage.TAG,</span>
+<span class="pc" id="L73">            (Connection c, Element e) -&gt; addPlayer(e));</span>
+<span class="fc" id="L74">        register(ChatMessage.TAG,</span>
+<span class="pc" id="L75">            (Connection c, Element e) -&gt; chat(e));</span>
+<span class="fc" id="L76">        register(ErrorMessage.TAG,</span>
+<span class="fc" id="L77">            (Connection c, Element e) -&gt; error(e));</span>
+<span class="fc" id="L78">        register(LoginMessage.TAG,</span>
+<span class="pc" id="L79">            (Connection c, Element e) -&gt; login(e));</span>
+<span class="fc" id="L80">        register(&quot;logout&quot;,</span>
+<span class="pc" id="L81">            (Connection c, Element e) -&gt; logout(e));</span>
+<span class="fc" id="L82">        register(MultipleMessage.TAG,</span>
+<span class="pc" id="L83">            (Connection c, Element e) -&gt; multiple(c, e));</span>
+<span class="fc" id="L84">        register(&quot;playerReady&quot;,</span>
+<span class="pc" id="L85">            (Connection c, Element e) -&gt; playerReady(e));</span>
+<span class="fc" id="L86">        register(&quot;removePlayer&quot;,</span>
+<span class="pc" id="L87">            (Connection c, Element e) -&gt; removePlayer(e));</span>
+<span class="fc" id="L88">        register(&quot;setAvailable&quot;,</span>
+<span class="pc" id="L89">            (Connection c, Element e) -&gt; setAvailable(e));</span>
+<span class="fc" id="L90">        register(&quot;startGame&quot;,</span>
+<span class="pc" id="L91">            (Connection c, Element e) -&gt; startGame(e));</span>
+<span class="fc" id="L92">        register(&quot;updateColor&quot;,</span>
+<span class="pc" id="L93">            (Connection c, Element e) -&gt; updateColor(e));</span>
+<span class="fc" id="L94">        register(UpdateMessage.TAG,</span>
+<span class="pc" id="L95">            (Connection c, Element e) -&gt; update(e));</span>
+<span class="fc" id="L96">        register(UpdateGameOptionsMessage.TAG,</span>
+<span class="pc" id="L97">            (Connection c, Element e) -&gt; updateGameOptions(e));</span>
+<span class="fc" id="L98">        register(UpdateMapGeneratorOptionsMessage.TAG,</span>
+<span class="pc" id="L99">            (Connection c, Element e) -&gt; updateMapGeneratorOptions(e));</span>
+<span class="fc" id="L100">        register(&quot;updateNation&quot;,</span>
+<span class="pc" id="L101">            (Connection c, Element e) -&gt; updateNation(e));</span>
+<span class="fc" id="L102">        register(&quot;updateNationType&quot;,</span>
+<span class="pc" id="L103">            (Connection c, Element e) -&gt; updateNationType(e));</span>
+<span class="fc" id="L104">    }</span>
+
+
+    // Individual handlers
+
+    /**
+     * Handles an &quot;addPlayer&quot;-message.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    private Element addPlayer(Element element) {
+        // The message constructor interns the new players directly.
+<span class="nc" id="L118">        new AddPlayerMessage(getFreeColClient().getGame(), element);</span>
+
+<span class="nc" id="L120">        getGUI().refreshPlayersTable();</span>
+<span class="nc" id="L121">        return null;</span>
+    }
+
+    /**
+     * Handles a &quot;chat&quot;-message.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    private Element chat(Element element)  {
+<span class="nc" id="L132">        final Game game = getGame();</span>
+<span class="nc" id="L133">        final ChatMessage chatMessage = new ChatMessage(game, element);</span>
+
+<span class="nc" id="L135">        getGUI().displayChatMessage(chatMessage.getPlayer(game),</span>
+<span class="nc" id="L136">                                    chatMessage.getMessage(),</span>
+<span class="nc" id="L137">                                    chatMessage.isPrivate());</span>
+<span class="nc" id="L138">        return null;</span>
+    }
+
+    /**
+     * Handles an &quot;error&quot;-message.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    private Element error(Element element)  {
+<span class="fc" id="L149">        final ErrorMessage errorMessage = new ErrorMessage(getGame(), element);</span>
+
+<span class="fc" id="L151">        getGUI().showErrorMessage(errorMessage.getMessageId(),</span>
+<span class="fc" id="L152">                                  errorMessage.getMessage());</span>
+<span class="fc" id="L153">        return null;</span>
+    }
+
+    /**
+     * Handle a &quot;login&quot;-request.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    private Element login(Element element) {
+<span class="nc" id="L164">        final FreeColClient fcc = getFreeColClient();</span>
+<span class="nc" id="L165">        final LoginMessage message = new LoginMessage(new Game(), element);</span>
+<span class="nc" id="L166">        Game game = message.getGame();</span>
+<span class="nc" id="L167">        fcc.setGame(game);</span>
+
+<span class="nc" id="L169">        fcc.setSinglePlayer(message.isSinglePlayer());</span>
+
+<span class="nc" id="L171">        final String user = message.getUserName();</span>
+<span class="nc" id="L172">        Player player = game.getPlayerByName(user);</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        if (player == null) {</span>
+<span class="nc" id="L174">            logger.warning(&quot;New game does not contain player: &quot; + user);</span>
+<span class="nc" id="L175">            StringTemplate st = StringTemplate.template(&quot;server.noSuchPlayer&quot;)</span>
+<span class="nc" id="L176">                .addName(&quot;%player%&quot;, user);</span>
+<span class="nc" id="L177">            getGUI().showErrorMessage(st);</span>
+<span class="nc" id="L178">            return null;</span>
+        }
+<span class="nc" id="L180">        fcc.setMyPlayer(player);</span>
+<span class="nc" id="L181">        fcc.addSpecificationActions(game.getSpecification());</span>
+<span class="nc" id="L182">        logger.info(&quot;FreeColClient logged in as &quot; + user</span>
+<span class="nc" id="L183">            + &quot;/&quot; + player.getId());</span>
+
+<span class="nc" id="L185">        final boolean currentPlayer = message.isCurrentPlayer();</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">        if (currentPlayer) game.setCurrentPlayer(player);</span>
+
+<span class="nc bnc" id="L188" title="All 2 branches missed.">        if (message.getStartGame()) fcc.getPreGameController().startGame();</span>
+<span class="nc" id="L189">        return null;</span>
+    }
+
+    /**
+     * Handles an &quot;logout&quot;-message.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    private Element logout(Element element) {
+<span class="nc" id="L200">        final Game game = getGame();</span>
+
+<span class="nc" id="L202">        String playerId = element.getAttribute(&quot;player&quot;);</span>
+<span class="nc" id="L203">        String reason = element.getAttribute(&quot;reason&quot;);</span>
+<span class="nc bnc" id="L204" title="All 4 branches missed.">        if (reason != null &amp;&amp; !reason.isEmpty()) {</span>
+<span class="nc" id="L205">            logger.info(&quot;Client logging out: &quot; + reason);</span>
+        }
+
+<span class="nc" id="L208">        Player player = game.getFreeColGameObject(playerId, Player.class);</span>
+<span class="nc" id="L209">        game.removePlayer(player);</span>
+<span class="nc" id="L210">        getGUI().refreshPlayersTable();</span>
+
+<span class="nc" id="L212">        return null;</span>
+    }
+
+    /**
+     * Handle all the children of this element.
+     *
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the element arrived on.
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return The result of handling the last &lt;code&gt;Element&lt;/code&gt;.
+     */
+    public Element multiple(Connection connection, Element element) {
+<span class="nc" id="L224">        return new MultipleMessage(element).applyHandler(this, connection);</span>
+    }
+
+    /**
+     * Handles a &quot;playerReady&quot;-message.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    private Element playerReady(Element element) {
+<span class="nc" id="L235">        final Game game = getGame();</span>
+
+<span class="nc" id="L237">        Player player = game</span>
+<span class="nc" id="L238">            .getFreeColGameObject(element.getAttribute(&quot;player&quot;), Player.class);</span>
+<span class="nc" id="L239">        boolean ready = Boolean.parseBoolean(element.getAttribute(&quot;value&quot;));</span>
+<span class="nc" id="L240">        player.setReady(ready);</span>
+<span class="nc" id="L241">        getGUI().refreshPlayersTable();</span>
+
+<span class="nc" id="L243">        return null;</span>
+    }
+
+    /**
+     * Handles a &quot;removePlayer&quot;-message.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    private Element removePlayer(Element element) {
+<span class="nc" id="L254">        final Game game = getGame();</span>
+
+<span class="nc" id="L256">        Element playerElement = (Element)element</span>
+<span class="nc" id="L257">            .getElementsByTagName(Player.getTagName()).item(0);</span>
+<span class="nc" id="L258">        Player player = new Player(game, playerElement);</span>
+
+<span class="nc" id="L260">        game.removePlayer(player);</span>
+<span class="nc" id="L261">        getGUI().refreshPlayersTable();</span>
+
+<span class="nc" id="L263">        return null;</span>
+    }
+
+    /**
+     * Handles a &quot;setAvailable&quot;-message.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    private Element setAvailable(Element element) {
+<span class="nc" id="L274">        Nation nation = getSpecification().getNation(element.getAttribute(&quot;nation&quot;));</span>
+<span class="nc" id="L275">        NationState state = Enum.valueOf(NationState.class,</span>
+<span class="nc" id="L276">                                         element.getAttribute(&quot;state&quot;));</span>
+<span class="nc" id="L277">        getGame().getNationOptions().setNationState(nation, state);</span>
+<span class="nc" id="L278">        getGUI().refreshPlayersTable();</span>
+<span class="nc" id="L279">        return null;</span>
+    }
+
+    /**
+     * Handles an &quot;startGame&quot;-message.
+     *
+     * Wait until map is received from server, sometimes this
+     * message arrives when map is still null. Wait in other
+     * thread in order not to block and it can receive the map.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    private Element startGame(@SuppressWarnings(&quot;unused&quot;) Element element) {
+<span class="nc" id="L294">        new Thread(FreeCol.CLIENT_THREAD + &quot;Starting game&quot;) {</span>
+                @Override
+                public void run() {
+<span class="nc" id="L297">                    for (;;) {</span>
+<span class="nc" id="L298">                        Game game = getGame();</span>
+<span class="nc bnc" id="L299" title="All 4 branches missed.">                        if (game != null &amp;&amp; game.getMap() != null) break;</span>
+                        try {
+<span class="nc" id="L301">                            Thread.sleep(200);</span>
+<span class="nc" id="L302">                        } catch (Exception ex) {}</span>
+                    }
+                    
+<span class="nc" id="L305">                    SwingUtilities.invokeLater(() -&gt; {</span>
+<span class="nc" id="L306">                            getFreeColClient().getPreGameController()</span>
+<span class="nc" id="L307">                                .startGame();</span>
+<span class="nc" id="L308">                        });</span>
+<span class="nc" id="L309">                }</span>
+<span class="nc" id="L310">            }.start();</span>
+<span class="nc" id="L311">        return null;</span>
+    }
+
+    /**
+     * Handles an &quot;update&quot;-message.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    private Element update(Element element) {
+<span class="nc" id="L322">        final Game game = getGame();</span>
+<span class="nc" id="L323">        final UpdateMessage message = new UpdateMessage(game, element);</span>
+
+<span class="nc bnc" id="L325" title="All 2 branches missed.">        for (FreeColGameObject fcgo : message.getObjects()) {</span>
+<span class="nc bnc" id="L326" title="All 2 branches missed.">            if (fcgo instanceof Game) {</span>
+<span class="nc" id="L327">                getFreeColClient()</span>
+<span class="nc" id="L328">                    .addSpecificationActions(((Game)fcgo).getSpecification());</span>
+<span class="nc" id="L329">            } else {</span>
+<span class="nc" id="L330">                logger.warning(&quot;Game node expected: &quot; + fcgo.getId());</span>
+            }
+        }
+<span class="nc" id="L333">        return null;</span>
+    }
+
+    /**
+     * Handles an &quot;updateColor&quot;-message.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    private Element updateColor(Element element) {
+<span class="nc" id="L344">        final Game game = getGame();</span>
+<span class="nc" id="L345">        final Specification spec = game.getSpecification();</span>
+
+<span class="nc" id="L347">        String str = element.getAttribute(&quot;nation&quot;);</span>
+<span class="nc" id="L348">        Nation nation = spec.getNation(str);</span>
+<span class="nc bnc" id="L349" title="All 2 branches missed.">        if (nation == null) {</span>
+<span class="nc" id="L350">            logger.warning(&quot;Invalid nation: &quot; + str);</span>
+<span class="nc" id="L351">            return null;</span>
+        }
+        Color color;
+        try {
+<span class="nc" id="L355">            str = element.getAttribute(&quot;color&quot;);</span>
+<span class="nc" id="L356">            int rgb = Integer.parseInt(str);</span>
+<span class="nc" id="L357">            color = new Color(rgb);</span>
+<span class="nc" id="L358">        } catch (NumberFormatException nfe) {</span>
+<span class="nc" id="L359">            logger.warning(&quot;Invalid color: &quot; + str);</span>
+<span class="nc" id="L360">            return null;</span>
+        }
+<span class="nc" id="L362">        nation.setColor(color);</span>
+<span class="nc" id="L363">        getGUI().refreshPlayersTable();</span>
+<span class="nc" id="L364">        return null;</span>
+    }
+
+    /**
+     * Handles an &quot;updateGameOptions&quot;-message.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    private Element updateGameOptions(Element element) {
+<span class="nc" id="L375">        final Game game = getGame();</span>
+<span class="nc" id="L376">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L377">        final UpdateGameOptionsMessage message</span>
+<span class="nc" id="L378">            = new UpdateGameOptionsMessage(game, element);</span>
+
+<span class="nc bnc" id="L380" title="All 2 branches missed.">        if (message.mergeOptions(game)) {</span>
+<span class="nc" id="L381">            spec.clean(&quot;update game options (server initiated)&quot;);</span>
+<span class="nc" id="L382">            getGUI().updateGameOptions();</span>
+<span class="nc" id="L383">        } else {</span>
+<span class="nc" id="L384">            logger.warning(&quot;Game option update failed&quot;);</span>
+        }
+<span class="nc" id="L386">        return null;</span>
+    }
+    
+    /**
+     * Handles an &quot;updateMapGeneratorOptions&quot;-message.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    private Element updateMapGeneratorOptions(Element element) {
+<span class="nc" id="L397">        final Game game = getGame();</span>
+<span class="nc" id="L398">        final UpdateMapGeneratorOptionsMessage message</span>
+<span class="nc" id="L399">            = new UpdateMapGeneratorOptionsMessage(game, element);</span>
+
+<span class="nc bnc" id="L401" title="All 2 branches missed.">        if (message.mergeOptions(game)) {</span>
+<span class="nc" id="L402">            getGUI().updateMapGeneratorOptions();</span>
+<span class="nc" id="L403">        } else {</span>
+<span class="nc" id="L404">            logger.warning(&quot;Map generator option update failed&quot;);</span>
+        }
+<span class="nc" id="L406">        return null;</span>
+    }
+    
+    /**
+     * Handles an &quot;updateNation&quot;-message.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    private Element updateNation(Element element) {
+<span class="nc" id="L417">        final Game game = getGame();</span>
+
+<span class="nc" id="L419">        Player player = game</span>
+<span class="nc" id="L420">            .getFreeColGameObject(element.getAttribute(&quot;player&quot;), Player.class);</span>
+<span class="nc" id="L421">        Nation nation = getGame().getSpecification()</span>
+<span class="nc" id="L422">            .getNation(element.getAttribute(&quot;value&quot;));</span>
+
+<span class="nc" id="L424">        player.setNation(nation);</span>
+<span class="nc" id="L425">        getGUI().refreshPlayersTable();</span>
+
+<span class="nc" id="L427">        return null;</span>
+    }
+
+    /**
+     * Handles an &quot;updateNationType&quot;-message.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    private Element updateNationType(Element element) {
+<span class="nc" id="L438">        final Game game = getGame();</span>
+
+<span class="nc" id="L440">        Player player = game</span>
+<span class="nc" id="L441">            .getFreeColGameObject(element.getAttribute(&quot;player&quot;), Player.class);</span>
+<span class="nc" id="L442">        NationType nationType = getSpecification()</span>
+<span class="nc" id="L443">            .getNationType(element.getAttribute(&quot;value&quot;));</span>
+
+<span class="nc" id="L445">        player.changeNationType(nationType);</span>
+<span class="nc" id="L446">        getGUI().refreshPlayersTable();</span>
+
+<span class="nc" id="L448">        return null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>SpySettlementMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">SpySettlementMessage.java</span></div><h1>SpySettlementMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Settlement;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.Unit.MoveType;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent when spying on a settlement.
+ */
+public class SpySettlementMessage extends DOMMessage {
+
+    public static final String TAG = &quot;spySettlement&quot;;
+    private static final String SETTLEMENT_TAG = &quot;settlement&quot;;
+    private static final String UNIT_TAG = &quot;unit&quot;;
+
+    /** The identifier of the object doing the spying. */
+    private final String unitId;
+
+    /** The identifier of the settlement to spy on. */
+    private final String settlementId;
+
+    /**
+     * A copy of the tile with the settlement on it, but including all
+     * the extra (normally invisible) information.
+     */
+    private Tile spyTile;
+
+
+    /**
+     * Create a new &lt;code&gt;SpySettlementMessage&lt;/code&gt; request with the
+     * supplied unit and settlement
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; that is spying.
+     * @param settlement The &lt;code&gt;Settlement&lt;/code&gt; the unit is looking at.
+     */
+    public SpySettlementMessage(Unit unit, Settlement settlement) {
+<span class="nc" id="L67">        super(getTagName());</span>
+
+<span class="nc" id="L69">        this.unitId = unit.getId();</span>
+<span class="nc" id="L70">        this.settlementId = settlement.getId();</span>
+<span class="nc" id="L71">        this.spyTile = null;</span>
+<span class="nc" id="L72">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;SpySettlementMessage&lt;/code&gt; from a
+     * supplied element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public SpySettlementMessage(Game game, Element element) {
+<span class="nc" id="L82">        super(getTagName());</span>
+
+<span class="nc" id="L84">        this.unitId = getStringAttribute(element, UNIT_TAG);</span>
+<span class="nc" id="L85">        this.settlementId = getStringAttribute(element, SETTLEMENT_TAG);</span>
+<span class="nc" id="L86">        this.spyTile = getChild(game, element, 0, false, Tile.class);</span>
+<span class="nc" id="L87">    }</span>
+
+
+    // Public interface
+
+    public Tile getSpyTile() {
+<span class="nc" id="L93">        return this.spyTile;</span>
+    }
+
+    public Unit getUnit(Player player) {
+<span class="nc" id="L97">        return player.getOurFreeColGameObject(this.unitId, Unit.class);</span>
+    }
+
+    public Colony getColony(Game game) {
+<span class="nc" id="L101">        return game.getFreeColGameObject(this.settlementId, Colony.class);</span>
+    }
+
+
+    /**
+     * Handle a &quot;spySettlement&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; that is handling
+     *     the message.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the message was
+     *     received on.
+     * @return An &lt;code&gt;Element&lt;/code&gt; containing a representation of
+     *     the settlement being spied upon and any units at that
+     *     position, or an error &lt;code&gt;Element&lt;/code&gt; on failure.
+     */
+    public Element handle(FreeColServer server, Connection connection) {
+<span class="nc" id="L117">        final ServerPlayer serverPlayer = server.getPlayer(connection);</span>
+<span class="nc" id="L118">        final Game game = serverPlayer.getGame();</span>
+
+        Unit unit;
+        try {
+<span class="nc" id="L122">            unit = getUnit(serverPlayer);</span>
+<span class="nc" id="L123">        } catch (Exception e) {</span>
+<span class="nc" id="L124">            return serverPlayer.clientError(e.getMessage())</span>
+<span class="nc" id="L125">                .build(serverPlayer);</span>
+        }
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        if (!unit.hasAbility(Ability.SPY_ON_COLONY)) {</span>
+<span class="nc" id="L128">            return serverPlayer.clientError(&quot;Unit lacks ability&quot;</span>
+<span class="nc" id="L129">                + &quot; to spy on colony: &quot; + this.unitId)</span>
+<span class="nc" id="L130">                .build(serverPlayer);</span>
+        }
+
+<span class="nc" id="L133">        Colony colony = getColony(game);</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">        if (colony == null) {</span>
+<span class="nc" id="L135">            return serverPlayer.clientError(&quot;Not a colony: &quot;</span>
+<span class="nc" id="L136">                + this.settlementId)</span>
+<span class="nc" id="L137">                .build(serverPlayer);</span>
+        }
+<span class="nc" id="L139">        Tile tile = colony.getTile();</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        if (!unit.getTile().isAdjacent(tile)) {</span>
+<span class="nc" id="L141">            return serverPlayer.clientError(&quot;Unit &quot; + this.unitId</span>
+<span class="nc" id="L142">                + &quot; not adjacent to colony: &quot; + this.settlementId)</span>
+<span class="nc" id="L143">                .build(serverPlayer);</span>
+        }
+
+<span class="nc" id="L146">        MoveType type = unit.getMoveType(tile);</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">        if (type != MoveType.ENTER_FOREIGN_COLONY_WITH_SCOUT) {</span>
+<span class="nc" id="L148">            return serverPlayer.clientError(&quot;Unable to enter at: &quot;</span>
+<span class="nc" id="L149">                + colony.getName() + &quot;: &quot; + type.whyIllegal())</span>
+<span class="nc" id="L150">                .build(serverPlayer);</span>
+        }
+
+        // Spy on the settlement
+<span class="nc" id="L154">        return server.getInGameController()</span>
+<span class="nc" id="L155">            .spySettlement(serverPlayer, unit, colony)</span>
+<span class="nc" id="L156">            .build(serverPlayer);</span>
+    }
+
+    /**
+     * Convert this SpySettlementMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="nc" id="L166">        return new DOMMessage(getTagName(),</span>
+<span class="nc" id="L167">            UNIT_TAG, this.unitId,</span>
+<span class="nc" id="L168">            SETTLEMENT_TAG, this.settlementId).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;spySettlement&quot;.
+     */
+    public static String getTagName() {
+<span class="fc" id="L177">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

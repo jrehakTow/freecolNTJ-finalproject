@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>NationOptions.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">NationOptions.java</span></div><h1>NationOptions.java</h1><pre class="source lang-java linenums"><span class="pc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Logger;
+
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.FreeCol;
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+import static net.sf.freecol.common.util.StringUtils.*;
+
+
+/**
+ * The options specific to a nation.
+ */
+public class NationOptions extends FreeColSpecObject {
+
+<span class="fc" id="L42">    private static final Logger logger = Logger.getLogger(NationOptions.class.getName());</span>
+
+    /** Type of national advantages for European players. */
+<span class="fc" id="L45">    public static enum Advantages implements Named {</span>
+<span class="fc" id="L46">        NONE,</span>
+<span class="fc" id="L47">        FIXED,</span>
+<span class="fc" id="L48">        SELECTABLE;</span>
+
+        /**
+         * Get a message key for this Advantages.
+         *
+         * @return A message key.
+         */
+        private String getKey() {
+<span class="nc" id="L56">            return &quot;advantages.&quot; + getEnumKey(this);</span>
+        }
+
+        public final String getShortDescriptionKey() {
+<span class="nc" id="L60">            return Messages.shortDescriptionKey(&quot;model.&quot; + getKey());</span>
+        }
+
+        // Implement Named
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public final String getNameKey() {
+<span class="nc" id="L70">            return Messages.nameKey(&quot;model.&quot; + getKey());</span>
+        }
+    };
+
+    /**
+     * Nations may be available to all players, to AI players only, or
+     * to no players.
+     */
+<span class="fc" id="L78">    public static enum NationState implements Named {</span>
+<span class="fc" id="L79">        AVAILABLE,</span>
+<span class="fc" id="L80">        AI_ONLY,</span>
+<span class="fc" id="L81">        NOT_AVAILABLE;</span>
+
+        /**
+         * Get a message key for a nation state.
+         *
+         * @return A message key.
+         */
+        private String getKey() {
+<span class="nc" id="L89">            return &quot;nationState.&quot; + getEnumKey(this);</span>
+        }
+
+        public final String getShortDescriptionKey() {
+<span class="nc" id="L93">            return Messages.shortDescriptionKey(&quot;model.&quot; + getKey());</span>
+        }
+
+        // Implement Named
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public final String getNameKey() {
+<span class="nc" id="L103">            return Messages.nameKey(&quot;model.&quot; + getKey());</span>
+        }
+    }
+
+    /** The type of European national advantages. */
+    private Advantages nationalAdvantages;
+
+    /** All nations in the game. */
+<span class="fc" id="L111">    private final Map&lt;Nation, NationState&gt; nations = new HashMap&lt;&gt;();</span>
+
+
+    /**
+     * Creates a new &lt;code&gt;NationOptions&lt;/code&gt; instance.
+     *
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; to refer to.
+     */
+    public NationOptions(Specification specification) {
+<span class="fc" id="L120">        super(specification);</span>
+        
+<span class="fc" id="L122">        this.nationalAdvantages = FreeCol.getAdvantages();</span>
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">        if (specification != null) {</span>
+<span class="fc" id="L124">            int counter = 0, maxEuropeans = FreeCol.getEuropeanCount();</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">            for (Nation nation : specification.getNations()) {</span>
+<span class="fc bfc" id="L126" title="All 4 branches covered.">                if (nation.isUnknownEnemy() || nation.getType().isREF()) {</span>
+<span class="fc" id="L127">                    continue;</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">                } else if (nation.getType().isEuropean()</span>
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">                    &amp;&amp; nation.isSelectable()) {</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">                    if (counter &lt; maxEuropeans) {</span>
+<span class="fc" id="L131">                        nations.put(nation, NationState.AVAILABLE);</span>
+<span class="fc" id="L132">                        counter++;</span>
+<span class="fc" id="L133">                    } else {</span>
+<span class="fc" id="L134">                        nations.put(nation, NationState.NOT_AVAILABLE);</span>
+                    }
+<span class="fc" id="L136">                } else {</span>
+<span class="fc" id="L137">                    nations.put(nation, NationState.AI_ONLY);</span>
+                }
+            }
+        }
+<span class="fc" id="L141">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;NationOptions&lt;/code&gt; instance by reading a stream.
+     *
+     * @param xr The &lt;code&gt;FreeColXMLReader&lt;/code&gt; to read from.
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; to refer to.
+     * @exception XMLStreamException if there is a problem reading the stream.
+     */
+    public NationOptions(FreeColXMLReader xr,
+                         Specification specification) throws XMLStreamException {
+<span class="fc" id="L152">        this(specification);</span>
+        
+<span class="fc" id="L154">        readFromXML(xr);</span>
+<span class="fc" id="L155">    }</span>
+
+
+    /**
+     * Get the nations in the game.
+     *
+     * @return A map of the nations.
+     */
+    public final Map&lt;Nation, NationState&gt; getNations() {
+<span class="fc" id="L164">        return nations;</span>
+    }
+
+    /**
+     * Get the national advantages.
+     *
+     * @return The national advantages.
+     */
+    public final Advantages getNationalAdvantages() {
+<span class="nc" id="L173">        return nationalAdvantages;</span>
+    }
+
+    /**
+     * Get the &lt;code&gt;NationState&lt;/code&gt; value of a particular Nation.
+     *
+     * @param nation The &lt;code&gt;Nation&lt;/code&gt; to query.
+     * @return The corresponding &lt;code&gt;NationState&lt;/code&gt;.
+     */
+    public final NationState getNationState(Nation nation) {
+<span class="fc" id="L183">        return nations.get(nation);</span>
+    }
+
+    /**
+     * Set the &lt;code&gt;NationState&lt;/code&gt; value of a particular Nation.
+     *
+     * @param nation The &lt;code&gt;Nation&lt;/code&gt; to set the state for.
+     * @param state The &lt;code&gt;NationState&lt;/code&gt; to set.
+     */
+    public final void setNationState(final Nation nation,
+                                     final NationState state) {
+<span class="fc" id="L194">        this.nations.put(nation, state);</span>
+<span class="fc" id="L195">    }</span>
+
+
+    // Serialization
+    // Note: NATION/S_TAG is capitalized to avoid collision with Nation.java.
+
+    private static final String NATIONAL_ADVANTAGES_TAG = &quot;nationalAdvantages&quot;;
+    private static final String NATION_OPTION_TAG = &quot;nationOption&quot;;
+    private static final String STATE_TAG = &quot;state&quot;;
+    // @compat 0.11.3
+    private static final String OLD_NATION_TAG = &quot;Nation&quot;;
+<span class="fc" id="L206">    private static final String OLD_NATIONS_TAG = &quot;Nations&quot;;</span>
+    // end @compat 0.11.3
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+        // The nation options do not use the FreeColObject attributes, so
+        // no: super.writeAttributes(out);
+
+<span class="fc" id="L218">        xw.writeAttribute(NATIONAL_ADVANTAGES_TAG, nationalAdvantages);</span>
+<span class="fc" id="L219">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeChildren(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="fc" id="L226">        super.writeChildren(xw);</span>
+
+<span class="fc bfc" id="L228" title="All 2 branches covered.">        for (Nation nation : toSortedList(nations.keySet())) {</span>
+<span class="fc" id="L229">            xw.writeStartElement(NATION_OPTION_TAG);</span>
+
+<span class="fc" id="L231">            xw.writeAttribute(ID_ATTRIBUTE_TAG, nation);</span>
+
+<span class="fc" id="L233">            xw.writeAttribute(STATE_TAG, nations.get(nation));</span>
+            
+<span class="fc" id="L235">            xw.writeEndElement();</span>
+        }
+<span class="fc" id="L237">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+        // The nation options do not use the FreeColObject attributes, so
+        // no: super.readAttributes(in);
+
+<span class="fc" id="L247">        nationalAdvantages = xr.getAttribute(NATIONAL_ADVANTAGES_TAG,</span>
+<span class="fc" id="L248">            Advantages.class, Advantages.SELECTABLE);</span>
+<span class="fc" id="L249">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChildren(FreeColXMLReader xr) throws XMLStreamException {
+        // Clear containers.
+<span class="fc" id="L257">        nations.clear();</span>
+
+<span class="fc" id="L259">        super.readChildren(xr);</span>
+<span class="fc" id="L260">    }</span>
+
+    /**
+     * Defend against an invalid nation tag.  This can happen when
+     * using classic mode (no extra Europeans) but loading a map that
+     * contains the extra Europeans.
+     *
+     * @param xr The &lt;code&gt;FreeColXMLReader&lt;/code&gt; to read from.
+     * @return A suitable &lt;code&gt;Nation&lt;/code&gt; or null on error.
+     */
+    private Nation readNation(FreeColXMLReader xr) {
+        try {
+<span class="fc" id="L272">            return xr.getType(getSpecification(), ID_ATTRIBUTE_TAG,</span>
+<span class="fc" id="L273">                              Nation.class, (Nation)null);</span>
+<span class="nc" id="L274">        } catch (IllegalArgumentException iae) {</span>
+<span class="nc" id="L275">            logger.warning(&quot;Bad nation tag: &quot; + xr.readId());</span>
+        }
+<span class="nc" id="L277">        return null;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChild(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L285">        String tag = xr.getLocalName();</span>
+
+<span class="fc bfc" id="L287" title="All 2 branches covered.">        if (NATION_OPTION_TAG.equals(tag)) {</span>
+<span class="fc" id="L288">            Nation nation = readNation(xr);</span>
+<span class="fc" id="L289">            NationState state = xr.getAttribute(STATE_TAG,</span>
+<span class="fc" id="L290">                NationState.class, (NationState)null);</span>
+<span class="pc bpc" id="L291" title="2 of 4 branches missed.">            if (nation != null &amp;&amp; state != null) {</span>
+<span class="fc" id="L292">                nations.put(nation, state);</span>
+            }
+<span class="fc" id="L294">            xr.closeTag(NATION_OPTION_TAG);</span>
+
+        // @compat 0.11.3
+<span class="pc bpc" id="L297" title="1 of 2 branches missed.">        } else if (OLD_NATIONS_TAG.equals(tag)) {</span>
+<span class="fc bfc" id="L298" title="All 2 branches covered.">            while (xr.nextTag() != XMLStreamConstants.END_ELEMENT) {</span>
+<span class="fc" id="L299">                tag = xr.getLocalName();</span>
+<span class="pc bpc" id="L300" title="1 of 2 branches missed.">                if (OLD_NATION_TAG.equals(tag)) {</span>
+<span class="fc" id="L301">                    Nation nation = readNation(xr);</span>
+<span class="fc" id="L302">                    NationState state = xr.getAttribute(STATE_TAG,</span>
+<span class="fc" id="L303">                        NationState.class, (NationState)null);</span>
+<span class="pc bpc" id="L304" title="2 of 4 branches missed.">                    if (nation != null &amp;&amp; state != null) {</span>
+<span class="fc" id="L305">                        nations.put(nation, state);</span>
+                    }
+<span class="fc" id="L307">                    xr.closeTag(OLD_NATION_TAG);</span>
+
+<span class="fc" id="L309">                } else {</span>
+<span class="nc" id="L310">                    throw new XMLStreamException(&quot;Bogus &quot; + OLD_NATION_TAG</span>
+<span class="nc" id="L311">                        + &quot; tag: &quot; + tag);</span>
+                }
+            }
+        // end @compat 0.11.3
+
+<span class="fc" id="L316">        } else {</span>
+<span class="nc" id="L317">            super.readChild(xr);</span>
+        }
+<span class="fc" id="L319">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L326">        StringBuilder sb = new StringBuilder(128);</span>
+<span class="nc" id="L327">        sb.append(NATIONAL_ADVANTAGES_TAG).append(&quot;: &quot;)</span>
+<span class="nc" id="L328">            .append(nationalAdvantages).append(&quot;\n&quot;);</span>
+<span class="nc bnc" id="L329" title="All 2 branches missed.">        for (Map.Entry&lt;Nation, NationState&gt; entry : nations.entrySet()) {</span>
+<span class="nc" id="L330">            sb.append(&quot; &quot;).append(entry.getKey().getId())</span>
+<span class="nc" id="L331">                .append(&quot; &quot;).append(entry.getValue())</span>
+<span class="nc" id="L332">                .append(&quot;\n&quot;);</span>
+        }
+<span class="nc" id="L334">        return sb.toString();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="fc" id="L341">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;nationOptions&quot;.
+     */
+    public static String getTagName() {
+<span class="fc" id="L349">        return &quot;nationOptions&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

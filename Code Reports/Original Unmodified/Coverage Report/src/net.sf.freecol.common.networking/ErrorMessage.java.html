@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ErrorMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">ErrorMessage.java</span></div><h1>ErrorMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent when an error occurs.
+ */
+public class ErrorMessage extends DOMMessage {
+
+    public static final String TAG = &quot;error&quot;;
+    private static final String MESSAGE_ID_TAG = &quot;messageId&quot;;
+    private static final String MESSAGE_TAG = &quot;message&quot;;
+
+    /** A message identifier, if available. */
+    private final String messageId;
+
+    /** A more detailed but non-i18n message for logging/debugging. */
+    private final String message;
+
+
+    /**
+     * Create a new &lt;code&gt;ErrorMessage&lt;/code&gt; with the given message
+     * identifier and message.
+     *
+     * @param messageId The message identifier.
+     * @param message The message.
+     */
+    public ErrorMessage(String messageId, String message) {
+<span class="fc" id="L54">        super(getTagName());</span>
+
+<span class="fc" id="L56">        this.messageId = messageId;</span>
+<span class="fc" id="L57">        this.message = message;</span>
+<span class="fc" id="L58">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;ErrorMessage&lt;/code&gt; with the standard client
+     * error message identifier and given message.
+     *
+     * @param message The message.
+     */
+    public ErrorMessage(String message) {
+<span class="fc" id="L67">        this(&quot;server.reject&quot;, message);</span>
+<span class="fc" id="L68">    }</span>
+    
+    /**
+     * Create a new &lt;code&gt;ErrorMessage&lt;/code&gt; from a
+     * supplied element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public ErrorMessage(Game game, Element element) {
+<span class="fc" id="L78">        super(getTagName());</span>
+
+<span class="fc" id="L80">        this.messageId = element.getAttribute(MESSAGE_ID_TAG);</span>
+<span class="fc" id="L81">        this.message = element.getAttribute(MESSAGE_TAG);</span>
+<span class="fc" id="L82">    }</span>
+
+
+    // Public interface
+
+    /**
+     * Get the message identifier.
+     *
+     * @return The message identifier.
+     */
+    public String getMessageId() {
+<span class="fc" id="L93">        return this.messageId;</span>
+    }
+    
+    /**
+     * Get the non-i18n message.
+     *
+     * @return The message.
+     */
+    public String getMessage() {
+<span class="fc" id="L102">        return this.message;</span>
+    }
+
+        
+    /**
+     * Handle a &quot;error&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; handling the message.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; the message applies to.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message was received on.
+     *
+     * @return Null.
+     */
+    public Element handle(FreeColServer server, Player player,
+                          Connection connection) {
+        // Not needed, error messages are only sent by the server
+<span class="nc" id="L118">        return null;</span>
+    }
+
+    /**
+     * Convert this ErrorMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="fc" id="L128">        return new DOMMessage(getTagName(),</span>
+<span class="fc" id="L129">            MESSAGE_ID_TAG, this.messageId,</span>
+<span class="fc" id="L130">            MESSAGE_TAG, this.message).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;error&quot;.
+     */
+    public static String getTagName() {
+<span class="fc" id="L139">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

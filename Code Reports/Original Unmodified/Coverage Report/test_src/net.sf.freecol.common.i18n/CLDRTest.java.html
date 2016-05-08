@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>CLDRTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.i18n</a> &gt; <span class="el_source">CLDRTest.java</span></div><h1>CLDRTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.i18n;
+
+import java.io.File;
+import java.io.FileInputStream;
+
+import net.sf.freecol.common.i18n.Number.Category;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="fc" id="L29">public class CLDRTest extends FreeColTestCase {</span>
+
+    public void testRuleParsing() {
+<span class="fc" id="L32">        Rule rule = new Rule(&quot;n mod 10 in 2..4 and n mod 100 not in 12..14&quot;);</span>
+<span class="fc" id="L33">        assertTrue(rule.matches(2));</span>
+<span class="fc" id="L34">        assertTrue(rule.matches(102));</span>
+<span class="fc" id="L35">        assertTrue(rule.matches(103));</span>
+<span class="fc" id="L36">        assertFalse(rule.matches(1));</span>
+<span class="fc" id="L37">        assertFalse(rule.matches(5));</span>
+<span class="fc" id="L38">        assertFalse(rule.matches(112));</span>
+        
+<span class="fc" id="L40">        DefaultNumberRule arabic = new DefaultNumberRule();</span>
+<span class="fc" id="L41">        arabic.addRule(Category.zero, &quot;n is 0&quot;);</span>
+<span class="fc" id="L42">        arabic.addRule(Category.one, &quot;n is 1&quot;);</span>
+<span class="fc" id="L43">        arabic.addRule(Category.two, &quot;n is 2&quot;);</span>
+<span class="fc" id="L44">        arabic.addRule(Category.few, &quot;N Mod 100 in 3.. 10&quot;);</span>
+<span class="fc" id="L45">        arabic.addRule(Category.many, &quot;n MOD 100 in 11   ..99&quot;);</span>
+        
+<span class="fc" id="L47">        assertEquals(Category.zero, arabic.getCategory(0));</span>
+<span class="fc" id="L48">        assertEquals(Category.one, arabic.getCategory(1));</span>
+<span class="fc" id="L49">        assertEquals(Category.two, arabic.getCategory(2));</span>
+<span class="fc" id="L50">        assertEquals(Category.few, arabic.getCategory(3));</span>
+<span class="fc" id="L51">        assertEquals(Category.few, arabic.getCategory(7));</span>
+<span class="fc" id="L52">        assertEquals(Category.few, arabic.getCategory(10));</span>
+<span class="fc" id="L53">        assertEquals(Category.many, arabic.getCategory(11));</span>
+<span class="fc" id="L54">        assertEquals(Category.many, arabic.getCategory(99));</span>
+<span class="fc" id="L55">        assertEquals(Category.many, arabic.getCategory(2345));</span>
+<span class="fc" id="L56">    }</span>
+
+    public void testPlurals() {
+<span class="fc" id="L59">        FileInputStream in = null;</span>
+<span class="fc" id="L60">        File inputFile = new File(&quot;data/strings/plurals.xml&quot;);</span>
+<span class="fc" id="L61">        assertTrue(inputFile.exists());</span>
+        try {
+<span class="fc" id="L63">            in = new FileInputStream(inputFile);</span>
+<span class="pc" id="L64">        } catch (Exception e) {</span>
+<span class="nc" id="L65">            fail(&quot;Failed to open input stream.&quot;);</span>
+        }
+<span class="fc" id="L67">        NumberRules numberRules = new NumberRules(in);</span>
+
+        try {
+<span class="fc" id="L70">            in.close();</span>
+<span class="pc" id="L71">        } catch (Exception e) {</span>
+<span class="nc" id="L72">            fail(&quot;Failed to close input stream.&quot;);</span>
+        }
+
+<span class="fc" id="L75">        assertNotNull(NumberRules.getNumberForLanguage(&quot;az&quot;));</span>
+<span class="fc" id="L76">        assertTrue(NumberRules.getNumberForLanguage(&quot;az&quot;) instanceof OtherNumberRule);</span>
+
+<span class="fc" id="L78">        assertNotNull(NumberRules.getNumberForLanguage(&quot;ko&quot;));</span>
+<span class="fc" id="L79">        assertTrue(NumberRules.getNumberForLanguage(&quot;ko&quot;) instanceof OtherNumberRule);</span>
+
+<span class="fc" id="L81">        assertNotNull(NumberRules.getNumberForLanguage(&quot;th&quot;));</span>
+<span class="fc" id="L82">        assertTrue(NumberRules.getNumberForLanguage(&quot;th&quot;) instanceof OtherNumberRule);</span>
+
+<span class="fc" id="L84">        assertNotNull(NumberRules.getNumberForLanguage(&quot;en&quot;));</span>
+<span class="fc" id="L85">        assertTrue(NumberRules.getNumberForLanguage(&quot;en&quot;) instanceof PluralNumberRule);</span>
+
+<span class="fc" id="L87">        assertNotNull(NumberRules.getNumberForLanguage(&quot;it&quot;));</span>
+<span class="fc" id="L88">        assertTrue(NumberRules.getNumberForLanguage(&quot;it&quot;) instanceof PluralNumberRule);</span>
+
+<span class="fc" id="L90">        assertNotNull(NumberRules.getNumberForLanguage(&quot;pt&quot;));</span>
+<span class="fc" id="L91">        assertTrue(NumberRules.getNumberForLanguage(&quot;pt&quot;) instanceof PluralNumberRule);</span>
+
+<span class="fc" id="L93">        assertNotNull(NumberRules.getNumberForLanguage(&quot;ak&quot;));</span>
+<span class="fc" id="L94">        assertTrue(NumberRules.getNumberForLanguage(&quot;ak&quot;) instanceof ZeroOneNumberRule);</span>
+
+<span class="fc" id="L96">        assertNotNull(NumberRules.getNumberForLanguage(&quot;hi&quot;));</span>
+<span class="fc" id="L97">        assertTrue(NumberRules.getNumberForLanguage(&quot;hi&quot;) instanceof ZeroOneNumberRule);</span>
+
+<span class="fc" id="L99">        assertNotNull(NumberRules.getNumberForLanguage(&quot;wa&quot;));</span>
+<span class="fc" id="L100">        assertTrue(NumberRules.getNumberForLanguage(&quot;wa&quot;) instanceof ZeroOneNumberRule);</span>
+
+<span class="fc" id="L102">        assertNotNull(NumberRules.getNumberForLanguage(&quot;ga&quot;));</span>
+<span class="fc" id="L103">        assertTrue(NumberRules.getNumberForLanguage(&quot;ga&quot;) instanceof DualNumberRule);</span>
+
+<span class="fc" id="L105">        assertNotNull(NumberRules.getNumberForLanguage(&quot;smi&quot;));</span>
+<span class="fc" id="L106">        assertTrue(NumberRules.getNumberForLanguage(&quot;smi&quot;) instanceof DualNumberRule);</span>
+
+<span class="fc" id="L108">        assertNotNull(NumberRules.getNumberForLanguage(&quot;sms&quot;));</span>
+<span class="fc" id="L109">        assertTrue(NumberRules.getNumberForLanguage(&quot;sms&quot;) instanceof DualNumberRule);</span>
+<span class="fc" id="L110">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

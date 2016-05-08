@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>MockPseudoRandom.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.util.test</a> &gt; <span class="el_source">MockPseudoRandom.java</span></div><h1>MockPseudoRandom.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.util.test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+
+public class MockPseudoRandom extends Random {
+    int pos;
+    private List&lt;Integer&gt; setNumberList;
+    private boolean cycleNumbers;
+    private Random random;
+<span class="fc" id="L32">    private final float scale = 1.0f / (float) Integer.MAX_VALUE;</span>
+
+    public MockPseudoRandom() {
+<span class="fc" id="L35">        this(new ArrayList&lt;Integer&gt;(), false);</span>
+<span class="fc" id="L36">    }</span>
+    
+<span class="fc" id="L38">    public MockPseudoRandom(List&lt;Integer&gt; setNumbers, boolean toCycle) {</span>
+<span class="fc" id="L39">        pos = 0;</span>
+<span class="fc" id="L40">        setNumberList = setNumbers;</span>
+<span class="fc" id="L41">        cycleNumbers = toCycle;</span>
+<span class="fc" id="L42">        random = null;</span>
+<span class="fc" id="L43">    }</span>
+    
+    public void setNextNumbers(List&lt;Integer&gt; setNumbers, boolean toCycle) {
+<span class="fc" id="L46">        pos = 0;</span>
+<span class="fc" id="L47">        setNumberList = setNumbers;</span>
+<span class="fc" id="L48">        cycleNumbers = toCycle;</span>
+<span class="fc" id="L49">    }</span>
+    
+    private int getNext() {
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (pos &lt; setNumberList.size()) {</span>
+<span class="fc" id="L53">            int number = setNumberList.get(pos);</span>
+<span class="fc" id="L54">            pos++;</span>
+<span class="fc" id="L55">            return number;</span>
+        }
+<span class="pc bpc" id="L57" title="2 of 4 branches missed.">        if (cycleNumbers &amp;&amp; !setNumberList.isEmpty()) {</span>
+<span class="fc" id="L58">            int number = setNumberList.get(0);</span>
+<span class="fc" id="L59">            pos = 1;</span>
+<span class="fc" id="L60">            return number;</span>
+        }
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (random == null) {</span>
+<span class="nc" id="L63">            random = new Random(0);</span>
+        }
+<span class="nc" id="L65">        return -1;</span>
+    }
+
+    @Override
+    public int nextInt(int n) {
+<span class="fc" id="L70">        int number = getNext();</span>
+<span class="pc bpc" id="L71" title="2 of 4 branches missed.">        if (number &lt; 0 || number &gt;= n) {</span>
+<span class="nc" id="L72">            System.err.println(&quot;MockPseudoRandom out of range: &quot; + number);</span>
+<span class="nc" id="L73">            return random.nextInt(n);</span>
+        }
+<span class="fc" id="L75">        return number;</span>
+    }
+
+    @Override
+    public float nextFloat() {
+<span class="nc" id="L80">        int number = getNext();</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        return (number &lt; 0) ? random.nextFloat() : number * scale;</span>
+    }
+
+    @Override
+    public double nextDouble() {
+<span class="fc" id="L86">        int number = getNext();</span>
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">        return (number &lt; 0) ? random.nextDouble() : number * scale;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

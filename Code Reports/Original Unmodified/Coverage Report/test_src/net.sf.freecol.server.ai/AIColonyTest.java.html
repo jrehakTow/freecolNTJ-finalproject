@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>AIColonyTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai</a> &gt; <span class="el_source">AIColonyTest.java</span></div><h1>AIColonyTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai;
+
+import net.sf.freecol.common.model.BuildableType;
+import net.sf.freecol.common.model.Building;
+import net.sf.freecol.common.model.BuildingType;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.ColonyTile;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.GoodsContainer;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TileType;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.util.LogBuilder;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.server.model.ServerBuilding;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+import net.sf.freecol.util.test.FreeColTestUtils;
+
+
+<span class="fc" id="L44">public class AIColonyTest extends FreeColTestCase {</span>
+
+<span class="fc" id="L46">    private static final BuildingType blacksmithsHouseType</span>
+<span class="fc" id="L47">        = spec().getBuildingType(&quot;model.building.blacksmithHouse&quot;);</span>
+<span class="fc" id="L48">    private static final BuildingType carpentersHouseType</span>
+<span class="fc" id="L49">        = spec().getBuildingType(&quot;model.building.carpenterHouse&quot;);</span>
+<span class="fc" id="L50">    private static final BuildingType lumberMillType</span>
+<span class="fc" id="L51">        = spec().getBuildingType(&quot;model.building.lumberMill&quot;);</span>
+<span class="fc" id="L52">    private static final BuildingType warehouseType</span>
+<span class="fc" id="L53">        = spec().getBuildingType(&quot;model.building.warehouse&quot;);</span>
+
+<span class="fc" id="L55">    private static final GoodsType foodType</span>
+<span class="fc" id="L56">        = spec().getPrimaryFoodType();</span>
+<span class="fc" id="L57">    private static final GoodsType grainType</span>
+<span class="fc" id="L58">        = spec().getGoodsType(&quot;model.goods.grain&quot;);</span>
+<span class="fc" id="L59">    private static final GoodsType hammersType</span>
+<span class="fc" id="L60">        = spec().getGoodsType(&quot;model.goods.hammers&quot;);</span>
+<span class="fc" id="L61">    private static final GoodsType lumberType</span>
+<span class="fc" id="L62">        = spec().getGoodsType(&quot;model.goods.lumber&quot;);</span>
+<span class="fc" id="L63">    private static final GoodsType oreType</span>
+<span class="fc" id="L64">        = spec().getGoodsType(&quot;model.goods.ore&quot;);</span>
+<span class="fc" id="L65">    private static final GoodsType rumType</span>
+<span class="fc" id="L66">        = spec().getGoodsType(&quot;model.goods.rum&quot;);</span>
+<span class="fc" id="L67">    private static final GoodsType sugarType</span>
+<span class="fc" id="L68">        = spec().getGoodsType(&quot;model.goods.sugar&quot;);</span>
+<span class="fc" id="L69">    private static final GoodsType toolsType</span>
+<span class="fc" id="L70">        = spec().getGoodsType(&quot;model.goods.tools&quot;);</span>
+
+<span class="fc" id="L72">    private static final TileType forestType</span>
+<span class="fc" id="L73">        = spec().getTileType(&quot;model.tile.coniferForest&quot;);</span>
+<span class="fc" id="L74">    private static final TileType savannahType</span>
+<span class="fc" id="L75">        = spec().getTileType(&quot;model.tile.savannah&quot;);</span>
+<span class="fc" id="L76">    private static final TileType mountainType</span>
+<span class="fc" id="L77">        = spec().getTileType(&quot;model.tile.mountains&quot;);</span>
+
+<span class="fc" id="L79">    private static final UnitType artilleryType</span>
+<span class="fc" id="L80">        = spec().getUnitType(&quot;model.unit.artillery&quot;);</span>
+<span class="fc" id="L81">    private static final UnitType colonistType</span>
+<span class="fc" id="L82">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="fc" id="L83">    private static final UnitType lumberJackType</span>
+<span class="fc" id="L84">        = spec().getUnitType(&quot;model.unit.expertLumberJack&quot;);</span>
+
+
+<span class="fc" id="L87">    private LogBuilder lb = new LogBuilder(0); // dummy</span>
+
+
+    @Override
+    public void tearDown() throws Exception {
+<span class="fc" id="L92">        ServerTestHelper.stopServerGame();</span>
+<span class="fc" id="L93">        super.tearDown();</span>
+<span class="fc" id="L94">    }</span>
+
+
+    // creates the special map for the tests
+    // map will have:
+    //    - a colony in (5,8) (built after)
+    //    - a forest in (4,8) for lumber
+    //    - a mountain in (6,8) for ore
+    private Colony decorateMap(Game game, boolean full) {
+<span class="fc" id="L103">        Map map = game.getMap();</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">        if (full) {</span>
+<span class="fc" id="L105">            map.getTile(4, 8).setType(forestType);</span>
+<span class="fc" id="L106">            map.getTile(6, 8).setType(mountainType);</span>
+        }
+
+        // Needs a decent sized colony.
+<span class="fc" id="L110">        Colony colony = getStandardColony(6);</span>
+<span class="fc" id="L111">        game.setCurrentPlayer(colony.getOwner());</span>
+<span class="fc" id="L112">        return colony;</span>
+    }
+
+    // Add buildings until the next buildable requires tools
+    private BuildableType getToolsBuilder(AIColony aiColony) {
+<span class="fc" id="L117">        Colony colony = aiColony.getColony();</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">        for (BuildableType b : aiColony.getPlannedBuildableTypes()) {</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">            if (colony.canBuild(b)</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">                &amp;&amp; b.getRequiredAmountOf(toolsType) &gt; 0) return b;</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">            if (b instanceof BuildingType) {</span>
+<span class="fc" id="L122">                colony.addBuilding(new ServerBuilding(colony.getGame(), colony,</span>
+<span class="fc" id="L123">                        (BuildingType)b));</span>
+<span class="pc bnc" id="L124" title="All 2 branches missed.">            } else if (b instanceof UnitType) {</span>
+<span class="nc" id="L125">                new ServerUnit(colony.getGame(), colony.getTile(),</span>
+<span class="nc" id="L126">                    colony.getOwner(), (UnitType)b);</span>
+            }
+        }
+<span class="nc" id="L129">        return null;</span>
+    }
+
+    /**
+     * Tests worker allocation regarding building tasks
+     */
+    public void testBuildersAllocation() {
+<span class="fc" id="L136">        Game game = ServerTestHelper.startServerGame(getTestMap(savannahType));</span>
+<span class="fc" id="L137">        Colony colony = decorateMap(game, true);</span>
+<span class="fc" id="L138">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+
+<span class="fc" id="L140">        final Building carpenterHouse</span>
+<span class="fc" id="L141">            = colony.getBuilding(carpentersHouseType);</span>
+<span class="fc" id="L142">        final Building blacksmithHouse</span>
+<span class="fc" id="L143">            = colony.getBuilding(blacksmithsHouseType);</span>
+<span class="fc" id="L144">        AIColony aiColony = aiMain.getAIColony(colony);</span>
+<span class="fc" id="L145">        ServerPlayer player = (ServerPlayer) colony.getOwner();</span>
+
+        // Add food so that the starvation avoidance is not triggered
+<span class="fc" id="L148">        colony.addGoods(foodType, GoodsContainer.CARGO_SIZE);</span>
+
+<span class="fc" id="L150">        aiColony.propertyChange(null); // force rearranging workers</span>
+<span class="fc" id="L151">        aiColony.rearrangeWorkers(lb);</span>
+
+<span class="fc" id="L153">        assertEquals(&quot;Colony should be building lumber mill&quot;,</span>
+<span class="fc" id="L154">            lumberMillType, colony.getCurrentlyBuilding());</span>
+<span class="fc" id="L155">        assertTrue(&quot;Colony should be producing lumber&quot;,</span>
+<span class="pc bpc" id="L156" title="1 of 2 branches missed.">            colony.getNetProductionOf(lumberType) &gt; 0);</span>
+<span class="fc" id="L157">        assertTrue(&quot;Colony should have been assigned a carpenter&quot;,</span>
+<span class="pc bpc" id="L158" title="1 of 2 branches missed.">            carpenterHouse.getUnitCount() &gt; 0);</span>
+<span class="fc" id="L159">        assertTrue(&quot;Colony should be producing sugar&quot;,</span>
+<span class="pc bpc" id="L160" title="1 of 2 branches missed.">            colony.getNetProductionOf(sugarType) &gt; 0);</span>
+
+        // Simulate that enough hammers have been gathered, re-arrange
+        // and re-check.
+<span class="fc" id="L164">        colony.addGoods(hammersType,</span>
+<span class="fc" id="L165">            lumberMillType.getRequiredAmountOf(hammersType));</span>
+<span class="fc" id="L166">        aiColony.propertyChange(null); // force rearranging workers</span>
+<span class="fc" id="L167">        aiColony.rearrangeWorkers(lb);</span>
+
+<span class="fc" id="L169">        assertEquals(&quot;Colony should be building lumber mill&quot;,</span>
+<span class="fc" id="L170">            lumberMillType, colony.getCurrentlyBuilding());</span>
+<span class="fc" id="L171">        assertEquals(&quot;Colony does not need a carpenter&quot;, 0,</span>
+<span class="fc" id="L172">            carpenterHouse.getUnitCount());</span>
+<span class="fc" id="L173">        assertTrue(&quot;Colony should be producing sugar&quot;,</span>
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">            colony.getNetProductionOf(sugarType) &gt; 0);</span>
+<span class="fc" id="L175">        assertTrue(&quot;Colony should be producing rum&quot;,</span>
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">            colony.getNetProductionOf(rumType) &gt; 0);</span>
+
+        // Fill the warehouse with sugar, re-arrange and re-check.
+<span class="fc" id="L179">        colony.addGoods(sugarType, GoodsContainer.CARGO_SIZE);</span>
+<span class="fc" id="L180">        aiColony.propertyChange(null); // force rearranging workers</span>
+<span class="fc" id="L181">        aiColony.rearrangeWorkers(lb);</span>
+
+<span class="fc" id="L183">        assertEquals(&quot;Colony does not need a carpenter&quot;, 0,</span>
+<span class="fc" id="L184">            carpenterHouse.getUnitCount());</span>
+<span class="fc" id="L185">        TileType tileType = colony.getTile().getType();</span>
+<span class="fc" id="L186">        assertEquals(&quot;Colony should not be producing sugar, except center&quot;,</span>
+<span class="fc" id="L187">            tileType.getPotentialProduction(sugarType, colonistType),</span>
+<span class="fc" id="L188">            colony.getTotalProductionOf(sugarType));</span>
+<span class="fc" id="L189">        assertTrue(&quot;Colony should be producing rum&quot;,</span>
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">            colony.getNetProductionOf(rumType) &gt; 0);</span>
+
+        // Change to building something that needs tools.
+        for (;;) {
+<span class="fc" id="L194">            BuildableType toolsBuild = getToolsBuilder(aiColony);</span>
+<span class="fc" id="L195">            assertNotNull(toolsBuild);</span>
+<span class="fc" id="L196">            aiColony.propertyChange(null); // force rearranging workers</span>
+<span class="fc" id="L197">            aiColony.rearrangeWorkers(lb);</span>
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">            if (colony.getCurrentlyBuilding() == toolsBuild) break;</span>
+        }
+
+<span class="fc" id="L201">        assertEquals(&quot;Colony does not need a carpenter&quot;, 0,</span>
+<span class="fc" id="L202">            carpenterHouse.getUnitCount());</span>
+<span class="fc" id="L203">        assertTrue(&quot;Colony should be producing ore&quot;,</span>
+<span class="pc bpc" id="L204" title="1 of 2 branches missed.">            colony.getTotalProductionOf(oreType) &gt; 0);</span>
+<span class="fc" id="L205">        assertTrue(&quot;Colony should be producing tools&quot;,</span>
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">            colony.getTotalProductionOf(toolsType) &gt; 0);</span>
+<span class="fc" id="L207">    }</span>
+
+    /**
+     * Tests worker allocation regarding building tasks when the
+     * colony does not have tiles that provide the raw materials for
+     * the build.
+     */
+    public void testBuildersAllocNoRawMatTiles() {
+<span class="fc" id="L215">        Game game = ServerTestHelper.startServerGame(getTestMap(savannahType));</span>
+<span class="fc" id="L216">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+<span class="fc" id="L217">        Colony colony = decorateMap(game, false);</span>
+
+        // The number needs to be high to ensure allocation
+<span class="fc" id="L220">        final Building carpenterHouse</span>
+<span class="fc" id="L221">            = colony.getBuilding(carpentersHouseType);</span>
+<span class="fc" id="L222">        final Building blacksmithHouse</span>
+<span class="fc" id="L223">            = colony.getBuilding(blacksmithsHouseType);</span>
+<span class="fc" id="L224">        AIColony aiColony = aiMain.getAIColony(colony);</span>
+<span class="fc" id="L225">        ServerPlayer player = (ServerPlayer) colony.getOwner();</span>
+
+        // Add food so that the starvation avoidance is not triggered
+<span class="fc" id="L228">        colony.addGoods(foodType, GoodsContainer.CARGO_SIZE);</span>
+
+        // We need to ensure that there are no tiles with production of
+        // the raw materials.
+<span class="fc bfc" id="L232" title="All 2 branches covered.">        for (ColonyTile t : colony.getColonyTiles()) {</span>
+<span class="fc" id="L233">            Tile tile = t.getTile();</span>
+<span class="fc" id="L234">            assertEquals(&quot;The colony can not have tiles that produce lumber&quot;,</span>
+<span class="fc" id="L235">                0, tile.getPotentialProduction(lumberType, colonistType));</span>
+<span class="fc" id="L236">            assertEquals(&quot;The colony can not have tiles that produce ore&quot;,</span>
+<span class="fc" id="L237">                0, tile.getPotentialProduction(oreType, colonistType));</span>
+        }
+<span class="fc" id="L239">        assertEquals(&quot;Colony has no lumber&quot;, 0,</span>
+<span class="fc" id="L240">            colony.getGoodsCount(lumberType));</span>
+<span class="fc" id="L241">        assertEquals(&quot;Colony has no ore&quot;, 0,</span>
+<span class="fc" id="L242">            colony.getGoodsCount(oreType));</span>
+
+<span class="fc" id="L244">        aiColony.propertyChange(null); // force rearranging workers</span>
+<span class="fc" id="L245">        aiColony.rearrangeWorkers(lb);</span>
+
+<span class="fc" id="L247">        assertFalse(&quot;Colony can not have a lumberjack, no lumber&quot;,</span>
+<span class="pc bpc" id="L248" title="1 of 2 branches missed.">            colony.getNetProductionOf(lumberType) &gt; 0);</span>
+<span class="fc" id="L249">        assertEquals(&quot;Colony can not have a carpenter, no lumber&quot;,</span>
+<span class="fc" id="L250">            0, carpenterHouse.getUnitCount());</span>
+<span class="fc" id="L251">        assertFalse(&quot;Colony can not have an ore miner, no ore&quot;,</span>
+<span class="pc bpc" id="L252" title="1 of 2 branches missed.">            colony.getNetProductionOf(oreType) &gt; 0);</span>
+<span class="fc" id="L253">        assertEquals(&quot;Colony can not have a blacksmith, no ore&quot;,</span>
+<span class="fc" id="L254">            0, blacksmithHouse.getUnitCount());</span>
+<span class="fc" id="L255">        assertEquals(&quot;Colony should be building lumber mill&quot;,</span>
+<span class="fc" id="L256">            lumberMillType, colony.getCurrentlyBuilding());</span>
+
+        // Add lumber to stock, re-arrange and re-check
+<span class="fc" id="L259">        colony.addGoods(lumberType, GoodsContainer.CARGO_SIZE);</span>
+<span class="fc" id="L260">        aiColony.propertyChange(null); // force rearranging workers</span>
+<span class="fc" id="L261">        aiColony.rearrangeWorkers(lb);</span>
+
+<span class="fc" id="L263">        assertEquals(&quot;Colony should be building lumber mill&quot;,</span>
+<span class="fc" id="L264">            lumberMillType, colony.getCurrentlyBuilding());</span>
+<span class="fc" id="L265">        assertFalse(&quot;Colony can not have a lumberjack, no lumber&quot;,</span>
+<span class="pc bpc" id="L266" title="1 of 2 branches missed.">            colony.getNetProductionOf(lumberType) &gt; 0);</span>
+<span class="fc" id="L267">        assertTrue(&quot;Colony should have a carpenter, has lumber in stock&quot;,</span>
+<span class="pc bpc" id="L268" title="1 of 2 branches missed.">            carpenterHouse.getUnitCount() &gt; 0);</span>
+<span class="fc" id="L269">        assertFalse(&quot;Colony can not have an ore miner, no ore&quot;,</span>
+<span class="pc bpc" id="L270" title="1 of 2 branches missed.">            colony.getNetProductionOf(oreType) &gt; 0);</span>
+<span class="fc" id="L271">        assertEquals(&quot;Colony can not have a blacksmith, no ore&quot;,</span>
+<span class="fc" id="L272">            0, blacksmithHouse.getUnitCount());</span>
+
+        // Simulate that enough hammers have been gathered, re-arrange
+        // and re-check
+<span class="fc" id="L276">        colony.addGoods(hammersType,</span>
+<span class="fc" id="L277">            lumberMillType.getRequiredAmountOf(hammersType));</span>
+<span class="fc" id="L278">        aiColony.propertyChange(null); // force rearranging workers</span>
+<span class="fc" id="L279">        aiColony.rearrangeWorkers(lb);</span>
+
+<span class="fc" id="L281">        assertFalse(&quot;Colony can not have a lumberjack, no lumber&quot;,</span>
+<span class="pc bpc" id="L282" title="1 of 2 branches missed.">            colony.getNetProductionOf(lumberType) &gt; 0);</span>
+<span class="fc" id="L283">        assertEquals(&quot;Colony does not need a carpenter&quot;,</span>
+<span class="fc" id="L284">            0, carpenterHouse.getUnitCount());</span>
+<span class="fc" id="L285">        assertFalse(&quot;Colony can not have an ore miner, no ore&quot;,</span>
+<span class="pc bpc" id="L286" title="1 of 2 branches missed.">            colony.getNetProductionOf(oreType) &gt; 0);</span>
+<span class="fc" id="L287">        assertEquals(&quot;Colony can not have a blacksmith, no ore&quot;,</span>
+<span class="fc" id="L288">            0, blacksmithHouse.getUnitCount());</span>
+
+        // Change to building something that needs tools.
+<span class="fc" id="L291">        BuildableType toolsBuild = getToolsBuilder(aiColony);</span>
+<span class="fc" id="L292">        aiColony.propertyChange(null); // force rearranging workers</span>
+<span class="fc" id="L293">        aiColony.rearrangeWorkers(lb);</span>
+
+<span class="fc" id="L295">        assertFalse(&quot;Colony can not have a lumberjack, no lumber&quot;,</span>
+<span class="pc bpc" id="L296" title="1 of 2 branches missed.">            colony.getNetProductionOf(lumberType) &gt; 0);</span>
+<span class="fc" id="L297">        assertEquals(&quot;Colony does not need a carpenter&quot;,</span>
+<span class="fc" id="L298">            0, carpenterHouse.getUnitCount());</span>
+<span class="fc" id="L299">        assertFalse(&quot;Colony can not have an ore miner, no ore&quot;,</span>
+<span class="pc bpc" id="L300" title="1 of 2 branches missed.">            colony.getNetProductionOf(oreType) &gt; 0);</span>
+<span class="fc" id="L301">        assertEquals(&quot;Colony can not have a blacksmith, no ore&quot;,</span>
+<span class="fc" id="L302">            0, blacksmithHouse.getUnitCount());</span>
+<span class="fc" id="L303">        assertEquals(&quot;Colony should be building tools-requirer&quot;, toolsBuild,</span>
+<span class="fc" id="L304">            colony.getCurrentlyBuilding());</span>
+
+        // Add ore to stock, re-arrange and re-check
+<span class="fc" id="L307">        colony.addGoods(oreType, GoodsContainer.CARGO_SIZE);</span>
+<span class="fc" id="L308">        aiColony.propertyChange(null); // force rearranging workers</span>
+<span class="fc" id="L309">        aiColony.rearrangeWorkers(lb);</span>
+
+<span class="fc" id="L311">        assertFalse(&quot;Colony can not have a lumberjack, no lumber&quot;,</span>
+<span class="pc bpc" id="L312" title="1 of 2 branches missed.">            colony.getNetProductionOf(lumberType) &gt; 0);</span>
+<span class="fc" id="L313">        assertEquals(&quot;Colony does not need a carpenter&quot;,</span>
+<span class="fc" id="L314">            0, carpenterHouse.getUnitCount());</span>
+<span class="fc" id="L315">        assertFalse(&quot;Colony can not have an ore miner, no ore&quot;,</span>
+<span class="pc bpc" id="L316" title="1 of 2 branches missed.">            colony.getNetProductionOf(oreType) &gt; 0);</span>
+<span class="fc" id="L317">        assertTrue(&quot;Colony should have a blacksmith, has ore in stock&quot;,</span>
+<span class="pc bpc" id="L318" title="1 of 2 branches missed.">            blacksmithHouse.getUnitCount() &gt; 0);</span>
+<span class="fc" id="L319">    }</span>
+
+    /**
+     * Tests expert allocation regarding raw materials where there are
+     * plenty already in stock.
+     */
+    public void testExpertAllocColonyHasEnoughRawMat() {
+<span class="fc" id="L326">        Game game = ServerTestHelper.startServerGame(getTestMap(forestType));</span>
+<span class="fc" id="L327">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+
+<span class="fc" id="L329">        FreeColTestUtils.ColonyBuilder builder</span>
+<span class="fc" id="L330">            = FreeColTestUtils.getColonyBuilder();</span>
+<span class="fc" id="L331">        Colony colony = builder.addColonist(lumberJackType).build();</span>
+<span class="fc" id="L332">        AIColony aiColony = aiMain.getAIColony(colony);</span>
+<span class="fc" id="L333">        game.setCurrentPlayer(colony.getOwner());</span>
+
+<span class="fc" id="L335">        ServerPlayer player = (ServerPlayer) colony.getOwner();</span>
+<span class="fc" id="L336">        assertEquals(&quot;Wrong number of units in colony&quot;, 1,</span>
+<span class="fc" id="L337">            colony.getUnitCount());</span>
+<span class="fc" id="L338">        Unit lumberjack = colony.getUnitList().get(0);</span>
+
+<span class="fc" id="L340">        aiColony.propertyChange(null); // force rearranging workers</span>
+<span class="fc" id="L341">        aiColony.rearrangeWorkers(lb);</span>
+
+<span class="fc" id="L343">        assertEquals(&quot;Lumberjack should have been assigned to collect lumber&quot;,</span>
+<span class="fc" id="L344">            lumberType, lumberjack.getWorkType());</span>
+
+        // Add lumber to stock, re-arrange and re-check
+<span class="fc" id="L347">        colony.addGoods(lumberType, GoodsContainer.CARGO_SIZE);</span>
+<span class="fc" id="L348">        aiColony.propertyChange(null); // force rearranging workers</span>
+<span class="fc" id="L349">        aiColony.rearrangeWorkers(lb);</span>
+
+<span class="fc" id="L351">        assertTrue(&quot;Lumberjack should not collect lumber, in stock&quot;,</span>
+<span class="pc bpc" id="L352" title="1 of 2 branches missed.">            lumberType != lumberjack.getWorkType());</span>
+<span class="fc" id="L353">    }</span>
+
+    public void testBestDefender() {
+<span class="fc" id="L356">        Game game = ServerTestHelper.startServerGame(getTestMap(savannahType));</span>
+<span class="fc" id="L357">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+
+<span class="fc" id="L359">        Colony colony = getStandardColony();</span>
+<span class="fc" id="L360">        assertEquals(artilleryType, colony.getBestDefenderType());</span>
+<span class="fc" id="L361">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

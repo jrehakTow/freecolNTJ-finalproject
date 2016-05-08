@@ -1,0 +1,1070 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>Mission.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai.mission</a> &gt; <span class="el_source">Mission.java</span></div><h1>Mission.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai.mission;
+
+import java.util.Comparator;
+import java.util.Random;
+import java.util.function.ToIntFunction;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.Europe;
+import net.sf.freecol.common.model.FreeColGameObject;
+import net.sf.freecol.common.model.Locatable;
+import net.sf.freecol.common.model.Location;
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.Ownable;
+import net.sf.freecol.common.model.PathNode;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Stance;
+import net.sf.freecol.common.model.Settlement;
+import net.sf.freecol.common.model.Tension;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.Unit.MoveType;
+import net.sf.freecol.common.model.pathfinding.CostDecider;
+import net.sf.freecol.common.model.pathfinding.GoalDecider;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+import net.sf.freecol.common.util.LogBuilder;
+import static net.sf.freecol.common.util.StringUtils.*;
+
+import net.sf.freecol.server.ai.AIMain;
+import net.sf.freecol.server.ai.AIMessage;
+import net.sf.freecol.server.ai.AIObject;
+import net.sf.freecol.server.ai.AIUnit;
+import net.sf.freecol.server.ai.EuropeanAIPlayer;
+import net.sf.freecol.server.ai.MissionAIPlayer;
+import net.sf.freecol.server.ai.TransportableAIObject;
+
+
+/**
+ * A mission describes what a unit should do; attack, build colony,
+ * wander etc.  Every {@link AIUnit} should have a mission. By
+ * extending this class, you create different missions.
+ */
+public abstract class Mission extends AIObject {
+
+<span class="fc" id="L71">    private static final Logger logger = Logger.getLogger(Mission.class.getName());</span>
+
+    /** A transport can be used.*/
+    protected static final int MINIMUM_TRANSPORT_PRIORITY = 60;
+
+    /** Transport is required. */
+    protected static final int NORMAL_TRANSPORT_PRIORITY = 100;
+
+    protected static final int NO_PATH_TO_TARGET = -2,
+                               NO_MORE_MOVES_LEFT = -1;
+
+    // Common mission invalidity reasons.
+    protected static final String AIUNITNULL = &quot;aiUnit-null&quot;;
+    protected static final String AIUNITDIED = &quot;aiUnit-died&quot;;
+    protected static final String TARGETNULL = &quot;target-null&quot;;
+    protected static final String TARGETINVALID = &quot;target-invalid&quot;;
+    protected static final String TARGETOWNERSHIP = &quot;target-ownership&quot;;
+    protected static final String TARGETNOTFOUND = &quot;target-not-found&quot;;
+    protected static final String UNITNOTAPERSON = &quot;unit-not-a-person&quot;;
+    protected static final String UNITNOTOFFENSIVE = &quot;unit-not-offensive&quot;;
+<span class="fc" id="L91">    protected static final String UNITNOTONMAP = &quot;unit-not-on-map&quot;;</span>
+
+    /** The unit to undertake the mission. */
+    private final AIUnit aiUnit;
+
+
+    /**
+     * Creates a mission for the given &lt;code&gt;AIUnit&lt;/code&gt;.
+     *
+     * Note that missions are attached to their units, and thus do
+     * not need AI ids, hence the plain superclass constructor.
+     *
+     * @param aiMain The main AI-object.
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; this mission is created for.
+     */
+    protected Mission(AIMain aiMain, AIUnit aiUnit) {
+<span class="fc" id="L107">        super(aiMain);</span>
+
+<span class="fc" id="L109">        this.aiUnit = aiUnit;</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">        this.uninitialized = aiUnit == null;</span>
+<span class="fc" id="L111">    }</span>
+
+    /**
+     * Creates a mission for the given &lt;code&gt;AIUnit&lt;/code&gt; and target.
+     *
+     * Note that missions are attached to their units, and thus do
+     * not need AI ids, hence the plain superclass constructor.
+     *
+     * @param aiMain The main AI-object.
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; this mission is created for.
+     * @param target The initial target &lt;code&gt;Location&lt;/code&gt;.
+     */
+    protected Mission(AIMain aiMain, AIUnit aiUnit, Location target) {
+<span class="fc" id="L124">        this(aiMain, aiUnit);</span>
+
+<span class="fc" id="L126">        setTarget(target);</span>
+<span class="pc bpc" id="L127" title="2 of 4 branches missed.">        if (aiUnit != null &amp;&amp; aiUnit.getMission() != this) {</span>
+<span class="fc" id="L128">            aiUnit.changeMission(this);</span>
+        }
+<span class="fc" id="L130">    }</span>
+
+
+    /**
+     * Gets the AI-unit this mission has been created for.
+     *
+     * @return The &lt;code&gt;AIUnit&lt;/code&gt;.
+     */
+    public final AIUnit getAIUnit() {
+<span class="fc" id="L139">        return aiUnit;</span>
+    }
+
+    /**
+     * Gets the unit this mission has been created for.
+     *
+     * @return The &lt;code&gt;Unit&lt;/code&gt;.
+     */
+    public final Unit getUnit() {
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">        return (aiUnit == null) ? null : aiUnit.getUnit();</span>
+    }
+
+    /**
+     * Convenience accessor for the owning player.
+     *
+     * @return The &lt;code&gt;Player&lt;/code&gt; that owns the mission unit.
+     */
+    protected final Player getPlayer() {
+<span class="nc bnc" id="L157" title="All 2 branches missed.">        return (getUnit() == null) ? null : getUnit().getOwner();</span>
+    }
+
+    /**
+     * Convenience accessor for the owning AI player.
+     *
+     * @return The &lt;code&gt;AIPlayer&lt;/code&gt;.
+     */
+    protected final MissionAIPlayer getAIPlayer() {
+<span class="nc" id="L166">        return (MissionAIPlayer)getAIMain().getAIPlayer(getUnit().getOwner());</span>
+    }
+
+    /**
+     * Convenience accessor for the owning European AI player.
+     *
+     * @return The &lt;code&gt;EuropeanAIPlayer&lt;/code&gt;.
+     */
+    protected final EuropeanAIPlayer getEuropeanAIPlayer() {
+<span class="fc" id="L175">        Player player = getUnit().getOwner();</span>
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">        if (!player.isEuropean()) {</span>
+<span class="nc" id="L177">            throw new IllegalArgumentException(&quot;Not a European player: &quot;</span>
+<span class="nc" id="L178">                + player);</span>
+        }
+<span class="fc" id="L180">        return (EuropeanAIPlayer)getAIMain().getAIPlayer(player);</span>
+    }
+
+    /**
+     * Convenience accessor for the unit/player PRNG.
+     *
+     * @return A &lt;code&gt;Random&lt;/code&gt; to use.
+     */
+    protected final Random getAIRandom() {
+<span class="nc" id="L189">        return aiUnit.getAIRandom();</span>
+    }
+
+    /**
+     * Is this mission valid?
+     *
+     * @return True if the mission is valid.
+     */
+    public final boolean isValid() {
+<span class="fc bfc" id="L198" title="All 2 branches covered.">        return invalidReason() == null;</span>
+    }
+
+    /**
+     * Is an invalidity reason due to a target failure?
+     *
+     * @param reason The reason to check.
+     * @return True if the reason starts with &quot;target-&quot;.
+     */
+    public static boolean isTargetReason(String reason) {
+<span class="nc bnc" id="L208" title="All 4 branches missed.">        return reason != null &amp;&amp; reason.startsWith(&quot;target-&quot;);</span>
+    }
+
+    /**
+     * Is a unit able to perform a mission of a particular type?
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; to check.
+     * @return A reason for mission invalidity, or null if none found.
+     */
+    public static String invalidUnitReason(Unit unit) {
+<span class="pc bpc" id="L218" title="1 of 2 branches missed.">        return (unit == null) ? &quot;unit-null&quot;</span>
+<span class="pc bpc" id="L219" title="1 of 2 branches missed.">            : (!unit.isInitialized()) ? &quot;unit-uninitialized&quot;</span>
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">            : (unit.isDisposed()) ? &quot;unit-disposed&quot;</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">            : (unit.isDamaged()) ? &quot;unit-under-repair&quot;</span>
+<span class="fc" id="L222">            : null;</span>
+    }
+
+    /**
+     * Is an AI unit able to perform a mission of a particular type?
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to check.
+     * @return A reason for mission invalidity, or null if none found.
+     */
+    public static String invalidAIUnitReason(AIUnit aiUnit) {
+        String reason;
+<span class="pc bpc" id="L233" title="1 of 2 branches missed.">        return (aiUnit == null) ? AIUNITNULL</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">            : ((reason = invalidUnitReason(aiUnit.getUnit())) != null) ? reason</span>
+<span class="fc" id="L235">            : null;</span>
+    }
+
+    /**
+     * Is an AI unable to perform a new mission because it already has
+     * a valid, non-onetime mission?
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to test.
+     * @return &quot;mission-exists&quot; if a valid mission is found, or null
+     *     if none found.
+     */
+    public static String invalidNewMissionReason(AIUnit aiUnit) {
+<span class="pc bpc" id="L247" title="1 of 2 branches missed.">        return (aiUnit == null) ? AIUNITNULL</span>
+<span class="fc bfc" id="L248" title="All 2 branches covered.">            : (aiUnit.hasMission()</span>
+<span class="pc bpc" id="L249" title="1 of 2 branches missed.">                &amp;&amp; !aiUnit.getMission().isOneTime()</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">                &amp;&amp; aiUnit.getMission().isValid()) ? &quot;mission-exists&quot;</span>
+<span class="fc" id="L251">            : null;</span>
+    }
+
+    /**
+     * Is a target a valid mission target?
+     *
+     * @param target The target &lt;code&gt;Location&lt;/code&gt; to check.
+     * @return A reason for the target to be invalid, or null if none found.
+     */
+    public static String invalidTargetReason(Location target) {
+<span class="pc bpc" id="L261" title="1 of 2 branches missed.">        return (target == null) ? Mission.TARGETNULL</span>
+<span class="pc bpc" id="L262" title="1 of 2 branches missed.">            : (((FreeColGameObject)target).isDisposed()) ? &quot;target-disposed&quot;</span>
+<span class="fc" id="L263">            : null;</span>
+    }
+
+    /**
+     * Is a target a valid mission target?
+     *
+     * @param target The target &lt;code&gt;Location&lt;/code&gt; to check.
+     * @param owner A &lt;code&gt;Player&lt;/code&gt; that should own
+     *     the target.
+     * @return A reason for the target to be invalid, or null if none found.
+     */
+    public static String invalidTargetReason(Location target, Player owner) {
+<span class="fc" id="L275">        String reason = invalidTargetReason(target);</span>
+<span class="pc bpc" id="L276" title="1 of 2 branches missed.">        return (reason != null)</span>
+<span class="nc" id="L277">            ? reason</span>
+<span class="pc bpc" id="L278" title="1 of 4 branches missed.">            : (target instanceof Europe &amp;&amp; !owner.owns((Europe)target))</span>
+<span class="nc" id="L279">            ? Mission.TARGETOWNERSHIP</span>
+<span class="pc bpc" id="L280" title="1 of 4 branches missed.">            : (target instanceof Settlement &amp;&amp; !owner.owns((Settlement)target))</span>
+<span class="nc" id="L281">            ? Mission.TARGETOWNERSHIP</span>
+<span class="fc" id="L282">            : null;</span>
+    }
+
+    /**
+     * Is there a reason to invalidate mission to move a transportable?
+     *
+     * @param t The &lt;code&gt;TransportableAIObject&lt;/code&gt; to check.
+     * @return A reason for the transport to be invalid, or null if
+     *     none found.
+     */
+    public static String invalidTransportableReason(TransportableAIObject t) {
+<span class="pc bpc" id="L293" title="1 of 2 branches missed.">        if (t == null) return &quot;null-transportable&quot;;</span>
+<span class="fc" id="L294">        final Locatable l = t.getTransportLocatable();</span>
+<span class="pc bpc" id="L295" title="1 of 2 branches missed.">        if (l == null) return &quot;null-locatable&quot;;</span>
+
+<span class="fc bfc" id="L297" title="All 2 branches covered.">        final Unit carrier = (l.getLocation() instanceof Unit)</span>
+<span class="fc" id="L298">            ? (Unit)(l.getLocation()) : null;</span>
+<span class="fc" id="L299">        final AIUnit transport = t.getTransport();</span>
+        Player owner;
+        Location loc;
+<span class="pc bpc" id="L302" title="1 of 2 branches missed.">        boolean checkSrc = transport == null;</span>
+
+<span class="pc bpc" id="L304" title="1 of 4 branches missed.">        if (carrier != null &amp;&amp; transport != null</span>
+<span class="pc bpc" id="L305" title="1 of 2 branches missed.">            &amp;&amp; carrier != transport.getUnit()) {</span>
+<span class="nc" id="L306">            return &quot;transportable-on-other-carrier&quot;;</span>
+        }
+
+<span class="pc bpc" id="L309" title="1 of 2 branches missed.">        if (checkSrc) {</span>
+            Settlement s;
+<span class="nc bnc" id="L311" title="All 2 branches missed.">            if ((loc = t.getTransportSource()) == null) {</span>
+<span class="nc" id="L312">                return &quot;transportable-source-missing-&quot; + t;</span>
+<span class="nc bnc" id="L313" title="All 2 branches missed.">            } else if (((FreeColGameObject)loc).isDisposed()) {</span>
+<span class="nc" id="L314">                return &quot;transportable-source-disposed&quot;;</span>
+<span class="nc bnc" id="L315" title="All 4 branches missed.">            } else if (loc instanceof Settlement &amp;&amp; l instanceof Ownable</span>
+<span class="nc bnc" id="L316" title="All 2 branches missed.">                &amp;&amp; !((Ownable)l).getOwner().owns(s = (Settlement)loc)) {</span>
+<span class="nc" id="L317">                return &quot;transportable-source-&quot; + s.getName()</span>
+<span class="nc" id="L318">                    + &quot;-captured-by-&quot; + s.getOwner().getDebugName();</span>
+            }
+        } else {
+<span class="fc" id="L321">            loc = t.getTransportDestination();</span>
+<span class="pc bpc" id="L322" title="2 of 4 branches missed.">            if (loc != null &amp;&amp; ((FreeColGameObject)loc).isDisposed()) {</span>
+<span class="nc" id="L323">                return &quot;transportable-destination-disposed&quot;;</span>
+            }
+        }
+<span class="fc" id="L326">        return null;</span>
+    }
+
+    /**
+     * Is another player a valid attack target?
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; that will attack.
+     * @param other The &lt;code&gt;Player&lt;/code&gt; to attack.
+     * @return A reason why the attack would be invalid, or null if none found.
+     */
+    public static String invalidAttackReason(AIUnit aiUnit, Player other) {
+<span class="fc" id="L337">        final Unit unit = aiUnit.getUnit();</span>
+<span class="fc" id="L338">        final Player player = unit.getOwner();</span>
+<span class="pc bpc" id="L339" title="1 of 2 branches missed.">        return (player == other)</span>
+<span class="nc" id="L340">            ? Mission.TARGETOWNERSHIP</span>
+<span class="fc bfc" id="L341" title="All 2 branches covered.">            : (player.isIndian()</span>
+<span class="fc" id="L342">                &amp;&amp; player.getTension(other).getLevel()</span>
+<span class="pc bpc" id="L343" title="1 of 2 branches missed.">                .compareTo(Tension.Level.CONTENT) &lt;= 0)</span>
+<span class="nc" id="L344">            ? &quot;target-native-tension-too-low&quot;</span>
+<span class="fc bfc" id="L345" title="All 2 branches covered.">            : (player.isEuropean()</span>
+<span class="fc bfc" id="L346" title="All 2 branches covered.">                &amp;&amp; !(player.getStance(other) == Stance.WAR</span>
+<span class="pc bpc" id="L347" title="1 of 2 branches missed.">                    || (unit.hasAbility(Ability.PIRACY)</span>
+<span class="nc bnc" id="L348" title="All 2 branches missed.">                        &amp;&amp; player.getStance(other) != Stance.ALLIANCE)))</span>
+<span class="fc" id="L349">            ? &quot;target-european-war-absent&quot;</span>
+<span class="fc" id="L350">            : null;</span>
+    }
+
+    /**
+     * Is an AI unit able to perform a different mission?
+     *
+     * AIPlayers will call FooMission.invalidReason(aiUnit) to
+     * determine whether it is valid to assign some unit to a
+     * FooMission, so `interesting' Mission subclasses with complex
+     * validity requirements must implement a routine with this
+     * signature.  Conversely, simple Missions that are always possible
+     * need not.
+     *
+     * Implementations should usually start by calling this routine
+     * (i.e. Mission.invalidReason(AIUnit)).
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to check.
+     * @return A reason for mission invalidity, or null if none found.
+     */
+    public static String invalidReason(AIUnit aiUnit) {
+<span class="fc" id="L370">        return invalidAIUnitReason(aiUnit);</span>
+    }
+
+    /**
+     * Is an AI unit able to perform a mission with a specified target?
+     *
+     * Specific Missions can be invalid for target-related reasons.
+     * Such Missions need to implement a routine with this signature,
+     * as it will be called by the GoalDeciders in map path find/searches
+     * to choose a Mission target.
+     *
+     * Implementations should usually start by calling either
+     * invalidAIUnitReason() or this routine if the target checking is
+     * trivial.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to check.
+     * @param loc The target &lt;code&gt;Location&lt;/code&gt; to check.
+     * @return A reason for mission invalidity, or null if none found.
+     */
+    public static String invalidReason(AIUnit aiUnit, Location loc) {
+<span class="nc" id="L390">        String reason = invalidAIUnitReason(aiUnit);</span>
+<span class="nc bnc" id="L391" title="All 2 branches missed.">        return (reason != null) ? reason : invalidTargetReason(loc);</span>
+    }
+
+
+    // Mission logging support
+
+    /**
+     * State where a unit is.
+     *
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @return This &lt;code&gt;Mission&lt;/code&gt;.
+     */
+    protected Mission lbAt(LogBuilder lb) {
+<span class="fc" id="L404">        final Unit unit = getUnit();</span>
+<span class="fc" id="L405">        lb.add(&quot;, at &quot;, Location.upLoc(unit.getLocation()));</span>
+<span class="fc" id="L406">        return this;</span>
+    }
+
+    /**
+     * State that the unit has made an attack.
+     *
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @param what What is being attacked (a &lt;code&gt;Unit&lt;/code&gt; or
+     *     &lt;code&gt;Settlement&lt;/code&gt;).
+     * @return This &lt;code&gt;Mission&lt;/code&gt;.
+     */
+    protected Mission lbAttack(LogBuilder lb, Location what) {
+<span class="nc" id="L418">        lb.add(&quot;, attacking &quot;, what);</span>
+<span class="nc" id="L419">        return this;</span>
+    }
+
+    /**
+     * State that the unit is dodging.
+     *
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @return This &lt;code&gt;Mission&lt;/code&gt;.
+     */
+    protected Mission lbDodge(LogBuilder lb) {
+<span class="nc" id="L429">        final Unit unit = getUnit();</span>
+<span class="nc" id="L430">        lb.add(&quot;, dodging at &quot;, unit.getLocation());</span>
+<span class="nc" id="L431">        unit.setMovesLeft(0);        </span>
+<span class="nc" id="L432">        return this;</span>
+    }
+
+    /**
+     * State that this mission has completed successfully.
+     *
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @param cont If true, the mission should continue, otherwise drop the
+     *     mission.
+     * @param reasons Reasons for the successful completion.
+     * @return The current &lt;code&gt;Mission&lt;/code&gt; of the unit, which may
+     *     now be different from &lt;code&gt;this&lt;/code&gt;.
+     */
+    protected Mission lbDone(LogBuilder lb, boolean cont, Object... reasons) {
+<span class="nc" id="L446">        lb.add(&quot;, COMPLETED: &quot;, reasons);</span>
+<span class="nc bnc" id="L447" title="All 2 branches missed.">        return (cont) ? aiUnit.getMission() : lbDrop(lb);</span>
+    }
+
+    /**
+     * Drop the current mission.
+     *
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @param reasons Optional reasons to drop the mission.
+     * @return Null, which is now the current &lt;code&gt;Mission&lt;/code&gt; of
+     *     this unit.
+     */
+    protected Mission lbDrop(LogBuilder lb, Object... reasons) {
+<span class="fc" id="L459">        lb.add(&quot;, DROPPED&quot;, reasons);</span>
+<span class="pc bpc" id="L460" title="1 of 2 branches missed.">        return (aiUnit == null) ? null : aiUnit.changeMission(null);</span>
+    }
+
+    /**
+     * The current mission has failed.
+     *
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @param cont If true, the mission should continue, otherwise drop the
+     *     mission.
+     * @param reasons Reasons for the successful completion.
+     * @return The current &lt;code&gt;Mission&lt;/code&gt; of the unit, which may
+     *     not be different from &lt;code&gt;this&lt;/code&gt;.
+     */
+    protected Mission lbFail(LogBuilder lb, boolean cont, Object... reasons) {
+<span class="fc" id="L474">        lb.add(&quot;, FAILED: &quot;, reasons);</span>
+<span class="pc bpc" id="L475" title="1 of 2 branches missed.">        return (cont) ? aiUnit.getMission() : lbDrop(lb);</span>
+    }
+
+    /**
+     * State that a bad move has occurred.
+     *
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @param mt The bad &lt;code&gt;MoveType&lt;/code&gt;.
+     * @return This &lt;code&gt;Mission&lt;/code&gt;.
+     */     
+    protected Mission lbMove(LogBuilder lb, Unit.MoveType mt) {
+<span class="nc" id="L486">        lb.add(&quot;, bad move type at &quot;, getUnit().getLocation(), &quot;: &quot;, mt);</span>
+<span class="nc" id="L487">        return this;</span>
+    }
+
+    /**
+     * State that the mission has been retargeted.
+     *
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @return This &lt;code&gt;Mission&lt;/code&gt;.
+     */
+    protected Mission lbRetarget(LogBuilder lb) {
+<span class="nc" id="L497">        lb.add(&quot;, retargeted &quot;, getTarget());</span>
+<span class="nc" id="L498">        return this;</span>
+    }
+
+    /**
+     * State that the unit is waiting for something.
+     *
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @param reasons Reasons for the wait.
+     * @return This &lt;code&gt;Mission&lt;/code&gt;.
+     */
+    protected Mission lbWait(LogBuilder lb, Object... reasons) {
+<span class="fc" id="L509">        lb.add(reasons);</span>
+<span class="fc" id="L510">        getUnit().setMovesLeft(0);</span>
+<span class="fc" id="L511">        return this;</span>
+    }
+
+
+    /**
+     * Finds a target for a unit without considering its movement
+     * abilities.  This is used by missions when the current unit
+     * can not find a target with the normal path finding routines,
+     * and thus should consider targets that may require a carrier.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; that is searching.
+     * @param gd The &lt;code&gt;GoalDecider&lt;/code&gt; that selects targets.
+     * @param radius A maximum radius from the unit location to search within.
+     * @param deferOK If true, fall back to the nearest port to Europe.
+     * @return The best target &lt;code&gt;Tile&lt;/code&gt; found, or null if none.
+     */
+    protected static Location findCircleTarget(final AIUnit aiUnit,
+                                               final GoalDecider gd,
+                                               final int radius,
+                                               boolean deferOK) {
+<span class="fc" id="L531">        final Unit unit = aiUnit.getUnit();</span>
+<span class="fc" id="L532">        final Tile start = unit.getTile();</span>
+<span class="pc bpc" id="L533" title="1 of 2 branches missed.">        if (start == null) {</span>
+<span class="nc bnc" id="L534" title="All 2 branches missed.">            if (!deferOK) return null;</span>
+<span class="nc" id="L535">            Settlement settlement = unit.getOwner().getClosestPortForEurope();</span>
+<span class="nc bnc" id="L536" title="All 2 branches missed.">            return (settlement == null) ? null : settlement;</span>
+        }
+<span class="fc" id="L538">        return unit.getGame().getMap().searchCircle(start, gd, radius);</span>
+    }
+
+    /**
+     * We have been blocked on the way to a target.  Is it valid to
+     * attack the blockage, or should it just be avoided?
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; that was blocked.
+     * @param target The target &lt;code&gt;Location&lt;/code&gt;.
+     * @return The blockage to attack, or null if not.
+     */
+    public static Location resolveBlockage(AIUnit aiUnit, Location target) {
+<span class="nc" id="L550">        final Unit unit = aiUnit.getUnit();</span>
+<span class="nc" id="L551">        PathNode path = unit.findPath(target);</span>
+<span class="nc" id="L552">        Direction d = null;</span>
+<span class="nc bnc" id="L553" title="All 4 branches missed.">        if (path != null &amp;&amp; path.next != null) {</span>
+<span class="nc" id="L554">            Tile tile = path.next.getTile();</span>
+<span class="nc" id="L555">            Settlement settlement = tile.getSettlement();</span>
+<span class="nc bnc" id="L556" title="All 2 branches missed.">            Location blocker = (settlement != null) ? settlement</span>
+<span class="nc" id="L557">                : tile.getDefendingUnit(unit);</span>
+<span class="nc bnc" id="L558" title="All 2 branches missed.">            if (UnitSeekAndDestroyMission.invalidReason(aiUnit, blocker)</span>
+<span class="nc" id="L559">                == null) return blocker;</span>
+        }
+<span class="nc" id="L561">        return null;</span>
+    }
+
+    /**
+     * Moves a unit one step randomly.
+     *
+     * @param logMe A string to log the random number generation with.
+     * @param direction An optional preferred &lt;code&gt;Direction&lt;/code&gt;.
+     * @return The direction of the move, or null if no move was made.
+     */
+    protected Direction moveRandomly(String logMe, Direction direction) {
+<span class="nc" id="L572">        final Unit unit = getUnit();</span>
+<span class="nc bnc" id="L573" title="All 4 branches missed.">        if (unit.getMovesLeft() &lt;= 0 || !unit.hasTile()) return null;</span>
+<span class="nc bnc" id="L574" title="All 2 branches missed.">        if (logMe == null) logMe = &quot;moveRandomly&quot;;</span>
+
+<span class="nc" id="L576">        Random aiRandom = getAIRandom();</span>
+<span class="nc bnc" id="L577" title="All 2 branches missed.">        if (direction == null) {</span>
+<span class="nc" id="L578">            direction = Direction.getRandomDirection(logMe, logger, aiRandom);</span>
+        }
+
+<span class="nc" id="L581">        Direction[] directions</span>
+<span class="nc" id="L582">            = direction.getClosestDirections(logMe, logger, aiRandom);</span>
+<span class="nc bnc" id="L583" title="All 2 branches missed.">        for (Direction d : directions) {</span>
+<span class="nc" id="L584">            Tile moveTo = unit.getTile().getNeighbourOrNull(d);</span>
+<span class="nc bnc" id="L585" title="All 2 branches missed.">            if (moveTo != null</span>
+<span class="nc bnc" id="L586" title="All 2 branches missed.">                    &amp;&amp; unit.getMoveType(d) == MoveType.MOVE</span>
+<span class="nc bnc" id="L587" title="All 2 branches missed.">                    &amp;&amp; aiUnit.move(d)) return d;</span>
+        }
+<span class="nc" id="L589">        return null; // Stuck!</span>
+    }
+
+    /**
+     * Moves a unit randomly for the rest of its turn.
+     *
+     * @param logMe A string to log the random number generation with.
+     */
+    protected void moveRandomlyTurn(String logMe) {
+<span class="nc" id="L598">        Direction direction = null;</span>
+<span class="nc bnc" id="L599" title="All 2 branches missed.">        while ((direction = moveRandomly(logMe, direction)) != null) {}</span>
+<span class="nc" id="L600">        getUnit().setMovesLeft(0);</span>
+<span class="nc" id="L601">    }</span>
+
+    /**
+     * Finds the best existing settlement to use as a target.
+     * Useful for missions where the unit might be in Europe, but should
+     * go to a safe spot in the New World and proceed from there.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; that is searching.
+     * @return A good settlement to restart a Mission from.
+     */
+    protected static Settlement getBestSettlement(Player player) {
+<span class="nc" id="L612">        final Comparator&lt;Settlement&gt; comp = cachingIntComparator(s -&gt; {</span>
+<span class="nc" id="L613">                int value = s.getUnitCount() + s.getTile().getUnitCount();</span>
+<span class="nc bnc" id="L614" title="All 2 branches missed.">                if (s instanceof Colony) {</span>
+<span class="nc" id="L615">                    Colony colony = (Colony)s;</span>
+                    // Favour coastal
+<span class="nc bnc" id="L617" title="All 2 branches missed.">                    value += ((colony.isConnectedPort()) ? 10 : 0)</span>
+<span class="nc" id="L618">                        + colony.getAvailableWorkLocations().size();</span>
+                }
+<span class="nc" id="L620">                return value;</span>
+            });
+<span class="nc" id="L622">        return maximize(player.getSettlements(), comp);</span>
+    }
+
+    /**
+     * Tries to move this mission's unit to a target location.
+     *
+     * First check for units in transit, that is units on a carrier that
+     * are going to but not yet in Europe, or going to but not yet at
+     * a Tile and whose path still requires the carrier.  These need to
+     * be handled by the carrier's TransportMission, not by the unit's
+     * Mission.
+     *
+     * Similarly check for units not in transit but should be, that
+     * is units not on a carrier but can not get to their target
+     * without one.  These must just wait.
+     *
+     * If there is no impediment to the unit moving towards the target,
+     * do so.  Return an indicative MoveType for the result of the travel.
+     * - MOVE if the unit has arrived at the target, although it may
+     *     have exhausted its moves
+     * - MOVE_HIGH_SEAS if the unit has set sail to/from Europe
+     * - MOVE_NO_MOVES is underway but ran out of moves
+     * - MOVE_NO_ACCESS_EMBARK if progress depends on a carrier, either
+     *     currently boarded or due to collect the unit
+     * - MOVE_NO_REPAIR if the unit died for whatever reason
+     * - MOVE_NO_TILE if there is no path (usually transitory on rivers)
+     * - MOVE_ILLEGAL if there is an error or permanent restriction
+     * - other legal results (e.g. ENTER_INDIAN_SETTLEMENT*) if that would
+     *   occur if the unit proceeded.  Such moves require special handling
+     *   and are not performed here, the calling mission code must
+     *   handle them.
+     *
+     * @param target The destination &lt;code&gt;Location&lt;/code&gt;.
+     * @param costDecider The &lt;code&gt;CostDecider&lt;/code&gt; to use in any path
+     *     finding.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @return The type of move the unit stopped at.
+     */
+    protected MoveType travelToTarget(Location target, CostDecider costDecider,
+                                      LogBuilder lb) {
+<span class="pc bpc" id="L662" title="1 of 2 branches missed.">        if (target == null) return MoveType.MOVE_ILLEGAL;</span>
+<span class="fc" id="L663">        final Tile targetTile = target.getTile();</span>
+<span class="pc bpc" id="L664" title="1 of 4 branches missed.">        if (!(target instanceof Europe) &amp;&amp; targetTile == null) {</span>
+<span class="nc" id="L665">            throw new IllegalStateException(&quot;Target neither Europe nor Tile&quot;);</span>
+        }
+<span class="fc" id="L667">        final Unit unit = getUnit();</span>
+<span class="fc" id="L668">        AIUnit aiCarrier = aiUnit.getTransport();</span>
+<span class="fc" id="L669">        final Map map = unit.getGame().getMap();</span>
+<span class="fc" id="L670">        PathNode path = null;</span>
+<span class="fc" id="L671">        boolean useTransport = false;</span>
+<span class="fc" id="L672">        target = Location.upLoc(target);</span>
+
+        // Consider where the unit is starting.
+<span class="pc bpc" id="L675" title="1 of 2 branches missed.">        if (unit.isAtSea()) {</span>
+            // Wait for carrier to arrive on the map or in Europe.
+<span class="nc" id="L677">            lb.add(&quot;, at sea&quot;);</span>
+<span class="nc" id="L678">            return MoveType.MOVE_HIGH_SEAS;</span>
+
+<span class="pc bpc" id="L680" title="1 of 2 branches missed.">        } else if (unit.isOnCarrier()) {</span>
+            // Transport mission will disembark the unit when it
+            // arrives at the drop point.
+<span class="nc" id="L683">            lb.add(&quot;, on carrier&quot;);</span>
+<span class="nc" id="L684">            return MoveType.MOVE_NO_ACCESS_EMBARK;</span>
+
+<span class="pc bpc" id="L686" title="1 of 2 branches missed.">        } else if (unit.isAtLocation(target)) {</span>
+            // Arrived!
+<span class="nc" id="L688">            return MoveType.MOVE;</span>
+
+<span class="pc bpc" id="L690" title="1 of 2 branches missed.">        } else if (unit.isInEurope()) {</span>
+            // Leave, or require transport.
+<span class="nc bnc" id="L692" title="All 2 branches missed.">            if (!unit.getOwner().canMoveToEurope()) {</span>
+<span class="nc" id="L693">                lb.add(&quot;, impossible move from Europe&quot;);</span>
+<span class="nc" id="L694">                return MoveType.MOVE_ILLEGAL;</span>
+            }
+<span class="nc bnc" id="L696" title="All 2 branches missed.">            if (unit.getType().canMoveToHighSeas()) {</span>
+<span class="nc" id="L697">                unit.setDestination(target);</span>
+<span class="nc bnc" id="L698" title="All 2 branches missed.">                if (AIMessage.askMoveTo(aiUnit, map)) {</span>
+<span class="nc" id="L699">                    lb.add(&quot;, sailed for &quot;, target);</span>
+<span class="nc" id="L700">                    return MoveType.MOVE_HIGH_SEAS;</span>
+                } else {
+<span class="nc" id="L702">                    lb.add(&quot;, failed to sail for &quot;, target);</span>
+<span class="nc" id="L703">                    return MoveType.MOVE_ILLEGAL;</span>
+                }
+            }
+<span class="nc" id="L706">            useTransport = true;</span>
+
+<span class="pc bpc" id="L708" title="1 of 2 branches missed.">        } else if (!unit.hasTile()) {</span>
+            // Fail!
+<span class="nc" id="L710">            return MoveType.MOVE_ILLEGAL;</span>
+
+        } else {
+            // On map.  Either find a path or decide to use transport.
+<span class="fc bfc" id="L714" title="All 2 branches covered.">            if (target instanceof Europe) {</span>
+                // Going to Europe.
+<span class="pc bpc" id="L716" title="1 of 2 branches missed.">                if (!unit.getOwner().canMoveToEurope()) {</span>
+<span class="nc" id="L717">                    lb.add(&quot;, impossible move to Europe&quot;);</span>
+<span class="nc" id="L718">                    return MoveType.MOVE_ILLEGAL;</span>
+                }
+<span class="pc bpc" id="L720" title="1 of 2 branches missed.">                if (!unit.getType().canMoveToHighSeas()</span>
+<span class="pc bpc" id="L721" title="1 of 2 branches missed.">                    || aiCarrier != null) {</span>
+<span class="nc" id="L722">                    useTransport = true;</span>
+<span class="nc" id="L723">                } else {</span>
+<span class="fc" id="L724">                    path = unit.findPath(unit.getLocation(), target,</span>
+<span class="fc" id="L725">                                         null, costDecider);</span>
+                }
+<span class="pc bpc" id="L727" title="1 of 2 branches missed.">            } else if (aiCarrier != null) {</span>
+                // Transport already allocated.
+<span class="nc" id="L729">                useTransport = true;</span>
+
+<span class="pc bfc" id="L731" title="All 2 branches covered.">            } else if (!unit.getType().canMoveToHighSeas()</span>
+<span class="pc bpc" id="L732" title="1 of 2 branches missed.">                &amp;&amp; !Map.isSameContiguity(target, unit.getLocation())) {</span>
+                // Transport necessary.
+<span class="nc" id="L734">                useTransport = true;</span>
+
+<span class="nc" id="L736">            } else {</span>
+                // Should not need transport within the same contiguity.
+<span class="fc" id="L738">                path = unit.findPath(unit.getLocation(), target,</span>
+<span class="fc" id="L739">                                     null, costDecider);</span>
+            }
+        }
+
+<span class="pc bpc" id="L743" title="1 of 2 branches missed.">        if (useTransport) {</span>
+<span class="nc bnc" id="L744" title="All 2 branches missed.">            if (aiCarrier != null) {</span>
+                // A carrier has been assigned.  Try to go to the
+                // collection point.
+                Location pick;
+                TransportMission tm;
+<span class="nc" id="L749">                boolean waiting = false;</span>
+                PathNode ownPath;
+                int pathTurns, ownTurns;
+
+<span class="nc bnc" id="L753" title="All 2 branches missed.">                if ((tm = aiCarrier.getMission(TransportMission.class)) == null) {</span>
+                    // Carrier has no transport mission?!?  Bogus.
+<span class="nc" id="L755">                    lb.add(&quot;, had bogus carrier &quot;, aiCarrier.getUnit());</span>
+<span class="nc" id="L756">                    logger.warning(unit + &quot; has transport &quot; + aiCarrier</span>
+<span class="nc" id="L757">                        + &quot; without transport mission&quot;);</span>
+<span class="nc" id="L758">                    aiUnit.dropTransport();</span>
+<span class="nc" id="L759">                    aiCarrier = null;</span>
+
+<span class="nc bnc" id="L761" title="All 2 branches missed.">                } else if ((pick = tm.getTransportTarget(aiUnit)) == null) {</span>
+                    // No collection point for this unit?  Bogus.
+<span class="nc" id="L763">                    lb.add(&quot;, had bogus transport on &quot;, aiCarrier.getUnit());</span>
+<span class="nc" id="L764">                    logger.warning(unit + &quot; has transport &quot; + aiCarrier</span>
+<span class="nc" id="L765">                        + &quot; with transport mission but null transport target\n&quot;</span>
+<span class="nc" id="L766">                        + tm.toFullString());</span>
+<span class="nc" id="L767">                    aiUnit.dropTransport();</span>
+<span class="nc" id="L768">                    aiCarrier = null;</span>
+
+<span class="nc bnc" id="L770" title="All 2 branches missed.">                } else if (Map.isSameLocation(pick, unit.getLocation())) {</span>
+                    // Waiting for the carrier at the collection point.
+<span class="nc" id="L772">                    waiting = true;</span>
+
+<span class="nc bnc" id="L774" title="All 2 branches missed.">                } else if ((path = unit.findPath(unit.getLocation(), pick,</span>
+<span class="nc" id="L775">                                                 null, costDecider)) == null) {</span>
+                    // No path to the collection point.
+<span class="nc" id="L777">                    lbAt(lb);</span>
+<span class="nc" id="L778">                    lb.add(&quot;, no path to meet &quot;, aiCarrier.getUnit(),</span>
+<span class="nc" id="L779">                           &quot; at &quot;, pick);</span>
+<span class="nc" id="L780">                    path = unit.findPath(unit.getLocation(), target,</span>
+<span class="nc" id="L781">                                         null, costDecider);</span>
+<span class="nc bnc" id="L782" title="All 2 branches missed.">                    if (path == null) {</span>
+                        // Unable to fall back to going direct.
+                        // Return failure in the hope that it is a
+                        // transient blockage.
+<span class="nc" id="L786">                        return MoveType.MOVE_NO_TILE;</span>
+                    }
+                    // Fall back to going direct to the target.
+<span class="nc" id="L789">                    lb.add(&quot;, dropped carrier&quot;);</span>
+<span class="nc" id="L790">                    aiUnit.dropTransport();</span>
+<span class="nc" id="L791">                    aiCarrier = null;</span>
+<span class="nc" id="L792">                    useTransport = false;</span>
+
+<span class="nc bnc" id="L794" title="All 2 branches missed.">                } else if ((ownPath = unit.findPath(unit.getLocation(), </span>
+<span class="nc" id="L795">                            target, null, costDecider)) == null</span>
+<span class="nc" id="L796">                    || (ownTurns = ownPath.getTotalTurns())</span>
+<span class="nc bnc" id="L797" title="All 2 branches missed.">                    &gt; (pathTurns = path.getTotalTurns())) {</span>
+                    // Either there is no direct path to the target or
+                    // a path exists but takes longer than using the
+                    // carrier.  This confirms that it is not only
+                    // possible to travel to the collection point, it
+                    // is also the best plan.
+<span class="nc" id="L803">                    MoveType ret = followMapPath(path.next, lb);</span>
+<span class="nc bnc" id="L804" title="All 2 branches missed.">                    if (ret != MoveType.MOVE) return ret;</span>
+<span class="nc" id="L805">                    waiting = true; // Arrived for collection.</span>
+
+<span class="nc" id="L807">                } else {</span>
+                    // It is quicker to cancel the transport and go to
+                    // the target directly.
+<span class="nc" id="L810">                    lb.add(&quot;, dropping carrier&quot;, aiCarrier.getUnit(),</span>
+<span class="nc" id="L811">                        &quot; as it is faster (&quot;, ownTurns, &quot;&lt;&quot;, pathTurns,</span>
+<span class="nc" id="L812">                        &quot; without it&quot;);</span>
+<span class="nc" id="L813">                    aiUnit.dropTransport();</span>
+<span class="nc" id="L814">                    aiCarrier = null;</span>
+<span class="nc" id="L815">                    path = ownPath;</span>
+<span class="nc" id="L816">                    useTransport = false;</span>
+                }
+
+<span class="nc bnc" id="L819" title="All 2 branches missed.">                if (waiting) {</span>
+                    // If waiting for the carrier, signal that this
+                    // unit can be reexamined if the carrier is still
+                    // moving.
+<span class="nc" id="L823">                    lbAt(lb);</span>
+<span class="nc" id="L824">                    lb.add(&quot;, wait for &quot;, aiCarrier.getUnit());</span>
+<span class="nc bnc" id="L825" title="All 2 branches missed.">                    return (aiCarrier.getUnit().getMovesLeft() &gt; 0)</span>
+<span class="nc" id="L826">                        ? MoveType.MOVE_NO_ACCESS_EMBARK</span>
+<span class="nc" id="L827">                        : MoveType.MOVE_NO_MOVES;</span>
+                }
+            }
+
+<span class="nc bnc" id="L831" title="All 4 branches missed.">            if (useTransport &amp;&amp; aiCarrier == null) {</span>
+                // Still interested in transport but no carrier.
+<span class="nc" id="L833">                lb.add(&quot;, needs transport to &quot;, target);</span>
+<span class="nc" id="L834">                return MoveType.MOVE_NO_ACCESS_EMBARK;</span>
+            }
+        }
+
+        // Follow the path to the target.  If there is one.
+<span class="pc bpc" id="L839" title="1 of 2 branches missed.">        if (path == null) {</span>
+<span class="nc" id="L840">            lbAt(lb);</span>
+<span class="nc" id="L841">            lb.add(&quot;, no path to &quot;, target);</span>
+<span class="nc" id="L842">            return MoveType.MOVE_NO_TILE;</span>
+        }
+<span class="pc bpc" id="L844" title="1 of 2 branches missed.">        if (path.next == null) {</span>
+            // This should not happen, the isAtLocation() test above
+            // should have succeeded.
+<span class="nc" id="L847">            throw new IllegalStateException(&quot;Trivial path found &quot;</span>
+<span class="nc" id="L848">                + path.fullPathToString()</span>
+<span class="nc" id="L849">                + &quot; from &quot; + unit.getLocation() + &quot; to target &quot; + target</span>
+<span class="nc" id="L850">                + &quot; result=&quot; +  unit.isAtLocation(target));</span>
+        }            
+<span class="fc" id="L852">        return followMapPath(path.next, lb);</span>
+    }
+
+    /**
+     * Follow a path that is on the map (except perhaps the last node)
+     * and does not use a carrier.
+     *
+     * @param path The &lt;code&gt;PathNode&lt;/code&gt; to follow.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @return The type of move the unit stopped at.
+     */
+    private MoveType followMapPath(PathNode path, LogBuilder lb) {
+<span class="fc" id="L864">        final Unit unit = getUnit();</span>
+<span class="fc" id="L865">        final Location target = path.getLastNode().getLocation();</span>
+
+<span class="pc bpc" id="L867" title="1 of 2 branches missed.">        for (; path != null; path = path.next) {</span>
+            // Check for immediate failure
+<span class="pc bpc" id="L869" title="1 of 2 branches missed.">            if (unit.isDisposed()) {</span>
+<span class="nc" id="L870">                lb.add(&quot;, died going to &quot;, Location.upLoc(path.getLocation()));</span>
+<span class="nc" id="L871">                return MoveType.MOVE_NO_REPAIR;</span>
+<span class="pc bpc" id="L872" title="1 of 2 branches missed.">            } else if (unit.getMovesLeft() &lt;= 0) {</span>
+<span class="nc" id="L873">                lbAt(lb);</span>
+<span class="nc" id="L874">                lb.add(&quot;, en route to &quot;, Location.upLoc(target));</span>
+<span class="nc" id="L875">                return MoveType.MOVE_NO_MOVES;</span>
+            }
+
+<span class="pc bpc" id="L878" title="1 of 2 branches missed.">            if (path.getLocation() instanceof Europe) {</span>
+<span class="nc bnc" id="L879" title="All 2 branches missed.">                if (AIMessage.askMoveTo(aiUnit, path.getLocation())) {</span>
+<span class="nc" id="L880">                    lb.add(&quot;, sailed to Europe&quot;);</span>
+<span class="nc" id="L881">                    return MoveType.MOVE_HIGH_SEAS;</span>
+                } else {
+<span class="nc" id="L883">                    lb.add(&quot;, failed to sail for Europe&quot;);</span>
+<span class="nc" id="L884">                    return MoveType.MOVE_ILLEGAL;</span>
+                }
+            }
+<span class="fc" id="L887">            MoveType mt = unit.getMoveType(path.getDirection());</span>
+<span class="pc bpc" id="L888" title="1 of 2 branches missed.">            if (mt == MoveType.MOVE_NO_MOVES) {</span>
+<span class="nc" id="L889">                unit.setMovesLeft(0);</span>
+<span class="nc" id="L890">                lbAt(lb);</span>
+<span class="nc" id="L891">                return MoveType.MOVE_NO_MOVES;</span>
+            }
+<span class="pc bpc" id="L893" title="1 of 2 branches missed.">            if (!mt.isProgress()) {</span>
+<span class="nc" id="L894">                return mt; // Special handling required, no log.</span>
+            }
+<span class="pc bpc" id="L896" title="1 of 2 branches missed.">            if (!aiUnit.move(path.getDirection())) {</span>
+<span class="fc" id="L897">                lbAt(lb);</span>
+<span class="fc" id="L898">                lb.add(&quot;, failed to move to &quot;,</span>
+<span class="fc" id="L899">                    Location.upLoc(path.getLocation()));</span>
+<span class="fc" id="L900">                return MoveType.MOVE_ILLEGAL;</span>
+            }
+        }
+<span class="nc" id="L903">        return MoveType.MOVE; // Must have completed path normally, no log.</span>
+    }
+
+    /**
+     * Retarget a mission because of some problem.
+     *
+     * @param reason The reason for the retarget.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @return The current &lt;code&gt;Mission&lt;/code&gt;, which has been set to
+     *     null on failure to retarget.
+     */
+    public Mission retargetMission(String reason, LogBuilder lb) {
+<span class="nc" id="L915">        lb.add(&quot;, failing(&quot;, reason, &quot;)&quot;);</span>
+
+<span class="nc" id="L917">        Location newTarget = findTarget();</span>
+<span class="nc bnc" id="L918" title="All 2 branches missed.">        if (newTarget != null) {</span>
+<span class="nc" id="L919">            setTarget(newTarget);</span>
+<span class="nc" id="L920">            return lbRetarget(lb);</span>
+        }
+<span class="nc" id="L922">        lb.add(&quot;, retarget failed&quot;);</span>
+<span class="nc" id="L923">        return lbDrop(lb);</span>
+    }
+
+
+    // Mission interface to be implemented/overridden by descendants.
+    // TransportableAIObject delegates some functionality here when
+    // a mission is available.
+ 
+    /**
+     * Disposes this mission by removing any references to it.
+     */
+    @Override
+    public void dispose() {
+        // Nothing to do yet.
+<span class="fc" id="L937">    }</span>
+
+    /**
+     * Get the base transport priority for the unit performing this mission.
+     *
+     * @return A base transport priority.
+     */
+    public int getBaseTransportPriority() {
+<span class="fc" id="L945">        return 0;</span>
+    }
+        
+    /**
+     * Gets the destination of a required transport.
+     *
+     * Override this in the child mission classes if there is a useful
+     * intermediate point to deliver the unit distinct from the
+     * target.
+     *
+     * @return The mission target, or null if the mission is invalid,
+     *     otherwise lacks a target (e.g. UnitWanderHostile), or the
+     *     unit does not need transport.
+     */
+    public Location getTransportDestination() {
+        Location loc;
+<span class="pc bpc" id="L961" title="1 of 2 branches missed.">        return (!isValid()) ? null</span>
+<span class="pc bpc" id="L962" title="1 of 2 branches missed.">            : ((loc = getTarget()) == null) ? null</span>
+<span class="pc bpc" id="L963" title="1 of 2 branches missed.">            : (!getUnit().shouldTakeTransportTo(loc)) ? null</span>
+<span class="nc" id="L964">            : loc;</span>
+    }
+
+    /**
+     * Gets the target of this mission, if any.
+     *
+     * @return The target of this mission, or null if none.
+     */
+    public abstract Location getTarget();
+
+    /**
+     * Sets the target of this mission, if any.
+     *
+     * @param target The new target of this mission, or null if none.
+     */
+    public abstract void setTarget(Location target);
+
+    /**
+     * Finds a new target for this mission.
+     *
+     * @return A new target for this mission.
+     */
+    public abstract Location findTarget();
+
+    /**
+     * Should this mission be considered a mere fallback to be replaced
+     * at will?
+     *
+     * Missions are not one-time by default, true one-time missions
+     * must override this routine.
+     *
+     * @return False.
+     */
+    public boolean isOneTime() {
+<span class="nc" id="L998">        return false;</span>
+    }
+
+    /**
+     * Why is this mission invalid?
+     *
+     * Mission subclasses must implement this routine, which probably
+     * should start by checking invalidAIUnitReason.
+     * 
+     * A mission can be invalid for a number of subclass-specific
+     * reasons.  For example: a seek-and-destroy mission could be
+     * invalid because of a improved stance towards the targeted
+     * player.
+     *
+     * @return A reason for mission invalidity, or null if none found.
+     */
+    public abstract String invalidReason();
+
+    /**
+     * Performs the mission.
+     *
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @return The &lt;code&gt;Mission&lt;/code&gt; to continue with, or null
+     *     if the current mission has completed.
+     */
+    public abstract Mission doMission(LogBuilder lb);
+
+
+    // Serialization
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public final void toXML(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc bnc" id="L1033" title="All 2 branches missed.">        if (isValid()) toXML(xw, getXMLTagName());</span>
+<span class="nc" id="L1034">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+        // This routine might look redundant, but if you let it
+        // default out up the tree, you reach
+        // FreeColObject.writeAttributes, which complains about
+        // objects without an identifier.  Missions do not have
+        // identifiers.
+<span class="nc" id="L1046">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+        // This routine might look redundant, but if you let it
+        // default out up the tree, you reach
+        // FreeColObject.readAttributes, which expects to find an id
+        // attribute.  Missions do not have ids.
+<span class="nc" id="L1057">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="fc" id="L1064">        LogBuilder lb = new LogBuilder(64);</span>
+<span class="fc" id="L1065">        lb.add(lastPart(getClass().getName(), &quot;.&quot;), &quot;@&quot;, hashCode(),</span>
+<span class="fc" id="L1066">               &quot;-&quot;, aiUnit.getUnit(), &quot;-&gt;&quot;, getTarget());</span>
+<span class="fc" id="L1067">        return lb.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

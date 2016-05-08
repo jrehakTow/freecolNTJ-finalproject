@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>EmigrateUnitMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">EmigrateUnitMessage.java</span></div><h1>EmigrateUnitMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.Europe;
+import net.sf.freecol.common.model.Europe.MigrationType;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent when a unit is to emigrate.
+ */
+public class EmigrateUnitMessage extends DOMMessage {
+
+    public static final String TAG = &quot;emigrateUnit&quot;;
+    private static final String SLOT_TAG = &quot;slot&quot;;
+
+    /** The slot from which to select the unit. */
+    private final String slotString;
+
+
+    /**
+     * Create a new &lt;code&gt;EmigrateUnitMessage&lt;/code&gt; with the supplied slot.
+     *
+     * @param slot The slot to select the migrant from.
+     */
+    public EmigrateUnitMessage(int slot) {
+<span class="nc" id="L51">        super(getTagName());</span>
+
+<span class="nc" id="L53">        this.slotString = Integer.toString(slot);</span>
+<span class="nc" id="L54">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;EmigrateUnitMessage&lt;/code&gt; from a supplied element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public EmigrateUnitMessage(Game game, Element element) {
+<span class="nc" id="L63">        super(getTagName());</span>
+
+<span class="nc" id="L65">        this.slotString = getStringAttribute(element, SLOT_TAG);</span>
+<span class="nc" id="L66">    }</span>
+
+
+    /**
+     * Handle a &quot;emigrateUnit&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; handling the message.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; the message applies to.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message was received on.
+     * @return An &lt;code&gt;Element&lt;/code&gt; encapsulating the change,
+     *         or an error &lt;code&gt;Element&lt;/code&gt; on failure.
+     */
+    public Element handle(FreeColServer server, Player player,
+                          Connection connection) {
+<span class="nc" id="L80">        final ServerPlayer serverPlayer = server.getPlayer(connection);</span>
+
+<span class="nc" id="L82">        Europe europe = player.getEurope();</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">        if (europe == null) {</span>
+<span class="nc" id="L84">            return serverPlayer.clientError(&quot;No Europe to migrate from.&quot;)</span>
+<span class="nc" id="L85">                .build(serverPlayer);</span>
+        }
+        int slot;
+        try {
+<span class="nc" id="L89">            slot = Integer.parseInt(this.slotString);</span>
+<span class="nc" id="L90">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L91">            return serverPlayer.clientError(&quot;Bad slot: &quot; + this.slotString)</span>
+<span class="nc" id="L92">                .build(serverPlayer);</span>
+        }
+<span class="nc bnc" id="L94" title="All 2 branches missed.">        if (!MigrationType.validMigrantSlot(slot)) {</span>
+<span class="nc" id="L95">            return serverPlayer.clientError(&quot;Invalid slot for recruitment: &quot;</span>
+<span class="nc" id="L96">                + slot)</span>
+<span class="nc" id="L97">                .build(serverPlayer);</span>
+        }
+            
+        MigrationType type;
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        if (serverPlayer.getRemainingEmigrants() &gt; 0) {</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">            if (MigrationType.unspecificMigrantSlot(slot)) {</span>
+<span class="nc" id="L103">                return serverPlayer.clientError(&quot;Specific slot expected for FoY migration.&quot;)</span>
+<span class="nc" id="L104">                    .build(serverPlayer);</span>
+            }
+<span class="nc" id="L106">            type = MigrationType.FOUNTAIN;</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        } else if (player.checkEmigrate()) {</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">            if (MigrationType.specificMigrantSlot(slot)</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">                &amp;&amp; !player.hasAbility(Ability.SELECT_RECRUIT)) {</span>
+<span class="nc" id="L110">                return serverPlayer.clientError(&quot;selectRecruit ability absent.&quot;)</span>
+<span class="nc" id="L111">                    .build(serverPlayer);</span>
+            }
+<span class="nc" id="L113">            type = MigrationType.NORMAL;</span>
+<span class="nc" id="L114">        } else {</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">            if (!player.checkGold(europe.getRecruitPrice())) {</span>
+<span class="nc" id="L116">                return serverPlayer.clientError(&quot;No migrants available at cost &quot;</span>
+<span class="nc" id="L117">                    + europe.getRecruitPrice()</span>
+<span class="nc" id="L118">                    + &quot; for player with &quot; + player.getGold() + &quot; gold.&quot;)</span>
+<span class="nc" id="L119">                    .build(serverPlayer);</span>
+            }
+<span class="nc" id="L121">            type = MigrationType.RECRUIT;</span>
+        }
+
+        // Proceed to emigrate.
+<span class="nc" id="L125">        return server.getInGameController()</span>
+<span class="nc" id="L126">            .emigrate(serverPlayer, slot, type)</span>
+<span class="nc" id="L127">            .build(serverPlayer);</span>
+    }
+
+    /**
+     * Convert this EmigrateUnitMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="nc" id="L137">        return new DOMMessage(getTagName(),</span>
+<span class="nc" id="L138">            SLOT_TAG, this.slotString).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;emigrateUnit&quot;.
+     */
+    public static String getTagName() {
+<span class="fc" id="L147">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

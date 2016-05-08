@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>SerializationTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">SerializationTest.java</span></div><h1>SerializationTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileOutputStream;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.List;
+
+import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
+
+import net.sf.freecol.common.io.FreeColSavegameFile;
+import net.sf.freecol.common.io.FreeColTcFile;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.option.OptionGroup;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+
+
+<span class="fc" id="L47">public class SerializationTest extends FreeColTestCase {</span>
+
+    private static Validator buildValidator(String path) throws SAXException {
+<span class="fc" id="L50">        SchemaFactory factory = SchemaFactory.newInstance(&quot;http://www.w3.org/2001/XMLSchema&quot;);</span>
+<span class="fc" id="L51">        File schemaLocation = new File(path);</span>
+<span class="fc" id="L52">        Schema schema = factory.newSchema(schemaLocation);</span>
+<span class="fc" id="L53">        return schema.newValidator();</span>
+    }
+
+    private Source buildSource(FreeColObject object) throws Exception {
+<span class="fc" id="L57">        return new StreamSource(new StringReader(object.serialize()));</span>
+    }
+
+
+    private void validateMap(String name) throws Exception {
+        try {
+<span class="fc" id="L63">            Validator mapValidator = buildValidator(&quot;schema/data/data-savedGame.xsd&quot;);</span>
+
+<span class="fc" id="L65">            FreeColSavegameFile mapFile = new FreeColSavegameFile(new File(name));</span>
+
+<span class="fc" id="L67">            mapValidator.validate(new StreamSource(mapFile.getSavegameInputStream()));</span>
+<span class="pc" id="L68">        } catch (SAXParseException e) {</span>
+<span class="nc" id="L69">            String errMsg = e.getMessage()</span>
+<span class="nc" id="L70">                + &quot; at line=&quot; + e.getLineNumber()</span>
+<span class="nc" id="L71">                + &quot; column=&quot; + e.getColumnNumber();</span>
+<span class="nc" id="L72">            fail(errMsg);</span>
+        }
+<span class="fc" id="L74">    }</span>
+
+    private void logParseFailure(SAXParseException e, String serialized) {
+<span class="nc" id="L77">        int col = e.getColumnNumber();</span>
+<span class="nc" id="L78">        String errMsg = e.getMessage()</span>
+<span class="nc" id="L79">            + &quot;\nAt line=&quot; + e.getLineNumber()</span>
+<span class="nc" id="L80">            + &quot;, column=&quot; + col + &quot;:\n&quot;</span>
+<span class="nc" id="L81">            + serialized.substring(Math.max(0, col - 100),</span>
+<span class="nc" id="L82">                                   Math.min(col + 100, serialized.length()));</span>
+<span class="nc" id="L83">        fail(errMsg);</span>
+<span class="nc" id="L84">    }</span>
+
+    public void testValidation() throws Exception {
+<span class="fc" id="L87">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="fc" id="L89">        Colony colony = getStandardColony(6);</span>
+<span class="fc" id="L90">        Player player = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+
+<span class="fc" id="L92">        ServerTestHelper.newTurn();</span>
+<span class="fc" id="L93">        ServerTestHelper.newTurn();</span>
+
+<span class="fc" id="L95">        String serialized = null;</span>
+        try {
+<span class="fc" id="L97">            Validator validator = buildValidator(&quot;schema/data/data-game.xsd&quot;);</span>
+<span class="fc" id="L98">            serialized = game.serialize();</span>
+<span class="fc" id="L99">            validator.validate(new StreamSource(new StringReader(serialized)));</span>
+<span class="pc" id="L100">        } catch (SAXParseException e) {</span>
+<span class="nc" id="L101">            int col = e.getColumnNumber();</span>
+<span class="nc" id="L102">            String errMsg = e.getMessage()</span>
+<span class="nc" id="L103">                + &quot;\nAt line=&quot; + e.getLineNumber()</span>
+<span class="nc" id="L104">                + &quot;, column=&quot; + col + &quot;:\n&quot;;</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">            if (serialized != null) {</span>
+<span class="nc" id="L106">                errMsg += serialized.substring(Math.max(0, col - 100),</span>
+<span class="nc" id="L107">                                               Math.min(col + 100, serialized.length()));</span>
+            }
+<span class="nc" id="L109">            fail(errMsg);</span>
+        }
+
+<span class="fc" id="L112">        ServerTestHelper.stopServerGame();</span>
+<span class="fc" id="L113">    }</span>
+
+    public void testMapAfrica() throws Exception {
+<span class="fc" id="L116">        validateMap(&quot;data/maps/Africa.fsg&quot;);</span>
+<span class="fc" id="L117">    }</span>
+
+    public void testMapAustralia() throws Exception {
+<span class="fc" id="L120">        validateMap(&quot;data/maps/Australia.fsg&quot;);</span>
+<span class="fc" id="L121">    }</span>
+
+    public void testMapAmerica() throws Exception {
+<span class="fc" id="L124">        validateMap(&quot;data/maps/America_large.fsg&quot;);</span>
+<span class="fc" id="L125">    }</span>
+
+    public void testMapCaribbean() throws Exception {
+<span class="fc" id="L128">        validateMap(&quot;data/maps/Caribbean_basin.fsg&quot;);</span>
+<span class="fc" id="L129">    }</span>
+
+    public void testStringTemplate() throws Exception {
+
+<span class="fc" id="L133">        StringTemplate t1 = StringTemplate.template(&quot;model.goods.goodsAmount&quot;)</span>
+<span class="fc" id="L134">            .add(&quot;%goods%&quot;, &quot;model.goods.food.name&quot;)</span>
+<span class="fc" id="L135">            .addName(&quot;%amount%&quot;, &quot;100&quot;);</span>
+<span class="fc" id="L136">        StringTemplate t2 = StringTemplate.template(&quot;model.goods.goodsAmount&quot;)</span>
+<span class="fc" id="L137">            .addAmount(&quot;%amount%&quot;, 50)</span>
+<span class="fc" id="L138">            .addStringTemplate(&quot;%goods%&quot;, t1);</span>
+
+<span class="fc" id="L140">        Game game = getGame();</span>
+<span class="fc" id="L141">        Player player = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+
+        try {
+<span class="fc" id="L144">            Validator validator = buildValidator(&quot;schema/data/data-stringTemplate.xsd&quot;);</span>
+<span class="fc" id="L145">            validator.validate(buildSource(t2));</span>
+<span class="pc" id="L146">        } catch (SAXParseException e){</span>
+<span class="nc" id="L147">            String errMsg = e.getMessage()</span>
+<span class="nc" id="L148">                + &quot; at line=&quot; + e.getLineNumber()</span>
+<span class="nc" id="L149">                + &quot; column=&quot; + e.getColumnNumber();</span>
+<span class="nc" id="L150">            fail(errMsg);</span>
+        }
+<span class="fc" id="L152">    }</span>
+
+    public void testSpecification() throws Exception {
+        try {
+<span class="fc" id="L156">            String filename = &quot;test/data/specification.xml&quot;;</span>
+<span class="fc" id="L157">            Validator validator = buildValidator(&quot;schema/specification-schema.xsd&quot;);</span>
+<span class="fc" id="L158">            FileOutputStream fos = new FileOutputStream(filename);</span>
+<span class="fc" id="L159">            FreeColXMLWriter xw = new FreeColXMLWriter(fos,</span>
+<span class="fc" id="L160">                FreeColXMLWriter.WriteScope.toSave(), false);</span>
+
+<span class="fc" id="L162">            spec().toXML(xw);</span>
+
+<span class="fc" id="L164">            xw.close();</span>
+
+<span class="fc" id="L166">            validator.validate(new StreamSource(new FileReader(filename)));</span>
+<span class="pc" id="L167">        } catch (SAXParseException e) {</span>
+<span class="nc" id="L168">            String errMsg = e.getMessage()</span>
+<span class="nc" id="L169">                + &quot; at line=&quot; + e.getLineNumber()</span>
+<span class="nc" id="L170">                + &quot; column=&quot; + e.getColumnNumber();</span>
+<span class="nc" id="L171">            fail(errMsg);</span>
+        }
+
+<span class="fc" id="L174">    }</span>
+
+    public void testDifficulty() throws Exception {
+<span class="fc" id="L177">        Specification spec1 = null;</span>
+<span class="fc" id="L178">        Specification spec2 = null;</span>
+        try {
+<span class="fc" id="L180">            spec1 = new FreeColTcFile(&quot;classic&quot;).getSpecification();</span>
+<span class="fc" id="L181">            spec1.applyDifficultyLevel(&quot;model.difficulty.veryEasy&quot;);</span>
+<span class="fc" id="L182">            StringWriter sw = new StringWriter();</span>
+<span class="fc" id="L183">            FreeColXMLWriter xw = new FreeColXMLWriter(sw,</span>
+<span class="fc" id="L184">                FreeColXMLWriter.WriteScope.toSave());</span>
+
+<span class="fc" id="L186">            spec1.toXML(xw);</span>
+
+<span class="fc" id="L188">            xw.close();</span>
+
+<span class="fc" id="L190">            spec2 = new Specification(new ByteArrayInputStream(sw.toString().getBytes()));</span>
+<span class="pc" id="L191">        } catch (Exception e) {</span>
+<span class="nc" id="L192">            fail(e.getMessage());</span>
+        }
+
+<span class="fc" id="L195">        assertNotNull(spec1);</span>
+<span class="fc" id="L196">        assertNotNull(spec2);</span>
+
+<span class="fc" id="L198">        OptionGroup level1 = spec1.getDifficultyOptionGroup();</span>
+<span class="fc" id="L199">        OptionGroup level2 = spec2.getDifficultyOptionGroup();</span>
+<span class="fc" id="L200">        assertNotNull(level1);</span>
+<span class="fc" id="L201">        assertNotNull(level2);</span>
+<span class="fc" id="L202">        assertEquals(level1.getId(), level2.getId());</span>
+
+        try {
+<span class="fc" id="L205">            int increment1 = spec1.getInteger(GameOptions.CROSSES_INCREMENT);</span>
+<span class="fc" id="L206">            int increment2 = spec2.getInteger(GameOptions.CROSSES_INCREMENT);</span>
+<span class="fc" id="L207">            assertEquals(increment1, increment2);</span>
+<span class="pc" id="L208">        } catch (Exception e) {</span>
+<span class="nc" id="L209">            fail(e.getMessage());</span>
+        }
+<span class="fc" id="L211">    }</span>
+
+    public void testGeneratedLists() throws Exception {
+<span class="fc" id="L214">        Specification spec1 = null;</span>
+<span class="fc" id="L215">        Specification spec2 = null;</span>
+        try {
+<span class="fc" id="L217">            spec1 = new FreeColTcFile(&quot;classic&quot;).getSpecification();</span>
+<span class="fc" id="L218">            spec1.applyDifficultyLevel(&quot;model.difficulty.veryEasy&quot;);</span>
+<span class="fc" id="L219">            StringWriter sw = new StringWriter();</span>
+<span class="fc" id="L220">            FreeColXMLWriter xw = new FreeColXMLWriter(sw,</span>
+<span class="fc" id="L221">                FreeColXMLWriter.WriteScope.toSave());</span>
+
+<span class="fc" id="L223">            spec1.toXML(xw);</span>
+
+<span class="fc" id="L225">            xw.close();</span>
+
+<span class="fc" id="L227">            spec2 = new Specification(new ByteArrayInputStream(sw.toString().getBytes()));</span>
+<span class="pc" id="L228">        } catch (Exception e) {</span>
+<span class="nc" id="L229">            fail(e.getMessage());</span>
+        }
+
+<span class="fc" id="L232">        List&lt;GoodsType&gt; food1 = spec1.getFoodGoodsTypeList();</span>
+<span class="fc" id="L233">        List&lt;GoodsType&gt; food2 = spec2.getFoodGoodsTypeList();</span>
+<span class="fc" id="L234">        assertEquals(food1.size(), food2.size());</span>
+<span class="fc" id="L235">        assertEquals(food1.get(0).getId(), food2.get(0).getId());</span>
+
+<span class="fc" id="L237">        List&lt;GoodsType&gt; farmed1 = spec1.getFarmedGoodsTypeList();</span>
+<span class="fc" id="L238">        List&lt;GoodsType&gt; farmed2 = spec2.getFarmedGoodsTypeList();</span>
+<span class="fc" id="L239">        assertEquals(farmed1.size(), farmed2.size());</span>
+<span class="fc" id="L240">        assertEquals(farmed1.get(0).getId(), farmed2.get(0).getId());</span>
+<span class="fc" id="L241">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>UpdateMapGeneratorOptionsMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">src (May 7, 2016 6:04:12 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">UpdateMapGeneratorOptionsMessage.java</span></div><h1>UpdateMapGeneratorOptionsMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.common.model.FreeColGameObject;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.option.OptionGroup;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent to update the map generator options.
+ */
+public class UpdateMapGeneratorOptionsMessage extends DOMMessage {
+
+    public static final String TAG = &quot;updateMapGeneratorOptions&quot;;
+
+    /** The options. */
+    private final OptionGroup options;
+
+
+    /**
+     * Create a new &lt;code&gt;UpdateMapGeneratorOptionsMessage&lt;/code&gt; with the
+     * supplied name.
+     *
+     * @param options The map generator options &lt;code&gt;OptionGroup&lt;/code&gt;.
+     */
+    public UpdateMapGeneratorOptionsMessage(OptionGroup options) {
+<span class="nc" id="L50">        super(getTagName());</span>
+
+<span class="nc" id="L52">        this.options = options;</span>
+<span class="nc" id="L53">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;UpdateMapGeneratorOptionsMessage&lt;/code&gt; from a
+     * supplied element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public UpdateMapGeneratorOptionsMessage(Game game, Element element) {
+<span class="nc" id="L63">        this(getChild(game, element, 0, OptionGroup.class));</span>
+<span class="nc" id="L64">    }</span>
+
+
+    // Public interface
+
+    /**
+     * Get the associated option group.
+     *
+     * @return The options.
+     */
+    public OptionGroup getMapGeneratorOptions() {
+<span class="nc" id="L75">        return this.options;</span>
+    }
+
+    /**
+     * Merge the options in this message into the given game.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to merge to.
+     * @return True if the merge succeeds.
+     */
+    public boolean mergeOptions(Game game) {
+<span class="nc" id="L85">        boolean result = false;        </span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        if (this.options != null) {</span>
+<span class="nc" id="L87">            OptionGroup mapGeneratorOptions = game.getMapGeneratorOptions();</span>
+<span class="nc" id="L88">            result = mapGeneratorOptions.merge(this.options);</span>
+        }
+<span class="nc" id="L90">        return result;</span>
+    }
+
+
+    /**
+     * Handle a &quot;updateMapGeneratorOptions&quot;-message.
+     *
+     * @param freeColServer The &lt;code&gt;FreeColServer&lt;/code&gt; handling
+     *     the message.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; that sent the message.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message was received on.
+     * @return Null (although other players are updated on success) or
+     *     an error message if the options do not update.
+     */
+    public Element handle(FreeColServer freeColServer, Player player,
+                          Connection connection) {
+<span class="nc" id="L106">        final ServerPlayer serverPlayer = freeColServer.getPlayer(connection);</span>
+<span class="nc bnc" id="L107" title="All 4 branches missed.">        if (player == null || !player.isAdmin()) {</span>
+<span class="nc" id="L108">            return serverPlayer.clientError(&quot;Not an admin: &quot; + player)</span>
+<span class="nc" id="L109">                .build(serverPlayer);</span>
+        }
+<span class="nc" id="L111">        final Game game = freeColServer.getGame();</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        if (!mergeOptions(game)) {</span>
+<span class="nc" id="L113">            return serverPlayer.clientError(&quot;Option merge failed&quot;)</span>
+<span class="nc" id="L114">                .build(serverPlayer);</span>
+        }
+
+<span class="nc" id="L117">        DOMMessage message = new UpdateMapGeneratorOptionsMessage(game.getMapGeneratorOptions());</span>
+<span class="nc" id="L118">        freeColServer.sendToAll(message, connection);</span>
+<span class="nc" id="L119">        return null;</span>
+    }
+
+
+    // Override DOMMessage
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="nc" id="L130">        return new DOMMessage(getTagName())</span>
+<span class="nc" id="L131">            .add(this.options).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;updateMapGeneratorOptions&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L140">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>src (May 7, 2016 6:04:12 PM)</div></body></html>

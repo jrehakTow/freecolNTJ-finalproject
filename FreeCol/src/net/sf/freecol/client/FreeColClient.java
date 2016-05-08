@@ -245,7 +245,7 @@ public final class FreeColClient {
                             final boolean showOpeningVideo,
                             final File savedGame,
                             final Specification spec) {
-        if (headless && savedGame == null && spec == null) {
+       if (headless && savedGame == null && spec == null) {
             fatal(Messages.message("client.headlessRequires"));
         }
 

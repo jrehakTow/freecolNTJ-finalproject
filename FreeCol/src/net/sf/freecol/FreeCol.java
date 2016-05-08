@@ -136,9 +136,11 @@ public final class FreeCol {
     // the accessor function.
     private static boolean checkIntegrity = false,
                            consoleLogging = false,
-                           debugStart = false,
+                           //debugStart = false,
+                           debugStart = true,
                            fastStart = false,
-                           headless = false,
+                           //headless = false,
+                           headless = true,
                            introVideo = true,
                            javaCheck = true,
                            memoryCheck = true,
