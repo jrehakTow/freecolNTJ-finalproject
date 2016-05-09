@@ -37,27 +37,51 @@ import net.sf.freecol.util.test.FreeColTestCase;
 import net.sf.freecol.util.test.FreeColTestUtils;
 
 
+// TODO: Auto-generated Javadoc
+/**
+ * The Class MapTest.
+ */
 public class MapTest extends FreeColTestCase {
 
+    /** The high seas type. */
     private final TileType highSeasType
         = spec().getTileType("model.tile.highSeas");
+    
+    /** The lake type. */
     private final TileType lakeType
         = spec().getTileType("model.tile.lake");
+    
+    /** The ocean type. */
     private final TileType oceanType
         = spec().getTileType("model.tile.ocean");
+    
+    /** The plains type. */
     private final TileType plainsType
         = spec().getTileType("model.tile.plains");
 
+    /** The artillery type. */
     private final UnitType artilleryType
         = spec().getUnitType("model.unit.artillery");
+    
+    /** The colonist type. */
     private final UnitType colonistType
         = spec().getUnitType("model.unit.freeColonist");
+    
+    /** The galleon type. */
     private final UnitType galleonType
         = spec().getUnitType("model.unit.galleon");
+    
+    /** The pioneer type. */
     private final UnitType pioneerType
         = spec().getUnitType("model.unit.hardyPioneer");
 
 
+    /**
+     * Gets the single land path map.
+     *
+     * @param game the game
+     * @return the single land path map
+     */
     private Map getSingleLandPathMap(Game game) {
         MapBuilder builder = new MapBuilder(game);
         builder.setBaseTileType(oceanType);
@@ -80,6 +104,12 @@ public class MapTest extends FreeColTestCase {
     //      *   *
     //
     //      *S(1,11)
+    /**
+     * Gets the short long path map.
+     *
+     * @param game the game
+     * @return the short long path map
+     */
     //
     private Map getShortLongPathMap(Game game) {
         MapBuilder builder = new MapBuilder(game);
@@ -103,6 +133,11 @@ public class MapTest extends FreeColTestCase {
         return builder.build();
     }
 
+    /**
+     * Test map game int.
+     *
+     * @throws FreeColException the free col exception
+     */
     public void testMapGameInt() throws FreeColException {
         int expectedWidth = 20;
         int expectedHeigth = 15;
@@ -115,6 +150,9 @@ public class MapTest extends FreeColTestCase {
         assertEquals(expectedHeigth, map.getHeight());
     }
 
+    /**
+     * Test get surrounding tiles.
+     */
     public void testGetSurroundingTiles() {
         Game game = getStandardGame();
 
@@ -162,6 +200,9 @@ public class MapTest extends FreeColTestCase {
         assertEquals(150 - 1, surroundingTiles.size());
     }
 
+    /**
+     * Test get reverse direction.
+     */
     public void testGetReverseDirection() {
         assertEquals(Direction.S, Direction.N.getReverseDirection());
         assertEquals(Direction.N, Direction.S.getReverseDirection());
@@ -173,6 +214,9 @@ public class MapTest extends FreeColTestCase {
         assertEquals(Direction.SE, Direction.NW.getReverseDirection());
     }
 
+    /**
+     * Test get all tiles.
+     */
     public void testGetAllTiles() {
         Game game = getStandardGame();
         final int xmax = 5;
@@ -196,6 +240,9 @@ public class MapTest extends FreeColTestCase {
         assertEquals(xmax * ymax, i);
     }
 
+    /**
+     * Test random direction.
+     */
     public void testRandomDirection() {
         Game game = getStandardGame();
         MapBuilder builder = new MapBuilder(game);
@@ -207,7 +254,7 @@ public class MapTest extends FreeColTestCase {
 
     /**
      * Tests path discoverability in a map with only one path available
-     * That path is obstructed by a settlement, so is invalid
+     * That path is obstructed by a settlement, so is invalid.
      */
     public void testNoPathAvailableDueToCampInTheWay() {
         Game game = getStandardGame();
@@ -234,7 +281,7 @@ public class MapTest extends FreeColTestCase {
 
     /**
      * Tests path discoverability in a map with only one path available
-     * That path is obstructed by a settlement, so is invalid
+     * That path is obstructed by a settlement, so is invalid.
      */
     public void testNoPathAvailableDueToColonyInTheWay() {
         Game game = getStandardGame();
@@ -260,6 +307,9 @@ public class MapTest extends FreeColTestCase {
         assertNull("No path should be available", path);
     }
 
+    /**
+     * Test move through tile with enemy unit.
+     */
     public void testMoveThroughTileWithEnemyUnit() {
         Game game = getStandardGame();
         Map map = getTestMap();
@@ -290,7 +340,7 @@ public class MapTest extends FreeColTestCase {
 
     /**
      * Tests path discoverability in a map with only one path available
-     * That path is obstructed by a settlement, so is invalid
+     * That path is obstructed by a settlement, so is invalid.
      */
     public void testNoPathAvailableDueToUnitInTheWay() {
         Game game = getStandardGame();
@@ -316,6 +366,9 @@ public class MapTest extends FreeColTestCase {
         assertNull("No path should be available", path);
     }
 
+    /**
+     * Test shortest path obstructed.
+     */
     public void testShortestPathObstructed() {
         Game game = getStandardGame();
         Map map = getShortLongPathMap(getGame());
@@ -339,6 +392,9 @@ public class MapTest extends FreeColTestCase {
         assertNotNull("A path should be available", path);
     }
 
+    /**
+     * Test search for colony.
+     */
     public void testSearchForColony() {
         Game game = getStandardGame();
         Map map = getCoastTestMap(plainsType, true);
@@ -409,6 +465,9 @@ public class MapTest extends FreeColTestCase {
                    && path.getLastNode().getTile() == colonyTile);
     }
 
+    /**
+     * Test latitude.
+     */
     public void testLatitude() {
         Game game = getStandardGame();
 
@@ -450,6 +509,9 @@ public class MapTest extends FreeColTestCase {
         assertEquals(90, map.getRow(90));
     }
 
+    /**
+     * Test find path.
+     */
     public void testFindPath() {
         Game game = getStandardGame();
         Map map = getCoastTestMap(plainsType, true);
@@ -589,6 +651,9 @@ public class MapTest extends FreeColTestCase {
             path.getTransportDropNode());
     }
 
+    /**
+     * Test copy.
+     */
     public void testCopy() {
         Game game = getStandardGame();
         game.setMap(getTestMap());
