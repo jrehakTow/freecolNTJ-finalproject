@@ -28,20 +28,29 @@ import java.util.HashMap;
 import java.util.Map;
 
 
+// TODO: Auto-generated Javadoc
 /**
  * Handle translations for the installer.
  */
 public class InstallerTranslations {
 
+    /** The Constant SOURCE_DIRECTORY. */
     private static final File SOURCE_DIRECTORY =
         new File("data/strings");
+    
+    /** The Constant MAIN_FILE. */
     private static final File MAIN_FILE =
         new File(SOURCE_DIRECTORY, "FreeColMessages.properties");
+    
+    /** The Constant DESTINATION_DIRECTORY. */
     private static final File DESTINATION_DIRECTORY =
         new File("build/installer");
+    
+    /** The Constant LANGUAGE_CODES. */
     private static final File LANGUAGE_CODES =
         new File(DESTINATION_DIRECTORY, "iso-639-2.txt");
 
+    /** The Constant IZPACK_CODES. */
     // it seems IzPack doesn't use ISO codes at all
     private static final String[][] IZPACK_CODES = {
         { "ca", "cat", "Catalunyan" },
@@ -72,6 +81,7 @@ public class InstallerTranslations {
         { "uk", "ukr", "Ukrainian" }
     };
 
+    /** The Constant KEYS. */
     private static final String[] KEYS = {
         "FreeCol",
         "FreeCol.description",
@@ -97,6 +107,12 @@ public class InstallerTranslations {
     };
 
 
+    /**
+     * The main method.
+     *
+     * @param args the arguments
+     * @throws Exception the exception
+     */
     public static void main(String[] args) throws Exception {
 
         /*
@@ -186,6 +202,12 @@ public class InstallerTranslations {
 
     }
 
+    /**
+     * Read file.
+     *
+     * @param file the file
+     * @return the map
+     */
     private static Map<String, String> readFile(File file) {
         Map<String, String> result = new HashMap<>();
         try (

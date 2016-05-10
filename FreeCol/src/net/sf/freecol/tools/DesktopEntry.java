@@ -28,16 +28,21 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 
 
+// TODO: Auto-generated Javadoc
 /**
  * Generate a desktop entry file.
  */
 public class DesktopEntry {
 
+    /** The Constant SOURCE_DIRECTORY. */
     private static final File SOURCE_DIRECTORY =
         new File("data", "strings");
 
+    /** The Constant GENERIC_NAME. */
     private static final String GENERIC_NAME =
         "freecol.desktopEntry.GenericName";
+    
+    /** The Constant COMMENT. */
     private static final String COMMENT =
         "freecol.desktopEntry.Comment";
 

@@ -36,46 +36,83 @@ import java.util.Random;
 import javax.imageio.ImageIO;
 
 
+// TODO: Auto-generated Javadoc
 /**
  * Generate forest tiles.
  */
 public class ForestMaker {
 
+    /** The Constant DESTDIR. */
     private static final String DESTDIR = "data/rules/classic/resources/images/forest";
 
+    /** The Constant BASE_WIDTH. */
     private static final int BASE_WIDTH = 128;
+    
+    /** The Constant BASE_HEIGHT. */
     private static final int BASE_HEIGHT = 64;
+    
+    /** The Constant MARGIN. */
     private static final int MARGIN = 20;
+    
+    /** The Constant TREES. */
     private static final int TREES = 60;
+    
+    /** The Constant RIVER_HEIGHT. */
     private static final int RIVER_HEIGHT = 8;
+    
+    /** The Constant RIVER_WIDTH. */
     private static final int RIVER_WIDTH = 2 * RIVER_HEIGHT;
 
+    /** The Constant HALF_WIDTH. */
     private static final int HALF_WIDTH = BASE_WIDTH / 2;
+    
+    /** The Constant HALF_HEIGHT. */
     private static final int HALF_HEIGHT = BASE_HEIGHT / 2;
 
+    /** The Constant LIMIT. */
     private static final int[] LIMIT = {
         HALF_WIDTH, HALF_WIDTH, -HALF_WIDTH, -HALF_WIDTH
     };
 
+    /** The Constant SLOPE. */
     private static final double[] SLOPE = {
         -0.5, 0.5, -0.5, 0.5
     };
 
+    /** The Constant POWERS_OF_TWO. */
     private static final int[] POWERS_OF_TWO
         = { 1, 2, 4, 8 };
 
 
+    /** The Constant drawBorders. */
     private static final boolean drawBorders = true;
+    
+    /** The Constant drawTrees. */
     private static final boolean drawTrees = true;
 
 
+    /**
+     * The Class ImageLocation.
+     */
     private static class ImageLocation implements Comparable<ImageLocation> {
 
+        /** The image. */
         final BufferedImage image;
+        
+        /** The x. */
         final int x;
+        
+        /** The y. */
         final int y;
 
 
+        /**
+         * Instantiates a new image location.
+         *
+         * @param image the image
+         * @param x the x
+         * @param y the y
+         */
         public ImageLocation(BufferedImage image, int x, int y) {
             this.image = image;
             this.x = x;
@@ -84,6 +121,9 @@ public class ForestMaker {
 
         // Implement Comparable<ImageLocation>
 
+        /* (non-Javadoc)
+         * @see java.lang.Comparable#compareTo(java.lang.Object)
+         */
         @Override
         public int compareTo(ImageLocation other) {
             int dy = other.y - this.y;
@@ -314,10 +354,26 @@ public class ForestMaker {
         }
     }
 
+    /**
+     * Gets the y.
+     *
+     * @param x the x
+     * @param y the y
+     * @param slope the slope
+     * @param newX the new x
+     * @return the y
+     */
     private static int getY(int x, int y, double slope, int newX) {
         return (int) (y + slope * (newX - x));
     }
 
+    /**
+     * Gets the random y.
+     *
+     * @param random the random
+     * @param x the x
+     * @return the random y
+     */
     private static int getRandomY(Random random, int x) {
         int height = HALF_HEIGHT - Math.abs(x) / 2;
         return (height == 0) ? 0 : random.nextInt(2 * height) - height;

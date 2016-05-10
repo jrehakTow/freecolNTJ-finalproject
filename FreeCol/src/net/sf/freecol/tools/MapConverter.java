@@ -35,11 +35,18 @@ import net.sf.freecol.common.model.Specification;
 import net.sf.freecol.server.FreeColServer;
 
 
+// TODO: Auto-generated Javadoc
 /**
  * Convert map formats.
  */
 public class MapConverter {
 
+    /**
+     * The main method.
+     *
+     * @param args the arguments
+     * @throws Exception the exception
+     */
     public static void main(String[] args) throws Exception {
 
         Specification specification = new FreeColTcFile("freecol").getSpecification();

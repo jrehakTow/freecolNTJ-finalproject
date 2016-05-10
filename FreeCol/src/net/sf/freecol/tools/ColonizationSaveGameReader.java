@@ -23,21 +23,45 @@ import java.io.RandomAccessFile;
 import java.util.Arrays;
 
 
+// TODO: Auto-generated Javadoc
+/**
+ * The Class ColonizationSaveGameReader.
+ */
 public class ColonizationSaveGameReader {
 
+    /** The Constant PLAYER_DATA. */
     private final static int PLAYER_DATA = 0x9e;
+    
+    /** The Constant COLONY_DATA. */
     private final static int COLONY_DATA = 0x186;
+    
+    /** The Constant NATIONS. */
     private final static String[] NATIONS = {
         "English", "French", "Spanish", "Dutch"
     };
 
+    /**
+     * The Class GameData.
+     */
     private class GameData {
 
+        /** The map width. */
         private final int mapWidth;
+        
+        /** The map height. */
         private final int mapHeight;
+        
+        /** The number of colonies. */
         private final int numberOfColonies;
+        
+        /** The difficulty. */
         private final int difficulty;
 
+        /**
+         * Instantiates a new game data.
+         *
+         * @param data the data
+         */
         public GameData(byte[] data) {
             mapWidth = data[0xc];
             mapHeight = data[0xe];
@@ -45,31 +69,57 @@ public class ColonizationSaveGameReader {
             difficulty = data[0x36];
         }
 
+        /**
+         * Prints the.
+         */
         public void print() {
             System.out.println("Map size is " + mapWidth + " x " + mapHeight);
             System.out.println("Difficulty is " + difficulty);
             System.out.println(numberOfColonies + " colonies found");
         }
 
+        /**
+         * Gets the number of colonies.
+         *
+         * @return the number of colonies
+         */
         public int getNumberOfColonies() {
             return numberOfColonies;
         }
     }
 
+    /**
+     * The Class PlayerData.
+     */
     private class PlayerData {
 
+        /** The Constant LENGTH. */
         public static final int LENGTH = 52;
 
+        /** The new land name. */
         private final String newLandName;
+        
+        /** The player name. */
         private final String playerName;
+        
+        /** The human player. */
         private final boolean humanPlayer;
 
+        /**
+         * Instantiates a new player data.
+         *
+         * @param data the data
+         * @param offset the offset
+         */
         public PlayerData(byte[] data, int offset) {
             playerName = getString(data, offset, 23);
             newLandName = getString(data, offset + 24, 23);
             humanPlayer = (data[offset + 49] == 0);
         }
 
+        /**
+         * Prints the.
+         */
         public void print() {
             System.out.println("Player name is " + playerName
                                + (humanPlayer ? " [human]" : " [AI]"));
@@ -78,19 +128,44 @@ public class ColonizationSaveGameReader {
 
     }
 
+    /**
+     * The Class ColonyData.
+     */
     private class ColonyData {
 
+        /** The Constant LENGTH. */
         public static final int LENGTH = 202;
+        
+        /** The Constant COLONIST_OCCUPATION. */
         public static final int COLONIST_OCCUPATION = 0x20;
+        
+        /** The Constant COLONIST_SPECIALITY. */
         public static final int COLONIST_SPECIALITY = 0x40;
+        
+        /** The Constant TILES. */
         public static final int TILES = 0x70;
 
+        /** The x. */
         private final int x;
+        
+        /** The y. */
         private final int y;
+        
+        /** The number of colonists. */
         private final int numberOfColonists;
+        
+        /** The name. */
         private final String name;
+        
+        /** The colonists. */
         private final Colonist[] colonists;
 
+        /**
+         * Instantiates a new colony data.
+         *
+         * @param data the data
+         * @param offset the offset
+         */
         public ColonyData(byte[] data, int offset) {
             x = data[offset];
             y = data[offset + 1];
@@ -113,6 +188,9 @@ public class ColonizationSaveGameReader {
 
         }
 
+        /**
+         * Prints the.
+         */
         public void print() {
             System.out.println(name + " [" + x + ", " + y + "], "
                                + numberOfColonists + " colonists");
@@ -122,8 +200,12 @@ public class ColonizationSaveGameReader {
         }
     }
 
+    /**
+     * The Class Colonist.
+     */
     public class Colonist {
 
+        /** The occupation. */
         public final String[] OCCUPATION = {
             "Farmer",
             "Sugar planter",
@@ -158,20 +240,36 @@ public class ColonizationSaveGameReader {
             "Mounted brave"
         };
 
+        /** The tiles. */
         public final String[] TILES = {
             "N", "E", "S", "W", "NW", "NE", "SE", "SW"
         };
 
+        /** The occupation. */
         final int occupation;
+        
+        /** The speciality. */
         final int speciality;
+        
+        /** The tile. */
         final int tile;
 
+        /**
+         * Instantiates a new colonist.
+         *
+         * @param occupation the occupation
+         * @param speciality the speciality
+         * @param tile the tile
+         */
         public Colonist(int occupation, int speciality, int tile) {
             this.occupation = occupation;
             this.speciality = speciality;
             this.tile = tile;
         }
 
+        /**
+         * Prints the.
+         */
         public void print() {
             String tileString = (tile >= 0)
                 ? " [tile " + TILES[tile] + "]" : "";
@@ -182,12 +280,24 @@ public class ColonizationSaveGameReader {
     }
 
 
+    /** The data. */
     private final byte[] data;
 
+    /**
+     * Instantiates a new colonization save game reader.
+     *
+     * @param data the data
+     */
     public ColonizationSaveGameReader(byte[] data) {
         this.data = data;
     }
 
+    /**
+     * The main method.
+     *
+     * @param args the arguments
+     * @throws Exception the exception
+     */
     public static void main(String[] args) throws Exception {
 
         byte[] data;
@@ -199,6 +309,9 @@ public class ColonizationSaveGameReader {
     }
 
 
+    /**
+     * Run.
+     */
     private void run() {
 
         GameData gameData = new GameData(data);
@@ -219,6 +332,14 @@ public class ColonizationSaveGameReader {
 
     }
 
+    /**
+     * Gets the string.
+     *
+     * @param data the data
+     * @param start the start
+     * @param length the length
+     * @return the string
+     */
     public static String getString(byte[] data, int start, int length) {
         byte[] bytes = Arrays.copyOfRange(data, start, start + length);
         String value = new String(bytes);

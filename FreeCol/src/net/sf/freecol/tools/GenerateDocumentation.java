@@ -40,22 +40,31 @@ import net.sf.freecol.common.i18n.Messages;
 import net.sf.freecol.common.model.StringTemplate;
 
 
+// TODO: Auto-generated Javadoc
 /**
  * Generate some documentation.
  */
 public class GenerateDocumentation {
 
+    /** The Constant STRING_DIRECTORY. */
     private static final File STRING_DIRECTORY =
         new File("data/strings");
+    
+    /** The Constant RULE_DIRECTORY. */
     private static final File RULE_DIRECTORY =
         new File("data/rules/classic");
+    
+    /** The Constant XSL. */
     private static final String XSL = "specification.xsl";
     
+    /** The Constant DESTINATION_DIRECTORY. */
     private static final File DESTINATION_DIRECTORY =
         new File("doc");
 
+    /** The Constant resources. */
     private static final Map<String, String> resources = new HashMap<>();
 
+    /** The Constant sourceFiles. */
     private static final String[] sourceFiles
         = STRING_DIRECTORY.list(new FilenameFilter() {
             @Override
@@ -67,6 +76,12 @@ public class GenerateDocumentation {
 
 
 
+    /**
+     * The main method.
+     *
+     * @param args the arguments
+     * @throws Exception the exception
+     */
     public static void main(String[] args) throws Exception {
         System.setProperty("jaxp.debug", "1");
         if (args.length > 0) {
@@ -77,6 +92,9 @@ public class GenerateDocumentation {
         generateDocumentation(args);
     }
 
+    /**
+     * Read resources.
+     */
     private static void readResources() {
         System.out.println("Processing source file: resources.properties");
         File sourceFile = new File(RULE_DIRECTORY, "resources.properties");
@@ -100,6 +118,9 @@ public class GenerateDocumentation {
     }
 
 
+    /**
+     * Generate tmx.
+     */
     private static void generateTMX() {
 
         Map<String, Map<String, String>> translations = new HashMap<>();
@@ -168,6 +189,11 @@ public class GenerateDocumentation {
         }
     }
 
+    /**
+     * Generate documentation.
+     *
+     * @param languages the languages
+     */
     public static void generateDocumentation(String[] languages) {
         for (String name : sourceFiles) {
 
@@ -215,14 +241,34 @@ public class GenerateDocumentation {
         }
     }
 
+    /**
+     * Gets the resource.
+     *
+     * @param key the key
+     * @return the resource
+     */
     public static String getResource(String key) {
         return resources.get(key);
     }
 
+    /**
+     * Localize.
+     *
+     * @param template the template
+     * @return the string
+     */
     public static String localize(String template) {
         return Messages.message(template);
     }
 
+    /**
+     * Localize.
+     *
+     * @param template the template
+     * @param key the key
+     * @param number the number
+     * @return the string
+     */
     public static String localize(String template, String key, String number) {
         double num = Double.parseDouble(number);
         StringTemplate stringTemplate = StringTemplate.template(template)

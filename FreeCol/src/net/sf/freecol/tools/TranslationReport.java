@@ -28,25 +28,49 @@ import java.util.Properties;
 import java.util.TreeSet;
 
 
+// TODO: Auto-generated Javadoc
 /**
  * Document the state of the translations.
  */
 public class TranslationReport {
     
+    /**
+     * The Class LanguageStatsRecord.
+     */
     private static class LanguageStatsRecord{
+        
+        /** The local file. */
         String localFile = "";
+        
+        /** The missing keys. */
         int missingKeys = 0;
+        
+        /** The missing variables. */
         int missingVariables = 0;
+        
+        /** The copied keys. */
         int copiedKeys = 0;
+        
+        /** The superfluous variables. */
         public int superfluousVariables;
+        
+        /** The superfluous keys. */
         public int superfluousKeys;
     }
 
+    /** The Constant stars. */
     private static final String stars =
         "*****************************************************************";
 
+    /** The Constant printSummary. */
     private static final boolean printSummary = true;
 
+    /**
+     * The main method.
+     *
+     * @param args the arguments
+     * @throws Exception the exception
+     */
     public static void main(String[] args) throws Exception {
         ArrayList<LanguageStatsRecord> statistics = new ArrayList<>();
 
@@ -244,6 +268,12 @@ public class TranslationReport {
         }
     }
 
+    /**
+     * Shorten name.
+     *
+     * @param localFile the local file
+     * @return the string builder
+     */
     private static StringBuilder shortenName(String localFile) {
         StringBuilder out = new StringBuilder(5);
         String temp = localFile.substring(16, localFile.indexOf('.'));
@@ -253,6 +283,12 @@ public class TranslationReport {
         return out;
     }
 
+    /**
+     * Pretty print.
+     *
+     * @param number the number
+     * @return the string builder
+     */
     private static StringBuilder prettyPrint(int number) {
         StringBuilder output = new StringBuilder(4);
         if (number < 10)
@@ -265,6 +301,12 @@ public class TranslationReport {
         return output;
     }
 
+    /**
+     * Sort.
+     *
+     * @param missingKeys the missing keys
+     * @return the tree set
+     */
     private static TreeSet<String> sort(ArrayList<String> missingKeys) {
         TreeSet<String> sorted = new TreeSet<>();
         sorted.addAll(missingKeys);

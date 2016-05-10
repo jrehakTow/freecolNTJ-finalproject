@@ -35,11 +35,18 @@ import java.util.stream.Collectors;
 import static net.sf.freecol.common.util.CollectionUtils.*;
 
 
+// TODO: Auto-generated Javadoc
 /**
  * Merge some translation updates.
  */
 public class MergeTranslations {
     
+    /**
+     * The main method.
+     *
+     * @param args the arguments
+     * @throws Exception the exception
+     */
     public static void main(String[] args) throws Exception {
 
         File sourceDirectory = new File(args[0]);
@@ -105,6 +112,12 @@ public class MergeTranslations {
         }
     }
 
+    /**
+     * Read file.
+     *
+     * @param file the file
+     * @return the map
+     */
     private static Map<String, String> readFile(File file) {
         Map<String, String> result = new HashMap<>();
         try (

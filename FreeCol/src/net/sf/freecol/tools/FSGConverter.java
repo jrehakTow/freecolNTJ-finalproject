@@ -33,6 +33,7 @@ import java.util.zip.GZIPInputStream;
 import net.sf.freecol.FreeCol;
 
 
+// TODO: Auto-generated Javadoc
 /**
  * Class for converting FreeCol Savegames (fsg-files).
  * 
@@ -48,7 +49,7 @@ public class FSGConverter {
     
     
     /**
-     * Creates an instance of <code>FSGConverter</code>
+     * Creates an instance of <code>FSGConverter</code>.
      */
     private FSGConverter() {
         // Nothing to initialize;

@@ -36,11 +36,18 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 
+// TODO: Auto-generated Javadoc
 /**
  * Validate a saved game.
  */
 public class SaveGameValidator {
 
+    /**
+     * The main method.
+     *
+     * @param args the arguments
+     * @throws Exception the exception
+     */
     public static void main(String[] args) throws Exception {
 
         SchemaFactory factory = SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
