@@ -108,7 +108,7 @@ public final class CaptureGoodsDialog extends FreeColDialog<List<Goods>> {
     private final JButton noneButton;
 
     /** The list of goods to display. */
-    private final JList<GoodsItem> goodsList;
+    private JList<GoodsItem> goodsList;
 
 
     /**
@@ -124,7 +124,7 @@ public final class CaptureGoodsDialog extends FreeColDialog<List<Goods>> {
         super(freeColClient, frame);
 
         this.maxCargo = winner.getSpaceLeft();
-
+      
         this.allButton = Utility.localizedButton("all");
         this.allButton.addActionListener((ActionEvent ae) -> {
                 JList<GoodsItem> gl = CaptureGoodsDialog.this.goodsList;
