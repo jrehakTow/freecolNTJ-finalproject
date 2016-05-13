@@ -250,7 +250,7 @@ public class FreeColDirectories {
                            { XDG_CACHE_HOME_ENV,  XDG_CACHE_HOME_DEFAULT } };
         File[] todo = new File[xdg.length];
         for (int i = 0; i < xdg.length; i++) {
-            String env = System.getenv(xdg[i][0]);
+            String env = System.getProperty(xdg[i][0]);
             File d = (env != null) ? new File(env) : new File(home, xdg[i][1]);
             if (d.exists()) {
                 if (!d.isDirectory() || !d.canWrite()) {
