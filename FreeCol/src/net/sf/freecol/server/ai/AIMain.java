@@ -615,13 +615,13 @@ public class AIMain extends FreeColObject
             }
 
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Exception reading AIObject: "
-                       + tag + ", id=" + oid, e);
+            logger.log(Level.WARNING, "Exception reading AIObject: " + tag + ", id=" + oid, e);
             // We are hosed.  Try to resynchronize at the end of the tag
             // or aiMain.
             final String mainTag = getTagName();
-            while (xr.nextTag() != XMLStreamConstants.END_ELEMENT
-                || !(xr.atTag(tag) || xr.atTag(mainTag)));
+            while (xr.nextTag() != XMLStreamConstants.END_ELEMENT || !(xr.atTag(tag) || xr.atTag(mainTag))){
+            	//no processing required
+            }
         }
     }
 

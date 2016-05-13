@@ -226,7 +226,11 @@ public class PathNode {
      */
     public PathNode getFirstNode() {
         PathNode path;
-        for (path = this; path.previous != null; path = path.previous);
+        
+        path = this;
+        while(path.previous != null){
+        	path = path.previous;
+        }
         return path;
     }
 
@@ -237,7 +241,10 @@ public class PathNode {
      */
     public PathNode getLastNode() {
         PathNode path;
-        for (path = this; path.next != null; path = path.next);
+        path = this;
+        while(path.next != null){
+        	path = path.next;
+        }
         return path;
     }
 

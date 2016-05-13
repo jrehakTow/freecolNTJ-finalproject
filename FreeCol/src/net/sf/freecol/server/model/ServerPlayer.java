@@ -1871,8 +1871,9 @@ outer:  for (Effect effect : effects) {
         // Pick a random type of storable goods to add/remove an extra
         // amount of.
         GoodsType extraType;
-        while (!(extraType = getRandomMember(logger, "Choose goods type",
-                                             goodsTypes, random)).isStorable());
+        while (!(extraType = getRandomMember(logger, "Choose goods type", goodsTypes, random)).isStorable()){
+        	// no processing required for pick a random type of storable goods to add/remove an extra
+        }
 
         // Remove standard amount, and the extra amount.
         for (GoodsType type : goodsTypes) {
