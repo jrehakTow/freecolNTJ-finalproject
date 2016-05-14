@@ -2184,7 +2184,8 @@ public final class InGameController extends FreeColClientHolder {
      * @param lb A <code>LogBuilder</code> to update.
      * @return True if goods were loaded.
      */
-    private boolean loadUnitAtStop(Unit unit, LogBuilder lb) {
+    @SuppressWarnings("null")
+	private boolean loadUnitAtStop(Unit unit, LogBuilder lb) {
         final boolean enhancedTradeRoutes = getSpecification()
             .getBoolean(GameOptions.ENHANCED_TRADE_ROUTES);
         final TradeRoute tradeRoute = unit.getTradeRoute();
@@ -2210,6 +2211,7 @@ public final class InGameController extends FreeColClientHolder {
         for (Goods g : unit.getCompactGoods()) {
             AbstractGoods ag = AbstractGoods.findByType(g.getType(), toLoad);
             if (ag == null) { // Excess goods on board, failed unload?
+            	ag = AbstractGoods.findByType(g.getType(), toLoad);
                 unexpected.addStringTemplate("%goods%", ag.getLabel());
             } else {
                 int goodsAmount = g.getAmount();
