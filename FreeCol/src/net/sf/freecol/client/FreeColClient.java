@@ -150,8 +150,7 @@ public final class FreeColClient {
     public FreeColClient(final InputStream splashStream, final String fontName,
                          final float scale, boolean headless) {
         mapEditor = false;
-        this.headless = headless
-            || System.getProperty("java.awt.headless", "false").equals("true");
+        this.headless = headless || System.getProperty("java.awt.headless", "false").equals("true");
         if (this.headless) {
             if (!FreeColDebugger.isInDebugMode()
                 || FreeColDebugger.getDebugRunTurns() <= 0) {
