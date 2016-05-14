@@ -133,14 +133,7 @@ public class ColonizationMapReader {
 		  int COLUMNS = 8;
 		  int offset = header.length + width + 1;
 		  for (int y = 0; y < ROWS; y++) {
-			  for (int x = 0; x < COLUMNS; x++) {
-				  byte value = (byte) (COLUMNS * y + x);
-				  if ((value & 24) == 24 && x > 2) {
-					  // undefined
-					  value = 26;
-				  }
-				  layer1[offset + x] = value;
-			  }
+			  getLay1ValueinLoop(COLUMNS, offset, y);
 			  offset += width;
 		  }
 		  writer.write(layer1);
@@ -158,25 +151,7 @@ public class ColonizationMapReader {
 		  int index = 0;
 		 for (int y = 0; y < header[HEIGHT]; y++) {
 			  for (int x = 0; x < header[WIDTH]; x++) {
-				  int decimal = layer1[index] & 0xff;
-				  char terrain = tiletypes[decimal & 31];
-				  int overlay = decimal >> 5;
-			  switch(overlay) {
-			  case 1: terrain = '^'; // hill
-			  break;
-			  case 2: terrain = '~'; // minor river
-			  break;
-			  case 3: terrain = 'x'; // hill + minor river
-			  break;
-			  case 5: terrain = '*'; // mountain
-			  break;
-			  case 6: terrain = '='; // major river
-			  break;
-			  case 7: terrain = 'X'; // mountain + major river
-			  break;
-			  default:
-				  break;
-			  };
+				  char terrain = goCaseLoop(index);
 			  System.out.print(terrain);
 			  index++;
 			  }
@@ -185,5 +160,60 @@ public class ColonizationMapReader {
 		  System.out.println("\n");
 	  }
   }
+
+/**
+ * Go switch case loop
+ * @param index
+ * @return
+ */
+private static char goCaseLoop(int index) {
+	int decimal = layer1[index] & 0xff;
+	  char terrain = tiletypes[decimal & 31];
+	  int overlay = decimal >> 5;
+  switch(overlay) {
+  case 1: terrain = '^'; // hill
+  break;
+  case 2: terrain = '~'; // minor river
+  break;
+  case 3: terrain = 'x'; // hill + minor river
+  break;
+  case 5: terrain = '*'; // mountain
+  break;
+  case 6: terrain = '='; // major river
+  break;
+  case 7: terrain = 'X'; // mountain + major river
+  break;
+  default:
+	  break;
+  };
+	return terrain;
+}
+
+/**
+ * get the Lay1 value in for loop
+ * @param COLUMNS
+ * @param offset
+ * @param y
+ */
+private static void getLay1ValueinLoop(int COLUMNS, int offset, int y) {
+	for (int x = 0; x < COLUMNS; x++) {
+		  byte value = (byte) (COLUMNS * y + x);
+		  getLayer1Value(offset, x, value);
+	  }
+}
+
+/**
+ * get Lay1[] value
+ * @param offset
+ * @param x
+ * @param value
+ */
+private static void getLayer1Value(int offset, int x, byte value) {
+	if ((value & 24) == 24 && x > 2) {
+		  // undefined
+		  value = 26;
+	  }
+	  layer1[offset + x] = value;
+}
 
 }
