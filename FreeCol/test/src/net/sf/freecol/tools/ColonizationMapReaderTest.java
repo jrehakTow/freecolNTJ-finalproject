@@ -13,6 +13,7 @@ import org.junit.*;
  *
  * @generatedBy CodePro at 5/10/16 11:07 AM
  * @author newsha
+ * @author James Rehak
  * @version $Revision: 1.0 $
  */
 public class ColonizationMapReaderTest extends FreeColTestCase{
