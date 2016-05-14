@@ -1,6 +1,9 @@
 package net.sf.freecol.tools;
 
+import java.io.FileNotFoundException;
+
 import org.junit.*;
+
 import static org.junit.Assert.*;
 
 /**
@@ -31,10 +34,11 @@ public class DesktopEntryTest {
 	 *
 	 * @generatedBy CodePro at 5/10/16 11:07 AM
 	 */
-	@Test
+	@Test//(expected=FileNotFoundException.class )
 	public void testMain_1()
 		throws Exception {
-		String[] args = new String[] {};
+		String[] args = new String[1];
+		args[0] = "file";
 
 		DesktopEntry.main(args);
 
@@ -54,7 +58,7 @@ public class DesktopEntryTest {
 	@Test
 	public void testMain_2()
 		throws Exception {
-		String[] args = new String[] {};
+		String[] args = new String[] {" "};
 
 		DesktopEntry.main(args);
 
@@ -74,7 +78,7 @@ public class DesktopEntryTest {
 	@Test
 	public void testMain_3()
 		throws Exception {
-		String[] args = new String[] {};
+		String[] args = new String[] {"file.properties"};
 
 		DesktopEntry.main(args);
 
@@ -124,225 +128,7 @@ public class DesktopEntryTest {
 		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
 	}
 
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test
-	public void testMain_6()
-		throws Exception {
-		String[] args = new String[] {};
 
-		DesktopEntry.main(args);
-
-		// add additional test code here
-		// An unexpected exception was thrown in user code while executing this test:
-		//    java.lang.ArrayIndexOutOfBoundsException: 0
-		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
-	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test
-	public void testMain_7()
-		throws Exception {
-		String[] args = new String[] {};
-
-		DesktopEntry.main(args);
-
-		// add additional test code here
-		// An unexpected exception was thrown in user code while executing this test:
-		//    java.lang.ArrayIndexOutOfBoundsException: 0
-		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
-	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test
-	public void testMain_8()
-		throws Exception {
-		String[] args = new String[] {};
-
-		DesktopEntry.main(args);
-
-		// add additional test code here
-		// An unexpected exception was thrown in user code while executing this test:
-		//    java.lang.ArrayIndexOutOfBoundsException: 0
-		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
-	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test
-	public void testMain_9()
-		throws Exception {
-		String[] args = new String[] {};
-
-		DesktopEntry.main(args);
-
-		// add additional test code here
-		// An unexpected exception was thrown in user code while executing this test:
-		//    java.lang.ArrayIndexOutOfBoundsException: 0
-		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
-	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test
-	public void testMain_10()
-		throws Exception {
-		String[] args = new String[] {};
-
-		DesktopEntry.main(args);
-
-		// add additional test code here
-		// An unexpected exception was thrown in user code while executing this test:
-		//    java.lang.ArrayIndexOutOfBoundsException: 0
-		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
-	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test
-	public void testMain_11()
-		throws Exception {
-		String[] args = new String[] {};
-
-		DesktopEntry.main(args);
-
-		// add additional test code here
-		// An unexpected exception was thrown in user code while executing this test:
-		//    java.lang.ArrayIndexOutOfBoundsException: 0
-		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
-	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test
-	public void testMain_12()
-		throws Exception {
-		String[] args = new String[] {};
-
-		DesktopEntry.main(args);
-
-		// add additional test code here
-		// An unexpected exception was thrown in user code while executing this test:
-		//    java.lang.ArrayIndexOutOfBoundsException: 0
-		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
-	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test
-	public void testMain_13()
-		throws Exception {
-		String[] args = new String[] {};
-
-		DesktopEntry.main(args);
-
-		// add additional test code here
-		// An unexpected exception was thrown in user code while executing this test:
-		//    java.lang.ArrayIndexOutOfBoundsException: 0
-		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
-	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test
-	public void testMain_14()
-		throws Exception {
-		String[] args = new String[] {};
-
-		DesktopEntry.main(args);
-
-		// add additional test code here
-		// An unexpected exception was thrown in user code while executing this test:
-		//    java.lang.ArrayIndexOutOfBoundsException: 0
-		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
-	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test
-	public void testMain_15()
-		throws Exception {
-		String[] args = new String[] {};
-
-		DesktopEntry.main(args);
-
-		// add additional test code here
-		// An unexpected exception was thrown in user code while executing this test:
-		//    java.lang.ArrayIndexOutOfBoundsException: 0
-		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
-	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test
-	public void testMain_16()
-		throws Exception {
-		String[] args = new String[] {};
-
-		DesktopEntry.main(args);
-
-		// add additional test code here
-		// An unexpected exception was thrown in user code while executing this test:
-		//    java.lang.ArrayIndexOutOfBoundsException: 0
-		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
-	}
 
 	/**
 	 * Perform pre-test initialization.
