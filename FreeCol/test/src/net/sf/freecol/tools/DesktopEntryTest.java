@@ -11,6 +11,7 @@ import static org.junit.Assert.*;
  *
  * @generatedBy CodePro at 5/10/16 11:07 AM
  * @author newsha
+ * @author James Rehak
  * @version $Revision: 1.0 $
  */
 public class DesktopEntryTest {
@@ -87,47 +88,6 @@ public class DesktopEntryTest {
 		//    java.lang.ArrayIndexOutOfBoundsException: 0
 		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
 	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test
-	public void testMain_4()
-		throws Exception {
-		String[] args = new String[] {};
-
-		DesktopEntry.main(args);
-
-		// add additional test code here
-		// An unexpected exception was thrown in user code while executing this test:
-		//    java.lang.ArrayIndexOutOfBoundsException: 0
-		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
-	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test
-	public void testMain_5()
-		throws Exception {
-		String[] args = new String[] {};
-
-		DesktopEntry.main(args);
-
-		// add additional test code here
-		// An unexpected exception was thrown in user code while executing this test:
-		//    java.lang.ArrayIndexOutOfBoundsException: 0
-		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
-	}
-
 
 
 	/**
