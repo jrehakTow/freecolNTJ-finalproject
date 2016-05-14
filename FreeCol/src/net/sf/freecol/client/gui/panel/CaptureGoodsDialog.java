@@ -108,7 +108,7 @@ public final class CaptureGoodsDialog extends FreeColDialog<List<Goods>> {
     private final JButton noneButton;
 
     /** The list of goods to display. */
-    private JList<GoodsItem> goodsList;
+    private  JList<GoodsItem> goodsList;
 
 
     /**

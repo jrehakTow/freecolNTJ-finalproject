@@ -214,7 +214,7 @@ public class ServerColony extends Colony implements ServerModelObject {
                 // Ready to build something.  FIXME: OO!
                 BuildableType buildable = csNextBuildable(queue, cs);
                 if (buildable == null) {
-                    ; // It was invalid, ignore.
+                     // It was invalid, ignore.
                 } else if (buildable instanceof UnitType) {
                     Unit newUnit = csBuildUnit(queue, random, cs);
                     if (newUnit.hasAbility(Ability.BORN_IN_COLONY)) {
@@ -326,107 +326,11 @@ public class ServerColony extends Colony implements ServerModelObject {
         // Export goods if custom house is built.
         // Do not flush price changes yet, as any price change may change
         // yet again in csYearlyGoodsAdjust.
-        if (hasAbility(Ability.EXPORT)) {
-            LogBuilder lb2 = new LogBuilder(64);
-            lb2.add(" ");
-            lb2.mark();
-            for (Goods goods : getCompactGoods()) {
-                GoodsType type = goods.getType();
-                ExportData data = getExportData(type);
-                if (!data.getExported()
-                    || !owner.canTrade(goods.getType(), Market.Access.CUSTOM_HOUSE)) continue;
-                int amount = goods.getAmount() - data.getExportLevel();
-                if (amount <= 0) continue;
-                int oldGold = owner.getGold();
-                int marketAmount = owner.sell(container, type, amount);
-                if (marketAmount > 0) {
-                    owner.addExtraTrade(new AbstractGoods(type, marketAmount));
-                }
-                StringTemplate st = StringTemplate.template("model.colony.customs.saleData")
-                    .addAmount("%amount%", amount)
-                    .addNamed("%goods%", type)
-                    .addAmount("%gold%", (owner.getGold() - oldGold));
-                lb2.add(Messages.message(st), ", ");
-            }
-            if (lb2.grew()) {
-                lb2.shrink(", ");
-                cs.addMessage(See.only(owner),
-                    new ModelMessage(MessageType.GOODS_MOVEMENT,
-                                     "model.colony.customs.sale", this)
-                        .addName("%colony%", getName())
-                        .addName("%data%", lb2.toString()));
-                cs.addPartial(See.only(owner), owner, "gold");
-                lb.add(lb2.toString());
-            }
-        }
+        exportGoods(lb, cs, owner, container);
 
         // Throw away goods there is no room for, and warn about
         // levels that will be exceeded next turn
-        int limit = getWarehouseCapacity();
-        int adjustment = limit / GoodsContainer.CARGO_SIZE;
-        for (Goods goods : getCompactGoods()) {
-            GoodsType type = goods.getType();
-            if (!type.isStorable()) continue;
-            ExportData exportData = getExportData(type);
-            int low = exportData.getLowLevel() * adjustment;
-            int high = exportData.getHighLevel() * adjustment;
-            int amount = goods.getAmount();
-            int oldAmount = container.getOldGoodsCount(type);
-
-            if (amount < low && oldAmount >= low
-                && !(type == spec.getPrimaryFoodType() && newUnitBorn)) {
-                cs.addMessage(See.only(owner),
-                    new ModelMessage(MessageType.WAREHOUSE_CAPACITY,
-                                     "model.colony.warehouseEmpty",
-                                     this, type)
-                        .addNamed("%goods%", type)
-                        .addAmount("%level%", low)
-                        .addName("%colony%", getName()));
-                continue;
-            }
-            if (type.limitIgnored()) continue;
-
-            String messageId = null;
-            int waste = 0;
-            if (amount > limit) {
-                // limit has been exceeded
-                waste = amount - limit;
-                container.removeGoods(type, waste);
-                messageId = "model.colony.warehouseWaste";
-            } else if (amount == limit && oldAmount < limit) {
-                // limit has been reached during this turn
-                messageId = "model.colony.warehouseOverfull";
-            } else if (amount > high && oldAmount <= high) {
-                // high-water-mark has been reached this turn
-                messageId = "model.colony.warehouseFull";
-            }
-            if (messageId != null) {
-                cs.addMessage(See.only(owner),
-                    new ModelMessage(MessageType.WAREHOUSE_CAPACITY,
-                                     messageId, this, type)
-                        .addNamed("%goods%", type)
-                        .addAmount("%waste%", waste)
-                        .addAmount("%level%", high)
-                        .addName("%colony%", getName()));
-            }
-
-            // No problem this turn, but what about the next?
-            if (!(exportData.getExported()
-                  && hasAbility(Ability.EXPORT)
-                  && owner.canTrade(type, Market.Access.CUSTOM_HOUSE))
-                && amount <= limit) {
-                int loss = amount + getNetProductionOf(type) - limit;
-                if (loss > 0) {
-                    cs.addMessage(See.only(owner),
-                        new ModelMessage(MessageType.WAREHOUSE_CAPACITY,
-                                         "model.colony.warehouseSoonFull",
-                                         this, type)
-                            .addNamed("%goods%", goods)
-                            .addName("%colony%", getName())
-                            .addAmount("%amount%", loss));
-                }
-            }
-        }
+        throwGoods(cs, spec, owner, newUnitBorn, container);
 
         // Check for free buildings
         for (BuildingType buildingType : spec.getBuildingTypeList()) {
@@ -504,6 +408,128 @@ public class ServerColony extends Colony implements ServerModelObject {
         }
         lb.add(", ");
     }
+
+	/**
+	 * Throw Goods there is no room for, and warn about levels that will be exceeded next turn
+	 * @param cs
+	 * @param spec
+	 * @param owner
+	 * @param newUnitBorn
+	 * @param container
+	 */
+	private void throwGoods(ChangeSet cs, final Specification spec,
+			final ServerPlayer owner, boolean newUnitBorn,
+			GoodsContainer container) {
+		int limit = getWarehouseCapacity();
+        int adjustment = limit / GoodsContainer.CARGO_SIZE;
+        for (Goods goods : getCompactGoods()) {
+            GoodsType type = goods.getType();
+            if (!type.isStorable()) continue;
+            ExportData exportData = getExportData(type);
+            int low = exportData.getLowLevel() * adjustment;
+            int high = exportData.getHighLevel() * adjustment;
+            int amount = goods.getAmount();
+            int oldAmount = container.getOldGoodsCount(type);
+
+            if (amount < low && oldAmount >= low
+                && !(type == spec.getPrimaryFoodType() && newUnitBorn)) {
+                cs.addMessage(See.only(owner),
+                    new ModelMessage(MessageType.WAREHOUSE_CAPACITY,
+                                     "model.colony.warehouseEmpty",
+                                     this, type)
+                        .addNamed("%goods%", type)
+                        .addAmount("%level%", low)
+                        .addName("%colony%", getName()));
+                continue;
+            }
+            if (type.limitIgnored()) continue;
+
+            String messageId = null;
+            int waste = 0;
+            if (amount > limit) {
+                // limit has been exceeded
+                waste = amount - limit;
+                container.removeGoods(type, waste);
+                messageId = "model.colony.warehouseWaste";
+            } else if (amount == limit && oldAmount < limit) {
+                // limit has been reached during this turn
+                messageId = "model.colony.warehouseOverfull";
+            } else if (amount > high && oldAmount <= high) {
+                // high-water-mark has been reached this turn
+                messageId = "model.colony.warehouseFull";
+            }
+            if (messageId != null) {
+                cs.addMessage(See.only(owner),
+                    new ModelMessage(MessageType.WAREHOUSE_CAPACITY,
+                                     messageId, this, type)
+                        .addNamed("%goods%", type)
+                        .addAmount("%waste%", waste)
+                        .addAmount("%level%", high)
+                        .addName("%colony%", getName()));
+            }
+
+            // No problem this turn, but what about the next?
+            if (!(exportData.getExported()
+                  && hasAbility(Ability.EXPORT)
+                  && owner.canTrade(type, Market.Access.CUSTOM_HOUSE))
+                && amount <= limit) {
+                int loss = amount + getNetProductionOf(type) - limit;
+                if (loss > 0) {
+                    cs.addMessage(See.only(owner),
+                        new ModelMessage(MessageType.WAREHOUSE_CAPACITY,
+                                         "model.colony.warehouseSoonFull",
+                                         this, type)
+                            .addNamed("%goods%", goods)
+                            .addName("%colony%", getName())
+                            .addAmount("%amount%", loss));
+                }
+            }
+        }
+	}
+
+	/**
+	 * Export goods if custom house is built.
+	 * @param lb
+	 * @param cs
+	 * @param owner
+	 * @param container
+	 */
+	private void exportGoods(LogBuilder lb, ChangeSet cs,
+			final ServerPlayer owner, GoodsContainer container) {
+		if (hasAbility(Ability.EXPORT)) {
+            LogBuilder lb2 = new LogBuilder(64);
+            lb2.add(" ");
+            lb2.mark();
+            for (Goods goods : getCompactGoods()) {
+                GoodsType type = goods.getType();
+                ExportData data = getExportData(type);
+                if (!data.getExported()
+                    || !owner.canTrade(goods.getType(), Market.Access.CUSTOM_HOUSE)) continue;
+                int amount = goods.getAmount() - data.getExportLevel();
+                if (amount <= 0) continue;
+                int oldGold = owner.getGold();
+                int marketAmount = owner.sell(container, type, amount);
+                if (marketAmount > 0) {
+                    owner.addExtraTrade(new AbstractGoods(type, marketAmount));
+                }
+                StringTemplate st = StringTemplate.template("model.colony.customs.saleData")
+                    .addAmount("%amount%", amount)
+                    .addNamed("%goods%", type)
+                    .addAmount("%gold%", (owner.getGold() - oldGold));
+                lb2.add(Messages.message(st), ", ");
+            }
+            if (lb2.grew()) {
+                lb2.shrink(", ");
+                cs.addMessage(See.only(owner),
+                    new ModelMessage(MessageType.GOODS_MOVEMENT,
+                                     "model.colony.customs.sale", this)
+                        .addName("%colony%", getName())
+                        .addName("%data%", lb2.toString()));
+                cs.addPartial(See.only(owner), owner, "gold");
+                lb.add(lb2.toString());
+            }
+        }
+	}
 
     /**
      * Is a goods type needed for a buildable that this colony could
@@ -648,27 +674,11 @@ public class ServerColony extends Colony implements ServerModelObject {
             case NONE:
                 return buildable;
             case NOT_BUILDING:
-                for (GoodsType goodsType : spec.getGoodsTypeList()) {
-                    if (goodsType.isBuildingMaterial()
-                        && !goodsType.isStorable()
-                        && getTotalProductionOf(goodsType) > 0) {
-                        // Production is idle
-                        cs.addMessage(See.only(owner),
-                            new ModelMessage(MessageType.WARNING,
-                                             "model.colony.cannotBuild",
-                                             this)
-                                .addName("%colony%", getName()));
-                    }
-                }
+                doNOT_BUILDING(cs, spec, owner);
                 return null;
                 
             case POPULATION_TOO_SMALL:
-                cs.addMessage(See.only(owner),
-                    new ModelMessage(MessageType.WARNING,
-                                     "model.colony.buildNeedPop",
-                                     this)
-                        .addName("%colony%", getName())
-                        .addNamed("%building%", buildable));
+                doPOPULATION_TOO_SMALL(cs, owner, buildable);
                 break;
             default: // Are there other warnings to send?
                 logger.warning("Unexpected build failure at " + getName()
@@ -684,6 +694,44 @@ public class ServerColony extends Colony implements ServerModelObject {
         if (invalidate) invalidateCache();
         return null;
     }
+
+	/**
+	 * response to POPULATION_TOO_SMALL
+	 * @param cs
+	 * @param owner
+	 * @param buildable
+	 */
+	private void doPOPULATION_TOO_SMALL(ChangeSet cs, ServerPlayer owner,
+			BuildableType buildable) {
+		cs.addMessage(See.only(owner),
+		    new ModelMessage(MessageType.WARNING,
+		                     "model.colony.buildNeedPop",
+		                     this)
+		        .addName("%colony%", getName())
+		        .addNamed("%building%", buildable));
+	}
+
+	/**
+	 * Response to NOT_BUILDING
+	 * @param cs
+	 * @param spec
+	 * @param owner
+	 */
+	private void doNOT_BUILDING(ChangeSet cs, Specification spec,
+			ServerPlayer owner) {
+		for (GoodsType goodsType : spec.getGoodsTypeList()) {
+		    if (goodsType.isBuildingMaterial()
+		        && !goodsType.isStorable()
+		        && getTotalProductionOf(goodsType) > 0) {
+		        // Production is idle
+		        cs.addMessage(See.only(owner),
+		            new ModelMessage(MessageType.WARNING,
+		                             "model.colony.cannotBuild",
+		                             this)
+		                .addName("%colony%", getName()));
+		    }
+		}
+	}
 
     /**
      * Evict the users from a tile used by this colony, due to military
