@@ -2198,7 +2198,7 @@ public final class InGameController extends FreeColClientHolder {
         // A collapsed list of goods to load at this stop.
         List<AbstractGoods> toLoad = stop.getCompactCargo();
         // Templates to accumulate messages in.
-        StringTemplate unexpected = StringTemplate.label(", ");
+        StringTemplate unexpected = StringTemplate.label(" ");
         StringTemplate noLoad = StringTemplate.label(", ");
         StringTemplate left = StringTemplate.label(", ");
         StringTemplate loaded = StringTemplate.label(", ");
@@ -2211,8 +2211,8 @@ public final class InGameController extends FreeColClientHolder {
         for (Goods g : unit.getCompactGoods()) {
             AbstractGoods ag = AbstractGoods.findByType(g.getType(), toLoad);
             if (ag == null) { // Excess goods on board, failed unload?
-            	ag = AbstractGoods.findByType(g.getType(), toLoad);
-                unexpected.addStringTemplate("%goods%", ag.getLabel());
+                //unexpected.addStringTemplate("%goods%", ag.getLabel());
+                unexpected.add("failed to unload");
             } else {
                 int goodsAmount = g.getAmount();
                 if (ag.getAmount() <= goodsAmount) { // At capacity
