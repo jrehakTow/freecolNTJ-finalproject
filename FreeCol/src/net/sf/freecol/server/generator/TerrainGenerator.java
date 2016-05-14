@@ -51,6 +51,7 @@ import static net.sf.freecol.common.util.RandomUtils.*;
 import net.sf.freecol.server.model.ServerRegion;
 
 
+// TODO: Auto-generated Javadoc
 /**
  * Class for making a <code>Map</code> based upon a land map.
  *
@@ -58,10 +59,16 @@ import net.sf.freecol.server.model.ServerRegion;
  */
 public class TerrainGenerator {
 
+    /** The Constant logger. */
     private static final Logger logger = Logger.getLogger(TerrainGenerator.class.getName());
 
+    /** The Constant LAND_REGIONS_SCORE_VALUE. */
     public static final int LAND_REGIONS_SCORE_VALUE = 1000;
+    
+    /** The Constant LAND_REGION_MIN_SCORE. */
     public static final int LAND_REGION_MIN_SCORE = 5;
+    
+    /** The Constant LAND_REGION_MAX_SIZE. */
     public static final int LAND_REGION_MAX_SIZE = 75;
 
     /** The Game to generate for. */
@@ -87,6 +94,8 @@ public class TerrainGenerator {
 
     /** The cached land and ocean tile types. */
     private List<TileType> landTileTypes = null;
+    
+    /** The ocean tile types. */
     private List<TileType> oceanTileTypes = null;
 
 
@@ -109,6 +118,14 @@ public class TerrainGenerator {
 
     // Utilities
 
+    /**
+     * Limit to range.
+     *
+     * @param value the value
+     * @param lower the lower
+     * @param upper the upper
+     * @return the int
+     */
     // FIXME: this might be useful elsewhere, too
     private int limitToRange(int value, int lower, int upper) {
         return Math.max(lower, Math.min(value, upper));
@@ -278,9 +295,11 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param candidateTileTypes
-	 * @param forested
-	 * @return
+	 * Check forest tile.
+	 *
+	 * @param candidateTileTypes the candidate tile types
+	 * @param forested the forested
+	 * @return the tile type
 	 */
 	private TileType checkForestTile(List<TileType> candidateTileTypes,
 			boolean forested) {
@@ -299,9 +318,11 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param forestChance
-	 * @param candidateTileTypes
-	 * @return
+	 * Filter by forest.
+	 *
+	 * @param forestChance the forest chance
+	 * @param candidateTileTypes the candidate tile types
+	 * @return true, if successful
 	 */
 	private boolean filterByForest(final int forestChance,
 			List<TileType> candidateTileTypes) {
@@ -322,8 +343,10 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param localeTemperature
-	 * @param candidateTileTypes
+	 * Filter by temperature.
+	 *
+	 * @param localeTemperature the locale temperature
+	 * @param candidateTileTypes the candidate tile types
 	 */
 	private void filterByTemperature(int localeTemperature,
 			List<TileType> candidateTileTypes) {
@@ -342,8 +365,10 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param localeHumidity
-	 * @param candidateTileTypes
+	 * Filter by humidity.
+	 *
+	 * @param localeHumidity the locale humidity
+	 * @param candidateTileTypes the candidate tile types
 	 */
 	private void filterByHumidity(int localeHumidity,
 			List<TileType> candidateTileTypes) {
@@ -417,10 +442,12 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param map
-	 * @param continents
-	 * @param continentmap
-	 * @return
+	 * Creates the server regions.
+	 *
+	 * @param map the map
+	 * @param continents the continents
+	 * @param continentmap the continentmap
+	 * @return the server region[]
 	 */
 	private ServerRegion[] createServerRegions(Map map, int continents,
 			int[][] continentmap) {
@@ -446,11 +473,13 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param map
-	 * @param continents
-	 * @param continentmap
-	 * @param continentsize
-	 * @return
+	 * Split up large landmasses.
+	 *
+	 * @param map the map
+	 * @param continents the continents
+	 * @param continentmap the continentmap
+	 * @param continentsize the continentsize
+	 * @return the int
 	 */
 	private int splitUpLargeLandmasses(Map map, int continents,
 			int[][] continentmap, int[] continentsize) {
@@ -502,11 +531,13 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param map
-	 * @param continents
-	 * @param landmap
-	 * @param continentmap
-	 * @return
+	 * Flood fill landmasses.
+	 *
+	 * @param map the map
+	 * @param continents the continents
+	 * @param landmap the landmap
+	 * @param continentmap the continentmap
+	 * @return the int
 	 */
 	private int floodFillLandmasses(Map map, int continents,
 			boolean[][] landmap, int[][] continentmap) {
@@ -534,11 +565,13 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param map
-	 * @param landmap
-	 * @param continentmap
-	 * @param landsize
-	 * @return
+	 * Intitialize maps.
+	 *
+	 * @param map the map
+	 * @param landmap the landmap
+	 * @param continentmap the continentmap
+	 * @param landsize the landsize
+	 * @return the int
 	 */
 	private int intitializeMaps(Map map, boolean[][] landmap,
 			int[][] continentmap, int landsize) {
@@ -562,10 +595,12 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param map
-	 * @param continents
-	 * @param continentmap
-	 * @return
+	 * Gets the landmass sizes.
+	 *
+	 * @param map the map
+	 * @param continents the continents
+	 * @param continentmap the continentmap
+	 * @return the landmass sizes
 	 */
 	private int[] getLandmassSizes(Map map, int continents, int[][] continentmap) {
 		// Get landmass sizes
@@ -649,11 +684,13 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param map
-	 * @param randomHillsRatio
-	 * @param hills
-	 * @param mountains
-	 * @return
+	 * Randomize hills mtns.
+	 *
+	 * @param map the map
+	 * @param randomHillsRatio the random hills ratio
+	 * @param hills the hills
+	 * @param mountains the mountains
+	 * @return the int
 	 */
 	private int randomizeHillsMtns(Map map, float randomHillsRatio,
 			final TileType hills, final TileType mountains) {
@@ -676,14 +713,16 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param map
-	 * @param lb
-	 * @param result
-	 * @param maximumLength
-	 * @param number
-	 * @param hills
-	 * @param mountains
-	 * @return
+	 * Generate mountain ranges.
+	 *
+	 * @param map the map
+	 * @param lb the lb
+	 * @param result the result
+	 * @param maximumLength the maximum length
+	 * @param number the number
+	 * @param hills the hills
+	 * @param mountains the mountains
+	 * @return the int
 	 */
 	private int generateMountainRanges(Map map, LogBuilder lb,
 			List<ServerRegion> result, int maximumLength, int number,
@@ -724,12 +763,14 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param hills
-	 * @param mountains
-	 * @param counter
-	 * @param mountainRegion
-	 * @param nextTile
-	 * @return
+	 * Builds the neighbouring tiles.
+	 *
+	 * @param hills the hills
+	 * @param mountains the mountains
+	 * @param counter the counter
+	 * @param mountainRegion the mountain region
+	 * @param nextTile the next tile
+	 * @return the int
 	 */
 	private int buildNeighbouringTiles(final TileType hills,
 			final TileType mountains, int counter, ServerRegion mountainRegion,
@@ -908,11 +949,13 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param t
-	 * @param generateBonus
-	 * @param fishBonusLandType
-	 * @param fishBonusRiverType
-	 * @param bonusNumber
+	 * Check bonus.
+	 *
+	 * @param t the t
+	 * @param generateBonus the generate bonus
+	 * @param fishBonusLandType the fish bonus land type
+	 * @param fishBonusRiverType the fish bonus river type
+	 * @param bonusNumber the bonus number
 	 */
 	private void checkBonus(Tile t, boolean generateBonus,
 			TileImprovementType fishBonusLandType,
@@ -928,11 +971,13 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param t
-	 * @param generateBonus
-	 * @param fishBonusLandType
-	 * @param fishBonusRiverType
-	 * @param bonusNumber
+	 * Check non adjacent land.
+	 *
+	 * @param t the t
+	 * @param generateBonus the generate bonus
+	 * @param fishBonusLandType the fish bonus land type
+	 * @param fishBonusRiverType the fish bonus river type
+	 * @param bonusNumber the bonus number
 	 */
 	private void checkNonAdjacentLand(Tile t, boolean generateBonus,
 			TileImprovementType fishBonusLandType,
@@ -1117,12 +1162,14 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param lb
-	 * @param importTerrain
-	 * @param mapHasLand
-	 * @param map
-	 * @param fixRegions
-	 * @param newRegions
+	 * Builds the regions.
+	 *
+	 * @param lb the lb
+	 * @param importTerrain the import terrain
+	 * @param mapHasLand the map has land
+	 * @param map the map
+	 * @param fixRegions the fix regions
+	 * @param newRegions the new regions
 	 */
 	private void buildRegions(LogBuilder lb, final boolean importTerrain,
 			boolean mapHasLand, Map map, List<Tile> fixRegions,
@@ -1147,17 +1194,19 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param landMap
-	 * @param lb
-	 * @param width
-	 * @param height
-	 * @param importTerrain
-	 * @param importBonuses
-	 * @param mapHasLand
-	 * @param map
-	 * @param regionMap
-	 * @param fixRegions
-	 * @return
+	 * Fix regions.
+	 *
+	 * @param landMap the land map
+	 * @param lb the lb
+	 * @param width the width
+	 * @param height the height
+	 * @param importTerrain the import terrain
+	 * @param importBonuses the import bonuses
+	 * @param mapHasLand the map has land
+	 * @param map the map
+	 * @param regionMap the region map
+	 * @param fixRegions the fix regions
+	 * @return true, if successful
 	 */
 	private boolean fixRegions(LandMap landMap, LogBuilder lb, final int width,
 			final int height, final boolean importTerrain,
@@ -1212,10 +1261,12 @@ public class TerrainGenerator {
 
 
 	/**
-	 * @param lb
-	 * @param importTerrain
-	 * @param map
-	 * @param regionMap
+	 * Import regions.
+	 *
+	 * @param lb the lb
+	 * @param importTerrain the import terrain
+	 * @param map the map
+	 * @param regionMap the region map
 	 */
 	private void importRegions(LogBuilder lb, final boolean importTerrain,
 			Map map, java.util.Map<String, ServerRegion> regionMap) {
