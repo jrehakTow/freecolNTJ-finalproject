@@ -23,7 +23,7 @@ import org.junit.runners.Suite;
 	DesktopEntryTest.class,
 	ColonizationMapReaderTest.class,
 	FSGConverterTest.class,
-	GenerateDocumentationTest.class,
+//	GenerateDocumentationTest.class,
 	SaveGameValidatorTest.class,
 	MapConverterTest.class,
 	ColonizationSaveGameReaderTest.class,
