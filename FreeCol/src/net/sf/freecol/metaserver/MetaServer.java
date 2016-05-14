@@ -183,7 +183,9 @@ public final class MetaServer extends Thread {
         }
 
         Connection c;
-        while ((c = connections.remove(0)) != null) c.close();
+        while ((c = connections.remove(0)) != null){
+        	c.close();
+        }
         logger.info("Server shutdown.");
     }
 
