@@ -1,13 +1,17 @@
 package net.sf.freecol.tools;
 
+import java.io.File;
+import java.util.Map;
+
 import org.junit.*;
+
 import static org.junit.Assert.*;
 
 /**
  * The class <code>MergeTranslationsTest</code> contains tests for the class <code>{@link MergeTranslations}</code>.
  *
- * @generatedBy CodePro at 5/10/16 11:07 AM
- * @author newsha
+ * @generatedBy CodePro at 5/14/16 8:09 PM
+ * @author Tom
  * @version $Revision: 1.0 $
  */
 public class MergeTranslationsTest {
@@ -16,24 +20,26 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * @generatedBy CodePro at 5/14/16 8:09 PM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_1()
 		throws Exception {
-		String[] args = new String[] {null, "", ""};
-
+		String[] args = new String[] {null, ""};
+	
 		MergeTranslations.main(args);
+		
 
 		// add additional test code here
 	}
+
 
 	/**
 	 * Run the void main(String[]) method test.
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * @generatedBy CodePro at 5/14/16 8:09 PM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_2()
@@ -50,7 +56,7 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * @generatedBy CodePro at 5/14/16 8:09 PM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_3()
@@ -67,12 +73,12 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * @generatedBy CodePro at 5/14/16 8:09 PM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_4()
 		throws Exception {
-		String[] args = new String[] {null, "", ""};
+		String[] args = new String[] {null, ""};
 
 		MergeTranslations.main(args);
 
@@ -84,12 +90,12 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * @generatedBy CodePro at 5/14/16 8:09 PM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_5()
 		throws Exception {
-		String[] args = new String[] {null, ""};
+		String[] args = new String[] {"c:\\logs", "c:\\temp"};
 
 		MergeTranslations.main(args);
 
@@ -101,12 +107,12 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * @generatedBy CodePro at 5/14/16 8:09 PM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_6()
 		throws Exception {
-		String[] args = new String[] {null, ""};
+		String[] args = new String[] {"c:\\temp", "c:\\temp"};
 
 		MergeTranslations.main(args);
 
@@ -118,12 +124,12 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * @generatedBy CodePro at 5/14/16 8:09 PM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_7()
 		throws Exception {
-		String[] args = new String[] {null, "", ""};
+		String[] args = new String[] {"c:\\temp",""};
 
 		MergeTranslations.main(args);
 
@@ -135,7 +141,7 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * @generatedBy CodePro at 5/14/16 8:09 PM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_8()
@@ -152,12 +158,12 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * @generatedBy CodePro at 5/14/16 8:09 PM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_9()
 		throws Exception {
-		String[] args = new String[] {null, ""};
+		String[] args = new String[] {null, "", ""};
 
 		MergeTranslations.main(args);
 
@@ -169,116 +175,50 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * @generatedBy CodePro at 5/14/16 8:09 PM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_10()
 		throws Exception {
-		String[] args = new String[] {null, ""};
-
+		File sourceFile = new File("c:\\temp\\", "test1.txt");
+		File desFile = new File("c:\\temp\\", "test1.txt");
+		String[] args = new String[] {null, "c:\\temp", "c:\\drivers"};
+		MergeTranslations.processFiles(sourceFile,
+				desFile, args);
 		MergeTranslations.main(args);
 
 		// add additional test code here
 	}
-
+	
 	/**
 	 * Run the void main(String[]) method test.
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * @generatedBy CodePro at 5/14/16 8:09 PM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
-	public void testMain_11()
+	public void readFiletext()
 		throws Exception {
-		String[] args = new String[] {null, ""};
-
-		MergeTranslations.main(args);
-
-		// add additional test code here
+		File soFile = new File("c:\\WINDOWS\\", "core.xml");
+		
+		Map<String, String> a=MergeTranslations.readFile(soFile);
 	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test(expected = java.lang.NullPointerException.class)
-	public void testMain_12()
-		throws Exception {
-		String[] args = new String[] {null, ""};
-
-		MergeTranslations.main(args);
-
-		// add additional test code here
-	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test(expected = java.lang.NullPointerException.class)
-	public void testMain_13()
-		throws Exception {
-		String[] args = new String[] {null, "", ""};
-
-		MergeTranslations.main(args);
-
-		// add additional test code here
-	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test(expected = java.lang.NullPointerException.class)
-	public void testMain_14()
-		throws Exception {
-		String[] args = new String[] {null, "", ""};
-
-		MergeTranslations.main(args);
-
-		// add additional test code here
-	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test(expected = java.lang.NullPointerException.class)
-	public void testMain_15()
-		throws Exception {
-		String[] args = new String[] {null, "", ""};
-
-		MergeTranslations.main(args);
-
-		// add additional test code here
-	}
-
-	/**
-	 * Run the void main(String[]) method test.
-	 *
-	 * @throws Exception
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	@Test(expected = java.lang.NullPointerException.class)
-	public void testMain_16()
-		throws Exception {
-		String[] args = new String[] {null, "", ""};
-
-		MergeTranslations.main(args);
+	
+		/**
+		 * Run the void main(String[]) method test.
+		 *
+		 * @throws Exception
+		 *
+		 * @generatedBy CodePro at 5/14/16 8:09 PM
+		 */
+		@Test(expected = java.lang.NullPointerException.class)
+		public void readFiletext1()
+			throws Exception {
+			File soFile = new File("c:\\WINDOWS\\", "core.xml");
+			
+			Map<String, String> a=MergeTranslations.readFile(soFile);	
+	
 
 		// add additional test code here
 	}
@@ -289,7 +229,7 @@ public class MergeTranslationsTest {
 	 * @throws Exception
 	 *         if the initialization fails for some reason
 	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * @generatedBy CodePro at 5/14/16 8:09 PM
 	 */
 	@Before
 	public void setUp()
@@ -303,7 +243,7 @@ public class MergeTranslationsTest {
 	 * @throws Exception
 	 *         if the clean-up fails for some reason
 	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * @generatedBy CodePro at 5/14/16 8:09 PM
 	 */
 	@After
 	public void tearDown()
@@ -316,7 +256,7 @@ public class MergeTranslationsTest {
 	 *
 	 * @param args the command line arguments
 	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * @generatedBy CodePro at 5/14/16 8:09 PM
 	 */
 	public static void main(String[] args) {
 		new org.junit.runner.JUnitCore().run(MergeTranslationsTest.class);
