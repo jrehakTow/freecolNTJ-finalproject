@@ -1,65 +1,53 @@
 package net.sf.freecol.tools;
 
-import org.junit.*;
-import static org.junit.Assert.*;
 
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+// TODO: Auto-generated Javadoc
 /**
  * The class <code>ForestMakerTest</code> contains tests for the class <code>{@link ForestMaker}</code>.
  *
- * @generatedBy CodePro at 5/10/16 11:07 AM
  * @author newsha
  * @version $Revision: 1.0 $
+ * @generatedBy CodePro at 5/10/16 11:07 AM
  */
-public class ForestMakerTest {
+public class ForestMakerTest extends FreeColTestCase{
+	
 	/**
 	 * Run the ForestMaker() constructor test.
 	 *
+	 * @throws Exception the exception
 	 * @generatedBy CodePro at 5/10/16 11:07 AM
 	 */
-	@Test
 	public void testForestMaker_1()
 		throws Exception {
 		ForestMaker result = new ForestMaker();
 		assertNotNull(result);
 		// add additional test code here
-	}
-
+	} 
+	
 	/**
-	 * Perform pre-test initialization.
-	 *
-	 * @throws Exception
-	 *         if the initialization fails for some reason
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * Test main_1.
+	 * Test directory
+	 * @throws Exception the exception
 	 */
-	@Before
-	public void setUp()
-		throws Exception {
-		// add additional set up code here
-	}
-
+	public void testMain_1()
+			throws Exception {
+			String[] args = new String[] {""};
+			ForestMaker.main(args);
+	} 
+	
 	/**
-	 * Perform post-test clean-up.
+	 * Test main_2.
 	 *
-	 * @throws Exception
-	 *         if the clean-up fails for some reason
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 * @throws Exception the exception
 	 */
-	@After
-	public void tearDown()
-		throws Exception {
-		// Add additional tear down code here
-	}
+	public void testMain_2()
+			throws Exception {
+			String[] args = new String[]{"conifer"};
+			ForestMaker.main(args);
+	} 
 
-	/**
-	 * Launch the test.
-	 *
-	 * @param args the command line arguments
-	 *
-	 * @generatedBy CodePro at 5/10/16 11:07 AM
-	 */
-	public static void main(String[] args) {
-		new org.junit.runner.JUnitCore().run(ForestMakerTest.class);
-	}
+
 }

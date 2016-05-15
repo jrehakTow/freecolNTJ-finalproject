@@ -195,6 +195,7 @@ public class ForestMaker {
                 System.out.println(imageFiles.length + " images found in source directory "
                                    + arg + ".");
             }
+            
             List<BufferedImage> images = new ArrayList<>(imageFiles.length);
             int maximumHeight = loadImageFiles(imageFiles, images);
             int numberOfImages = images.size();
@@ -215,8 +216,10 @@ public class ForestMaker {
              */
             buildTiles(texture, sourceDirectory, destinationDirectory, images,
 					numberOfImages, random);
+            
         }
-    }
+        
+    } 
 
 	/**
 	 * @param texture
@@ -245,6 +248,7 @@ public class ForestMaker {
 
 		    ImageIO.write(base, "png", new File(destinationDirectory,
 		                                        sourceDirectory.getName() + counter + ".png"));
+		    
 
 		}
 	}
@@ -302,6 +306,7 @@ public class ForestMaker {
 		    }
 
 		}
+		System.out.println("checkConditions " + counter);
 		return counter;
 	}
 
@@ -321,6 +326,7 @@ public class ForestMaker {
 		        counter += "0";
 		    }
 		}
+		System.out.println("Build branches: "+counter);
 		return counter;
 	}
 
@@ -356,13 +362,21 @@ public class ForestMaker {
 		    float b = random.nextFloat();
 		    int x = (int) (a * right.x + b * left.x);
 		    int y = (int) (a * right.y + b * left.y);
+			int x1 = x;
+			if (x1 - halfWidth < - HALF_WIDTH) {
+			    x1 = -HALF_WIDTH + halfWidth; // left
+			}
+			if (x1 + halfWidth > HALF_WIDTH) {
+			    x1 = HALF_WIDTH - halfWidth; // right
+			}
+			
 		    /**
 		     * Additional constraint: the left and right
 		     * edges of the tree image must be within the
 		     * tile bounds (this will fail if the tree
 		     * image is too large).
 		     */
-		    x = checkLeftRightEdges(halfWidth, x);
+		    x = x1;
 		    /**
 		     * Additional constraint: the top edge of the
 		     * tree image must be within the tile bounds.
@@ -391,23 +405,10 @@ public class ForestMaker {
 		    //System.out.println("x=" + x + ", y=" + (y - height));
 		    trees.add(new ImageLocation(image, x - halfWidth, crown));
 		    count++;
+		    System.out.println("Draw trees " +count);
 		}
+		System.out.println("Draw Trees " + trees);
 		return trees;
-	}
-
-	/**
-	 * @param halfWidth
-	 * @param x
-	 * @return
-	 */
-	private static int checkLeftRightEdges(int halfWidth, int x) {
-		if (x - halfWidth < - HALF_WIDTH) {
-		    x = -HALF_WIDTH + halfWidth; // left
-		}
-		if (x + halfWidth > HALF_WIDTH) {
-		    x = HALF_WIDTH - halfWidth; // right
-		}
-		return x;
 	}
 
 	/**
@@ -432,6 +433,7 @@ public class ForestMaker {
 		        }
 		    }
 		}
+		System.out.println("Max height: "+ maximumHeight);
 		return maximumHeight;
 	}
 
@@ -474,4 +476,3 @@ public class ForestMaker {
 
 
 }
-
