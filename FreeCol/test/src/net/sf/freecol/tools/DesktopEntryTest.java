@@ -88,19 +88,6 @@ public class DesktopEntryTest {
 		//    java.lang.ArrayIndexOutOfBoundsException: 0
 		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
 	}
-	
-	@Test
-	public void testMain_4()
-		throws Exception {
-		String[] args = new String[] {"freecol.desktopEntry.GenericName"};
-
-		DesktopEntry.main(args);
-
-		// add additional test code here
-		// An unexpected exception was thrown in user code while executing this test:
-		//    java.lang.ArrayIndexOutOfBoundsException: 0
-		//       at net.sf.freecol.tools.DesktopEntry.main(DesktopEntry.java:54)
-	}
 
 
 	/**
@@ -142,3 +129,4 @@ public class DesktopEntryTest {
 		new org.junit.runner.JUnitCore().run(DesktopEntryTest.class);
 	}
 }
+

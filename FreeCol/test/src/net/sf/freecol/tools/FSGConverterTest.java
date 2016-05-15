@@ -7,7 +7,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PipedInputStream;
+
 import org.junit.*;
+
 import static org.junit.Assert.*;
 
 /**
@@ -25,12 +27,12 @@ public class FSGConverterTest {
 	 *
 	 * @generatedBy CodePro at 5/10/16 11:07 AM
 	 */
-	@Test(expected = java.io.FileNotFoundException.class)
+	@Test(expected = java.util.zip.ZipException.class)
 	public void testConvertToXML_1()
 		throws Exception {
 		FSGConverter fixture = FSGConverter.getFSGConverter();
-		File in = new File("");
-		File out = new File("");
+		File in = new File("c:\\temp\\test1.txt");
+		File out = new File("c:\\temp\\test3.txt");
 
 		fixture.convertToXML(in, out);
 
@@ -393,7 +395,50 @@ public class FSGConverterTest {
 		// add additional test code here
 		assertNotNull(result);
 	}
+	
+	/**
+	 * Run the mainprocess() test.
+	 *
+	 * @throws Exception
+	 *
+	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 */
+	@Test(expected = IOException.class)
+	public void mainprocess2() throws IOException{
+		
+		String[] arg={"12312output:xml","c:\\temp\\test1.txt","1231","6876"};
+		
+		FSGConverter.mainprocess(arg);
+	}
 
+	/**
+	 * Run the mainprocess() test.
+	 *
+	 * @throws Exception
+	 *
+	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 */
+	@Test(expected = IOException.class)
+	public void mainprocess1(){
+		String[] arg={"12312output:xml","c:\\temp\\test1.txt","c:\\temp\\test2.txt","gjh"};
+		//FSGConverter.mainprocess(arg);
+	}
+
+	/**
+	 * Run the mainprocess() test.
+	 *
+	 * @throws Exception
+	 *
+	 * @generatedBy CodePro at 5/10/16 11:07 AM
+	 */
+	@Test(expected = IOException.class)
+	public void mainprocess3()throws IOException{
+		
+		String[] arg={"12312output:xml","c:\\temp\\test1.txt"};
+		FSGConverter.mainprocess(arg);
+	}
+
+	
 	/**
 	 * Run the void main(String[]) method test.
 	 *

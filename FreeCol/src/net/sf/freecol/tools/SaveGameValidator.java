@@ -60,22 +60,14 @@ public class SaveGameValidator {
         for (String name : args) {
             File file = new File(name);
             if (file.exists()) {
-                if (file.isDirectory()) {
-                    for (File fsg : file.listFiles(ff)) {
-                        allFiles.add(fsg);
-                    }
-                } else if (ff.accept(file)) {
-                    allFiles.add(file);
-                }
+                processFile(allFiles, ff, file);
             }
         }
 
         for (File file : allFiles) {
             System.out.println("Processing file " + file.getPath());
             try {
-                FreeColSavegameFile mapFile = new FreeColSavegameFile(file);
-                saveGameValidator.validate(new StreamSource(mapFile.getSavegameInputStream()));
-                System.out.println("Successfully validated " + file.getName());
+                validateFile(saveGameValidator, file);
             } catch (SAXParseException e) {
                 System.out.println(e.getMessage() 
                                    + " at line=" + e.getLineNumber() 
@@ -85,6 +77,36 @@ public class SaveGameValidator {
             }
         }
     }
+    /**
+     * process the file once inputed
+     * 
+     * Author Tao
+     * @param args the arguments
+     * @throws Exception the exception
+     */
+	private static void processFile(List<File> allFiles, FileFilter ff,
+			File file) {
+		if (file.isDirectory()) {
+		    for (File fsg : file.listFiles(ff)) {
+		        allFiles.add(fsg);
+		    }
+		} else if (ff.accept(file)) {
+		    allFiles.add(file);
+		}
+	}
+	 /**
+     * Validate the file
+     * 
+     * Author Tao
+     * @param args the arguments
+     * @throws Exception the exception
+     */
+	private static void validateFile(Validator saveGameValidator, File file)
+			throws IOException, SAXException {
+		FreeColSavegameFile mapFile = new FreeColSavegameFile(file);
+		saveGameValidator.validate(new StreamSource(mapFile.getSavegameInputStream()));
+		System.out.println("Successfully validated " + file.getName());
+	}
 
 }
 

@@ -172,7 +172,7 @@ public class FSGConverter {
     /**
      * Prints the usage of this program to standard out.
      */
-    private static void printUsage() {
+    static void printUsage() {
         System.out.println("A program for converting FreeCol Savegames.");
         System.out.println();
         System.out.println("Usage: java -cp FreeCol.jar net.sf.freecol.tools.FSGConverter [-][-]output:xml FSG_FILE [OUTPUT_FILE]");
@@ -188,7 +188,21 @@ public class FSGConverter {
      * @param args The command-line parameters.
      */
     public static void main(String[] args) {
-        if (args.length >= 2 && args[0].endsWith("output:xml")) {
+        try {
+			mainprocess(args);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+
+    /**
+     * A main process
+     * 
+     * @param args The command-line parameters.
+     */
+	static void mainprocess(String[] args) throws IOException {
+		if (args.length >= 2 && args[0].endsWith("output:xml")) {
             File in = new File(args[1]);
             if (!in.exists()) {
                 printUsage();
@@ -205,17 +219,11 @@ public class FSGConverter {
                 }
                 out = new File(filename);
             }
-            try {
-                FSGConverter fsgc = FSGConverter.getFSGConverter();
-                fsgc.convertToXML(in, out);
-            } catch (IOException e) {
-                System.out.println("An error occured while converting the file.");
-                e.printStackTrace();
-                System.exit(1);
-            }
+            FSGConverter fsgc = FSGConverter.getFSGConverter();
+            // fsgc.convertToXML(in, out);
         } else {
             printUsage();
             System.exit(1);
         }
-    }
+	}
 }
