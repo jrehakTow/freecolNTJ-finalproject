@@ -126,7 +126,7 @@ public class DesktopEntry {
 		            	default:
 		            		line = bufferedReader.readLine();
 		            		continue;
-		        	}
+		        	}        		
 		        }
 		        appendCode(result, languageCode, line, index);
 		        if (foundGenericName && foundComment) {
