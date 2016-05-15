@@ -10,41 +10,52 @@ import static org.junit.Assert.*;
 /**
  * The class <code>MergeTranslationsTest</code> contains tests for the class <code>{@link MergeTranslations}</code>.
  *
- * @generatedBy CodePro at 5/14/16 8:09 PM
+ * @generatedBy CodePro at 5/15/16 12:30 AM
  * @author Tom
  * @version $Revision: 1.0 $
  */
 public class MergeTranslationsTest {
 	/**
+	 * Run the MergeTranslations() constructor test.
+	 *
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
+	 */
+	@Test
+	public void testMergeTranslations_1()
+		throws Exception {
+		MergeTranslations result = new MergeTranslations();
+		assertNotNull(result);
+		// add additional test code here
+	}
+
+	/**
 	 * Run the void main(String[]) method test.
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/14/16 8:09 PM
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_1()
 		throws Exception {
-		String[] args = new String[] {null, ""};
-	
+		String[] args = new String[] {"c:\\temp", "c:\\temp"};
+
 		MergeTranslations.main(args);
-		
 
 		// add additional test code here
 	}
-
 
 	/**
 	 * Run the void main(String[]) method test.
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/14/16 8:09 PM
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_2()
 		throws Exception {
-		String[] args = new String[] {null, "", ""};
+		String[] args = new String[] {null, "c:\\temp", ""};
 
 		MergeTranslations.main(args);
 
@@ -56,12 +67,12 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/14/16 8:09 PM
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_3()
 		throws Exception {
-		String[] args = new String[] {null, ""};
+		String[] args = new String[] {null, "c:\\temp"};
 
 		MergeTranslations.main(args);
 
@@ -73,7 +84,7 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/14/16 8:09 PM
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_4()
@@ -90,12 +101,12 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/14/16 8:09 PM
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_5()
 		throws Exception {
-		String[] args = new String[] {"c:\\logs", "c:\\temp"};
+		String[] args = new String[] {null, ""};
 
 		MergeTranslations.main(args);
 
@@ -107,12 +118,12 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/14/16 8:09 PM
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_6()
 		throws Exception {
-		String[] args = new String[] {"c:\\temp", "c:\\temp"};
+		String[] args = new String[] {null, ""};
 
 		MergeTranslations.main(args);
 
@@ -124,12 +135,12 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/14/16 8:09 PM
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_7()
 		throws Exception {
-		String[] args = new String[] {"c:\\temp",""};
+		String[] args = new String[] {null, "", ""};
 
 		MergeTranslations.main(args);
 
@@ -141,7 +152,7 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/14/16 8:09 PM
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_8()
@@ -158,7 +169,7 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/14/16 8:09 PM
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_9()
@@ -175,52 +186,225 @@ public class MergeTranslationsTest {
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/14/16 8:09 PM
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
 	 */
 	@Test(expected = java.lang.NullPointerException.class)
 	public void testMain_10()
 		throws Exception {
-		File sourceFile = new File("c:\\temp\\", "test1.txt");
-		File desFile = new File("c:\\temp\\", "test1.txt");
-		String[] args = new String[] {null, "c:\\temp", "c:\\drivers"};
-		MergeTranslations.processFiles(sourceFile,
-				desFile, args);
+		String[] args = new String[] {null, "", ""};
+
 		MergeTranslations.main(args);
 
 		// add additional test code here
 	}
-	
+
 	/**
-	 * Run the void main(String[]) method test.
+	 * Run the void processFiles(File,File,String[]) method test.
 	 *
 	 * @throws Exception
 	 *
-	 * @generatedBy CodePro at 5/14/16 8:09 PM
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
 	 */
-	@Test(expected = java.lang.NullPointerException.class)
-	public void readFiletext()
+	@Test
+	public void testProcessFiles_1()
 		throws Exception {
-		File soFile = new File("c:\\WINDOWS\\", "core.xml");
-		
-		Map<String, String> a=MergeTranslations.readFile(soFile);
-	}
-	
-		/**
-		 * Run the void main(String[]) method test.
-		 *
-		 * @throws Exception
-		 *
-		 * @generatedBy CodePro at 5/14/16 8:09 PM
-		 */
-		@Test(expected = java.lang.NullPointerException.class)
-		public void readFiletext1()
-			throws Exception {
-			File soFile = new File("c:\\WINDOWS\\", "core.xml");
-			
-			Map<String, String> a=MergeTranslations.readFile(soFile);	
-	
+		File sourceDirectory = new File("");
+		File targetDirectory = new File("");
+		String[] sourceFiles = new String[] {};
+
+		MergeTranslations.processFiles(sourceDirectory, targetDirectory, sourceFiles);
 
 		// add additional test code here
+	}
+
+	/**
+	 * Run the void processFiles(File,File,String[]) method test.
+	 *
+	 * @throws Exception
+	 *
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
+	 */
+	@Test
+	public void testProcessFiles_2()
+		throws Exception {
+		File sourceDirectory = new File("");
+		File targetDirectory = new File("");
+		String[] sourceFiles = new String[] {};
+
+		MergeTranslations.processFiles(sourceDirectory, targetDirectory, sourceFiles);
+
+		// add additional test code here
+	}
+
+	/**
+	 * Run the void processFiles(File,File,String[]) method test.
+	 *
+	 * @throws Exception
+	 *
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
+	 */
+	@Test
+	public void testProcessFiles_3()
+		throws Exception {
+		File sourceDirectory = new File("");
+		File targetDirectory = new File("");
+		String[] sourceFiles = new String[] {};
+
+		MergeTranslations.processFiles(sourceDirectory, targetDirectory, sourceFiles);
+
+		// add additional test code here
+	}
+
+	/**
+	 * Run the void processFiles(File,File,String[]) method test.
+	 *
+	 * @throws Exception
+	 *
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
+	 */
+	@Test
+	public void testProcessFiles_4()
+		throws Exception {
+		File sourceDirectory = new File("");
+		File targetDirectory = new File("");
+		String[] sourceFiles = new String[] {};
+
+		MergeTranslations.processFiles(sourceDirectory, targetDirectory, sourceFiles);
+
+		// add additional test code here
+	}
+
+	/**
+	 * Run the void processFiles(File,File,String[]) method test.
+	 *
+	 * @throws Exception
+	 *
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
+	 */
+	@Test
+	public void testProcessFiles_5()
+		throws Exception {
+		File sourceDirectory = new File("");
+		File targetDirectory = new File("");
+		String[] sourceFiles = new String[] {};
+
+		MergeTranslations.processFiles(sourceDirectory, targetDirectory, sourceFiles);
+
+		// add additional test code here
+	}
+
+	/**
+	 * Run the void processFiles(File,File,String[]) method test.
+	 *
+	 * @throws Exception
+	 *
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
+	 */
+	@Test
+	public void testProcessFiles_6()
+		throws Exception {
+		File sourceDirectory = new File("");
+		File targetDirectory = new File("");
+		String[] sourceFiles = new String[] {};
+
+		MergeTranslations.processFiles(sourceDirectory, targetDirectory, sourceFiles);
+
+		// add additional test code here
+	}
+
+	/**
+	 * Run the void processFiles(File,File,String[]) method test.
+	 *
+	 * @throws Exception
+	 *
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
+	 */
+	@Test
+	public void testProcessFiles_7()
+		throws Exception {
+		File sourceDirectory = new File("");
+		File targetDirectory = new File("");
+		String[] sourceFiles = new String[] {};
+
+		MergeTranslations.processFiles(sourceDirectory, targetDirectory, sourceFiles);
+
+		// add additional test code here
+	}
+
+	/**
+	 * Run the Map<String, String> readFile(File) method test.
+	 *
+	 * @throws Exception
+	 *
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
+	 */
+	@Test
+	public void testReadFile_1()
+		throws Exception {
+		File file = new File("");
+
+		Map<String, String> result = MergeTranslations.readFile(file);
+
+		// add additional test code here
+		assertNotNull(result);
+		assertEquals(0, result.size());
+	}
+
+	/**
+	 * Run the Map<String, String> readFile(File) method test.
+	 *
+	 * @throws Exception
+	 *
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
+	 */
+	@Test
+	public void testReadFile_2()
+		throws Exception {
+		File file = new File("");
+
+		Map<String, String> result = MergeTranslations.readFile(file);
+
+		// add additional test code here
+		assertNotNull(result);
+		assertEquals(0, result.size());
+	}
+
+	/**
+	 * Run the Map<String, String> readFile(File) method test.
+	 *
+	 * @throws Exception
+	 *
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
+	 */
+	@Test
+	public void testReadFile_3()
+		throws Exception {
+		File file = new File("");
+
+		Map<String, String> result = MergeTranslations.readFile(file);
+
+		// add additional test code here
+		assertNotNull(result);
+		assertEquals(0, result.size());
+	}
+
+	/**
+	 * Run the Map<String, String> readFile(File) method test.
+	 *
+	 * @throws Exception
+	 *
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
+	 */
+	@Test
+	public void testReadFile_4()
+		throws Exception {
+		File file = new File("");
+
+		Map<String, String> result = MergeTranslations.readFile(file);
+
+		// add additional test code here
+		assertNotNull(result);
+		assertEquals(0, result.size());
 	}
 
 	/**
@@ -229,7 +413,7 @@ public class MergeTranslationsTest {
 	 * @throws Exception
 	 *         if the initialization fails for some reason
 	 *
-	 * @generatedBy CodePro at 5/14/16 8:09 PM
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
 	 */
 	@Before
 	public void setUp()
@@ -243,7 +427,7 @@ public class MergeTranslationsTest {
 	 * @throws Exception
 	 *         if the clean-up fails for some reason
 	 *
-	 * @generatedBy CodePro at 5/14/16 8:09 PM
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
 	 */
 	@After
 	public void tearDown()
@@ -256,7 +440,7 @@ public class MergeTranslationsTest {
 	 *
 	 * @param args the command line arguments
 	 *
-	 * @generatedBy CodePro at 5/14/16 8:09 PM
+	 * @generatedBy CodePro at 5/15/16 12:30 AM
 	 */
 	public static void main(String[] args) {
 		new org.junit.runner.JUnitCore().run(MergeTranslationsTest.class);
