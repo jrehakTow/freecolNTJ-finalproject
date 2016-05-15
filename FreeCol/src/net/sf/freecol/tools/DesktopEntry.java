@@ -78,11 +78,7 @@ public class DesktopEntry {
                 System.out.println("Processing source file: " + name);
                 
                 String languageCode = null;
-                if (name.startsWith("FreeColMessages_")) {
-                    int index = name.indexOf('.', 16);
-                    languageCode = name.substring(16, index)
-                            .replace('-', '@');
-                }
+                languageCode = checkStartName(name, languageCode);
                 
                 boolean foundGenericName = false;
                 boolean foundComment = false;
@@ -90,40 +86,89 @@ public class DesktopEntry {
                 FileReader fileReader = new FileReader(sourceFile);
                 BufferedReader bufferedReader = new BufferedReader(fileReader);
                 String line = bufferedReader.readLine();
-                while (line != null) {
-                    int index = line.indexOf('=');
-                    if (index >= 0) {
-                        String key = line.substring(0, index).trim();
-                        if (null != key) switch (key) {
-                            case GENERIC_NAME:
-                                result.append("GenericName");
-                                foundGenericName = true;
-                                break;
-                            case COMMENT:
-                                result.append("Comment");
-                                foundComment = true;
-                                break;
-                            default:
-                                line = bufferedReader.readLine();
-                                continue;
-                        }
-                        if (languageCode != null) {
-                            result.append("[" + languageCode + "]");
-                        }
-                        result.append("=");
-                        result.append(line.substring(index + 1).trim());
-                        result.append("\n");
-                        if (foundGenericName && foundComment) {
-                            break;
-                        }
-                    }
-                    line = bufferedReader.readLine();
-                }
+                readLines(result, languageCode, foundGenericName, foundComment,
+						bufferedReader, line);
             }
             
             result.flush();
         }
 
     }
-}
 
+	/**
+	 * Read lines.
+	 *
+	 * @param result the result
+	 * @param languageCode the language code
+	 * @param foundGenericName the found generic name
+	 * @param foundComment the found comment
+	 * @param bufferedReader the buffered reader
+	 * @param line the line
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 */
+	private static void readLines(FileWriter result, String languageCode,
+			boolean foundGenericName, boolean foundComment,
+			BufferedReader bufferedReader, String line) throws IOException {
+		while (line != null) {
+		    int index = line.indexOf('=');
+		    if (index >= 0) {
+		        String key = line.substring(0, index).trim();
+		        if (null != key){ 
+		        	switch (key) {
+		            	case GENERIC_NAME:
+		            		result.append("GenericName");
+		            		foundGenericName = true;
+		            		break;
+		            	case COMMENT:
+		            		result.append("Comment");
+		            		foundComment = true;
+		            		break;
+		            	default:
+		            		line = bufferedReader.readLine();
+		            		continue;
+		        	}        		
+		        }
+		        appendCode(result, languageCode, line, index);
+		        if (foundGenericName && foundComment) {
+		            break;
+		        }
+		    }
+		    line = bufferedReader.readLine();
+		}
+	}
+
+	/**
+	 * Append code.
+	 *
+	 * @param result the result
+	 * @param languageCode the language code
+	 * @param line the line
+	 * @param index the index
+	 * @throws IOException Signals that an I/O exception has occurred.
+	 */
+	private static void appendCode(FileWriter result, String languageCode,
+			String line, int index) throws IOException {
+		if (languageCode != null) {
+		    result.append("[" + languageCode + "]");
+		}
+		result.append("=");
+		result.append(line.substring(index + 1).trim());
+		result.append("\n");
+	}
+
+	/**
+	 * Check start name.
+	 *
+	 * @param name the name
+	 * @param languageCode the language code
+	 * @return the string
+	 */
+	private static String checkStartName(String name, String languageCode) {
+		if (name.startsWith("FreeColMessages_")) {
+		    int index = name.indexOf('.', 16);
+		    languageCode = name.substring(16, index)
+		            .replace('-', '@');
+		}
+		return languageCode;
+	}
+}
