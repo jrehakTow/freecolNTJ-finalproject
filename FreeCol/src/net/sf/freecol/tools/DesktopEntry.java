@@ -27,129 +27,135 @@ import java.io.FilenameFilter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
-
 // TODO: Auto-generated Javadoc
 /**
  * Generate a desktop entry file.
  */
 public class DesktopEntry {
 
-    /** The Constant SOURCE_DIRECTORY. */
-    private static final File SOURCE_DIRECTORY =
-        new File("data", "strings");
+	/** The Constant SOURCE_DIRECTORY. */
+	private static final File SOURCE_DIRECTORY = new File("data", "strings");
 
-    /** The Constant GENERIC_NAME. */
-    private static final String GENERIC_NAME =
-        "freecol.desktopEntry.GenericName";
-    
-    /** The Constant COMMENT. */
-    private static final String COMMENT =
-        "freecol.desktopEntry.Comment";
+	/** The Constant GENERIC_NAME. */
+	private static final String GENERIC_NAME = "freecol.desktopEntry.GenericName";
 
-    /**
-     * Pass the desktop entry file to create as first argument.
-     *
-     * @param args The program arguments.
-     * @exception FileNotFoundException if the source file is absent.
-     * @exception IOException when various IO fails.
-     */
-    public static void main(String[] args)
-        throws FileNotFoundException, IOException {
+	/** The Constant COMMENT. */
+	private static final String COMMENT = "freecol.desktopEntry.Comment";
 
-        try (FileWriter result = new FileWriter(new File(args[0]))) {
-            result.append("[Desktop Entry]\n");
-            result.append("Version=1.0\n");
-            result.append("Type=Application\n");
-            result.append("Name=FreeCol\n");
-            result.append("Exec=freecol\n");
-            result.append("Icon=data/freecol.png\n");
-            result.append("Categories=Game;StrategyGame;\n");
-            
-            String[] sourceFiles = SOURCE_DIRECTORY.list(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return name.startsWith("FreeColMessages")
-                            && name.endsWith(".properties");
-                }
-            });
-            
-            for (String name : sourceFiles) {
-                
-                System.out.println("Processing source file: " + name);
-                
-                String languageCode = null;
-                languageCode = checkStartName(name, languageCode);
-                
-                boolean foundGenericName = false;
-                boolean foundComment = false;
-                File sourceFile = new File(SOURCE_DIRECTORY, name);
-                FileReader fileReader = new FileReader(sourceFile);
-                BufferedReader bufferedReader = new BufferedReader(fileReader);
-                String line = bufferedReader.readLine();
-                readLines(result, languageCode, foundGenericName, foundComment,
-						bufferedReader, line);
-            }
-            
-            result.flush();
-        }
+	/**
+	 * Pass the desktop entry file to create as first argument.
+	 *
+	 * @param args
+	 *            The program arguments.
+	 * @exception FileNotFoundException
+	 *                if the source file is absent.
+	 * @exception IOException
+	 *                when various IO fails.
+	 */
+	public static void main(String[] args) throws FileNotFoundException, IOException {
 
-    }
+		try (FileWriter result = new FileWriter(new File(args[0]))) {
+			result.append("[Desktop Entry]\n");
+			result.append("Version=1.0\n");
+			result.append("Type=Application\n");
+			result.append("Name=FreeCol\n");
+			result.append("Exec=freecol\n");
+			result.append("Icon=data/freecol.png\n");
+			result.append("Categories=Game;StrategyGame;\n");
+
+			String[] sourceFiles = SOURCE_DIRECTORY.list(new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.startsWith("FreeColMessages") && name.endsWith(".properties");
+				}
+			});
+
+			for (String name : sourceFiles) {
+
+				System.out.println("Processing source file: " + name);
+
+				String languageCode = null;
+				languageCode = checkStartName(name, languageCode);
+
+				boolean foundGenericName = false;
+				boolean foundComment = false;
+				File sourceFile = new File(SOURCE_DIRECTORY, name);
+				FileReader fileReader = new FileReader(sourceFile);
+				BufferedReader bufferedReader = new BufferedReader(fileReader);
+				String line = bufferedReader.readLine();
+				readLines(result, languageCode, foundGenericName, foundComment, bufferedReader, line);
+			}
+
+			result.flush();
+		}
+
+	}
 
 	/**
 	 * Read lines.
 	 *
-	 * @param result the result
-	 * @param languageCode the language code
-	 * @param foundGenericName the found generic name
-	 * @param foundComment the found comment
-	 * @param bufferedReader the buffered reader
-	 * @param line the line
-	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @param result
+	 *            the result
+	 * @param languageCode
+	 *            the language code
+	 * @param foundGenericName
+	 *            the found generic name
+	 * @param foundComment
+	 *            the found comment
+	 * @param bufferedReader
+	 *            the buffered reader
+	 * @param line
+	 *            the line
+	 * @throws IOException
+	 *             Signals that an I/O exception has occurred.
 	 */
-	private static void readLines(FileWriter result, String languageCode,
-			boolean foundGenericName, boolean foundComment,
-			BufferedReader bufferedReader, String line) throws IOException {
+	private static void readLines(FileWriter result, String languageCode, boolean foundGenericName,
+			boolean foundComment, BufferedReader bufferedReader, String line) throws IOException {
 		while (line != null) {
-		    int index = line.indexOf('=');
-		    if (index >= 0) {
-		        String key = line.substring(0, index).trim();
-		        if (null != key){ 
-		        	switch (key) {
-		            	case GENERIC_NAME:
-		            		result.append("GenericName");
-		            		foundGenericName = true;
-		            		break;
-		            	case COMMENT:
-		            		result.append("Comment");
-		            		foundComment = true;
-		            		break;
-		            	default:
-		            		line = bufferedReader.readLine();
-		            		continue;
-		        	}        		
-		        }
-		        appendCode(result, languageCode, line, index);
-		        if (foundGenericName && foundComment) {
-		            break;
-		        }
-		    }
-		    line = bufferedReader.readLine();
+			int index = line.indexOf('=');
+			if (index >= 0) {
+				String key = line.substring(0, index).trim();
+				if (null != key) {
+					switch (key) {
+					case GENERIC_NAME:
+						result.append("GenericName");
+						foundGenericName = true;
+						break;
+					case COMMENT:
+						result.append("Comment");
+						foundComment = true;
+						break;
+					default:
+						line = bufferedReader.readLine();
+						continue;
+					}
+				}
+				appendCode(result, languageCode, line, index);
+				if (foundGenericName && foundComment) {
+					break;
+				}
+			}
+			line = bufferedReader.readLine();
 		}
 	}
 
 	/**
 	 * Append code.
 	 *
-	 * @param result the result
-	 * @param languageCode the language code
-	 * @param line the line
-	 * @param index the index
-	 * @throws IOException Signals that an I/O exception has occurred.
+	 * @param result
+	 *            the result
+	 * @param languageCode
+	 *            the language code
+	 * @param line
+	 *            the line
+	 * @param index
+	 *            the index
+	 * @throws IOException
+	 *             Signals that an I/O exception has occurred.
 	 */
-	private static void appendCode(FileWriter result, String languageCode,
-			String line, int index) throws IOException {
+	private static void appendCode(FileWriter result, String languageCode, String line, int index) throws IOException {
 		if (languageCode != null) {
-		    result.append("[" + languageCode + "]");
+			result.append("[" + languageCode + "]");
 		}
 		result.append("=");
 		result.append(line.substring(index + 1).trim());
@@ -159,15 +165,16 @@ public class DesktopEntry {
 	/**
 	 * Check start name.
 	 *
-	 * @param name the name
-	 * @param languageCode the language code
+	 * @param name
+	 *            the name
+	 * @param languageCode
+	 *            the language code
 	 * @return the string
 	 */
 	private static String checkStartName(String name, String languageCode) {
 		if (name.startsWith("FreeColMessages_")) {
-		    int index = name.indexOf('.', 16);
-		    languageCode = name.substring(16, index)
-		            .replace('-', '@');
+			int index = name.indexOf('.', 16);
+			languageCode = name.substring(16, index).replace('-', '@');
 		}
 		return languageCode;
 	}
