@@ -27,7 +27,7 @@ public class FSGConverterTest {
 	 *
 	 * @generatedBy CodePro at 5/10/16 11:07 AM
 	 */
-	@Test(expected = java.io.FileNotFoundException.class)
+	@Test(expected = java.util.zip.ZipException.class)
 	public void testConvertToXML_1()
 		throws Exception {
 		FSGConverter fixture = FSGConverter.getFSGConverter();
