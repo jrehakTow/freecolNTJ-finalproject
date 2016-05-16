@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>GoodsForSaleMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">GoodsForSaleMessage.java</span></div><h1>GoodsForSaleMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Goods;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Settlement;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent when querying a settlement for what it has for sale.
+ */
+public class GoodsForSaleMessage extends DOMMessage {
+
+    public static final String TAG = &quot;goodsForSale&quot;;
+    private static final String SETTLEMENT_TAG = &quot;settlement&quot;;
+    private static final String UNIT_TAG = &quot;unit&quot;;
+
+    /** The identifier of the unit that is trading. */
+    private final String unitId;
+
+    /** The identifier of the settlement that is trading. */
+    private final String settlementId;
+
+    /** The list of goods for sale. */
+<span class="nc" id="L53">    private final List&lt;Goods&gt; sellGoods = new ArrayList&lt;&gt;();</span>
+
+
+    /**
+     * Create a new &lt;code&gt;GoodsForSaleMessage&lt;/code&gt; with the
+     * supplied name.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; that is trading.
+     * @param settlement The &lt;code&gt;Settlement&lt;/code&gt; that is trading.
+     * @param sellGoods A list of &lt;code&gt;Goods&lt;/code&gt; to be sold.
+     */
+    public GoodsForSaleMessage(Unit unit, Settlement settlement,
+                               List&lt;Goods&gt; sellGoods) {
+<span class="nc" id="L66">        super(getTagName());</span>
+
+<span class="nc" id="L68">        this.unitId = unit.getId();</span>
+<span class="nc" id="L69">        this.settlementId = settlement.getId();</span>
+<span class="nc" id="L70">        this.sellGoods.clear();</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        if (sellGoods != null) this.sellGoods.addAll(sellGoods);</span>
+<span class="nc" id="L72">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;GoodsForSaleMessage&lt;/code&gt; from a
+     * supplied element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public GoodsForSaleMessage(Game game, Element element) {
+<span class="nc" id="L82">        super(getTagName());</span>
+
+<span class="nc" id="L84">        this.unitId = getStringAttribute(element, UNIT_TAG);</span>
+<span class="nc" id="L85">        this.settlementId = getStringAttribute(element, SETTLEMENT_TAG);</span>
+<span class="nc" id="L86">        this.sellGoods.clear();</span>
+<span class="nc" id="L87">        this.sellGoods.addAll(getChildren(game, element, Goods.class));</span>
+<span class="nc" id="L88">    }</span>
+
+
+    // Public interface
+
+    public Unit getUnit(Player player) {
+<span class="nc" id="L94">        return player.getOurFreeColGameObject(this.unitId, Unit.class);</span>
+    }
+
+    public IndianSettlement getSettlement(Unit unit) {
+<span class="nc" id="L98">        return unit.getAdjacentIndianSettlementSafely(this.settlementId);</span>
+    }
+
+    public List&lt;Goods&gt; getGoods() {
+<span class="nc" id="L102">        return this.sellGoods;</span>
+    }
+
+
+    /**
+     * Handle a &quot;goodsForSale&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; handling the message.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; the message applies to.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message was received on.
+     * @return This &lt;code&gt;GoodsForSaleMessage&lt;/code&gt; with the goods
+     *     for sale attached as children or an error
+     *     &lt;code&gt;Element&lt;/code&gt; on failure.
+     */
+    public Element handle(FreeColServer server, Player player,
+                          Connection connection) {
+<span class="nc" id="L118">        final ServerPlayer serverPlayer = server.getPlayer(connection);</span>
+
+        Unit unit;
+        try {
+<span class="nc" id="L122">            unit = getUnit(player);</span>
+<span class="nc" id="L123">        } catch (Exception e) {</span>
+<span class="nc" id="L124">            return serverPlayer.clientError(e.getMessage())</span>
+<span class="nc" id="L125">                .build(serverPlayer);</span>
+        }
+
+        IndianSettlement settlement;
+        try {
+<span class="nc" id="L130">            settlement = getSettlement(unit);</span>
+<span class="nc" id="L131">        } catch (Exception e) {</span>
+<span class="nc" id="L132">            return serverPlayer.clientError(e.getMessage())</span>
+<span class="nc" id="L133">                .build(serverPlayer);</span>
+        }
+
+        // Try to collect the goods for sale.
+<span class="nc" id="L137">        return server.getInGameController()</span>
+<span class="nc" id="L138">            .getGoodsForSale(serverPlayer, unit, settlement)</span>
+<span class="nc" id="L139">            .toXMLElement();</span>
+    }
+
+    /**
+     * Convert this GoodsForSaleMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="nc" id="L149">        return new DOMMessage(getTagName(),</span>
+<span class="nc" id="L150">            UNIT_TAG, this.unitId,</span>
+<span class="nc" id="L151">            SETTLEMENT_TAG, this.settlementId)</span>
+<span class="nc" id="L152">            .add(this.sellGoods).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;goodsForSale&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L161">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>Mods.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.io</a> &gt; <span class="el_source">Mods.java</span></div><h1>Mods.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.io;
+
+import java.io.File;
+import java.io.IOException;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import net.sf.freecol.common.io.FreeColModFile;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+
+
+/**
+ * Contains methods for getting a list of available mods and TCs.
+ */
+<span class="nc" id="L42">public class Mods {</span>
+
+<span class="nc" id="L44">    private static final Logger logger = Logger.getLogger(Mods.class.getName());</span>
+
+    /** A cache of all the mods. */
+<span class="nc" id="L47">    private static final Map&lt;String, FreeColModFile&gt; allMods = new HashMap&lt;&gt;();</span>
+
+
+    /**
+     * Loads all valid mods from a specified directory.
+     *
+     * @param directory The directory to load from.
+     */
+    private static void loadModDirectory(File directory) {
+<span class="nc bnc" id="L56" title="All 4 branches missed.">        if (directory == null || !directory.isDirectory()) return;</span>
+<span class="nc" id="L57">        Arrays.stream(directory.listFiles(FreeColModFile.getFileFilter()))</span>
+<span class="nc" id="L58">            .map(FreeColModFile::make)</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">            .filter(fcmf -&gt; fcmf != null)</span>
+<span class="nc" id="L60">            .forEach(fcmf -&gt; allMods.put(fcmf.getId(), fcmf));</span>
+<span class="nc" id="L61">    }</span>
+
+    /**
+     * Require all mods to be loaded.  This must be delayed until
+     * the mods directories are defined.
+     *
+     * User mods are loaded after standard mods to allow user override.
+     */
+    public static void loadMods() {
+<span class="nc" id="L70">        allMods.clear();</span>
+<span class="nc" id="L71">        loadModDirectory(FreeColDirectories.getStandardModsDirectory());</span>
+<span class="nc" id="L72">        loadModDirectory(FreeColDirectories.getUserModsDirectory());</span>
+<span class="nc" id="L73">    }</span>
+
+    /**
+     * Gets the mod with the given object identifier.
+     *
+     * @param id The identifier of the mod to search for.
+     * @return The &lt;code&gt;FreeColModFile&lt;/code&gt; for the mod, or null if
+     *     not found.
+     */
+    public static FreeColModFile getModFile(String id) {
+<span class="nc" id="L83">        return allMods.get(id);</span>
+    }
+
+    /**
+     * Gets all available mods.
+     * User mods before standard mods to allow user override.
+     *
+     * @return A list of &lt;code&gt;FreeColModFile&lt;/code&gt;s contain mods.
+     */
+    public static Collection&lt;FreeColModFile&gt; getAllMods() {
+<span class="nc" id="L93">        return allMods.values();</span>
+    }
+
+    /**
+     * Get a mod by id.
+     *
+     * @param id The mod file identifier to look for.
+     * @return The &lt;code&gt;FreeColModFile&lt;/code&gt; found, or null if none present.
+     */
+    public static FreeColModFile getFreeColModFile(String id) {
+<span class="nc" id="L103">        return allMods.get(id);</span>
+    }
+
+    /**
+     * Gets all available rulesets.
+     *
+     * @return A list of &lt;code&gt;FreeColModFile&lt;/code&gt;s containing rulesets.
+     */
+    public static List&lt;FreeColTcFile&gt; getRuleSets() {
+<span class="nc" id="L112">        return toList(map(FreeColDirectories.getRulesDirectory()</span>
+<span class="nc" id="L113">                .listFiles(FreeColTcFile.getFileFilter()),</span>
+<span class="nc" id="L114">                FreeColTcFile::make)</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">            .filter(tc -&gt; tc != null));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

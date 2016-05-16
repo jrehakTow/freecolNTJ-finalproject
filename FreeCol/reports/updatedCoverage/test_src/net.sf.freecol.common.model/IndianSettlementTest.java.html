@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>IndianSettlementTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">IndianSettlementTest.java</span></div><h1>IndianSettlementTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L25">public class IndianSettlementTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L27">    private static final GoodsType horsesType</span>
+<span class="nc" id="L28">        = spec().getGoodsType(&quot;model.goods.horses&quot;);</span>
+<span class="nc" id="L29">    private static final GoodsType musketsType</span>
+<span class="nc" id="L30">        = spec().getGoodsType(&quot;model.goods.muskets&quot;);</span>
+
+<span class="nc" id="L32">    private static final Role armedBraveRole</span>
+<span class="nc" id="L33">        = spec().getRole(&quot;model.role.armedBrave&quot;);</span>
+<span class="nc" id="L34">    private static final Role nativeDragoonRole</span>
+<span class="nc" id="L35">        = spec().getRole(&quot;model.role.nativeDragoon&quot;);</span>
+
+
+    public void testAutomaticEquipBraves() {
+<span class="nc" id="L39">        Game game = getStandardGame();</span>
+<span class="nc" id="L40">        Map map = getTestMap();</span>
+<span class="nc" id="L41">        game.setMap(map);</span>
+
+<span class="nc" id="L43">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="nc" id="L44">            = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="nc" id="L45">        IndianSettlement camp = builder.initialBravesInCamp(1).build();</span>
+
+<span class="nc" id="L47">        Unit indianBrave = camp.getUnitList().get(0);</span>
+
+<span class="nc" id="L49">        assertNull(&quot;No auto-equip, no muskets&quot;,</span>
+<span class="nc" id="L50">                   indianBrave.getAutomaticRole());</span>
+<span class="nc" id="L51">        camp.addGoods(musketsType, 100);</span>
+<span class="nc" id="L52">        assertEquals(&quot;Auto-equip to armed brave, muskets present&quot;,</span>
+<span class="nc" id="L53">                     armedBraveRole, indianBrave.getAutomaticRole());</span>
+<span class="nc" id="L54">        camp.addGoods(horsesType, 100);</span>
+<span class="nc" id="L55">        assertEquals(&quot;Auto-equip to native dragoon, horses and muskets present&quot;,</span>
+<span class="nc" id="L56">                     nativeDragoonRole, indianBrave.getAutomaticRole());</span>
+<span class="nc" id="L57">    }</span>
+
+    /*
+     * Test settlement adjacent tiles ownership
+     * Per Col1 rules, Indian settlements do not own water tiles
+     */
+    public void testSettlementDoesNotOwnWaterTiles(){
+<span class="nc" id="L64">        Game game = getStandardGame();</span>
+<span class="nc" id="L65">        Map map = getCoastTestMap(spec().getTileType(&quot;model.tile.plains&quot;));</span>
+<span class="nc" id="L66">        game.setMap(map);</span>
+
+<span class="nc" id="L68">        Tile campTile = map.getTile(9, 9);</span>
+<span class="nc" id="L69">        Tile landTile = map.getTile(8, 9);</span>
+<span class="nc" id="L70">        Tile waterTile = map.getTile(10, 9);</span>
+
+<span class="nc" id="L72">        assertTrue(&quot;Setup error, camp tile should be land&quot;, campTile.isLand());</span>
+<span class="nc" id="L73">        assertTrue(&quot;Setup error, tile should be land&quot;, landTile.isLand());</span>
+<span class="nc" id="L74">        assertFalse(&quot;Setup error, tile should be water&quot;, waterTile.isLand());</span>
+<span class="nc" id="L75">        assertTrue(&quot;Setup error, tiles should be adjacent&quot;, campTile.isAdjacent(waterTile));</span>
+<span class="nc" id="L76">        assertTrue(&quot;Setup error, tiles should be adjacent&quot;, campTile.isAdjacent(landTile));</span>
+
+<span class="nc" id="L78">        FreeColTestCase.IndianSettlementBuilder builder = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+
+<span class="nc" id="L80">        IndianSettlement camp = builder.settlementTile(campTile).build();</span>
+
+<span class="nc" id="L82">        Player indianPlayer = camp.getOwner();</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">        assertTrue(&quot;Indian player should own camp tile&quot;, campTile.getOwner() == indianPlayer);</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        assertTrue(&quot;Indian player should own land tile&quot;, landTile.getOwner() == indianPlayer);</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        assertFalse(&quot;Indian player should not own water tile&quot;, waterTile.getOwner() == indianPlayer);</span>
+<span class="nc" id="L86">    }</span>
+
+    /*
+     * Test settlement trade
+     */
+    public void testTradeGoodsWithSetlement(){
+<span class="nc" id="L92">        Game game = getStandardGame();</span>
+<span class="nc" id="L93">        Map map = getTestMap();</span>
+<span class="nc" id="L94">        game.setMap(map);</span>
+
+<span class="nc" id="L96">        Tile camp2Tile = map.getTile(3, 3);</span>
+
+<span class="nc" id="L98">        FreeColTestCase.IndianSettlementBuilder builder = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+
+<span class="nc" id="L100">        IndianSettlement camp1 = builder.build();</span>
+<span class="nc" id="L101">        IndianSettlement camp2 = builder.reset().settlementTile(camp2Tile).build();</span>
+
+<span class="nc" id="L103">        final int notEnoughToShare = 50;</span>
+<span class="nc" id="L104">        final int enoughToShare = 100;</span>
+<span class="nc" id="L105">        final int none = 0;</span>
+
+<span class="nc" id="L107">        camp1.addGoods(horsesType, notEnoughToShare);</span>
+<span class="nc" id="L108">        camp1.addGoods(musketsType, enoughToShare);</span>
+
+<span class="nc" id="L110">        String wrongQtyMusketsMsg = &quot;Wrong quantity of muskets&quot;;</span>
+<span class="nc" id="L111">        String wrongQtyHorsesMsg = &quot;Wrong quantity of horses&quot;;</span>
+
+<span class="nc" id="L113">        assertEquals(wrongQtyMusketsMsg,enoughToShare,camp1.getGoodsCount(musketsType));</span>
+<span class="nc" id="L114">        assertEquals(wrongQtyHorsesMsg,notEnoughToShare,camp1.getGoodsCount(horsesType));</span>
+<span class="nc" id="L115">        assertEquals(wrongQtyMusketsMsg,none,camp2.getGoodsCount(musketsType));</span>
+<span class="nc" id="L116">        assertEquals(wrongQtyHorsesMsg,none,camp2.getGoodsCount(horsesType));</span>
+
+<span class="nc" id="L118">        camp1.tradeGoodsWithSettlement(camp2);</span>
+
+<span class="nc" id="L120">        assertEquals(wrongQtyMusketsMsg,enoughToShare / 2,camp1.getGoodsCount(musketsType));</span>
+<span class="nc" id="L121">        assertEquals(wrongQtyHorsesMsg,notEnoughToShare,camp1.getGoodsCount(horsesType));</span>
+<span class="nc" id="L122">        assertEquals(wrongQtyMusketsMsg,enoughToShare / 2,camp2.getGoodsCount(musketsType));</span>
+<span class="nc" id="L123">        assertEquals(wrongQtyHorsesMsg,none,camp2.getGoodsCount(horsesType));</span>
+<span class="nc" id="L124">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

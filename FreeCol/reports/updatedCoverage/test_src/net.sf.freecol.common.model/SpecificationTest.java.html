@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>SpecificationTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">SpecificationTest.java</span></div><h1>SpecificationTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import net.sf.freecol.common.io.FreeColModFile;
+import net.sf.freecol.common.io.FreeColTcFile;
+import net.sf.freecol.common.model.Modifier;
+import net.sf.freecol.common.model.Modifier.ModifierType;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L37">public final class SpecificationTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L39">    private static final BuildingType depotType</span>
+<span class="nc" id="L40">        = spec().getBuildingType(&quot;model.building.depot&quot;);</span>
+
+<span class="nc" id="L42">    private static final GoodsType fishType</span>
+<span class="nc" id="L43">        = spec().getGoodsType(&quot;model.goods.fish&quot;);</span>
+<span class="nc" id="L44">    private static final GoodsType foodType</span>
+<span class="nc" id="L45">        = spec().getPrimaryFoodType();</span>
+<span class="nc" id="L46">    private static final GoodsType horsesType</span>
+<span class="nc" id="L47">        = spec().getGoodsType(&quot;model.goods.horses&quot;);</span>
+<span class="nc" id="L48">    private static final GoodsType musketsType</span>
+<span class="nc" id="L49">        = spec().getGoodsType(&quot;model.goods.muskets&quot;);</span>
+<span class="nc" id="L50">    private static final GoodsType toolsType</span>
+<span class="nc" id="L51">        = spec().getGoodsType(&quot;model.goods.tools&quot;);</span>
+
+<span class="nc" id="L53">    private static final Role armedBraveRole</span>
+<span class="nc" id="L54">        = spec().getRole(&quot;model.role.armedBrave&quot;);</span>
+<span class="nc" id="L55">    private static final Role cavalryRole</span>
+<span class="nc" id="L56">        = spec().getRole(&quot;model.role.cavalry&quot;);</span>
+<span class="nc" id="L57">    private static final Role dragoonRole</span>
+<span class="nc" id="L58">        = spec().getRole(&quot;model.role.dragoon&quot;);</span>
+<span class="nc" id="L59">    private static final Role infantryRole</span>
+<span class="nc" id="L60">        = spec().getRole(&quot;model.role.infantry&quot;);</span>
+<span class="nc" id="L61">    private static final Role missionaryRole</span>
+<span class="nc" id="L62">        = spec().getRole(&quot;model.role.missionary&quot;);</span>
+<span class="nc" id="L63">    private static final Role nativeDragoonRole</span>
+<span class="nc" id="L64">        = spec().getRole(&quot;model.role.nativeDragoon&quot;);</span>
+<span class="nc" id="L65">    private static final Role soldierRole</span>
+<span class="nc" id="L66">        = spec().getRole(&quot;model.role.soldier&quot;);</span>
+
+<span class="nc" id="L68">    private static final UnitType blackSmithType</span>
+<span class="nc" id="L69">        = spec().getUnitType(&quot;model.unit.masterBlacksmith&quot;);</span>
+<span class="nc" id="L70">    private static final UnitType braveType</span>
+<span class="nc" id="L71">        = spec().getUnitType(&quot;model.unit.brave&quot;);</span>
+<span class="nc" id="L72">    private static final UnitType caravelType</span>
+<span class="nc" id="L73">        = spec().getUnitType(&quot;model.unit.caravel&quot;);</span>
+<span class="nc" id="L74">    private static final UnitType freeColonistType</span>
+<span class="nc" id="L75">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="nc" id="L76">    private static final UnitType kingsRegularType</span>
+<span class="nc" id="L77">        = spec().getUnitType(&quot;model.unit.kingsRegular&quot;);</span>
+<span class="nc" id="L78">    private static final UnitType privateerType</span>
+<span class="nc" id="L79">        = spec().getUnitType(&quot;model.unit.privateer&quot;);</span>
+<span class="nc" id="L80">    private static final UnitType wagonType</span>
+<span class="nc" id="L81">        = spec().getUnitType(&quot;model.unit.wagonTrain&quot;);</span>
+
+
+    /**
+     * Make sure that a specification object can be created without an exception
+     * being thrown.
+     */
+    public void testLoad() {
+<span class="nc" id="L89">        Specification spec = null;</span>
+        try {
+<span class="nc" id="L91">            spec = new FreeColTcFile(&quot;freecol&quot;).getSpecification();</span>
+<span class="nc" id="L92">        } catch (Exception e) {</span>
+<span class="nc" id="L93">            e.printStackTrace();</span>
+<span class="nc" id="L94">            fail();</span>
+        }
+<span class="nc" id="L96">        assertNotNull(spec);</span>
+<span class="nc" id="L97">    }</span>
+
+    /**
+     * Test for some typical abilities.
+     */
+    public void testUnitAbilities() {
+<span class="nc" id="L103">        assertTrue(freeColonistType.hasAbility(Ability.FOUND_COLONY));</span>
+<span class="nc" id="L104">        assertFalse(freeColonistType.hasAbility(Ability.BORN_IN_INDIAN_SETTLEMENT));</span>
+<span class="nc" id="L105">        assertTrue(freeColonistType.isRecruitable());</span>
+<span class="nc" id="L106">        assertFalse(freeColonistType.hasAbility(Ability.NAVAL_UNIT));</span>
+<span class="nc" id="L107">        assertFalse(freeColonistType.hasAbility(Ability.CARRY_GOODS));</span>
+<span class="nc" id="L108">        assertFalse(freeColonistType.hasAbility(Ability.CARRY_UNITS));</span>
+<span class="nc" id="L109">        assertFalse(freeColonistType.hasAbility(Ability.CAPTURE_GOODS));</span>
+
+<span class="nc" id="L111">        assertFalse(wagonType.hasAbility(Ability.FOUND_COLONY));</span>
+<span class="nc" id="L112">        assertFalse(wagonType.isRecruitable());</span>
+<span class="nc" id="L113">        assertFalse(wagonType.hasAbility(Ability.NAVAL_UNIT));</span>
+<span class="nc" id="L114">        assertTrue(wagonType.hasAbility(Ability.CARRY_GOODS));</span>
+<span class="nc" id="L115">        assertFalse(wagonType.hasAbility(Ability.CARRY_UNITS));</span>
+<span class="nc" id="L116">        assertFalse(wagonType.hasAbility(Ability.CAPTURE_GOODS));</span>
+
+        //assertFalse(brave.hasAbility(Ability.FOUND_COLONY));
+<span class="nc" id="L119">        assertTrue(braveType.hasAbility(Ability.BORN_IN_INDIAN_SETTLEMENT));</span>
+<span class="nc" id="L120">        assertFalse(braveType.isRecruitable());</span>
+<span class="nc" id="L121">        assertFalse(braveType.hasAbility(Ability.NAVAL_UNIT));</span>
+<span class="nc" id="L122">        assertTrue(braveType.hasAbility(Ability.CARRY_GOODS));</span>
+<span class="nc" id="L123">        assertFalse(braveType.hasAbility(Ability.CARRY_UNITS));</span>
+<span class="nc" id="L124">        assertFalse(braveType.hasAbility(Ability.CAPTURE_GOODS));</span>
+
+<span class="nc" id="L126">        assertFalse(caravelType.hasAbility(Ability.FOUND_COLONY));</span>
+<span class="nc" id="L127">        assertFalse(caravelType.isRecruitable());</span>
+<span class="nc" id="L128">        assertTrue(caravelType.hasAbility(Ability.NAVAL_UNIT));</span>
+<span class="nc" id="L129">        assertTrue(caravelType.hasAbility(Ability.CARRY_GOODS));</span>
+<span class="nc" id="L130">        assertTrue(caravelType.hasAbility(Ability.CARRY_UNITS));</span>
+<span class="nc" id="L131">        assertFalse(caravelType.hasAbility(Ability.CAPTURE_GOODS));</span>
+
+<span class="nc" id="L133">        assertFalse(privateerType.hasAbility(Ability.FOUND_COLONY));</span>
+<span class="nc" id="L134">        assertFalse(privateerType.isRecruitable());</span>
+<span class="nc" id="L135">        assertTrue(privateerType.hasAbility(Ability.NAVAL_UNIT));</span>
+<span class="nc" id="L136">        assertTrue(privateerType.hasAbility(Ability.CARRY_GOODS));</span>
+<span class="nc" id="L137">        assertTrue(privateerType.hasAbility(Ability.CARRY_UNITS));</span>
+<span class="nc" id="L138">        assertTrue(privateerType.hasAbility(Ability.CAPTURE_GOODS));</span>
+<span class="nc" id="L139">    }</span>
+
+    public void testFoundingFathers() {
+<span class="nc" id="L142">        final FoundingFather smith</span>
+<span class="nc" id="L143">            = spec().getFoundingFather(&quot;model.foundingFather.adamSmith&quot;);</span>
+<span class="nc" id="L144">        assertNotNull(smith);</span>
+<span class="nc" id="L145">        assertEquals(FoundingFather.FoundingFatherType.TRADE, smith.getType());</span>
+        // weight is some value in [0, 10]
+<span class="nc bnc" id="L147" title="All 2 branches missed.">        assertTrue(smith.getWeight(0) &gt;= 0);</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">        assertTrue(smith.getWeight(1) &gt;= 0);</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">        assertTrue(smith.getWeight(2) &gt;= 0);</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        assertTrue(smith.getWeight(0) &lt;= 10);</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">        assertTrue(smith.getWeight(1) &lt;= 10);</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">        assertTrue(smith.getWeight(2) &lt;= 10);</span>
+
+<span class="nc" id="L154">        assertEquals(0, smith.getWeight(-1));</span>
+<span class="nc" id="L155">        assertEquals(0, smith.getWeight(34));</span>
+        // check for ability
+<span class="nc" id="L157">        assertTrue(smith.hasAbility(Ability.BUILD_FACTORY));</span>
+<span class="nc" id="L158">    }</span>
+
+    public void testModifiers() {
+        // Percentage Modifier
+        /*
+        BuildingType ironWorks = spec.getBuildingType(&quot;model.building.ironWorks&quot;);
+        Modifier modifier = ironWorks.getModifiers(&quot;model.goods.tools&quot;).iterator().next();
+        assertEquals(Modifier.Type.PERCENTAGE, modifier.getType());
+        assertEquals(50f, modifier.getValue());
+        */
+
+        // Additive Modifier
+<span class="nc" id="L170">        Modifier modifier = depotType</span>
+<span class="nc" id="L171">            .getModifiers(Modifier.WAREHOUSE_STORAGE).iterator().next();</span>
+<span class="nc" id="L172">        assertEquals(ModifierType.ADDITIVE, modifier.getType());</span>
+<span class="nc" id="L173">        assertEquals(100f, modifier.getValue());</span>
+
+        // Multiplicative Modifier
+<span class="nc" id="L176">        modifier = blackSmithType.getModifiers(&quot;model.goods.tools&quot;).iterator().next();</span>
+<span class="nc" id="L177">        assertEquals(ModifierType.MULTIPLICATIVE, modifier.getType());</span>
+<span class="nc" id="L178">        assertEquals(2f, modifier.getValue());</span>
+<span class="nc" id="L179">    }</span>
+
+    public void testNations() {
+        // 4 original European nations, 4 in freecol rules
+        // The unknown enemy is deliberately absent from the European
+        // nations list
+<span class="nc" id="L185">        List&lt;Nation&gt; europeanNations = spec().getEuropeanNations();</span>
+<span class="nc" id="L186">        assertEquals(8, europeanNations.size());</span>
+
+        // 8 original native nations
+<span class="nc" id="L189">        List&lt;Nation&gt; indianNations = spec().getIndianNations();</span>
+<span class="nc" id="L190">        assertEquals(8, indianNations.size());</span>
+
+        // Unknown enemy has no REF
+<span class="nc" id="L193">        List&lt;Nation&gt; REFNations = spec().getREFNations();</span>
+<span class="nc" id="L194">        assertEquals(europeanNations.size(), REFNations.size());</span>
+<span class="nc" id="L195">    }</span>
+
+    public void testNationTypes() {
+<span class="nc" id="L198">        final Specification spec = spec();</span>
+
+<span class="nc" id="L200">        List&lt;IndianNationType&gt; indianNationTypes = spec.getIndianNationTypes();</span>
+<span class="nc" id="L201">        assertEquals(8, indianNationTypes.size());</span>
+<span class="nc" id="L202">        List&lt;EuropeanNationType&gt; REFNationTypes = spec.getREFNationTypes();</span>
+<span class="nc" id="L203">        assertEquals(1, REFNationTypes.size());</span>
+
+<span class="nc" id="L205">    }</span>
+
+    public void testRequiredAbilitiesForRoles() {
+<span class="nc" id="L208">        final Specification spec = spec();</span>
+        Map&lt;String, Boolean&gt; abilitiesReq, expectAbilities;
+<span class="nc" id="L210">        Map&lt;String, Map&lt;String, Boolean&gt;&gt; roleAbilities = new HashMap&lt;&gt;();</span>
+
+<span class="nc" id="L212">        expectAbilities = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L213">        expectAbilities.put(Ability.CAN_BE_EQUIPPED, true);</span>
+<span class="nc" id="L214">        expectAbilities.put(Ability.NATIVE, false);</span>
+<span class="nc" id="L215">        expectAbilities.put(Ability.REF_UNIT, false);</span>
+<span class="nc" id="L216">        roleAbilities.put(&quot;model.role.scout&quot;, expectAbilities);</span>
+
+<span class="nc" id="L218">        expectAbilities = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L219">        expectAbilities.put(Ability.CAN_BE_EQUIPPED, true);</span>
+<span class="nc" id="L220">        expectAbilities.put(Ability.NATIVE, false);</span>
+<span class="nc" id="L221">        expectAbilities.put(Ability.REF_UNIT, false);</span>
+<span class="nc" id="L222">        roleAbilities.put(&quot;model.role.soldier&quot;, expectAbilities);</span>
+
+<span class="nc" id="L224">        expectAbilities = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L225">        expectAbilities.put(Ability.CAN_BE_EQUIPPED, true);</span>
+<span class="nc" id="L226">        expectAbilities.put(Ability.NATIVE, false);</span>
+<span class="nc" id="L227">        expectAbilities.put(Ability.REF_UNIT, false);</span>
+<span class="nc" id="L228">        roleAbilities.put(&quot;model.role.dragoon&quot;, expectAbilities);</span>
+
+<span class="nc" id="L230">        expectAbilities = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L231">        expectAbilities.put(Ability.CAN_BE_EQUIPPED, true);</span>
+<span class="nc" id="L232">        expectAbilities.put(Ability.NATIVE, false);</span>
+<span class="nc" id="L233">        expectAbilities.put(Ability.REF_UNIT, false);</span>
+<span class="nc" id="L234">        roleAbilities.put(&quot;model.role.pioneer&quot;, expectAbilities);</span>
+
+<span class="nc" id="L236">        expectAbilities = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L237">        expectAbilities.put(Ability.CAN_BE_EQUIPPED, true);</span>
+<span class="nc" id="L238">        expectAbilities.put(Ability.DRESS_MISSIONARY, true);</span>
+<span class="nc" id="L239">        expectAbilities.put(Ability.NATIVE, false);</span>
+<span class="nc" id="L240">        expectAbilities.put(Ability.REF_UNIT, false);</span>
+<span class="nc" id="L241">        roleAbilities.put(&quot;model.role.missionary&quot;, expectAbilities);</span>
+
+<span class="nc" id="L243">        expectAbilities = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L244">        expectAbilities.put(Ability.CAN_BE_EQUIPPED, true);</span>
+<span class="nc" id="L245">        expectAbilities.put(Ability.NATIVE, false);</span>
+<span class="nc" id="L246">        expectAbilities.put(Ability.REF_UNIT, true);</span>
+<span class="nc" id="L247">        expectAbilities.put(Ability.ROYAL_EXPEDITIONARY_FORCE, true);</span>
+<span class="nc" id="L248">        roleAbilities.put(&quot;model.role.infantry&quot;, expectAbilities);</span>
+
+<span class="nc" id="L250">        expectAbilities = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L251">        expectAbilities.put(Ability.CAN_BE_EQUIPPED, true);</span>
+<span class="nc" id="L252">        expectAbilities.put(Ability.NATIVE, false);</span>
+<span class="nc" id="L253">        expectAbilities.put(Ability.REF_UNIT, true);</span>
+<span class="nc" id="L254">        expectAbilities.put(Ability.ROYAL_EXPEDITIONARY_FORCE, true);</span>
+<span class="nc" id="L255">        roleAbilities.put(&quot;model.role.cavalry&quot;, expectAbilities);</span>
+
+<span class="nc" id="L257">        expectAbilities = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L258">        expectAbilities.put(Ability.CAN_BE_EQUIPPED, true);</span>
+<span class="nc" id="L259">        expectAbilities.put(Ability.NATIVE, true);</span>
+<span class="nc" id="L260">        expectAbilities.put(Ability.REF_UNIT, false);</span>
+<span class="nc" id="L261">        roleAbilities.put(&quot;model.role.mountedBrave&quot;, expectAbilities);</span>
+
+<span class="nc" id="L263">        expectAbilities = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L264">        expectAbilities.put(Ability.CAN_BE_EQUIPPED, true);</span>
+<span class="nc" id="L265">        expectAbilities.put(Ability.NATIVE, true);</span>
+<span class="nc" id="L266">        expectAbilities.put(Ability.REF_UNIT, false);</span>
+<span class="nc" id="L267">        roleAbilities.put(&quot;model.role.armedBrave&quot;, expectAbilities);</span>
+
+<span class="nc" id="L269">        expectAbilities = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L270">        expectAbilities.put(Ability.CAN_BE_EQUIPPED, true);</span>
+<span class="nc" id="L271">        expectAbilities.put(Ability.NATIVE, true);</span>
+<span class="nc" id="L272">        expectAbilities.put(Ability.REF_UNIT, false);</span>
+<span class="nc" id="L273">        roleAbilities.put(&quot;model.role.nativeDragoon&quot;, expectAbilities);</span>
+
+        // Verify
+<span class="nc bnc" id="L276" title="All 2 branches missed.">        for (Entry&lt;String, Map&lt;String, Boolean&gt;&gt; entry</span>
+<span class="nc" id="L277">                 : roleAbilities.entrySet()) {</span>
+<span class="nc" id="L278">            Role role = spec.getRole(entry.getKey());</span>
+<span class="nc" id="L279">            Map&lt;String, Boolean&gt; required = role.getRequiredAbilities();</span>
+<span class="nc" id="L280">            expectAbilities = entry.getValue();</span>
+<span class="nc bnc" id="L281" title="All 2 branches missed.">            for (String key : required.keySet()) {</span>
+<span class="nc" id="L282">                Boolean req = required.get(key);</span>
+<span class="nc" id="L283">                Boolean val = expectAbilities.get(key);</span>
+<span class="nc" id="L284">                assertNotNull(role.getId() + &quot; missing &quot; + key, val);</span>
+<span class="nc" id="L285">                assertEquals(role.getId() + &quot; &quot; + key + &quot; value != &quot; + req,</span>
+<span class="nc" id="L286">                    req, val);</span>
+<span class="nc" id="L287">                expectAbilities.remove(key);</span>
+            }
+<span class="nc" id="L289">            assertEquals(role.getId() + &quot; excess abilities&quot;, 0,</span>
+<span class="nc" id="L290">                expectAbilities.size());</span>
+        }
+
+        Role role;
+<span class="nc" id="L294">        role = spec.getRole(&quot;model.role.default&quot;);</span>
+<span class="nc" id="L295">        assertNotNull(role);</span>
+<span class="nc" id="L296">        checkGoods(role.getId(), role.getRequiredGoods());</span>
+
+<span class="nc" id="L298">        role = spec.getRole(&quot;model.role.scout&quot;);</span>
+<span class="nc" id="L299">        assertNotNull(role);</span>
+<span class="nc" id="L300">        checkGoods(role.getId(), role.getRequiredGoods(),</span>
+<span class="nc" id="L301">            new AbstractGoods(horsesType, 50));</span>
+
+<span class="nc" id="L303">        role = spec.getRole(&quot;model.role.soldier&quot;);</span>
+<span class="nc" id="L304">        assertNotNull(role);</span>
+<span class="nc" id="L305">        checkGoods(role.getId(), role.getRequiredGoods(),</span>
+<span class="nc" id="L306">            new AbstractGoods(musketsType, 50));</span>
+
+<span class="nc" id="L308">        role = spec.getRole(&quot;model.role.dragoon&quot;);</span>
+<span class="nc" id="L309">        assertNotNull(role);</span>
+<span class="nc" id="L310">        checkGoods(role.getId(), role.getRequiredGoods(),</span>
+<span class="nc" id="L311">            new AbstractGoods(horsesType, 50),</span>
+<span class="nc" id="L312">            new AbstractGoods(musketsType, 50));</span>
+
+<span class="nc" id="L314">        role = spec.getRole(&quot;model.role.pioneer&quot;);</span>
+<span class="nc" id="L315">        assertNotNull(role);</span>
+<span class="nc" id="L316">        checkGoods(role.getId(), role.getRequiredGoods(),</span>
+<span class="nc" id="L317">            new AbstractGoods(toolsType, 20));</span>
+
+<span class="nc" id="L319">        role = spec.getRole(&quot;model.role.missionary&quot;);</span>
+<span class="nc" id="L320">        assertNotNull(role);</span>
+<span class="nc" id="L321">        checkGoods(role.getId(), role.getRequiredGoods());</span>
+
+<span class="nc" id="L323">        role = spec.getRole(&quot;model.role.infantry&quot;);</span>
+<span class="nc" id="L324">        assertNotNull(role);</span>
+<span class="nc" id="L325">        checkGoods(role.getId(), role.getRequiredGoods(),</span>
+<span class="nc" id="L326">            new AbstractGoods(musketsType, 50));</span>
+
+<span class="nc" id="L328">        role = spec.getRole(&quot;model.role.cavalry&quot;);</span>
+<span class="nc" id="L329">        assertNotNull(role);</span>
+<span class="nc" id="L330">        checkGoods(role.getId(), role.getRequiredGoods(),</span>
+<span class="nc" id="L331">            new AbstractGoods(horsesType, 50),</span>
+<span class="nc" id="L332">            new AbstractGoods(musketsType, 50));</span>
+
+<span class="nc" id="L334">        role = spec.getRole(&quot;model.role.mountedBrave&quot;);</span>
+<span class="nc" id="L335">        assertNotNull(role);</span>
+<span class="nc" id="L336">        checkGoods(role.getId(), role.getRequiredGoods(),</span>
+<span class="nc" id="L337">            new AbstractGoods(horsesType, 25));</span>
+
+<span class="nc" id="L339">        role = spec.getRole(&quot;model.role.armedBrave&quot;);</span>
+<span class="nc" id="L340">        assertNotNull(role);</span>
+<span class="nc" id="L341">        checkGoods(role.getId(), role.getRequiredGoods(),</span>
+<span class="nc" id="L342">            new AbstractGoods(musketsType, 25));</span>
+
+<span class="nc" id="L344">        role = spec.getRole(&quot;model.role.nativeDragoon&quot;);</span>
+<span class="nc" id="L345">        assertNotNull(role);</span>
+<span class="nc" id="L346">        checkGoods(role.getId(), role.getRequiredGoods(),</span>
+<span class="nc" id="L347">            new AbstractGoods(horsesType, 25),</span>
+<span class="nc" id="L348">            new AbstractGoods(musketsType, 25));</span>
+<span class="nc" id="L349">    }</span>
+
+    public void testGoodsTypes() {
+<span class="nc" id="L352">        assertTrue(foodType.isFarmed());</span>
+<span class="nc" id="L353">        assertTrue(spec().getFarmedGoodsTypeList().contains(foodType));</span>
+<span class="nc" id="L354">        assertTrue(foodType.isFoodType());</span>
+<span class="nc" id="L355">        assertTrue(spec().getFoodGoodsTypeList().contains(foodType));</span>
+
+<span class="nc" id="L357">        assertTrue(fishType.isFarmed());</span>
+<span class="nc" id="L358">        assertTrue(spec().getFarmedGoodsTypeList().contains(fishType));</span>
+<span class="nc" id="L359">        assertTrue(fishType.isFoodType());</span>
+<span class="nc" id="L360">        assertTrue(spec().getFoodGoodsTypeList().contains(fishType));</span>
+<span class="nc" id="L361">    }</span>
+
+    public void testExtends() {
+<span class="nc" id="L364">        String specification = &quot;&lt;?xml version=\&quot;1.0\&quot; encoding=\&quot;UTF-8\&quot;?&gt;&quot;</span>
+            + &quot;&lt;freecol-specification id=\&quot;test\&quot; extends=\&quot;freecol\&quot;&gt;&quot;
+            + &quot;&lt;unit-types&gt;&quot;
+            + &quot;&lt;unit-type id=\&quot;model.unit.milkmaid\&quot; extends=\&quot;colonist\&quot; &quot;
+            + &quot;expert-production=\&quot;model.goods.food\&quot; /&gt;&quot;
+            + &quot;&lt;/unit-types&gt;&quot;
+            + &quot;&lt;/freecol-specification&gt;&quot;;
+
+<span class="nc" id="L372">        Specification spec = new Specification(new ByteArrayInputStream(specification.getBytes()));</span>
+
+<span class="nc" id="L374">        assertNotNull(spec.getUnitType(&quot;model.unit.milkmaid&quot;));</span>
+<span class="nc" id="L375">        assertNotNull(spec.getUnitType(&quot;model.unit.caravel&quot;));</span>
+
+        // restore original values
+        try {
+<span class="nc" id="L379">            spec = new Specification(new FreeColTcFile(&quot;freecol&quot;).getSpecificationInputStream());</span>
+<span class="nc" id="L380">        } catch (Exception e) {</span>
+<span class="nc" id="L381">            System.out.println(e);</span>
+        }
+<span class="nc" id="L383">    }</span>
+
+    public void testExtendsDelete() {
+<span class="nc" id="L386">        String specification = &quot;&lt;?xml version=\&quot;1.0\&quot; encoding=\&quot;UTF-8\&quot;?&gt;&quot;</span>
+            + &quot;&lt;freecol-specification id=\&quot;test\&quot; extends=\&quot;freecol\&quot;&gt;&quot;
+            + &quot;&lt;unit-types&gt;&quot;
+            + &quot;&lt;delete id=\&quot;model.unit.caravel\&quot; /&gt;&quot;
+            + &quot;&lt;/unit-types&gt;&quot;
+            + &quot;&lt;/freecol-specification&gt;&quot;;
+
+<span class="nc" id="L393">        Specification spec = new Specification(new ByteArrayInputStream(specification.getBytes()));</span>
+
+        try {
+<span class="nc" id="L396">            spec.getUnitType(&quot;model.unit.caravel&quot;);</span>
+<span class="nc" id="L397">            fail(&quot;Caravel is defined.&quot;);</span>
+<span class="nc" id="L398">        } catch (IllegalArgumentException e) {</span>
+        }
+
+<span class="nc bnc" id="L401" title="All 2 branches missed.">        for (UnitType unitType : spec.getUnitTypeList()) {</span>
+<span class="nc" id="L402">            assertFalse(&quot;model.unit.caravel&quot;.equals(unitType.getId()));</span>
+        }
+
+        // restore original values
+        try {
+<span class="nc" id="L407">            spec = new Specification(new FreeColTcFile(&quot;freecol&quot;).getSpecificationInputStream());</span>
+<span class="nc" id="L408">        } catch (Exception e) {</span>
+<span class="nc" id="L409">            System.out.println(e);</span>
+        }
+<span class="nc" id="L411">    }</span>
+
+    public void testGetDefaultUnitType() {
+<span class="nc" id="L414">        NationType europeanNationType = null;</span>
+<span class="nc" id="L415">        NationType nativeNationType = null;</span>
+<span class="nc" id="L416">        NationType refNationType = null;</span>
+<span class="nc bnc" id="L417" title="All 2 branches missed.">        for (NationType nt : spec().getNationTypes()) {</span>
+<span class="nc bnc" id="L418" title="All 2 branches missed.">            if (nt.isIndian()) {</span>
+<span class="nc bnc" id="L419" title="All 2 branches missed.">                if (nativeNationType == null) nativeNationType = nt;</span>
+<span class="nc bnc" id="L420" title="All 2 branches missed.">            } else if (nt.isREF()) {</span>
+<span class="nc bnc" id="L421" title="All 2 branches missed.">                if (refNationType == null) refNationType = nt;</span>
+<span class="nc" id="L422">            } else {</span>
+<span class="nc bnc" id="L423" title="All 2 branches missed.">                if (europeanNationType == null) europeanNationType = nt;</span>
+            }
+        }
+<span class="nc" id="L426">        assertNotNull(&quot;No European nation type&quot;, europeanNationType);</span>
+<span class="nc" id="L427">        assertNotNull(&quot;No native nation type&quot;, nativeNationType);</span>
+<span class="nc" id="L428">        assertNotNull(&quot;No REF nation type&quot;, refNationType);</span>
+                
+<span class="nc" id="L430">        assertEquals(&quot;Should find free colonist&quot;, freeColonistType,</span>
+<span class="nc" id="L431">                     spec().getDefaultUnitType(europeanNationType));</span>
+<span class="nc" id="L432">        assertEquals(&quot;Should find brave&quot;, braveType,</span>
+<span class="nc" id="L433">                     spec().getDefaultUnitType(nativeNationType));</span>
+<span class="nc" id="L434">        assertEquals(&quot;Should find kings regular&quot;, kingsRegularType,</span>
+<span class="nc" id="L435">                     spec().getDefaultUnitType(refNationType));</span>
+<span class="nc" id="L436">    }        </span>
+        
+    public void testLoadMods() {
+        try {
+<span class="nc" id="L440">            Specification specification = new Specification(new FreeColTcFile(&quot;freecol&quot;).getSpecificationInputStream());</span>
+<span class="nc" id="L441">            int numberOfUnitTypes = specification.getUnitTypeList().size();</span>
+<span class="nc" id="L442">            List&lt;FreeColModFile&gt; mods = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L443">            mods.add(new FreeColModFile(new File(&quot;data/mods/example&quot;)));</span>
+<span class="nc" id="L444">            specification.loadMods(mods);</span>
+<span class="nc" id="L445">            UnitType milkmaid = specification.getUnitType(&quot;model.unit.milkmaid&quot;);</span>
+<span class="nc" id="L446">            assertEquals(numberOfUnitTypes + 1, </span>
+<span class="nc" id="L447">                specification.getUnitTypeList().size());</span>
+<span class="nc" id="L448">        } catch (Exception e) {</span>
+<span class="nc" id="L449">            fail(e.getMessage());</span>
+        }
+<span class="nc" id="L451">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

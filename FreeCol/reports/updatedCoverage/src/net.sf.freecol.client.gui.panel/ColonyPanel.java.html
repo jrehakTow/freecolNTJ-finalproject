@@ -1,0 +1,2286 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ColonyPanel.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.gui.panel</a> &gt; <span class="el_source">ColonyPanel.java</span></div><h1>ColonyPanel.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.gui.panel;
+
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.util.Collections;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.swing.ComponentInputMap;
+import javax.swing.ImageIcon;
+import javax.swing.InputMap;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JMenuItem;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JToolTip;
+import javax.swing.KeyStroke;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingUtilities;
+
+import net.miginfocom.swing.MigLayout;
+
+import net.sf.freecol.client.ClientOptions;
+import net.sf.freecol.client.FreeColClient;
+import net.sf.freecol.client.gui.FontLibrary;
+import net.sf.freecol.client.gui.GUI;
+import net.sf.freecol.client.gui.ImageLibrary;
+import net.sf.freecol.common.debug.DebugUtils;
+import net.sf.freecol.common.debug.FreeColDebugger;
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.model.AbstractGoods;
+import net.sf.freecol.common.model.BuildableType;
+import net.sf.freecol.common.model.Building;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.Colony.ColonyChangeEvent;
+import net.sf.freecol.common.model.ColonyTile;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.FreeColGameObject;
+import net.sf.freecol.common.model.FreeColObject;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Goods;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.ModelMessage;
+import net.sf.freecol.common.model.Nation;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Player.NoClaimReason;
+import net.sf.freecol.common.model.ProductionInfo;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.model.StringTemplate;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitLocation.NoAddReason;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.model.WorkLocation;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+
+
+/**
+ * This is a panel for the Colony display.  It shows the units that
+ * are working in the colony, the buildings and much more.
+ *
+ * Beware that in debug mode, this might be a server-side version of
+ * the colony which is why we need to call
+ * getColony().getSpecification() to get the spec that corresponds to
+ * the good types in this colony.
+ */
+public final class ColonyPanel extends PortPanel
+    implements ActionListener, PropertyChangeListener {
+
+<span class="nc" id="L109">    private static final Logger logger = Logger.getLogger(ColonyPanel.class.getName());</span>
+
+    private static final int EXIT = 0,
+        BUILDQUEUE = 1,
+        UNLOAD = 2,
+        WAREHOUSE = 4,
+        FILL = 5,
+        COLONY_UNITS = 6,
+        SETGOODS = 7,
+        OCCUPATION = 8;
+
+    /** The height of the area in which autoscrolling should happen. */
+    public static final int SCROLL_AREA_HEIGHT = 40;
+
+    /** The speed of the scrolling. */
+<span class="nc" id="L124">    public static final int SCROLL_SPEED = 40;</span>
+
+    // Buttons
+<span class="nc" id="L127">    private JButton unloadButton</span>
+<span class="nc" id="L128">        = Utility.localizedButton(&quot;unload&quot;);</span>
+
+<span class="nc" id="L130">    private JButton fillButton</span>
+<span class="nc" id="L131">        = Utility.localizedButton(&quot;load&quot;);</span>
+
+<span class="nc" id="L133">    private JButton warehouseButton</span>
+<span class="nc" id="L134">        = Utility.localizedButton(&quot;colonyPanel.warehouse&quot;);</span>
+
+<span class="nc" id="L136">    private JButton buildQueueButton</span>
+<span class="nc" id="L137">        = Utility.localizedButton(&quot;colonyPanel.buildQueue&quot;);</span>
+
+<span class="nc" id="L139">    private JButton colonyUnitsButton</span>
+<span class="nc" id="L140">        = Utility.localizedButton(&quot;colonyPanel.colonyUnits&quot;);</span>
+
+    // Only present in debug mode
+<span class="nc" id="L143">    private JButton setGoodsButton = null;</span>
+<span class="nc" id="L144">    private JButton traceWorkButton = null;</span>
+
+    /** The &lt;code&gt;Colony&lt;/code&gt; this panel is displaying. */
+<span class="nc" id="L147">    private Colony colony = null;</span>
+
+    // inherit PortPanel.pressListener
+    // inherit PortPanel.defaultTransferHandler
+    // inherit PortPanel.selectedUnitLabel
+
+<span class="nc" id="L153">    private MouseListener releaseListener = null;</span>
+
+    // Subparts
+<span class="nc" id="L156">    private final JComboBox&lt;Colony&gt; nameBox = new JComboBox&lt;&gt;();</span>
+
+<span class="nc" id="L158">    private JPanel netProductionPanel = null;</span>
+
+<span class="nc" id="L160">    private JScrollPane buildingsScroll = null;</span>
+<span class="nc" id="L161">    private BuildingsPanel buildingsPanel = null;</span>
+
+<span class="nc" id="L163">    private JScrollPane cargoScroll = null;</span>
+    // inherit protected PortPanel.cargoPanel
+
+<span class="nc" id="L166">    private ConstructionPanel constructionPanel = null;</span>
+
+<span class="nc" id="L168">    private JScrollPane inPortScroll = null;</span>
+    // inherit protected PortPanel.inPortPanel
+
+<span class="nc" id="L171">    private JScrollPane outsideColonyScroll = null;</span>
+<span class="nc" id="L172">    private OutsideColonyPanel outsideColonyPanel = null;</span>
+
+<span class="nc" id="L174">    private PopulationPanel populationPanel = null;</span>
+
+<span class="nc" id="L176">    private JScrollPane tilesScroll = null;</span>
+<span class="nc" id="L177">    private TilesPanel tilesPanel = null;</span>
+
+<span class="nc" id="L179">    private JScrollPane warehouseScroll = null;</span>
+<span class="nc" id="L180">    private WarehousePanel warehousePanel = null;</span>
+
+
+    /**
+     * The constructor for the panel.
+     *
+     * @param freeColClient The &lt;code&gt;FreeColClient&lt;/code&gt; for the game.
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; to display in this panel.
+     */
+    public ColonyPanel(FreeColClient freeColClient, Colony colony) {
+<span class="nc" id="L190">        super(freeColClient,</span>
+<span class="nc" id="L191">            new MigLayout(&quot;fill, wrap 2, insets 2&quot;,</span>
+<span class="nc" id="L192">                          &quot;[390!][fill]&quot;,</span>
+<span class="nc" id="L193">                          &quot;[growprio 100,shrinkprio 10][]0[]0[]&quot;</span>
+                          + &quot;[growprio 150,shrinkprio 50]&quot;
+                          + &quot;[growprio 150,shrinkprio 50][]&quot;));
+
+        // Do not just use colony.getOwner() == getMyPlayer() because
+        // in debug mode we are in the *server* colony, and the equality
+        // will fail.
+<span class="nc" id="L200">        editable = colony.getOwner().getId().equals(getMyPlayer().getId());</span>
+
+        // Only enable the set goods button in debug mode when not spying
+<span class="nc bnc" id="L203" title="All 2 branches missed.">        if (FreeColDebugger.isInDebugMode(FreeColDebugger.DebugMode.MENUS)</span>
+<span class="nc bnc" id="L204" title="All 2 branches missed.">            &amp;&amp; editable) {</span>
+<span class="nc" id="L205">            setGoodsButton = Utility.localizedButton(&quot;colonyPanel.setGoods&quot;);</span>
+<span class="nc" id="L206">            traceWorkButton = Utility.localizedButton(&quot;colonyPanel.traceWork&quot;);</span>
+        }
+
+        // Use ESCAPE for closing the ColonyPanel:
+<span class="nc" id="L210">        InputMap closeIM = new ComponentInputMap(okButton);</span>
+<span class="nc" id="L211">        closeIM.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0, false),</span>
+<span class="nc" id="L212">                    &quot;pressed&quot;);</span>
+<span class="nc" id="L213">        closeIM.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0, true),</span>
+<span class="nc" id="L214">                    &quot;released&quot;);</span>
+<span class="nc" id="L215">        SwingUtilities.replaceUIInputMap(okButton,</span>
+<span class="nc" id="L216">            JComponent.WHEN_IN_FOCUSED_WINDOW, closeIM);</span>
+<span class="nc" id="L217">        okButton.setText(Messages.message(&quot;close&quot;));</span>
+
+<span class="nc" id="L219">        InputMap unloadIM = new ComponentInputMap(unloadButton);</span>
+<span class="nc" id="L220">        unloadIM.put(KeyStroke.getKeyStroke(KeyEvent.VK_U, 0, false),</span>
+<span class="nc" id="L221">                     &quot;pressed&quot;);</span>
+<span class="nc" id="L222">        unloadIM.put(KeyStroke.getKeyStroke(KeyEvent.VK_U, 0, true),</span>
+<span class="nc" id="L223">                     &quot;released&quot;);</span>
+<span class="nc" id="L224">        SwingUtilities.replaceUIInputMap(unloadButton,</span>
+<span class="nc" id="L225">            JComponent.WHEN_IN_FOCUSED_WINDOW, unloadIM);</span>
+<span class="nc" id="L226">        unloadButton.setActionCommand(String.valueOf(UNLOAD));</span>
+
+<span class="nc" id="L228">        InputMap fillIM = new ComponentInputMap(fillButton);</span>
+<span class="nc" id="L229">        fillIM.put(KeyStroke.getKeyStroke(KeyEvent.VK_L, 0, false),</span>
+<span class="nc" id="L230">                   &quot;pressed&quot;);</span>
+<span class="nc" id="L231">        fillIM.put(KeyStroke.getKeyStroke(KeyEvent.VK_L, 0, true),</span>
+<span class="nc" id="L232">                   &quot;released&quot;);</span>
+<span class="nc" id="L233">        SwingUtilities.replaceUIInputMap(fillButton,</span>
+<span class="nc" id="L234">            JComponent.WHEN_IN_FOCUSED_WINDOW, fillIM);</span>
+<span class="nc" id="L235">        fillButton.setActionCommand(String.valueOf(FILL));</span>
+
+<span class="nc" id="L237">        InputMap warehouseIM = new ComponentInputMap(warehouseButton);</span>
+<span class="nc" id="L238">        warehouseIM.put(KeyStroke.getKeyStroke(KeyEvent.VK_W, 0, false),</span>
+<span class="nc" id="L239">                        &quot;pressed&quot;);</span>
+<span class="nc" id="L240">        warehouseIM.put(KeyStroke.getKeyStroke(KeyEvent.VK_W, 0, true),</span>
+<span class="nc" id="L241">                        &quot;released&quot;);</span>
+<span class="nc" id="L242">        SwingUtilities.replaceUIInputMap(warehouseButton,</span>
+<span class="nc" id="L243">            JComponent.WHEN_IN_FOCUSED_WINDOW, warehouseIM);</span>
+<span class="nc" id="L244">        warehouseButton.setActionCommand(String.valueOf(WAREHOUSE));</span>
+
+<span class="nc" id="L246">        InputMap buildQueueIM = new ComponentInputMap(buildQueueButton);</span>
+<span class="nc" id="L247">        buildQueueIM.put(KeyStroke.getKeyStroke(KeyEvent.VK_B, 0, false),</span>
+<span class="nc" id="L248">                         &quot;pressed&quot;);</span>
+<span class="nc" id="L249">        buildQueueIM.put(KeyStroke.getKeyStroke(KeyEvent.VK_B, 0, true),</span>
+<span class="nc" id="L250">                         &quot;released&quot;);</span>
+<span class="nc" id="L251">        SwingUtilities.replaceUIInputMap(buildQueueButton,</span>
+<span class="nc" id="L252">            JComponent.WHEN_IN_FOCUSED_WINDOW, buildQueueIM);</span>
+<span class="nc" id="L253">        buildQueueButton.setActionCommand(String.valueOf(BUILDQUEUE));</span>
+
+<span class="nc" id="L255">        InputMap colonyUnitsIM = new ComponentInputMap(colonyUnitsButton);</span>
+<span class="nc" id="L256">        colonyUnitsIM.put(KeyStroke.getKeyStroke(KeyEvent.VK_C, 0, false),</span>
+<span class="nc" id="L257">                          &quot;pressed&quot;);</span>
+<span class="nc" id="L258">        colonyUnitsIM.put(KeyStroke.getKeyStroke(KeyEvent.VK_C, 0, true),</span>
+<span class="nc" id="L259">                          &quot;released&quot;);</span>
+<span class="nc" id="L260">        SwingUtilities.replaceUIInputMap(colonyUnitsButton,</span>
+<span class="nc" id="L261">            JComponent.WHEN_IN_FOCUSED_WINDOW, colonyUnitsIM);</span>
+<span class="nc" id="L262">        colonyUnitsButton.setActionCommand(String.valueOf(COLONY_UNITS));</span>
+
+<span class="nc bnc" id="L264" title="All 2 branches missed.">        if (setGoodsButton != null) {</span>
+<span class="nc" id="L265">            setGoodsButton.setActionCommand(String.valueOf(SETGOODS));</span>
+        }
+<span class="nc bnc" id="L267" title="All 2 branches missed.">        if (traceWorkButton != null) {</span>
+<span class="nc" id="L268">            traceWorkButton.setActionCommand(String.valueOf(OCCUPATION));</span>
+        }
+
+<span class="nc" id="L271">        defaultTransferHandler</span>
+<span class="nc" id="L272">            = new DefaultTransferHandler(freeColClient, this);</span>
+<span class="nc" id="L273">        pressListener = new DragListener(freeColClient, this);</span>
+<span class="nc" id="L274">        releaseListener = new DropListener();</span>
+<span class="nc" id="L275">        selectedUnitLabel = null;</span>
+
+        // Make the colony label
+<span class="nc" id="L278">        Font nameBoxFont = FontLibrary.createFont(FontLibrary.FontType.HEADER,</span>
+<span class="nc" id="L279">            FontLibrary.FontSize.SMALL, getImageLibrary().getScaleFactor());</span>
+<span class="nc" id="L280">        boolean incompatibleFont = false;</span>
+<span class="nc bnc" id="L281" title="All 2 branches missed.">        if (editable) {</span>
+<span class="nc bnc" id="L282" title="All 2 branches missed.">            for (Colony c : freeColClient.getMySortedColonies()) {</span>
+<span class="nc" id="L283">                this.nameBox.addItem(c);</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">                if(!incompatibleFont &amp;&amp;</span>
+<span class="nc bnc" id="L285" title="All 2 branches missed.">                    nameBoxFont.canDisplayUpTo(c.getName()) != -1) {</span>
+<span class="nc" id="L286">                    incompatibleFont = true;</span>
+                }
+            }
+<span class="nc" id="L289">        } else { // When spying, only add the given colony.</span>
+<span class="nc" id="L290">            this.nameBox.addItem(colony);</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">            if(nameBoxFont.canDisplayUpTo(colony.getName()) != -1)</span>
+<span class="nc" id="L292">                incompatibleFont = true;</span>
+        }
+<span class="nc bnc" id="L294" title="All 2 branches missed.">        if(incompatibleFont) {</span>
+<span class="nc" id="L295">            nameBoxFont = FontLibrary.createFont(FontLibrary.FontType.NORMAL,</span>
+<span class="nc" id="L296">                FontLibrary.FontSize.SMALL,</span>
+<span class="nc" id="L297">                getImageLibrary().getScaleFactor());</span>
+        }
+<span class="nc" id="L299">        this.nameBox.setFont(nameBoxFont);</span>
+<span class="nc" id="L300">        this.nameBox.setSelectedItem(colony);</span>
+<span class="nc" id="L301">        this.nameBox.getInputMap().put(KeyStroke.getKeyStroke(&quot;LEFT&quot;),</span>
+<span class="nc" id="L302">                                       &quot;selectPrevious2&quot;);</span>
+<span class="nc" id="L303">        this.nameBox.getInputMap().put(KeyStroke.getKeyStroke(&quot;RIGHT&quot;),</span>
+<span class="nc" id="L304">                                       &quot;selectNext2&quot;);</span>
+
+<span class="nc" id="L306">        netProductionPanel = new JPanel();</span>
+<span class="nc" id="L307">        netProductionPanel.setOpaque(false);</span>
+
+<span class="nc" id="L309">        buildingsPanel = new BuildingsPanel();</span>
+<span class="nc" id="L310">        buildingsScroll = new JScrollPane(buildingsPanel,</span>
+<span class="nc" id="L311">            ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,</span>
+<span class="nc" id="L312">            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);</span>
+<span class="nc" id="L313">        buildingsScroll.getVerticalScrollBar().setUnitIncrement(16);</span>
+<span class="nc" id="L314">        buildingsScroll.getViewport().setOpaque(false);</span>
+<span class="nc" id="L315">        buildingsPanel.setOpaque(false);</span>
+<span class="nc" id="L316">        buildingsScroll.setBorder(Utility.ETCHED_BORDER);</span>
+
+<span class="nc" id="L318">        cargoPanel = new ColonyCargoPanel(freeColClient);</span>
+<span class="nc" id="L319">        cargoScroll = new JScrollPane(cargoPanel,</span>
+<span class="nc" id="L320">            ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER,</span>
+<span class="nc" id="L321">            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);</span>
+<span class="nc" id="L322">        cargoScroll.setBorder(Utility.ETCHED_BORDER);</span>
+
+<span class="nc" id="L324">        constructionPanel = new ConstructionPanel(freeColClient, colony, true);</span>
+
+<span class="nc" id="L326">        inPortPanel = new ColonyInPortPanel();</span>
+<span class="nc" id="L327">        inPortScroll = new JScrollPane(inPortPanel);</span>
+<span class="nc" id="L328">        inPortScroll.getVerticalScrollBar().setUnitIncrement(16);</span>
+<span class="nc" id="L329">        inPortScroll.setBorder(Utility.ETCHED_BORDER);</span>
+
+<span class="nc" id="L331">        outsideColonyPanel = new OutsideColonyPanel();</span>
+<span class="nc" id="L332">        outsideColonyScroll = new JScrollPane(outsideColonyPanel,</span>
+<span class="nc" id="L333">            ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,</span>
+<span class="nc" id="L334">            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);</span>
+<span class="nc" id="L335">        outsideColonyScroll.getVerticalScrollBar().setUnitIncrement(16);</span>
+<span class="nc" id="L336">        outsideColonyScroll.setBorder(Utility.ETCHED_BORDER);</span>
+
+<span class="nc" id="L338">        populationPanel = new PopulationPanel();</span>
+
+<span class="nc" id="L340">        tilesPanel = new TilesPanel();</span>
+<span class="nc" id="L341">        tilesScroll = new JScrollPane(tilesPanel,</span>
+<span class="nc" id="L342">            ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,</span>
+<span class="nc" id="L343">            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);</span>
+<span class="nc" id="L344">        tilesScroll.setBorder(Utility.BEVEL_BORDER);</span>
+
+<span class="nc" id="L346">        warehousePanel = new WarehousePanel();</span>
+<span class="nc" id="L347">        warehouseScroll = new JScrollPane(warehousePanel,</span>
+<span class="nc" id="L348">            ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER,</span>
+<span class="nc" id="L349">            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);</span>
+<span class="nc" id="L350">        warehouseScroll.setBorder(Utility.ETCHED_BORDER);</span>
+
+<span class="nc" id="L352">        InputMap nameIM = new ComponentInputMap(this.nameBox);</span>
+<span class="nc" id="L353">        nameIM.put(KeyStroke.getKeyStroke(&quot;LEFT&quot;), &quot;selectPrevious2&quot;);</span>
+<span class="nc" id="L354">        nameIM.put(KeyStroke.getKeyStroke(&quot;RIGHT&quot;), &quot;selectNext2&quot;);</span>
+<span class="nc" id="L355">        SwingUtilities.replaceUIInputMap(this.nameBox,</span>
+<span class="nc" id="L356">            JComponent.WHEN_IN_FOCUSED_WINDOW, nameIM);</span>
+
+<span class="nc" id="L358">        initialize(colony);</span>
+<span class="nc" id="L359">        float scale = getImageLibrary().getScaleFactor();</span>
+<span class="nc" id="L360">        getGUI().restoreSavedSize(this, 200 + (int)(scale*850), 200 + (int)(scale*525));</span>
+<span class="nc" id="L361">    }</span>
+
+
+    /**
+     * Set the current colony.
+     *
+     * @param colony The new colony value.
+     */
+    private synchronized void setColony(Colony colony) {
+<span class="nc" id="L370">        this.colony = colony;</span>
+<span class="nc" id="L371">    }</span>
+
+    /**
+     * Initialize the entire panel.
+     *
+     * We can arrive here normally when a colony panel is created,
+     * or when an existing colony panel is changed via the colony name
+     * menu in the nameBox.
+     *
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; to be displayed.
+     */
+    private void initialize(Colony colony) {
+<span class="nc" id="L383">        cleanup();</span>
+
+<span class="nc" id="L385">        setColony(colony);</span>
+
+<span class="nc" id="L387">        addPropertyChangeListeners();</span>
+<span class="nc" id="L388">        addMouseListeners();</span>
+<span class="nc" id="L389">        setTransferHandlers(isEditable());</span>
+
+        // Enable/disable widgets
+<span class="nc" id="L392">        unloadButton.addActionListener(this);</span>
+<span class="nc" id="L393">        fillButton.addActionListener(this);</span>
+<span class="nc" id="L394">        warehouseButton.addActionListener(this);</span>
+<span class="nc" id="L395">        buildQueueButton.addActionListener(this);</span>
+<span class="nc" id="L396">        colonyUnitsButton.addActionListener(this);</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">        if (setGoodsButton != null) {</span>
+<span class="nc" id="L398">            setGoodsButton.addActionListener(this);</span>
+        }
+<span class="nc bnc" id="L400" title="All 2 branches missed.">        if (traceWorkButton != null) {</span>
+<span class="nc" id="L401">            traceWorkButton.addActionListener(this);</span>
+        }
+
+<span class="nc" id="L404">        unloadButton.setEnabled(isEditable());</span>
+<span class="nc" id="L405">        fillButton.setEnabled(isEditable());</span>
+<span class="nc" id="L406">        warehouseButton.setEnabled(isEditable());</span>
+<span class="nc" id="L407">        buildQueueButton.setEnabled(isEditable());</span>
+<span class="nc" id="L408">        colonyUnitsButton.setEnabled(isEditable());</span>
+<span class="nc bnc" id="L409" title="All 2 branches missed.">        if (setGoodsButton != null) {</span>
+<span class="nc" id="L410">            setGoodsButton.setEnabled(isEditable());</span>
+        }
+<span class="nc bnc" id="L412" title="All 2 branches missed.">        if (traceWorkButton != null) {</span>
+<span class="nc" id="L413">            traceWorkButton.setEnabled(isEditable());</span>
+        }
+
+<span class="nc" id="L416">        final GUI gui = getGUI();</span>
+<span class="nc" id="L417">        this.nameBox.setEnabled(isEditable());</span>
+<span class="nc" id="L418">        this.nameBox.addActionListener((ActionEvent ae) -&gt; {</span>
+<span class="nc" id="L419">                final Colony newColony = (Colony)nameBox.getSelectedItem();</span>
+<span class="nc" id="L420">                closeColonyPanel();</span>
+<span class="nc" id="L421">                gui.showColonyPanel(newColony, null);</span>
+<span class="nc" id="L422">            });</span>
+<span class="nc" id="L423">        updateNetProductionPanel();</span>
+
+<span class="nc" id="L425">        buildingsPanel.initialize();</span>
+<span class="nc" id="L426">        cargoPanel.initialize();</span>
+<span class="nc" id="L427">        constructionPanel.initialize();</span>
+<span class="nc" id="L428">        inPortPanel.initialize();</span>
+<span class="nc" id="L429">        outsideColonyPanel.initialize();</span>
+<span class="nc" id="L430">        populationPanel.initialize();</span>
+<span class="nc" id="L431">        tilesPanel.initialize();</span>
+<span class="nc" id="L432">        warehousePanel.initialize();</span>
+
+<span class="nc" id="L434">        add(this.nameBox, &quot;height 42:, grow&quot;);</span>
+<span class="nc" id="L435">        int tmp = (int)(ImageLibrary.ICON_SIZE.height</span>
+<span class="nc" id="L436">            * gui.getImageLibrary().getScaleFactor());</span>
+<span class="nc" id="L437">        add(netProductionPanel,</span>
+<span class="nc" id="L438">            &quot;grow, height &quot; + (tmp+10) + &quot;:&quot; + (2*tmp+10) + &quot;:&quot; + (2*tmp+10));</span>
+<span class="nc" id="L439">        add(tilesScroll, &quot;width 390!, height 200!, top&quot;);</span>
+<span class="nc" id="L440">        add(buildingsScroll, &quot;span 1 3, grow&quot;);</span>
+<span class="nc" id="L441">        add(populationPanel, &quot;grow&quot;);</span>
+<span class="nc" id="L442">        add(constructionPanel, &quot;grow, top&quot;);</span>
+<span class="nc" id="L443">        add(inPortScroll, &quot;span, split 3, grow, sg, height 60:121:&quot;);</span>
+<span class="nc" id="L444">        add(cargoScroll, &quot;grow, sg, height 60:121:&quot;);</span>
+<span class="nc" id="L445">        add(outsideColonyScroll, &quot;grow, sg, height 60:121:&quot;);</span>
+<span class="nc" id="L446">        add(warehouseScroll, &quot;span, height 40:60:, growx&quot;);</span>
+<span class="nc" id="L447">        int buttonFields = 6;</span>
+<span class="nc bnc" id="L448" title="All 2 branches missed.">        if (setGoodsButton != null) buttonFields++;</span>
+<span class="nc bnc" id="L449" title="All 2 branches missed.">        if (traceWorkButton != null) buttonFields++;</span>
+<span class="nc" id="L450">        add(unloadButton, &quot;span, split &quot; + Integer.toString(buttonFields)</span>
+<span class="nc" id="L451">            + &quot;, align center&quot;);</span>
+<span class="nc" id="L452">        add(fillButton);</span>
+<span class="nc" id="L453">        add(warehouseButton);</span>
+<span class="nc" id="L454">        add(buildQueueButton);</span>
+<span class="nc" id="L455">        add(colonyUnitsButton);</span>
+<span class="nc bnc" id="L456" title="All 2 branches missed.">        if (setGoodsButton != null) add(setGoodsButton);</span>
+<span class="nc bnc" id="L457" title="All 2 branches missed.">        if (traceWorkButton != null) add(traceWorkButton);</span>
+<span class="nc" id="L458">        add(okButton, &quot;tag ok&quot;);</span>
+
+<span class="nc" id="L460">        update();</span>
+<span class="nc" id="L461">    }</span>
+
+    /**
+     * Clean up this colony panel.
+     */
+    private void cleanup() {
+<span class="nc" id="L467">        unloadButton.removeActionListener(this);</span>
+<span class="nc" id="L468">        fillButton.removeActionListener(this);</span>
+<span class="nc" id="L469">        warehouseButton.removeActionListener(this);</span>
+<span class="nc" id="L470">        buildQueueButton.removeActionListener(this);</span>
+<span class="nc" id="L471">        colonyUnitsButton.removeActionListener(this);</span>
+<span class="nc bnc" id="L472" title="All 2 branches missed.">        if (setGoodsButton != null) {</span>
+<span class="nc" id="L473">            setGoodsButton.removeActionListener(this);</span>
+        }
+<span class="nc bnc" id="L475" title="All 2 branches missed.">        if (traceWorkButton != null) {</span>
+<span class="nc" id="L476">            traceWorkButton.removeActionListener(this);</span>
+        }
+
+<span class="nc" id="L479">        removePropertyChangeListeners();</span>
+<span class="nc bnc" id="L480" title="All 2 branches missed.">        if (getSelectedUnit() != null) {</span>
+<span class="nc" id="L481">            getSelectedUnit().removePropertyChangeListener(this);</span>
+        }
+<span class="nc" id="L483">        removeMouseListeners();</span>
+<span class="nc bnc" id="L484" title="All 2 branches missed.">        for (MouseListener listener : getMouseListeners()) {</span>
+<span class="nc" id="L485">            removeMouseListener(listener);</span>
+        }
+<span class="nc" id="L487">        setTransferHandlers(false);</span>
+
+<span class="nc" id="L489">        buildingsPanel.cleanup();</span>
+<span class="nc" id="L490">        cargoPanel.cleanup();</span>
+<span class="nc" id="L491">        constructionPanel.cleanup();</span>
+<span class="nc" id="L492">        inPortPanel.cleanup();</span>
+<span class="nc" id="L493">        outsideColonyPanel.cleanup();</span>
+<span class="nc" id="L494">        populationPanel.cleanup();</span>
+<span class="nc" id="L495">        tilesPanel.cleanup();</span>
+<span class="nc" id="L496">        warehousePanel.cleanup();</span>
+
+<span class="nc" id="L498">        removeAll();</span>
+<span class="nc" id="L499">    }</span>
+
+    private void addMouseListeners() {
+<span class="nc bnc" id="L502" title="All 2 branches missed.">        if (isEditable()) {</span>
+<span class="nc" id="L503">            cargoPanel.addMouseListener(releaseListener);</span>
+<span class="nc" id="L504">            inPortPanel.addMouseListener(releaseListener);</span>
+<span class="nc" id="L505">            outsideColonyPanel.addMouseListener(releaseListener);</span>
+<span class="nc" id="L506">            warehousePanel.addMouseListener(releaseListener);</span>
+        }
+<span class="nc" id="L508">    }</span>
+
+    private void removeMouseListeners() {
+<span class="nc" id="L511">        cargoPanel.removeMouseListener(releaseListener);</span>
+<span class="nc" id="L512">        inPortPanel.removeMouseListener(releaseListener);</span>
+<span class="nc" id="L513">        outsideColonyPanel.removeMouseListener(releaseListener);</span>
+<span class="nc" id="L514">        warehousePanel.removeMouseListener(releaseListener);</span>
+<span class="nc" id="L515">    }</span>
+
+    private void setTransferHandlers(boolean enable) {
+<span class="nc bnc" id="L518" title="All 2 branches missed.">        DefaultTransferHandler dth = (enable) ? defaultTransferHandler : null;</span>
+<span class="nc" id="L519">        cargoPanel.setTransferHandler(dth);</span>
+<span class="nc" id="L520">        inPortPanel.setTransferHandler(dth);</span>
+<span class="nc" id="L521">        outsideColonyPanel.setTransferHandler(dth);</span>
+<span class="nc" id="L522">        warehousePanel.setTransferHandler(dth);</span>
+<span class="nc" id="L523">    }</span>
+
+    /**
+     * Add property change listeners needed by this ColonyPanel.
+     */
+    private void addPropertyChangeListeners() {
+<span class="nc" id="L529">        final Colony colony = getColony();</span>
+<span class="nc bnc" id="L530" title="All 2 branches missed.">        if (colony != null) {</span>
+<span class="nc" id="L531">            colony.addPropertyChangeListener(this);</span>
+<span class="nc" id="L532">            colony.getGoodsContainer().addPropertyChangeListener(this);</span>
+<span class="nc" id="L533">            colony.getTile().addPropertyChangeListener(this);</span>
+        }
+<span class="nc" id="L535">    }</span>
+
+    /**
+     * Remove the property change listeners of ColonyPanel.
+     */
+    private void removePropertyChangeListeners() {
+<span class="nc" id="L541">        final Colony colony = getColony();</span>
+<span class="nc bnc" id="L542" title="All 2 branches missed.">        if (colony != null) {</span>
+<span class="nc" id="L543">            colony.removePropertyChangeListener(this);</span>
+<span class="nc" id="L544">            colony.getGoodsContainer().removePropertyChangeListener(this);</span>
+<span class="nc" id="L545">            colony.getTile().removePropertyChangeListener(this);</span>
+        }
+<span class="nc" id="L547">    }</span>
+
+    /**
+     * Update all the production-related panels.
+     *
+     * This has to be very broad as a change at one work location can
+     * have a secondary effect on another, and especially if the
+     * population hits a bonus boundary.  A simple example is that
+     * adding extra lumber production may improve the production of the
+     * lumber mill.  These changes can then flow on to production and
+     * construction displays.
+     */
+    private void updateProduction() {
+<span class="nc" id="L560">        final Colony colony = getColony();</span>
+<span class="nc bnc" id="L561" title="All 2 branches missed.">        if (colony == null) return;</span>
+
+        // Check for non-producing locations that can now produce.
+<span class="nc bnc" id="L564" title="All 2 branches missed.">        for (WorkLocation wl : colony.getCurrentWorkLocations()) {</span>
+<span class="nc bnc" id="L565" title="All 2 branches missed.">            boolean change = false, check = wl.getProductionType() == null;</span>
+<span class="nc bnc" id="L566" title="All 2 branches missed.">            for (Unit u : wl.getUnitList()) {</span>
+<span class="nc bnc" id="L567" title="All 4 branches missed.">                if (check || !wl.produces(u.getWorkType())) {</span>
+<span class="nc" id="L568">                    GoodsType workType = wl.getWorkFor(u);</span>
+<span class="nc bnc" id="L569" title="All 4 branches missed.">                    if (workType != null &amp;&amp; workType != u.getWorkType()) {</span>
+<span class="nc" id="L570">                        igc().changeWorkType(u, workType);</span>
+                    }
+<span class="nc" id="L572">                    change = true;</span>
+                }
+            }
+<span class="nc bnc" id="L575" title="All 2 branches missed.">            if (change) wl.updateProductionType();</span>
+        }
+
+<span class="nc" id="L578">        updateTilesPanel();</span>
+<span class="nc" id="L579">        updateBuildingsPanel();</span>
+<span class="nc" id="L580">        updateNetProductionPanel();</span>
+<span class="nc" id="L581">        updateConstructionPanel();</span>
+<span class="nc" id="L582">    }</span>
+
+    /**
+     * Update the entire colony panel.
+     */
+    public void update() {
+<span class="nc" id="L588">        buildingsPanel.update();</span>
+<span class="nc" id="L589">        constructionPanel.update();</span>
+<span class="nc" id="L590">        inPortPanel.update();</span>
+<span class="nc" id="L591">        updateNetProductionPanel();</span>
+<span class="nc" id="L592">        outsideColonyPanel.update();</span>
+<span class="nc" id="L593">        populationPanel.update();</span>
+<span class="nc" id="L594">        tilesPanel.update();</span>
+<span class="nc" id="L595">        warehousePanel.update();</span>
+<span class="nc" id="L596">    }</span>
+
+    /**
+     * Enables the unload and fill buttons if the currently selected unit is a
+     * carrier with some cargo.
+     */
+    private void updateCarrierButtons() {
+<span class="nc" id="L603">        final Colony colony = getColony();</span>
+<span class="nc" id="L604">        unloadButton.setEnabled(false);</span>
+<span class="nc" id="L605">        fillButton.setEnabled(false);</span>
+<span class="nc bnc" id="L606" title="All 4 branches missed.">        if (isEditable() &amp;&amp; selectedUnitLabel != null) {</span>
+<span class="nc" id="L607">            Unit unit = selectedUnitLabel.getUnit();</span>
+<span class="nc bnc" id="L608" title="All 6 branches missed.">            if (unit != null &amp;&amp; unit.isCarrier() &amp;&amp; unit.hasCargo()) {</span>
+<span class="nc" id="L609">                unloadButton.setEnabled(true);</span>
+<span class="nc bnc" id="L610" title="All 2 branches missed.">                for (Goods goods : unit.getCompactGoodsList()) {</span>
+<span class="nc bnc" id="L611" title="All 2 branches missed.">                    if (colony.getGoodsCount(goods.getType()) &gt; 0) {</span>
+<span class="nc" id="L612">                        fillButton.setEnabled(true);</span>
+<span class="nc" id="L613">                        break;</span>
+                    }
+                }
+            }
+        }
+<span class="nc" id="L618">    }</span>
+
+    /**
+     * Generates a menu containing the units currently accessible
+     * from the Colony Panel allowing keyboard access to said units.
+     */
+    private void generateColonyUnitsMenu() {
+<span class="nc" id="L625">        final FreeColClient freeColClient = getFreeColClient();</span>
+<span class="nc" id="L626">        ImageLibrary lib = getImageLibrary();</span>
+<span class="nc" id="L627">        final Colony colony = getColony();</span>
+<span class="nc" id="L628">        JPopupMenu colonyUnitsMenu</span>
+<span class="nc" id="L629">            = new JPopupMenu(Messages.message(&quot;colonyPanel.colonyUnits&quot;));</span>
+<span class="nc" id="L630">        ImageIcon unitIcon = null;</span>
+<span class="nc" id="L631">        final QuickActionMenu unitMenu</span>
+<span class="nc" id="L632">            = new QuickActionMenu(freeColClient, this);</span>
+<span class="nc" id="L633">        Tile colonyTile = colony.getTile();</span>
+<span class="nc" id="L634">        int unitNumber = 0;</span>
+<span class="nc" id="L635">        JMenuItem subMenu = null;</span>
+
+<span class="nc bnc" id="L637" title="All 2 branches missed.">        for (final Unit unit : colony.getUnitList()) {</span>
+<span class="nc" id="L638">            Building workingInBuilding = unit.getWorkBuilding();</span>
+<span class="nc" id="L639">            ColonyTile workingOnLand = unit.getWorkTile();</span>
+<span class="nc" id="L640">            GoodsType goodsType = unit.getWorkType();</span>
+<span class="nc" id="L641">            Unit student = unit.getStudent();</span>
+
+<span class="nc" id="L643">            unitIcon = new ImageIcon(lib.getSmallerUnitImage(unit));</span>
+<span class="nc" id="L644">            StringBuilder sb = new StringBuilder(64);</span>
+<span class="nc bnc" id="L645" title="All 2 branches missed.">            if (student != null) {</span>
+<span class="nc" id="L646">                sb.append(unit.getDescription())</span>
+<span class="nc" id="L647">                    .append(&quot; &quot;).append(Messages.message(&quot;colonyPanel.producing&quot;))</span>
+<span class="nc" id="L648">                    .append(&quot; &quot;).append(Messages.getName(unit.getType()</span>
+<span class="nc" id="L649">                            .getSkillTaught()))</span>
+<span class="nc" id="L650">                    .append(&quot; &quot;).append(unit.getTurnsOfTraining())</span>
+<span class="nc" id="L651">                    .append(&quot;/&quot;).append(unit.getNeededTurnsOfTraining());</span>
+<span class="nc bnc" id="L652" title="All 4 branches missed.">            } else if (workingOnLand != null &amp;&amp; goodsType != null) {</span>
+<span class="nc" id="L653">                int producing = workingOnLand.getProductionOf(unit, goodsType);</span>
+<span class="nc" id="L654">                String nominative = Messages.message(StringTemplate</span>
+<span class="nc" id="L655">                    .template(goodsType)</span>
+<span class="nc" id="L656">                    .addAmount(&quot;%amount%&quot;, producing));</span>
+<span class="nc" id="L657">                sb.append(unit.getDescription())</span>
+<span class="nc" id="L658">                    .append(&quot; &quot;).append(Messages.message(&quot;colonyPanel.producing&quot;))</span>
+<span class="nc" id="L659">                    .append(&quot; &quot;).append(producing)</span>
+<span class="nc" id="L660">                    .append(&quot; &quot;).append(nominative);</span>
+<span class="nc bnc" id="L661" title="All 4 branches missed.">            } else if (workingInBuilding != null &amp;&amp; goodsType != null) {</span>
+<span class="nc" id="L662">                int producing = workingInBuilding.getProductionOf(unit,</span>
+<span class="nc" id="L663">                                                                  goodsType);</span>
+<span class="nc" id="L664">                String nominative = Messages.message(StringTemplate</span>
+<span class="nc" id="L665">                    .template(goodsType)</span>
+<span class="nc" id="L666">                    .addAmount(&quot;%amount%&quot;, producing));</span>
+<span class="nc" id="L667">                sb.append(unit.getDescription())</span>
+<span class="nc" id="L668">                    .append(&quot; &quot;).append(Messages.message(&quot;colonyPanel.producing&quot;))</span>
+<span class="nc" id="L669">                    .append(&quot; &quot;).append(producing)</span>
+<span class="nc" id="L670">                    .append(&quot; &quot;).append(nominative);</span>
+<span class="nc" id="L671">            } else {</span>
+<span class="nc" id="L672">                sb.append(unit.getDescription())</span>
+<span class="nc" id="L673">                    .append(&quot; &quot;).append(Messages.message(&quot;colonyPanel.producing&quot;))</span>
+<span class="nc" id="L674">                    .append(&quot; &quot;).append(Messages.message(&quot;nothing&quot;));</span>
+            }
+<span class="nc" id="L676">            String menuTitle = sb.toString();</span>
+<span class="nc" id="L677">            subMenu = new JMenuItem(menuTitle, unitIcon);</span>
+<span class="nc" id="L678">            subMenu.addActionListener((ActionEvent ae) -&gt; {</span>
+<span class="nc" id="L679">                    unitMenu.addMenuItems(new UnitLabel(freeColClient, unit));</span>
+<span class="nc" id="L680">                    unitMenu.show(getGUI().getCanvas(), 0, 0);</span>
+<span class="nc" id="L681">                });</span>
+<span class="nc" id="L682">            unitNumber++;</span>
+<span class="nc" id="L683">            colonyUnitsMenu.add(subMenu);</span>
+        }
+<span class="nc" id="L685">        colonyUnitsMenu.addSeparator();</span>
+<span class="nc bnc" id="L686" title="All 2 branches missed.">        for (final Unit unit : colonyTile.getUnitList()) {</span>
+<span class="nc bnc" id="L687" title="All 2 branches missed.">            if (unit.isCarrier()) {</span>
+<span class="nc" id="L688">                unitIcon = new ImageIcon(lib.getSmallerUnitImage(unit));</span>
+<span class="nc" id="L689">                String menuTitle = unit.getDescription()</span>
+<span class="nc" id="L690">                    + &quot; &quot; + Messages.message(&quot;colonyPanel.inPort&quot;);</span>
+<span class="nc" id="L691">                subMenu = new JMenuItem(menuTitle, unitIcon);</span>
+<span class="nc" id="L692">                subMenu.addActionListener((ActionEvent ae) -&gt; {</span>
+<span class="nc" id="L693">                        unitMenu.addMenuItems(new UnitLabel(freeColClient, unit));</span>
+<span class="nc" id="L694">                        unitMenu.show(getGUI().getCanvas(), 0, 0);</span>
+<span class="nc" id="L695">                    });</span>
+<span class="nc" id="L696">                unitNumber++;</span>
+<span class="nc" id="L697">                colonyUnitsMenu.add(subMenu);</span>
+<span class="nc bnc" id="L698" title="All 2 branches missed.">                if (unit.getUnitList() != null) {</span>
+<span class="nc bnc" id="L699" title="All 2 branches missed.">                    for (final Unit innerUnit : unit.getUnitList()) {</span>
+<span class="nc" id="L700">                        unitIcon = new ImageIcon(lib.getSmallerUnitImage(innerUnit));</span>
+<span class="nc" id="L701">                        menuTitle = innerUnit.getDescription()</span>
+<span class="nc" id="L702">                            + &quot; &quot; + Messages.message(&quot;cargoOnCarrier&quot;)</span>
+<span class="nc" id="L703">                            + &quot; &quot; + unit.getDescription();</span>
+<span class="nc" id="L704">                        subMenu = new JMenuItem(menuTitle, unitIcon);</span>
+<span class="nc" id="L705">                        subMenu.addActionListener((ActionEvent ae) -&gt; {</span>
+<span class="nc" id="L706">                                unitMenu.addMenuItems(new UnitLabel(freeColClient, innerUnit));</span>
+<span class="nc" id="L707">                                unitMenu.show(getGUI().getCanvas(), 0, 0);</span>
+<span class="nc" id="L708">                            });</span>
+<span class="nc" id="L709">                        unitNumber++;</span>
+<span class="nc" id="L710">                        colonyUnitsMenu.add(subMenu);</span>
+                    }
+                }
+<span class="nc bnc" id="L713" title="All 2 branches missed.">            } else if (!unit.isOnCarrier()) {</span>
+<span class="nc" id="L714">                unitIcon = new ImageIcon(lib.getSmallerUnitImage(unit));</span>
+<span class="nc" id="L715">                String menuTitle = unit.getDescription()</span>
+<span class="nc" id="L716">                    + &quot; &quot; + Messages.message(&quot;colonyPanel.outsideColony&quot;);</span>
+<span class="nc" id="L717">                subMenu = new JMenuItem(menuTitle, unitIcon);</span>
+<span class="nc" id="L718">                subMenu.addActionListener((ActionEvent ae) -&gt; {</span>
+<span class="nc" id="L719">                        unitMenu.addMenuItems(new UnitLabel(freeColClient, unit));</span>
+<span class="nc" id="L720">                        unitMenu.show(getGUI().getCanvas(), 0, 0);</span>
+<span class="nc" id="L721">                    });</span>
+<span class="nc" id="L722">                unitNumber++;</span>
+<span class="nc" id="L723">                colonyUnitsMenu.add(subMenu);</span>
+            }
+        }
+<span class="nc" id="L726">        colonyUnitsMenu.addSeparator();</span>
+<span class="nc bnc" id="L727" title="All 2 branches missed.">        if (colonyUnitsMenu != null) {</span>
+<span class="nc" id="L728">            int elements = colonyUnitsMenu.getSubElements().length;</span>
+<span class="nc bnc" id="L729" title="All 2 branches missed.">            if (elements &gt; 0) {</span>
+<span class="nc" id="L730">                int lastIndex = colonyUnitsMenu.getComponentCount() - 1;</span>
+<span class="nc bnc" id="L731" title="All 2 branches missed.">                if (colonyUnitsMenu.getComponent(lastIndex) instanceof JPopupMenu.Separator) {</span>
+<span class="nc" id="L732">                    colonyUnitsMenu.remove(lastIndex);</span>
+                }
+            }
+        }
+<span class="nc" id="L736">        colonyUnitsMenu.show(getGUI().getCanvas(), 0, 0);</span>
+<span class="nc" id="L737">    }</span>
+
+    /**
+     * Try to assign a unit to work in a colony work location.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; that is to work.
+     * @param wl The &lt;code&gt;WorkLocation&lt;/code&gt; to work in.
+     * @return True if the unit is now in the work location.
+     */
+    private boolean tryWork(Unit unit, WorkLocation wl) {
+        // Choose the best work type.
+<span class="nc" id="L748">        GoodsType workType = wl.getWorkFor(unit);</span>
+
+        // Set the unit to work.  Note this might upgrade the unit,
+        // and possibly even change its work type as the server has
+        // the right to maintain consistency.
+<span class="nc" id="L753">        igc().work(unit, wl);</span>
+
+        // Did it work?
+<span class="nc bnc" id="L756" title="All 2 branches missed.">        if (unit.getLocation() != wl) return false;</span>
+
+        // Now recheck, and see if we want to change to the expected
+        // work type.
+<span class="nc bnc" id="L760" title="All 4 branches missed.">        if (workType != null &amp;&amp; workType != unit.getWorkType()) {</span>
+<span class="nc" id="L761">            igc().changeWorkType(unit, workType);</span>
+        }
+<span class="nc" id="L763">        return true;</span>
+    }
+
+
+    // Public base accessors and mutators
+
+    /**
+     * Gets the &lt;code&gt;Colony&lt;/code&gt; in use.
+     *
+     * Try to use this at the top of all the routines that need the colony,
+     * to get a stable value.  There have been nasty races when the colony
+     * changes out from underneath us, and more may be lurking.
+     *
+     * @return The &lt;code&gt;Colony&lt;/code&gt;.
+     */
+    public synchronized final Colony getColony() {
+<span class="nc" id="L779">        return colony;</span>
+    }
+
+    /**
+     * Gets the &lt;code&gt;TilesPanel&lt;/code&gt;-object in use.
+     *
+     * @return The &lt;code&gt;TilesPanel&lt;/code&gt;.
+     */
+    public final TilesPanel getTilesPanel() {
+<span class="nc" id="L788">        return tilesPanel;</span>
+    }
+
+    /**
+     * Gets the &lt;code&gt;WarehousePanel&lt;/code&gt;-object in use.
+     *
+     * @return The &lt;code&gt;WarehousePanel&lt;/code&gt;.
+     */
+    public final WarehousePanel getWarehousePanel() {
+<span class="nc" id="L797">        return warehousePanel;</span>
+    }
+
+
+    // Override PortPanel
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setSelectedUnitLabel(UnitLabel unitLabel) {
+<span class="nc bnc" id="L808" title="All 2 branches missed.">        if (selectedUnitLabel != unitLabel) {</span>
+<span class="nc" id="L809">            inPortPanel.removePropertyChangeListeners();</span>
+<span class="nc bnc" id="L810" title="All 2 branches missed.">            if (selectedUnitLabel != null) {</span>
+<span class="nc" id="L811">                selectedUnitLabel.setSelected(false);</span>
+<span class="nc" id="L812">                selectedUnitLabel.getUnit().removePropertyChangeListener(this);</span>
+            }
+<span class="nc" id="L814">            super.setSelectedUnitLabel(unitLabel);</span>
+<span class="nc bnc" id="L815" title="All 2 branches missed.">            if (unitLabel == null) {</span>
+<span class="nc" id="L816">                cargoPanel.setCarrier(null);</span>
+<span class="nc" id="L817">            } else {</span>
+<span class="nc" id="L818">                cargoPanel.setCarrier(unitLabel.getUnit());</span>
+<span class="nc" id="L819">                unitLabel.setSelected(true);</span>
+<span class="nc" id="L820">                unitLabel.getUnit().addPropertyChangeListener(this);</span>
+            }
+<span class="nc" id="L822">            inPortPanel.addPropertyChangeListeners();</span>
+        }
+<span class="nc" id="L824">        updateCarrierButtons();</span>
+<span class="nc" id="L825">        inPortPanel.revalidate();</span>
+<span class="nc" id="L826">        inPortPanel.repaint();</span>
+<span class="nc" id="L827">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean setSelectedUnit(Unit unit) {
+<span class="nc bnc" id="L834" title="All 2 branches missed.">        return ((unit.isCarrier()) ? inPortPanel.setSelectedUnit(unit)</span>
+<span class="nc" id="L835">            : super.setSelectedUnit(unit));</span>
+    }
+
+
+    // Public update routines
+
+    public void updateBuildingsPanel() {
+<span class="nc" id="L842">        buildingsPanel.update();</span>
+<span class="nc" id="L843">    }</span>
+
+    public void updateConstructionPanel() {
+<span class="nc" id="L846">        constructionPanel.update();</span>
+<span class="nc" id="L847">    }</span>
+
+    public void updateInPortPanel() {
+<span class="nc" id="L850">        inPortPanel.update();</span>
+<span class="nc" id="L851">    }</span>
+
+    public void updateNetProductionPanel() {
+<span class="nc" id="L854">        final Colony colony = getColony();</span>
+<span class="nc" id="L855">        final Specification spec = colony.getSpecification();</span>
+        // FIXME: find out why the cache needs to be explicitly invalidated
+<span class="nc" id="L857">        colony.invalidateCache();</span>
+<span class="nc" id="L858">        netProductionPanel.removeAll();</span>
+
+<span class="nc bnc" id="L860" title="All 2 branches missed.">        for (GoodsType goodsType : spec.getGoodsTypeList()) {</span>
+<span class="nc" id="L861">            int amount = colony.getAdjustedNetProductionOf(goodsType);</span>
+<span class="nc bnc" id="L862" title="All 2 branches missed.">            if (amount != 0) {</span>
+<span class="nc" id="L863">                netProductionPanel.add(new ProductionLabel(getFreeColClient(),</span>
+<span class="nc" id="L864">                        new AbstractGoods(goodsType, amount)));</span>
+            }
+        }
+
+<span class="nc" id="L868">        netProductionPanel.revalidate();</span>
+<span class="nc" id="L869">    }</span>
+
+    public void updateOutsideColonyPanel() {
+<span class="nc" id="L872">        outsideColonyPanel.update();</span>
+<span class="nc" id="L873">    }</span>
+
+    public void updatePopulationPanel() {
+<span class="nc" id="L876">        populationPanel.update();</span>
+<span class="nc" id="L877">    }</span>
+
+    public void updateTilesPanel() {
+<span class="nc" id="L880">        tilesPanel.update();</span>
+<span class="nc" id="L881">    }</span>
+
+    public void updateWarehousePanel() {
+<span class="nc" id="L884">        warehousePanel.update();</span>
+<span class="nc" id="L885">    }</span>
+
+
+    /**
+     * Close this &lt;code&gt;ColonyPanel&lt;/code&gt;.
+     */
+    public void closeColonyPanel() {
+<span class="nc" id="L892">        final Colony colony = getColony();</span>
+<span class="nc" id="L893">        boolean abandon = false;</span>
+<span class="nc bnc" id="L894" title="All 4 branches missed.">        if (colony.getUnitCount() == 0 &amp;&amp; getMyPlayer().owns(colony)) {</span>
+<span class="nc" id="L895">            if (!getGUI().confirm(null,</span>
+<span class="nc" id="L896">                                  StringTemplate.key(&quot;abandonColony.text&quot;),</span>
+<span class="nc" id="L897">                                  &quot;abandonColony.yes&quot;,</span>
+<span class="nc bnc" id="L898" title="All 2 branches missed.">                                  &quot;abandonColony.no&quot;)) return;</span>
+<span class="nc" id="L899">            abandon = true;</span>
+        }
+<span class="nc bnc" id="L901" title="All 2 branches missed.">        if (!abandon) {</span>
+<span class="nc" id="L902">            BuildableType buildable = colony.getCurrentlyBuilding();</span>
+<span class="nc bnc" id="L903" title="All 2 branches missed.">            if (buildable != null</span>
+<span class="nc bnc" id="L904" title="All 2 branches missed.">                &amp;&amp; buildable.getRequiredPopulation() &gt; colony.getUnitCount()</span>
+<span class="nc" id="L905">                &amp;&amp; !getGUI().confirm(null, StringTemplate</span>
+<span class="nc" id="L906">                    .template(&quot;colonyPanel.reducePopulation&quot;)</span>
+<span class="nc" id="L907">                    .addName(&quot;%colony%&quot;, colony.getName())</span>
+<span class="nc" id="L908">                    .addAmount(&quot;%number%&quot;, buildable.getRequiredPopulation())</span>
+<span class="nc" id="L909">                    .addNamed(&quot;%buildable%&quot;, buildable),</span>
+<span class="nc bnc" id="L910" title="All 2 branches missed.">                    &quot;ok&quot;, &quot;cancel&quot;)) {</span>
+<span class="nc" id="L911">                return;</span>
+            }
+        }
+
+<span class="nc" id="L915">        cleanup();</span>
+
+<span class="nc" id="L917">        getGUI().removeFromCanvas(this);</span>
+<span class="nc" id="L918">        getGUI().updateMapControls();</span>
+
+        // Talk to the controller last, allow all the cleanup to happen first.
+<span class="nc bnc" id="L921" title="All 2 branches missed.">        if (abandon) igc().abandonColony(colony);</span>
+<span class="nc bnc" id="L922" title="All 2 branches missed.">        if (getFreeColClient().currentPlayerIsMyPlayer()) {</span>
+<span class="nc" id="L923">            igc().nextModelMessage();</span>
+<span class="nc" id="L924">            Unit activeUnit = getGUI().getActiveUnit();</span>
+<span class="nc bnc" id="L925" title="All 4 branches missed.">            if (activeUnit == null || !activeUnit.hasTile()</span>
+<span class="nc bnc" id="L926" title="All 2 branches missed.">                || (!(activeUnit.getLocation() instanceof Tile)</span>
+<span class="nc bnc" id="L927" title="All 2 branches missed.">                    &amp;&amp; !activeUnit.isOnCarrier())) {</span>
+<span class="nc" id="L928">                igc().nextActiveUnit();</span>
+            }
+        }
+<span class="nc" id="L931">    }</span>
+
+
+    // Interface PortPanel
+
+    /**
+     * Gets the list of units on the colony tile.
+     * Note, does not include the units *inside* the colony.
+     *
+     * @return A sorted list of units on the colony tile.
+     */
+    @Override
+    public List&lt;Unit&gt; getUnitList() {
+<span class="nc" id="L944">        return toSortedList(colony.getTile().getUnitList());</span>
+    }
+
+
+    // Interface ActionListener
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void actionPerformed(ActionEvent ae) {
+<span class="nc" id="L955">        final Colony colony = getColony();</span>
+<span class="nc" id="L956">        final String command = ae.getActionCommand();</span>
+<span class="nc" id="L957">        final Unit unit = getSelectedUnit();</span>
+
+<span class="nc bnc" id="L959" title="All 2 branches missed.">        if (OK.equals(command)) {</span>
+<span class="nc" id="L960">            closeColonyPanel();</span>
+<span class="nc" id="L961">        } else {</span>
+            int cmd;
+            try {
+<span class="nc" id="L964">                cmd = Integer.parseInt(command);</span>
+<span class="nc" id="L965">            } catch (NumberFormatException nfe) {</span>
+<span class="nc" id="L966">                logger.warning(&quot;Invalid action number: &quot; + command);</span>
+<span class="nc" id="L967">                return;</span>
+            }
+<span class="nc bnc" id="L969" title="All 8 branches missed.">            switch (cmd) {</span>
+            case UNLOAD:
+<span class="nc bnc" id="L971" title="All 4 branches missed.">                if (unit == null || !unit.isCarrier()) break;</span>
+<span class="nc bnc" id="L972" title="All 2 branches missed.">                for (Goods goods : unit.getGoodsContainer().getGoods()) {</span>
+<span class="nc" id="L973">                    igc().unloadCargo(goods, false);</span>
+                }
+<span class="nc bnc" id="L975" title="All 2 branches missed.">                for (Unit u : unit.getUnitList()) {</span>
+<span class="nc" id="L976">                    igc().leaveShip(u);</span>
+                }
+<span class="nc" id="L978">                cargoPanel.update();</span>
+<span class="nc" id="L979">                updateOutsideColonyPanel();</span>
+<span class="nc" id="L980">                unloadButton.setEnabled(false);</span>
+<span class="nc" id="L981">                fillButton.setEnabled(false);</span>
+<span class="nc" id="L982">                break;</span>
+            case WAREHOUSE:
+<span class="nc bnc" id="L984" title="All 2 branches missed.">                if (getGUI().showWarehouseDialog(colony)) {</span>
+<span class="nc" id="L985">                    updateWarehousePanel();</span>
+                }
+<span class="nc" id="L987">                break;</span>
+            case BUILDQUEUE:
+<span class="nc" id="L989">                getGUI().showBuildQueuePanel(colony);</span>
+<span class="nc" id="L990">                updateConstructionPanel();</span>
+<span class="nc" id="L991">                break;</span>
+            case FILL:
+<span class="nc bnc" id="L993" title="All 4 branches missed.">                if (unit == null || !unit.isCarrier()) break;</span>
+<span class="nc bnc" id="L994" title="All 2 branches missed.">                for (Goods goods : unit.getCompactGoodsList()) {</span>
+<span class="nc" id="L995">                    final GoodsType type = goods.getType();</span>
+<span class="nc" id="L996">                    int space = unit.getLoadableAmount(type);</span>
+<span class="nc" id="L997">                    int count = colony.getGoodsCount(type);</span>
+<span class="nc bnc" id="L998" title="All 4 branches missed.">                    if (space &gt; 0 &amp;&amp; count &gt; 0) {</span>
+<span class="nc" id="L999">                        int n = Math.min(space, count);</span>
+<span class="nc" id="L1000">                        igc().loadCargo(new Goods(goods.getGame(), colony,</span>
+<span class="nc" id="L1001">                                                  type, n),</span>
+<span class="nc" id="L1002">                                        unit);</span>
+                    }
+                }
+<span class="nc" id="L1005">                break;</span>
+            case COLONY_UNITS:
+<span class="nc" id="L1007">                generateColonyUnitsMenu();</span>
+<span class="nc" id="L1008">                break;</span>
+            case SETGOODS:
+<span class="nc" id="L1010">                DebugUtils.setColonyGoods(getFreeColClient(), colony);</span>
+<span class="nc" id="L1011">                updateWarehousePanel();</span>
+<span class="nc" id="L1012">                updateProduction();</span>
+<span class="nc" id="L1013">                break;</span>
+            case OCCUPATION:
+<span class="nc bnc" id="L1015" title="All 2 branches missed.">                colony.setOccupationTrace(!colony.getOccupationTrace());</span>
+<span class="nc" id="L1016">                break;</span>
+            default:
+<span class="nc" id="L1018">                super.actionPerformed(ae);</span>
+            }
+        }
+<span class="nc" id="L1021">    }</span>
+
+
+    // Interface PropertyChangeListener
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void propertyChange(PropertyChangeEvent event) {
+<span class="nc" id="L1031">        final Colony colony = getColony();</span>
+<span class="nc bnc" id="L1032" title="All 4 branches missed.">        if (!isShowing() || colony == null) return;</span>
+<span class="nc" id="L1033">        String property = event.getPropertyName();</span>
+<span class="nc" id="L1034">        logger.finest(colony.getName() + &quot; change &quot; + property</span>
+<span class="nc" id="L1035">                      + &quot;: &quot; + event.getOldValue()</span>
+<span class="nc" id="L1036">                      + &quot; -&gt; &quot; + event.getNewValue());</span>
+
+<span class="nc bnc" id="L1038" title="All 2 branches missed.">        if (property == null) {</span>
+<span class="nc" id="L1039">            logger.warning(&quot;Null property change&quot;);</span>
+<span class="nc bnc" id="L1040" title="All 2 branches missed.">        } else if (Unit.CARGO_CHANGE.equals(property)) {</span>
+<span class="nc" id="L1041">            cargoPanel.update();</span>
+<span class="nc" id="L1042">            updateInPortPanel();</span>
+<span class="nc bnc" id="L1043" title="All 2 branches missed.">        } else if (ColonyChangeEvent.POPULATION_CHANGE.toString().equals(property)) {</span>
+<span class="nc" id="L1044">            updatePopulationPanel();</span>
+<span class="nc" id="L1045">            updateNetProductionPanel(); // food production changes</span>
+<span class="nc bnc" id="L1046" title="All 2 branches missed.">        } else if (ColonyChangeEvent.BONUS_CHANGE.toString().equals(property)) {</span>
+<span class="nc bnc" id="L1047" title="All 2 branches missed.">            if (colony.getUnitCount() &gt; 0) { // Ignore messages when abandoning</span>
+<span class="nc" id="L1048">                ModelMessage msg = colony.checkForGovMgtChangeMessage();</span>
+<span class="nc bnc" id="L1049" title="All 2 branches missed.">                if (msg != null) {</span>
+<span class="nc" id="L1050">                    getGUI().showInformationMessage(colony, msg);</span>
+                }
+            }
+<span class="nc" id="L1053">            updatePopulationPanel();</span>
+<span class="nc bnc" id="L1054" title="All 2 branches missed.">        } else if (ColonyChangeEvent.BUILD_QUEUE_CHANGE.toString().equals(property)) {</span>
+<span class="nc" id="L1055">            updateProduction();</span>
+<span class="nc bnc" id="L1056" title="All 2 branches missed.">        } else if (ColonyChangeEvent.UNIT_TYPE_CHANGE.toString().equals(property)) {</span>
+<span class="nc" id="L1057">            FreeColGameObject object = (FreeColGameObject)event.getSource();</span>
+<span class="nc" id="L1058">            UnitType oldType = (UnitType) event.getOldValue();</span>
+<span class="nc" id="L1059">            UnitType newType = (UnitType) event.getNewValue();</span>
+<span class="nc" id="L1060">            getGUI().showInformationMessage(object, StringTemplate</span>
+<span class="nc" id="L1061">                .template(&quot;colonyPanel.unitChange&quot;)</span>
+<span class="nc" id="L1062">                .addName(&quot;%colony%&quot;, colony.getName())</span>
+<span class="nc" id="L1063">                .addNamed(&quot;%oldType%&quot;, oldType)</span>
+<span class="nc" id="L1064">                .addNamed(&quot;%newType%&quot;, newType));</span>
+<span class="nc" id="L1065">            updateTilesPanel();</span>
+<span class="nc bnc" id="L1066" title="All 2 branches missed.">        } else if (property.startsWith(&quot;model.goods.&quot;)) {</span>
+            // Changes to warehouse goods count may affect building production
+            // which requires a view update.
+<span class="nc" id="L1069">            updateWarehousePanel();</span>
+<span class="nc" id="L1070">            updateProduction();</span>
+<span class="nc bnc" id="L1071" title="All 2 branches missed.">        } else if (Tile.UNIT_CHANGE.equals(property)) {</span>
+<span class="nc" id="L1072">            updateOutsideColonyPanel();</span>
+<span class="nc" id="L1073">            updateInPortPanel();</span>
+<span class="nc" id="L1074">            updatePopulationPanel();</span>
+<span class="nc" id="L1075">            updateWarehousePanel();// Role change changes equipment goods</span>
+<span class="nc bnc" id="L1076" title="All 2 branches missed.">        } else if (Unit.MOVE_CHANGE.equals(property)) {</span>
+<span class="nc" id="L1077">            updateOutsideColonyPanel();</span>
+<span class="nc" id="L1078">        } else {</span>
+            // ColonyTiles and Buildings now have their own
+            // propertyChangeListeners so {ColonyTile,Building}.UNIT_CHANGE
+            // events should not arrive here.
+<span class="nc" id="L1082">            logger.warning(&quot;Unknown property change event: &quot;</span>
+<span class="nc" id="L1083">                           + event.getPropertyName());</span>
+        }
+<span class="nc" id="L1085">    }</span>
+
+
+    // Override Component
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void removeNotify() {
+<span class="nc bnc" id="L1095" title="All 2 branches missed.">        if (colony == null) return; // Been here already</span>
+<span class="nc" id="L1096">        colony.setOccupationTrace(false);</span>
+<span class="nc" id="L1097">        colony = null; // Now Canvas.getColonyPanel will no longer find this</span>
+
+<span class="nc" id="L1099">        super.removeNotify();</span>
+
+        // Alas, ColonyPanel is often leaky.
+<span class="nc" id="L1102">        unloadButton = null;</span>
+<span class="nc" id="L1103">        fillButton = null;</span>
+<span class="nc" id="L1104">        warehouseButton = null;</span>
+<span class="nc" id="L1105">        buildQueueButton = null;</span>
+<span class="nc" id="L1106">        colonyUnitsButton = null;</span>
+<span class="nc" id="L1107">        setGoodsButton = null;</span>
+<span class="nc" id="L1108">        traceWorkButton = null;</span>
+<span class="nc" id="L1109">        netProductionPanel = null;</span>
+<span class="nc" id="L1110">        buildingsPanel = null;</span>
+<span class="nc" id="L1111">        buildingsScroll = null;</span>
+<span class="nc" id="L1112">        cargoScroll = null;</span>
+<span class="nc" id="L1113">        constructionPanel = null;</span>
+<span class="nc" id="L1114">        inPortScroll = null;</span>
+<span class="nc" id="L1115">        outsideColonyPanel = null;</span>
+<span class="nc" id="L1116">        outsideColonyScroll = null;</span>
+<span class="nc" id="L1117">        populationPanel = null;</span>
+<span class="nc" id="L1118">        tilesPanel = null;</span>
+<span class="nc" id="L1119">        tilesScroll = null;</span>
+<span class="nc" id="L1120">        warehousePanel = null;</span>
+<span class="nc" id="L1121">        warehouseScroll = null;</span>
+
+<span class="nc" id="L1123">        releaseListener = null;</span>
+
+        // Inherited from PortPanel
+        //cargoPanel = null;
+        //inPortPanel = null;
+        //defaultTransferHandler = null;
+        //pressListener = null;
+        //selectedUnitLabel = null;
+<span class="nc" id="L1131">    }</span>
+
+
+    // Subpanel classes
+
+    /**
+     * This panel shows the content of a carrier in the colony
+     */
+    public final class ColonyCargoPanel extends CargoPanel {
+
+        /**
+         * Create this colony cargo panel.
+         *
+         * @param freeColClient The &lt;code&gt;FreeColClient&lt;/code&gt; for the game.
+         */
+<span class="nc" id="L1146">        public ColonyCargoPanel(FreeColClient freeColClient) {</span>
+<span class="nc" id="L1147">            super(freeColClient, true);</span>
+<span class="nc" id="L1148">        }</span>
+
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void update() {
+<span class="nc" id="L1156">            super.update();</span>
+            // May have un/loaded cargo, &quot;Unload&quot; could have changed validity
+<span class="nc" id="L1158">            updateCarrierButtons();</span>
+<span class="nc" id="L1159">            updatePopulationPanel();</span>
+<span class="nc" id="L1160">        }</span>
+    }
+
+    /**
+     * The panel to display the population breakdown for this colony.
+     */
+    public final class PopulationPanel extends JPanel {
+
+        // Predefine all the required labels.
+<span class="nc" id="L1169">        private final JLabel rebelShield = new JLabel();</span>
+<span class="nc" id="L1170">        private final JLabel rebelLabel = new JLabel();</span>
+<span class="nc" id="L1171">        private final JLabel bonusLabel = new JLabel();</span>
+<span class="nc" id="L1172">        private final JLabel royalistLabel = new JLabel();</span>
+<span class="nc" id="L1173">        private final JLabel royalistShield = new JLabel();</span>
+<span class="nc" id="L1174">        private final JLabel rebelMemberLabel = new JLabel();</span>
+<span class="nc" id="L1175">        private final JLabel popLabel = new JLabel();</span>
+<span class="nc" id="L1176">        private final JLabel royalistMemberLabel = new JLabel();</span>
+
+
+        /**
+         * Create a new population panel.
+         */
+<span class="nc" id="L1182">        public PopulationPanel() {</span>
+<span class="nc" id="L1183">            super(new MigLayout(&quot;wrap 5, fill, insets 0&quot;,</span>
+<span class="nc" id="L1184">                                &quot;[][]:push[center]:push[right][]&quot;));</span>
+<span class="nc" id="L1185">            setOpaque(false);</span>
+<span class="nc" id="L1186">            setToolTipText(&quot; &quot;);</span>
+<span class="nc" id="L1187">        }</span>
+
+
+        /**
+         * Initialize this population panel.
+         */
+        public void initialize() {
+<span class="nc" id="L1194">            cleanup();</span>
+<span class="nc" id="L1195">            update();</span>
+<span class="nc" id="L1196">        }</span>
+
+        /**
+         * Clean up this population panel.
+         */
+        public void cleanup() {
+            // Nothing yet
+<span class="nc" id="L1203">        }</span>
+
+        /**
+         * Update this population panel.
+         */
+        public void update() {
+<span class="nc" id="L1209">            final Colony colony = getColony();</span>
+<span class="nc bnc" id="L1210" title="All 2 branches missed.">            if (colony == null) return;</span>
+<span class="nc" id="L1211">            final ImageLibrary lib = getGUI().getTileImageLibrary();</span>
+<span class="nc" id="L1212">            final Font font = FontLibrary.createFont(FontLibrary.FontType.NORMAL,</span>
+<span class="nc" id="L1213">                FontLibrary.FontSize.SMALLER, lib.getScaleFactor());</span>
+<span class="nc" id="L1214">            final int uc = colony.getUnitCount();</span>
+<span class="nc" id="L1215">            final int solPercent = colony.getSoL();</span>
+<span class="nc" id="L1216">            final int rebels = Colony.calculateRebels(uc, solPercent);</span>
+<span class="nc" id="L1217">            final Nation nation = colony.getOwner().getNation();</span>
+<span class="nc" id="L1218">            final int grow = colony.getPreferredSizeChange();</span>
+<span class="nc" id="L1219">            final int bonus = colony.getProductionBonus();</span>
+            StringTemplate t;
+
+<span class="nc" id="L1222">            removeAll();</span>
+
+<span class="nc" id="L1224">            rebelShield.setIcon(new ImageIcon(</span>
+<span class="nc" id="L1225">                lib.getSmallerMiscIconImage(nation)));</span>
+<span class="nc" id="L1226">            add(rebelShield, &quot;bottom&quot;);</span>
+
+<span class="nc" id="L1228">            t = StringTemplate.template(&quot;colonyPanel.rebelLabel&quot;)</span>
+<span class="nc" id="L1229">                              .addAmount(&quot;%number%&quot;, rebels);</span>
+<span class="nc" id="L1230">            rebelLabel.setText(Messages.message(t));</span>
+<span class="nc" id="L1231">            rebelLabel.setFont(font);</span>
+<span class="nc" id="L1232">            add(rebelLabel, &quot;split 2, flowy&quot;);</span>
+
+<span class="nc" id="L1234">            rebelMemberLabel.setText(solPercent + &quot;%&quot;);</span>
+<span class="nc" id="L1235">            rebelMemberLabel.setFont(font);</span>
+<span class="nc" id="L1236">            add(rebelMemberLabel);</span>
+
+<span class="nc" id="L1238">            t = StringTemplate.template(&quot;colonyPanel.populationLabel&quot;)</span>
+<span class="nc" id="L1239">                              .addAmount(&quot;%number%&quot;, uc);</span>
+<span class="nc" id="L1240">            popLabel.setText(Messages.message(t));</span>
+<span class="nc" id="L1241">            popLabel.setFont(font);</span>
+<span class="nc" id="L1242">            add(popLabel, &quot;split 2, flowy&quot;);</span>
+
+<span class="nc" id="L1244">            t = StringTemplate.template(&quot;colonyPanel.bonusLabel&quot;)</span>
+<span class="nc" id="L1245">                              .addAmount(&quot;%number%&quot;, bonus)</span>
+<span class="nc bnc" id="L1246" title="All 2 branches missed.">                              .add(&quot;%extra%&quot;, ((grow == 0) ? &quot;&quot;</span>
+<span class="nc" id="L1247">                                      : &quot;(&quot; + grow + &quot;)&quot;));</span>
+<span class="nc" id="L1248">            bonusLabel.setText(Messages.message(t));</span>
+<span class="nc" id="L1249">            bonusLabel.setFont(font);</span>
+<span class="nc" id="L1250">            add(bonusLabel);</span>
+
+<span class="nc" id="L1252">            t = StringTemplate.template(&quot;colonyPanel.royalistLabel&quot;)</span>
+<span class="nc" id="L1253">                              .addAmount(&quot;%number%&quot;, uc - rebels);</span>
+<span class="nc" id="L1254">            royalistLabel.setText(Messages.message(t));</span>
+<span class="nc" id="L1255">            royalistLabel.setFont(font);</span>
+<span class="nc" id="L1256">            add(royalistLabel, &quot;split 2, flowy&quot;);</span>
+
+<span class="nc" id="L1258">            royalistMemberLabel.setText(colony.getTory() + &quot;%&quot;);</span>
+<span class="nc" id="L1259">            royalistMemberLabel.setFont(font);</span>
+<span class="nc" id="L1260">            add(royalistMemberLabel);</span>
+
+<span class="nc bnc" id="L1262" title="All 2 branches missed.">            Nation other = (colony.getOwner().isREF())</span>
+<span class="nc" id="L1263">                ? nation.getRebelNation()</span>
+<span class="nc" id="L1264">                : nation.getREFNation();</span>
+            try {
+<span class="nc" id="L1266">                royalistShield.setIcon(new ImageIcon(</span>
+<span class="nc" id="L1267">                    lib.getSmallerMiscIconImage(other)));</span>
+<span class="nc" id="L1268">                add(royalistShield, &quot;bottom&quot;);</span>
+<span class="nc" id="L1269">            } catch (Exception e) {</span>
+<span class="nc" id="L1270">                logger.log(Level.WARNING, &quot;Shield: &quot; + nation + &quot;/&quot; + other, e);</span>
+            }
+
+<span class="nc" id="L1273">            revalidate();</span>
+<span class="nc" id="L1274">            repaint();</span>
+<span class="nc" id="L1275">        }</span>
+
+        @Override
+        public JToolTip createToolTip() {
+<span class="nc" id="L1279">            return new RebelToolTip(getFreeColClient(), getColony());</span>
+        }
+
+
+        // Override JLabel
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public String getUIClassID() {
+<span class="nc" id="L1290">            return &quot;PopulationPanelUI&quot;;</span>
+        }
+
+
+        // Override Component
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void removeNotify() {
+<span class="nc" id="L1301">            super.removeNotify();</span>
+
+<span class="nc" id="L1303">            removeAll();</span>
+<span class="nc" id="L1304">            setLayout(null);</span>
+<span class="nc" id="L1305">        }</span>
+    }
+
+    /**
+     * A panel that holds UnitLabels that represent Units that are standing in
+     * front of a colony.
+     */
+    public final class OutsideColonyPanel extends UnitPanel
+        implements DropTarget {
+
+        /**
+         * Create this OutsideColonyPanel.
+         */
+<span class="nc" id="L1318">        public OutsideColonyPanel() {</span>
+<span class="nc" id="L1319">            super(ColonyPanel.this, null, ColonyPanel.this.isEditable());</span>
+
+<span class="nc" id="L1321">            setLayout(new MigLayout(&quot;wrap 3, fill, insets 0&quot;));</span>
+<span class="nc" id="L1322">            setBorder(Utility.localizedBorder(&quot;colonyPanel.outsideColony&quot;));</span>
+<span class="nc" id="L1323">        }</span>
+
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void initialize() {
+<span class="nc" id="L1331">            super.initialize();</span>
+
+<span class="nc" id="L1333">            final Colony colony = getColony();</span>
+<span class="nc bnc" id="L1334" title="All 2 branches missed.">            if (colony != null) {</span>
+<span class="nc" id="L1335">                setName(colony.getName() + &quot; - &quot; + Messages.message(&quot;port&quot;));</span>
+            }
+<span class="nc" id="L1337">        }</span>
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void cleanup() {
+<span class="nc" id="L1344">            super.cleanup();</span>
+
+<span class="nc" id="L1346">            removeAll();</span>
+<span class="nc" id="L1347">        }</span>
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void addPropertyChangeListeners() {
+<span class="nc" id="L1354">            final Colony colony = getColony();</span>
+<span class="nc bnc" id="L1355" title="All 2 branches missed.">            if (colony != null) {</span>
+<span class="nc" id="L1356">                colony.getTile().addPropertyChangeListener(Tile.UNIT_CHANGE,</span>
+<span class="nc" id="L1357">                                                           this);</span>
+            }
+<span class="nc" id="L1359">        }</span>
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void removePropertyChangeListeners() {
+<span class="nc" id="L1366">            final Colony colony = getColony();</span>
+<span class="nc bnc" id="L1367" title="All 2 branches missed.">            if (colony != null) {</span>
+<span class="nc" id="L1368">                colony.getTile().removePropertyChangeListener(Tile.UNIT_CHANGE,</span>
+<span class="nc" id="L1369">                                                              this);</span>
+            }
+<span class="nc" id="L1371">        }</span>
+
+        // Inherit UnitPanel.update
+
+
+        // Interface DropTarget
+
+        /**
+         * {@inheritDoc}
+         */
+        public boolean accepts(Unit unit) {
+<span class="nc bnc" id="L1382" title="All 2 branches missed.">            return !unit.isCarrier();</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public boolean accepts(Goods goods) {
+<span class="nc" id="L1389">            return false;</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public Component add(Component comp, boolean editState) {
+<span class="nc" id="L1396">            Container oldParent = comp.getParent();</span>
+<span class="nc bnc" id="L1397" title="All 2 branches missed.">            if (editState) {</span>
+<span class="nc bnc" id="L1398" title="All 2 branches missed.">                if (comp instanceof UnitLabel) {</span>
+<span class="nc" id="L1399">                    UnitLabel unitLabel = (UnitLabel)comp;</span>
+<span class="nc" id="L1400">                    Unit unit = unitLabel.getUnit();</span>
+
+<span class="nc bnc" id="L1402" title="All 2 branches missed.">                    if (!unit.isOnCarrier()) {</span>
+<span class="nc" id="L1403">                        igc().putOutsideColony(unit);</span>
+                    }
+
+<span class="nc bnc" id="L1406" title="All 2 branches missed.">                    if (unit.getColony() == null) {</span>
+<span class="nc" id="L1407">                        closeColonyPanel();</span>
+<span class="nc" id="L1408">                        return null;</span>
+<span class="nc bnc" id="L1409" title="All 2 branches missed.">                    } else if (!(unit.getLocation() instanceof Tile)</span>
+<span class="nc bnc" id="L1410" title="All 2 branches missed.">                        &amp;&amp; !unit.isOnCarrier()) {</span>
+<span class="nc" id="L1411">                        return null;</span>
+                    }
+
+<span class="nc" id="L1414">                    oldParent.remove(comp);</span>
+<span class="nc" id="L1415">                    initialize();</span>
+<span class="nc" id="L1416">                    return comp;</span>
+                } else {
+<span class="nc" id="L1418">                    logger.warning(&quot;Invalid component: &quot; + comp);</span>
+<span class="nc" id="L1419">                    return null;</span>
+                }
+            } else {
+<span class="nc" id="L1422">                ((UnitLabel)comp).setSmall(false);</span>
+<span class="nc" id="L1423">                return add(comp);</span>
+            }
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+<span class="nc" id="L1430">        public int suggested(GoodsType type) { return -1; } // N/A</span>
+
+
+        // Override JPanel
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public String getUIClassID() {
+<span class="nc" id="L1440">            return &quot;OutsideColonyPanelUI&quot;;</span>
+        }
+    }
+
+    /**
+     * A panel that holds UnitLabels that represent naval Units that are
+     * waiting in the port of the colony.
+     */
+    public final class ColonyInPortPanel extends InPortPanel {
+
+        /**
+         * Creates this ColonyInPortPanel.
+         */
+<span class="nc" id="L1453">        public ColonyInPortPanel() {</span>
+<span class="nc" id="L1454">            super(ColonyPanel.this, null, ColonyPanel.this.isEditable());</span>
+
+<span class="nc" id="L1456">            setBorder(Utility.localizedBorder(&quot;colonyPanel.inPort&quot;));</span>
+<span class="nc" id="L1457">            setLayout(new MigLayout(&quot;wrap 3, fill, insets 0&quot;));</span>
+<span class="nc" id="L1458">        }</span>
+
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void initialize() {
+<span class="nc" id="L1466">            super.initialize();</span>
+
+<span class="nc" id="L1468">            final Colony colony = getColony();</span>
+<span class="nc bnc" id="L1469" title="All 2 branches missed.">            if (colony != null) {</span>
+<span class="nc" id="L1470">                setName(colony.getName() + &quot; - &quot; + Messages.message(&quot;port&quot;));</span>
+            }
+<span class="nc" id="L1472">        }</span>
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void addPropertyChangeListeners() {
+<span class="nc" id="L1479">            Unit selected = getSelectedUnit();</span>
+<span class="nc bnc" id="L1480" title="All 2 branches missed.">            if (selected != null) {</span>
+<span class="nc" id="L1481">                selected.addPropertyChangeListener(Unit.CARGO_CHANGE, this);</span>
+            }
+<span class="nc" id="L1483">        }</span>
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void removePropertyChangeListeners() {
+<span class="nc" id="L1490">            Unit selected = getSelectedUnit();</span>
+<span class="nc bnc" id="L1491" title="All 2 branches missed.">            if (selected != null) {</span>
+<span class="nc" id="L1492">                selected.removePropertyChangeListener(Unit.CARGO_CHANGE, this);</span>
+            }
+<span class="nc" id="L1494">        }</span>
+
+
+        // extend UnitPanel
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean accepts(Unit unit) {
+<span class="nc" id="L1504">            return unit.isCarrier();</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void selectLabel() {
+<span class="nc" id="L1512">            removePropertyChangeListeners();</span>
+<span class="nc" id="L1513">            super.selectLabel();</span>
+<span class="nc" id="L1514">            addPropertyChangeListeners();</span>
+<span class="nc" id="L1515">        }</span>
+    }
+
+    /**
+     * A panel that holds goods that represent cargo that is inside
+     * the Colony.
+     */
+    public final class WarehousePanel extends JPanel
+        implements DropTarget, PropertyChangeListener {
+
+        /**
+         * Creates a WarehousePanel.
+         */
+<span class="nc" id="L1528">        public WarehousePanel() {</span>
+<span class="nc" id="L1529">            setLayout(new MigLayout(&quot;fill, gap push, insets 0&quot;));</span>
+<span class="nc" id="L1530">        }</span>
+
+
+        /**
+         * Initialize this WarehousePanel.
+         */
+        public void initialize() {
+<span class="nc" id="L1537">            cleanup();</span>
+<span class="nc" id="L1538">            addPropertyChangeListeners();</span>
+<span class="nc" id="L1539">            update();</span>
+<span class="nc" id="L1540">        }</span>
+
+        /**
+         * Clean up this WarehousePanel.
+         */
+        public void cleanup() {
+<span class="nc" id="L1546">            removePropertyChangeListeners();</span>
+<span class="nc" id="L1547">            removeAll();</span>
+<span class="nc" id="L1548">        }</span>
+
+        /**
+         * Add the property change listeners to this panel.
+         */
+        protected void addPropertyChangeListeners() {
+<span class="nc" id="L1554">            final Colony colony = getColony();</span>
+<span class="nc bnc" id="L1555" title="All 2 branches missed.">            if (colony != null) {</span>
+<span class="nc" id="L1556">                colony.getGoodsContainer().addPropertyChangeListener(this);</span>
+            }
+<span class="nc" id="L1558">        }</span>
+
+        /**
+         * Remove the property change listeners from this panel.
+         */
+        protected void removePropertyChangeListeners() {
+<span class="nc" id="L1564">            final Colony colony = getColony();</span>
+<span class="nc bnc" id="L1565" title="All 2 branches missed.">            if (colony != null) {</span>
+<span class="nc" id="L1566">                colony.getGoodsContainer().removePropertyChangeListener(this);</span>
+            }
+<span class="nc" id="L1568">        }</span>
+
+        /**
+         * Update this WarehousePanel.
+         */
+        public void update() {
+<span class="nc" id="L1574">            final Colony colony = getColony();</span>
+<span class="nc bnc" id="L1575" title="All 2 branches missed.">            if (colony == null) return;</span>
+<span class="nc" id="L1576">            removeAll();</span>
+
+<span class="nc" id="L1578">            ClientOptions options = getClientOptions();</span>
+<span class="nc bnc" id="L1579" title="All 2 branches missed.">            final int threshold = (FreeColDebugger.isInDebugMode(FreeColDebugger.DebugMode.MENUS))</span>
+<span class="nc" id="L1580">                ? 1</span>
+<span class="nc" id="L1581">                : options.getInteger(ClientOptions.MIN_NUMBER_FOR_DISPLAYING_GOODS);</span>
+<span class="nc" id="L1582">            final Game game = colony.getGame();</span>
+<span class="nc" id="L1583">            final Specification spec = colony.getSpecification();</span>
+<span class="nc bnc" id="L1584" title="All 2 branches missed.">            for (GoodsType goodsType : spec.getStorableGoodsTypeList()) {</span>
+<span class="nc" id="L1585">                int count = colony.getGoodsCount(goodsType);</span>
+<span class="nc bnc" id="L1586" title="All 2 branches missed.">                if (count &gt;= threshold) {</span>
+<span class="nc" id="L1587">                    Goods goods = new Goods(game, colony, goodsType, count);</span>
+<span class="nc" id="L1588">                    GoodsLabel goodsLabel = new GoodsLabel(getGUI(), goods);</span>
+<span class="nc bnc" id="L1589" title="All 2 branches missed.">                    if (ColonyPanel.this.isEditable()) {</span>
+<span class="nc" id="L1590">                        goodsLabel.setTransferHandler(defaultTransferHandler);</span>
+<span class="nc" id="L1591">                        goodsLabel.addMouseListener(pressListener);</span>
+                    }
+<span class="nc" id="L1593">                    add(goodsLabel, false);</span>
+                }
+            }
+<span class="nc" id="L1596">            ColonyPanel.this.updateProduction();</span>
+<span class="nc" id="L1597">            revalidate();</span>
+<span class="nc" id="L1598">            repaint();</span>
+<span class="nc" id="L1599">        }</span>
+
+
+        // Interface DropTarget
+
+        /**
+         * {@inheritDoc}
+         */
+        public boolean accepts(Unit unit) {
+<span class="nc" id="L1608">            return false;</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public boolean accepts(Goods goods) {
+<span class="nc" id="L1615">            return true;</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public Component add(Component comp, boolean editState) {
+<span class="nc bnc" id="L1622" title="All 2 branches missed.">            if (editState) {</span>
+<span class="nc bnc" id="L1623" title="All 2 branches missed.">                if (!(comp instanceof GoodsLabel)) {</span>
+<span class="nc" id="L1624">                    logger.warning(&quot;Invalid component: &quot; + comp);</span>
+<span class="nc" id="L1625">                    return null;</span>
+                }
+<span class="nc" id="L1627">                comp.getParent().remove(comp);</span>
+<span class="nc" id="L1628">                return comp;</span>
+            }
+
+<span class="nc" id="L1631">            return add(comp);</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public int suggested(GoodsType type) {
+<span class="nc" id="L1638">            Colony colony = getColony();</span>
+<span class="nc" id="L1639">            return colony.getWarehouseCapacity() - colony.getGoodsCount(type);</span>
+        }
+
+
+        // Interface PropertyChangeListener
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void propertyChange(PropertyChangeEvent event) {
+<span class="nc" id="L1650">            final Colony colony = getColony();</span>
+<span class="nc bnc" id="L1651" title="All 4 branches missed.">            if (colony != null &amp;&amp; event != null) {</span>
+<span class="nc" id="L1652">                logger.finest(colony.getName() + &quot;-warehouse change &quot;</span>
+<span class="nc" id="L1653">                    + event.getPropertyName()</span>
+<span class="nc" id="L1654">                    + &quot;: &quot; + event.getOldValue()</span>
+<span class="nc" id="L1655">                    + &quot; -&gt; &quot; + event.getNewValue());</span>
+            }
+<span class="nc" id="L1657">            update();</span>
+<span class="nc" id="L1658">        }</span>
+
+
+        // Override JPanel
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public String getUIClassID() {
+<span class="nc" id="L1668">            return &quot;WarehousePanelUI&quot;;</span>
+        }
+
+
+        // Override Component
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void removeNotify() {
+<span class="nc" id="L1679">            super.removeNotify();</span>
+
+<span class="nc" id="L1681">            removeAll();</span>
+<span class="nc" id="L1682">            setLayout(null);</span>
+<span class="nc" id="L1683">        }</span>
+    }
+
+
+    /**
+     * This panel is a list of the colony's buildings.
+     */
+    public final class BuildingsPanel extends JPanel {
+
+        /**
+         * Creates this BuildingsPanel.
+         */
+<span class="nc" id="L1695">        public BuildingsPanel() {</span>
+<span class="nc" id="L1696">            setLayout(new MigLayout(&quot;fill, wrap 4, insets 0, gap 0:10:10:push&quot;));</span>
+<span class="nc" id="L1697">        }</span>
+
+
+        /**
+         * Initializes the game data in this buildings panel.
+         */
+        public void initialize() {
+<span class="nc" id="L1704">            final Colony colony = getColony();</span>
+<span class="nc bnc" id="L1705" title="All 2 branches missed.">            if (colony == null) return;</span>
+<span class="nc" id="L1706">            cleanup();</span>
+
+<span class="nc" id="L1708">            List&lt;Building&gt; buildings = colony.getBuildings();</span>
+<span class="nc" id="L1709">            Collections.sort(buildings);</span>
+<span class="nc bnc" id="L1710" title="All 2 branches missed.">            for (Building building : buildings) {</span>
+<span class="nc" id="L1711">                ASingleBuildingPanel aSBP = new ASingleBuildingPanel(building);</span>
+<span class="nc" id="L1712">                aSBP.initialize();</span>
+<span class="nc" id="L1713">                add(aSBP);</span>
+            }
+
+<span class="nc" id="L1716">            update();</span>
+<span class="nc" id="L1717">        }</span>
+
+        /**
+         * Clean up this buildings panel.
+         */
+        public void cleanup() {
+<span class="nc bnc" id="L1723" title="All 2 branches missed.">            for (Component component : getComponents()) {</span>
+<span class="nc bnc" id="L1724" title="All 2 branches missed.">                if (component instanceof ASingleBuildingPanel) {</span>
+<span class="nc" id="L1725">                    ((ASingleBuildingPanel)component).cleanup();</span>
+                }
+            }
+<span class="nc" id="L1728">            removeAll();</span>
+<span class="nc" id="L1729">        }</span>
+
+        /**
+         * Update this buildings panel.
+         */
+        public void update() {
+<span class="nc bnc" id="L1735" title="All 2 branches missed.">            for (Component component : getComponents()) {</span>
+<span class="nc bnc" id="L1736" title="All 2 branches missed.">                if (component instanceof ASingleBuildingPanel) {</span>
+<span class="nc" id="L1737">                    ((ASingleBuildingPanel)component).update();</span>
+                }
+            }
+
+<span class="nc" id="L1741">            repaint();</span>
+<span class="nc" id="L1742">        }</span>
+
+
+        // Override JPanel
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public String getUIClassID() {
+<span class="nc" id="L1752">            return &quot;BuildingsPanelUI&quot;;</span>
+        }
+
+
+        // Override Component
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void removeNotify() {
+<span class="nc" id="L1763">            super.removeNotify();</span>
+
+<span class="nc" id="L1765">            removeAll();</span>
+<span class="nc" id="L1766">            setLayout(null);</span>
+<span class="nc" id="L1767">        }</span>
+
+
+        /**
+         * This panel is a single line (one building) in the
+         * &lt;code&gt;BuildingsPanel&lt;/code&gt;.
+         */
+        public final class ASingleBuildingPanel extends BuildingPanel
+            implements DropTarget  {
+
+<span class="nc" id="L1777">            private final MouseAdapter buildQueueListener = new MouseAdapter() {</span>
+                    @Override
+                    public void mousePressed(MouseEvent e) {
+<span class="nc" id="L1780">                        getGUI().showBuildQueuePanel(getColony());</span>
+<span class="nc" id="L1781">                    }</span>
+                };
+
+
+            /**
+             * Creates this ASingleBuildingPanel.
+             *
+             * @param building The &lt;code&gt;Building&lt;/code&gt; to display
+             *     information from.
+             */
+<span class="nc" id="L1791">            public ASingleBuildingPanel(Building building) {</span>
+<span class="nc" id="L1792">                super(getFreeColClient(), building);</span>
+
+<span class="nc" id="L1794">                setOpaque(false);</span>
+<span class="nc" id="L1795">            }</span>
+
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public void initialize() {
+<span class="nc bnc" id="L1803" title="All 2 branches missed.">                if (ColonyPanel.this.isEditable()) {</span>
+<span class="nc" id="L1804">                    super.initialize();</span>
+
+<span class="nc" id="L1806">                    addMouseListener(releaseListener);</span>
+<span class="nc" id="L1807">                    addMouseListener(buildQueueListener);</span>
+<span class="nc" id="L1808">                    setTransferHandler(defaultTransferHandler);</span>
+                }
+<span class="nc" id="L1810">            }</span>
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public void cleanup() {
+<span class="nc" id="L1817">                super.cleanup();</span>
+
+<span class="nc" id="L1819">                removeMouseListener(releaseListener);</span>
+<span class="nc" id="L1820">                removeMouseListener(buildQueueListener);</span>
+<span class="nc" id="L1821">                setTransferHandler(null);</span>
+<span class="nc" id="L1822">                removeAll();</span>
+<span class="nc" id="L1823">            }</span>
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public void update() {
+<span class="nc" id="L1830">                super.update();</span>
+
+<span class="nc bnc" id="L1832" title="All 2 branches missed.">                if (ColonyPanel.this.isEditable()) {</span>
+<span class="nc bnc" id="L1833" title="All 2 branches missed.">                    for (UnitLabel unitLabel : getUnitLabels()) {</span>
+<span class="nc" id="L1834">                        unitLabel.setTransferHandler(defaultTransferHandler);</span>
+<span class="nc" id="L1835">                        unitLabel.addMouseListener(pressListener);</span>
+                    }
+                }
+<span class="nc" id="L1838">            }</span>
+
+            /**
+             * Try to assign a unit to work this building.
+             *
+             * @param unit The &lt;code&gt;Unit&lt;/code&gt; to try.
+             * @return True if the work begins.
+             */
+            private boolean tryWork(Unit unit) {
+<span class="nc" id="L1847">                Building building = getBuilding();</span>
+<span class="nc" id="L1848">                NoAddReason reason = building.getNoAddReason(unit);</span>
+<span class="nc bnc" id="L1849" title="All 2 branches missed.">                if (reason != NoAddReason.NONE) {</span>
+<span class="nc" id="L1850">                    getGUI().showInformationMessage(building, reason.getDescriptionKey());</span>
+<span class="nc" id="L1851">                    return false;</span>
+                }
+
+<span class="nc" id="L1854">                return ColonyPanel.this.tryWork(unit, building);</span>
+            }
+
+
+            // Interface DropTarget
+
+            /**
+             * {@inheritDoc}
+             */
+            public boolean accepts(Unit unit) {
+<span class="nc" id="L1864">                return unit.isPerson();</span>
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            public boolean accepts(Goods goods) {
+<span class="nc" id="L1871">                return false;</span>
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            public Component add(Component comp, boolean editState) {
+<span class="nc bnc" id="L1878" title="All 2 branches missed.">                if (editState) {</span>
+<span class="nc bnc" id="L1879" title="All 2 branches missed.">                    if (comp instanceof UnitLabel) {</span>
+<span class="nc bnc" id="L1880" title="All 2 branches missed.">                        if (!tryWork(((UnitLabel)comp).getUnit())) return null;</span>
+                    } else {
+<span class="nc" id="L1882">                        logger.warning(&quot;An invalid component was dropped&quot;</span>
+                            + &quot; on this ASingleBuildingPanel.&quot;);
+<span class="nc" id="L1884">                        return null;</span>
+                    }
+<span class="nc" id="L1886">                    update();</span>
+                }
+<span class="nc" id="L1888">                return null;</span>
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+<span class="nc" id="L1894">            public int suggested(GoodsType type) { return -1; } // N/A</span>
+
+
+            // Interface PropertyChangeListener
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public void propertyChange(PropertyChangeEvent event) {
+<span class="nc" id="L1904">                super.propertyChange(event);</span>
+
+<span class="nc" id="L1906">                ColonyPanel.this.updateProduction();</span>
+<span class="nc" id="L1907">            }</span>
+        }
+    }
+
+    /**
+     * A panel that displays the tiles in the immediate area around the colony.
+     * TilesPanel class must use the ImageLibrary inside SwingGUI.tileMapViewer
+     * for everything.
+     */
+    public final class TilesPanel extends JPanel {
+
+        /** The tiles around the colony. */
+<span class="nc" id="L1919">        private final Tile[][] tiles = new Tile[3][3];</span>
+
+
+        /**
+         * Creates a TilesPanel.
+         */
+<span class="nc" id="L1925">        public TilesPanel() {</span>
+<span class="nc" id="L1926">            setBackground(Color.BLACK);</span>
+<span class="nc" id="L1927">            setBorder(null);</span>
+<span class="nc" id="L1928">            setLayout(null);</span>
+<span class="nc" id="L1929">        }</span>
+
+
+        /**
+         * Initialize the game data in this tiles panel.
+         */
+        public void initialize() {
+<span class="nc" id="L1936">            final Colony colony = getColony();</span>
+<span class="nc bnc" id="L1937" title="All 2 branches missed.">            if (colony == null) return;</span>
+<span class="nc" id="L1938">            cleanup();</span>
+
+<span class="nc" id="L1940">            Tile tile = colony.getTile();</span>
+<span class="nc" id="L1941">            tiles[0][0] = tile.getNeighbourOrNull(Direction.N);</span>
+<span class="nc" id="L1942">            tiles[0][1] = tile.getNeighbourOrNull(Direction.NE);</span>
+<span class="nc" id="L1943">            tiles[0][2] = tile.getNeighbourOrNull(Direction.E);</span>
+<span class="nc" id="L1944">            tiles[1][0] = tile.getNeighbourOrNull(Direction.NW);</span>
+<span class="nc" id="L1945">            tiles[1][1] = tile;</span>
+<span class="nc" id="L1946">            tiles[1][2] = tile.getNeighbourOrNull(Direction.SE);</span>
+<span class="nc" id="L1947">            tiles[2][0] = tile.getNeighbourOrNull(Direction.W);</span>
+<span class="nc" id="L1948">            tiles[2][1] = tile.getNeighbourOrNull(Direction.SW);</span>
+<span class="nc" id="L1949">            tiles[2][2] = tile.getNeighbourOrNull(Direction.S);</span>
+
+<span class="nc" id="L1951">            int layer = 2;</span>
+<span class="nc bnc" id="L1952" title="All 2 branches missed.">            for (int x = 0; x &lt; 3; x++) {</span>
+<span class="nc bnc" id="L1953" title="All 2 branches missed.">                for (int y = 0; y &lt; 3; y++) {</span>
+<span class="nc bnc" id="L1954" title="All 2 branches missed.">                    if (tiles[x][y] == null) continue;</span>
+<span class="nc" id="L1955">                    ColonyTile colonyTile = colony.getColonyTile(tiles[x][y]);</span>
+<span class="nc" id="L1956">                    ASingleTilePanel aSTP = new ASingleTilePanel(colonyTile,</span>
+<span class="nc" id="L1957">                                                                 x, y);</span>
+<span class="nc" id="L1958">                    aSTP.initialize();</span>
+<span class="nc" id="L1959">                    add(aSTP, Integer.valueOf(layer++));</span>
+                }
+            }
+
+<span class="nc" id="L1963">            update();</span>
+<span class="nc" id="L1964">        }</span>
+
+        /**
+         * Clean up this tiles panel.
+         */
+        public void cleanup() {
+<span class="nc bnc" id="L1970" title="All 2 branches missed.">            for (Component component : getComponents()) {</span>
+<span class="nc bnc" id="L1971" title="All 2 branches missed.">                if (component instanceof ASingleTilePanel) {</span>
+<span class="nc" id="L1972">                    ((ASingleTilePanel)component).cleanup();</span>
+                }
+            }
+<span class="nc" id="L1975">            removeAll();</span>
+<span class="nc" id="L1976">        }</span>
+
+        /**
+         * Update this tiles panel.
+         */
+        public void update() {
+<span class="nc bnc" id="L1982" title="All 2 branches missed.">            for (Component component : getComponents()) {</span>
+<span class="nc bnc" id="L1983" title="All 2 branches missed.">                if (component instanceof ASingleTilePanel) {</span>
+<span class="nc" id="L1984">                    ((ASingleTilePanel)component).update();</span>
+                }
+            }
+<span class="nc" id="L1987">            repaint();</span>
+<span class="nc" id="L1988">        }</span>
+
+
+        // Override JComponent
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void paintComponent(Graphics g) {
+<span class="nc" id="L1998">            final Colony colony = getColony();</span>
+<span class="nc" id="L1999">            g.setColor(Color.BLACK);</span>
+<span class="nc" id="L2000">            g.fillRect(0, 0, getWidth(), getHeight());</span>
+<span class="nc bnc" id="L2001" title="All 2 branches missed.">            if (colony == null) return;</span>
+
+<span class="nc" id="L2003">            getGUI().displayColonyTiles((Graphics2D)g, tiles, colony);</span>
+<span class="nc" id="L2004">        }</span>
+
+        /**
+         * Panel for visualizing a &lt;code&gt;ColonyTile&lt;/code&gt;.  The
+         * component itself is not visible, however the content of the
+         * component is (i.e. the people working and the production)
+         */
+        public final class ASingleTilePanel extends JPanel
+            implements DropTarget, PropertyChangeListener {
+
+            /** The colony tile to monitor. */
+            private final ColonyTile colonyTile;
+
+
+            /**
+             * Create a new single tile panel.
+             *
+             * @param colonyTile The &lt;code&gt;ColonyTile&lt;/code&gt; to monitor.
+             * @param x The x offset.
+             * @param y The y offset.
+             */
+<span class="nc" id="L2025">            public ASingleTilePanel(ColonyTile colonyTile, int x, int y) {</span>
+<span class="nc" id="L2026">                this.colonyTile = colonyTile;</span>
+
+<span class="nc" id="L2028">                setLayout(new FlowLayout(FlowLayout.CENTER, 0, 0));</span>
+<span class="nc" id="L2029">                setOpaque(false);</span>
+                // Size and position:
+<span class="nc" id="L2031">                Dimension size = getGUI().getTileImageLibrary()</span>
+<span class="nc" id="L2032">                    .scaleDimension(ImageLibrary.TILE_SIZE);</span>
+<span class="nc" id="L2033">                setSize(size);</span>
+<span class="nc" id="L2034">                setLocation(((2 - x) + y) * size.width / 2,</span>
+<span class="nc" id="L2035">                    (x + y) * size.height / 2);</span>
+<span class="nc" id="L2036">            }</span>
+
+
+            /**
+             * Initialize this single tile panel.
+             */
+            public void initialize() {
+<span class="nc bnc" id="L2043" title="All 2 branches missed.">                if (ColonyPanel.this.isEditable()) {</span>
+<span class="nc" id="L2044">                    cleanup();</span>
+
+<span class="nc" id="L2046">                    addMouseListener(pressListener);</span>
+<span class="nc" id="L2047">                    addMouseListener(releaseListener);</span>
+<span class="nc" id="L2048">                    setTransferHandler(defaultTransferHandler);</span>
+<span class="nc" id="L2049">                    addPropertyChangeListeners();</span>
+                }
+<span class="nc" id="L2051">            }</span>
+
+            /**
+             * Clean up this single tile panel.
+             */
+            public void cleanup() {
+<span class="nc" id="L2057">                removeMouseListener(pressListener);</span>
+<span class="nc" id="L2058">                removeMouseListener(releaseListener);</span>
+<span class="nc" id="L2059">                setTransferHandler(null);</span>
+<span class="nc" id="L2060">                removePropertyChangeListeners();</span>
+<span class="nc" id="L2061">                removeAll();</span>
+<span class="nc" id="L2062">            }</span>
+
+            protected void addPropertyChangeListeners() {
+<span class="nc bnc" id="L2065" title="All 2 branches missed.">                if (colonyTile != null) {</span>
+<span class="nc" id="L2066">                    colonyTile.addPropertyChangeListener(this);</span>
+                }
+<span class="nc" id="L2068">            }</span>
+
+            protected void removePropertyChangeListeners() {
+<span class="nc bnc" id="L2071" title="All 2 branches missed.">                if (colonyTile != null) {</span>
+<span class="nc" id="L2072">                    colonyTile.removePropertyChangeListener(this);</span>
+                }
+<span class="nc" id="L2074">            }</span>
+
+            /**
+             * Update this single tile panel.
+             */
+            public void update() {
+<span class="nc" id="L2080">                removeAll();</span>
+
+<span class="nc" id="L2082">                UnitLabel label = null;</span>
+<span class="nc bnc" id="L2083" title="All 2 branches missed.">                for (Unit unit : colonyTile.getUnitList()) {</span>
+<span class="nc" id="L2084">                    label = new UnitLabel(</span>
+<span class="nc" id="L2085">                        getFreeColClient(), unit, false, false, true);</span>
+<span class="nc bnc" id="L2086" title="All 2 branches missed.">                    if (ColonyPanel.this.isEditable()) {</span>
+<span class="nc" id="L2087">                        label.setTransferHandler(defaultTransferHandler);</span>
+<span class="nc" id="L2088">                        label.addMouseListener(pressListener);</span>
+                    }
+<span class="nc" id="L2090">                    super.add(label);</span>
+                }
+<span class="nc" id="L2092">                updateDescriptionLabel(label);</span>
+<span class="nc bnc" id="L2093" title="All 2 branches missed.">                if (colonyTile.isColonyCenterTile()) {</span>
+<span class="nc" id="L2094">                    setLayout(new GridLayout(2, 1));</span>
+<span class="nc" id="L2095">                    ProductionInfo info = colony.getProductionInfo(colonyTile);</span>
+<span class="nc bnc" id="L2096" title="All 2 branches missed.">                    if (info != null) {</span>
+<span class="nc bnc" id="L2097" title="All 2 branches missed.">                        for (AbstractGoods ag : info.getProduction()) {</span>
+<span class="nc" id="L2098">                            ProductionLabel productionLabel</span>
+<span class="nc" id="L2099">                                = new ProductionLabel(getFreeColClient(),</span>
+<span class="nc" id="L2100">                                    getGUI().getTileImageLibrary(),</span>
+<span class="nc" id="L2101">                                    ag);</span>
+<span class="nc" id="L2102">                            productionLabel.addMouseListener(pressListener);</span>
+<span class="nc" id="L2103">                            add(productionLabel);</span>
+                        }
+                    }
+                }
+<span class="nc" id="L2107">            }</span>
+
+
+            /**
+             * Gets the colony tile this panel is handling.
+             *
+             * @return The colony tile.
+             */
+            public ColonyTile getColonyTile() {
+<span class="nc" id="L2116">                return colonyTile;</span>
+            }
+
+            /**
+             * Updates the description label, which is a tooltip with
+             * the terrain type, road and plow indicator, if any.
+             *
+             * If a unit is on it update the tooltip of it instead.
+             *
+             * @param unitLabel The &lt;code&gt;UnitLabel&lt;/code&gt; to update.
+             */
+            private void updateDescriptionLabel(UnitLabel unitLabel) {
+<span class="nc" id="L2128">                String tileMsg = Messages.message(colonyTile.getLabel());</span>
+<span class="nc bnc" id="L2129" title="All 2 branches missed.">                if (unitLabel == null) {</span>
+<span class="nc" id="L2130">                    setToolTipText(tileMsg);</span>
+<span class="nc" id="L2131">                } else {</span>
+<span class="nc" id="L2132">                    final Unit unit = unitLabel.getUnit();</span>
+<span class="nc" id="L2133">                    unitLabel.setDescriptionLabel(tileMsg + &quot; [&quot;</span>
+<span class="nc" id="L2134">                        + unit.getDescription(Unit.UnitLabelType.NATIONAL)</span>
+<span class="nc" id="L2135">                        + &quot;]&quot;);</span>
+                }
+<span class="nc" id="L2137">            }</span>
+
+            /**
+             * Try to work this tile with a specified unit.
+             *
+             * @param unit The &lt;code&gt;Unit&lt;/code&gt; to work the tile.
+             * @return True if the unit succeeds.
+             */
+            private boolean tryWork(Unit unit) {
+<span class="nc" id="L2146">                final Colony colony = getColony();</span>
+<span class="nc" id="L2147">                Tile tile = colonyTile.getWorkTile();</span>
+<span class="nc" id="L2148">                Player player = unit.getOwner();</span>
+
+<span class="nc bnc" id="L2150" title="All 2 branches missed.">                if (tile.getOwningSettlement() != colony) {</span>
+                    // Need to acquire the tile before working it.
+<span class="nc" id="L2152">                    NoClaimReason claim</span>
+<span class="nc" id="L2153">                        = player.canClaimForSettlementReason(tile);</span>
+<span class="nc bnc" id="L2154" title="All 2 branches missed.">                    switch (claim) {</span>
+                    case NONE: case NATIVES:
+<span class="nc bnc" id="L2156" title="All 2 branches missed.">                        if (igc().claimTile(tile, colony)</span>
+<span class="nc bnc" id="L2157" title="All 2 branches missed.">                            &amp;&amp; tile.getOwningSettlement() == colony) {</span>
+<span class="nc" id="L2158">                            logger.info(&quot;Colony &quot; + colony.getName()</span>
+<span class="nc" id="L2159">                                + &quot; claims tile &quot; + tile</span>
+<span class="nc" id="L2160">                                + &quot; with unit &quot; + unit.getId());</span>
+<span class="nc" id="L2161">                        } else {</span>
+<span class="nc" id="L2162">                            logger.warning(&quot;Colony &quot; + colony.getName()</span>
+<span class="nc" id="L2163">                                + &quot; did not claim &quot; + tile</span>
+<span class="nc" id="L2164">                                + &quot; with unit &quot; + unit.getId());</span>
+<span class="nc" id="L2165">                            return false;</span>
+                        }
+                        break;
+                    default: // Otherwise, can not use land
+<span class="nc" id="L2169">                        getGUI().showInformationMessage(tile, claim.getDescriptionKey());</span>
+<span class="nc" id="L2170">                        return false;</span>
+                    }
+                    // Check reason again, claim should be satisfied.
+<span class="nc bnc" id="L2173" title="All 2 branches missed.">                    if (tile.getOwningSettlement() != colony) {</span>
+<span class="nc" id="L2174">                        throw new IllegalStateException(&quot;Claim failed&quot;);</span>
+                    }
+                }
+
+                // Claim sorted, but complain about other failure.
+<span class="nc" id="L2179">                NoAddReason reason = colonyTile.getNoAddReason(unit);</span>
+<span class="nc bnc" id="L2180" title="All 2 branches missed.">                if (reason != NoAddReason.NONE) {</span>
+<span class="nc" id="L2181">                    getGUI().showInformationMessage(colonyTile,</span>
+<span class="nc" id="L2182">                        StringTemplate.template(reason.getDescriptionKey()));</span>
+<span class="nc" id="L2183">                    return false;</span>
+                }
+
+<span class="nc bnc" id="L2186" title="All 2 branches missed.">                if (!ColonyPanel.this.tryWork(unit, colonyTile)) return false;</span>
+
+<span class="nc" id="L2188">                GoodsType workType = unit.getWorkType();</span>
+<span class="nc bnc" id="L2189" title="All 2 branches missed.">                if (workType != null</span>
+<span class="nc bnc" id="L2190" title="All 2 branches missed.">                    &amp;&amp; getClientOptions().getBoolean(ClientOptions.SHOW_NOT_BEST_TILE)) {</span>
+<span class="nc" id="L2191">                    WorkLocation best = colony.getWorkLocationFor(unit,</span>
+<span class="nc" id="L2192">                                                                  workType);</span>
+<span class="nc bnc" id="L2193" title="All 4 branches missed.">                    if (best != null &amp;&amp; colonyTile != best</span>
+<span class="nc" id="L2194">                        &amp;&amp; (colonyTile.getPotentialProduction(workType, unit.getType())</span>
+<span class="nc bnc" id="L2195" title="All 2 branches missed.">                            &lt; best.getPotentialProduction(workType, unit.getType()))) {</span>
+<span class="nc" id="L2196">                        StringTemplate template = StringTemplate</span>
+<span class="nc" id="L2197">                            .template(&quot;colonyPanel.notBestTile&quot;)</span>
+<span class="nc" id="L2198">                            .addStringTemplate(&quot;%unit%&quot;,</span>
+<span class="nc" id="L2199">                                unit.getLabel(Unit.UnitLabelType.NATIONAL))</span>
+<span class="nc" id="L2200">                            .addNamed(&quot;%goods%&quot;, workType)</span>
+<span class="nc" id="L2201">                            .addStringTemplate(&quot;%tile%&quot;, best.getLabel());</span>
+<span class="nc" id="L2202">                        getGUI().showInformationMessage(best, template);</span>
+                    }
+                }
+<span class="nc" id="L2205">                return true;</span>
+            }
+
+
+            // Interface DropTarget
+
+            /**
+             * {@inheritDoc}
+             */
+            public boolean accepts(Unit unit) {
+<span class="nc" id="L2215">                return unit.isPerson();</span>
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            public boolean accepts(Goods goods) {
+<span class="nc" id="L2222">                return false;</span>
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            public Component add(Component comp, boolean editState) {
+<span class="nc bnc" id="L2229" title="All 2 branches missed.">                if (editState) {</span>
+<span class="nc bnc" id="L2230" title="All 2 branches missed.">                    if (comp instanceof UnitLabel) {</span>
+<span class="nc" id="L2231">                        UnitLabel label = (UnitLabel)comp;</span>
+<span class="nc bnc" id="L2232" title="All 2 branches missed.">                        if (!tryWork(label.getUnit())) return null;</span>
+<span class="nc" id="L2233">                        label.setSmall(false);</span>
+<span class="nc" id="L2234">                    } else {</span>
+<span class="nc" id="L2235">                        logger.warning(&quot;An invalid component was dropped&quot;</span>
+                                       + &quot; on this ASingleTilePanel.&quot;);
+<span class="nc" id="L2237">                        return null;</span>
+                    }
+                }
+
+<span class="nc" id="L2241">                update();</span>
+<span class="nc" id="L2242">                return comp;</span>
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+<span class="nc" id="L2248">            public int suggested(GoodsType type) { return -1; } // N/A</span>
+
+
+            // Interface PropertyChangeListener
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public void propertyChange(PropertyChangeEvent event) {
+<span class="nc" id="L2258">                String property = event.getPropertyName();</span>
+<span class="nc" id="L2259">                logger.finest(colonyTile.getId() + &quot; change &quot; + property</span>
+<span class="nc" id="L2260">                              + &quot;: &quot; + event.getOldValue()</span>
+<span class="nc" id="L2261">                              + &quot; -&gt; &quot; + event.getNewValue());</span>
+<span class="nc" id="L2262">                ColonyPanel.this.updateProduction();</span>
+<span class="nc" id="L2263">            }</span>
+
+
+            // Override JComponent
+
+            /**
+             * Checks if this &lt;code&gt;JComponent&lt;/code&gt; contains the given
+             * coordinate.
+             *
+             * @param px The x coordinate to check.
+             * @param py The y coordinate to check.
+             */
+            @Override
+            public boolean contains(int px, int py) {
+<span class="nc" id="L2277">                int w = getWidth();</span>
+<span class="nc" id="L2278">                int h = getHeight();</span>
+<span class="nc" id="L2279">                int dx = Math.abs(w/2 - px);</span>
+<span class="nc" id="L2280">                int dy = Math.abs(h/2 - py);</span>
+<span class="nc bnc" id="L2281" title="All 2 branches missed.">                return (dx + w * dy / h) &lt;= w/2;</span>
+            }
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

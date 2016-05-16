@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>MissionaryMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">MissionaryMessage.java</span></div><h1>MissionaryMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.Unit.MoveType;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerIndianSettlement;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent when a missionary establishes/denounces a mission.
+ */
+public class MissionaryMessage extends DOMMessage {
+
+    public static final String TAG = &quot;missionary&quot;;
+    private static final String DENOUNCE_TAG = &quot;denounce&quot;;
+    private static final String DIRECTION_TAG = &quot;direction&quot;;
+    private static final String UNIT_TAG = &quot;unit&quot;;
+
+    /** The identifier of the missionary. */
+    private final String unitId;
+
+    /** The direction to the settlement. */
+    private final String directionString;
+
+    /** Is this a denunciation? */
+    private final boolean denounce;
+
+
+    /**
+     * Create a new &lt;code&gt;MissionaryMessage&lt;/code&gt; with the
+     * supplied name.
+     *
+     * @param unit The missionary &lt;code&gt;Unit&lt;/code&gt;.
+     * @param direction The &lt;code&gt;Direction&lt;/code&gt; to the settlement.
+     * @param denounce True if this is a denunciation.
+     */
+    public MissionaryMessage(Unit unit, Direction direction,
+                             boolean denounce) {
+<span class="nc" id="L66">        super(getTagName());</span>
+
+<span class="nc" id="L68">        this.unitId = unit.getId();</span>
+<span class="nc" id="L69">        this.directionString = String.valueOf(direction);</span>
+<span class="nc" id="L70">        this.denounce = denounce;</span>
+<span class="nc" id="L71">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;MissionaryMessage&lt;/code&gt; from a
+     * supplied element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public MissionaryMessage(Game game, Element element) {
+<span class="nc" id="L81">        super(getTagName());</span>
+
+<span class="nc" id="L83">        this.unitId = getStringAttribute(element, UNIT_TAG);</span>
+<span class="nc" id="L84">        this.directionString = getStringAttribute(element, DIRECTION_TAG);</span>
+<span class="nc" id="L85">        this.denounce = getBooleanAttribute(element, DENOUNCE_TAG, false);</span>
+<span class="nc" id="L86">    }</span>
+
+
+    /**
+     * Handle a &quot;missionary&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; handling the message.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; the message applies to.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message was received on.
+     * @return An element containing the result of the mission
+     *     operation, or an error &lt;code&gt;Element&lt;/code&gt; on failure.
+     */
+    public Element handle(FreeColServer server, Player player,
+                          Connection connection) {
+<span class="nc" id="L100">        final ServerPlayer serverPlayer = server.getPlayer(connection);</span>
+
+        Unit unit;
+        try {
+<span class="nc" id="L104">            unit = player.getOurFreeColGameObject(this.unitId, Unit.class);</span>
+<span class="nc" id="L105">        } catch (Exception e) {</span>
+<span class="nc" id="L106">            return serverPlayer.clientError(e.getMessage())</span>
+<span class="nc" id="L107">                .build(serverPlayer);</span>
+        }
+
+        Tile tile;
+        try {
+<span class="nc" id="L112">            tile = unit.getNeighbourTile(this.directionString);</span>
+<span class="nc" id="L113">        } catch (Exception e) {</span>
+<span class="nc" id="L114">            return serverPlayer.clientError(e.getMessage())</span>
+<span class="nc" id="L115">                .build(serverPlayer);</span>
+        }
+
+<span class="nc" id="L118">        ServerIndianSettlement is</span>
+<span class="nc" id="L119">            = (ServerIndianSettlement)tile.getIndianSettlement();</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">        if (is == null) {</span>
+<span class="nc" id="L121">            return serverPlayer.clientError(&quot;There is no native settlement at: &quot;</span>
+<span class="nc" id="L122">                + tile.getId())</span>
+<span class="nc" id="L123">                .build(serverPlayer);</span>
+        }
+
+<span class="nc" id="L126">        Unit missionary = is.getMissionary();</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        if (this.denounce) {</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">            if (missionary == null) {</span>
+<span class="nc" id="L129">                return serverPlayer.clientError(&quot;Denouncing an empty mission at: &quot;</span>
+<span class="nc" id="L130">                    + is.getId())</span>
+<span class="nc" id="L131">                    .build(serverPlayer);</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">            } else if (missionary.getOwner() == player) {</span>
+<span class="nc" id="L133">                return serverPlayer.clientError(&quot;Denouncing our own missionary at: &quot;</span>
+<span class="nc" id="L134">                    + is.getId())</span>
+<span class="nc" id="L135">                    .build(serverPlayer);</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">            } else if (!unit.hasAbility(Ability.DENOUNCE_HERESY)) {</span>
+<span class="nc" id="L137">                return serverPlayer.clientError(&quot;Unit lacks denouncement ability: &quot;</span>
+<span class="nc" id="L138">                    + this.unitId)</span>
+<span class="nc" id="L139">                    .build(serverPlayer);</span>
+            }
+        } else {
+<span class="nc bnc" id="L142" title="All 2 branches missed.">            if (missionary != null) {</span>
+<span class="nc" id="L143">                return serverPlayer.clientError(&quot;Establishing extra mission at: &quot;</span>
+<span class="nc" id="L144">                    + is.getId())</span>
+<span class="nc" id="L145">                    .build(serverPlayer);</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">            } else if (!unit.hasAbility(Ability.ESTABLISH_MISSION)) {</span>
+<span class="nc" id="L147">                return serverPlayer.clientError(&quot;Unit lacks establish mission ability: &quot;</span>
+<span class="nc" id="L148">                    + this.unitId)</span>
+<span class="nc" id="L149">                    .build(serverPlayer);</span>
+            }
+        }
+
+<span class="nc" id="L153">        MoveType type = unit.getMoveType(is.getTile());</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (type != MoveType.ENTER_INDIAN_SETTLEMENT_WITH_MISSIONARY) {</span>
+<span class="nc" id="L155">            return serverPlayer.clientError(&quot;Unable to enter &quot; + is.getName()</span>
+<span class="nc" id="L156">                + &quot;: &quot; + type.whyIllegal())</span>
+<span class="nc" id="L157">                .build(serverPlayer);</span>
+        }
+
+        // Valid, proceed to denounce/establish.
+<span class="nc bnc" id="L161" title="All 2 branches missed.">        return ((this.denounce)</span>
+<span class="nc" id="L162">            ? server.getInGameController()</span>
+<span class="nc" id="L163">                .denounceMission(serverPlayer, unit, is)</span>
+<span class="nc" id="L164">            : server.getInGameController()</span>
+<span class="nc" id="L165">                .establishMission(serverPlayer, unit, is))</span>
+<span class="nc" id="L166">            .build(serverPlayer);</span>
+    }
+
+    /**
+     * Convert this MissionaryMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="nc" id="L176">        return new DOMMessage(getTagName(),</span>
+<span class="nc" id="L177">            UNIT_TAG, this.unitId,</span>
+<span class="nc" id="L178">            DIRECTION_TAG, this.directionString,</span>
+<span class="nc" id="L179">            DENOUNCE_TAG, Boolean.toString(this.denounce)).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;missionary&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L188">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

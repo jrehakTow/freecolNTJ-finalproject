@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ColonizationMapReader.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.tools</a> &gt; <span class="el_source">ColonizationMapReader.java</span></div><h1>ColonizationMapReader.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.tools;
+
+import java.io.RandomAccessFile;
+import java.util.Arrays;
+
+// TODO: Auto-generated Javadoc
+/**
+ * Just pass the name of a Colonization map file (with extension &quot;.MP&quot;).
+ *
+ * The map file starts with a six-byte header. Byte zero encodes the map width,
+ * byte two encodes the map height. The function of the other bytes is unknown,
+ * their values, however, are fixed. The header is followed by three &quot;layers&quot;,
+ * each the size of the map. The first &quot;layer&quot; encodes the terrain type. The
+ * function of the other layers is unknown. They are filled with zero bytes.
+ *
+ * It seems that the least significant three bits encode the basic terrain type,
+ * the next two bits encode the forest overlay and the special tile types ice,
+ * ocean and sea lanes. The three most significant bits encode combinations of
+ * the hill, mountain and river overlays.
+ *
+ * bits 0-2: tile type bit 3 (8): forest bit 4 (16): forest bits 3+4 (24):
+ * special, values larger than 26 are not defined
+ *
+ * bits 5-7: overlays 0: nothing 1: hill 2: minor river 3: hill + minor river
+ * (extremely rare) 4: nothing 5: mountain 6: major river 7: mountain + major
+ * river (never seen)
+ *
+ *
+ */
+<span class="fc" id="L49">public class ColonizationMapReader {</span>
+
+	/** The Constant WIDTH. */
+	public static final int WIDTH = 0;
+
+	/** The Constant HEIGHT. */
+	public static final int HEIGHT = 2;
+
+	/** The Constant tiletypes. */
+<span class="fc" id="L58">	private static final char[] tiletypes = { 't', // 0x00 tundra</span>
+<span class="fc" id="L59">			'd', // 0x01 desert</span>
+<span class="fc" id="L60">			'p', // 0x02 plains</span>
+<span class="fc" id="L61">			'r', // 0x03 prairie</span>
+<span class="fc" id="L62">			'g', // 0x04 grassland</span>
+<span class="fc" id="L63">			'v', // 0x05 savannah</span>
+<span class="fc" id="L64">			'm', // 0x06 marsh</span>
+<span class="fc" id="L65">			's', // 0x07 swamp</span>
+
+<span class="fc" id="L67">			'B', // 0x08 boreal (tundra with forest)</span>
+<span class="fc" id="L68">			'S', // 0x09 scrub (desert with forest)</span>
+<span class="fc" id="L69">			'M', // 0x0a mixed (plains with forest)</span>
+<span class="fc" id="L70">			'L', // 0x0b broadleaf (prairie with forest)</span>
+<span class="fc" id="L71">			'C', // 0x0c conifer (grassland with forest)</span>
+<span class="fc" id="L72">			'T', // 0x0d tropical (savannah with forest)</span>
+<span class="fc" id="L73">			'W', // 0x0e wetland (marsh with forest)</span>
+<span class="fc" id="L74">			'R', // 0x0f rain (swamp with forest)</span>
+
+<span class="fc" id="L76">			'B', // 0x10 boreal (tundra with forest)</span>
+<span class="fc" id="L77">			'S', // 0x11 scrub (desert with forest)</span>
+<span class="fc" id="L78">			'M', // 0x12 mixed (plains with forest)</span>
+<span class="fc" id="L79">			'L', // 0x13 broadleaf (prairie with forest)</span>
+<span class="fc" id="L80">			'C', // 0x14 conifer (grassland with forest)</span>
+<span class="fc" id="L81">			'T', // 0x15 tropical (savannah with forest)</span>
+<span class="fc" id="L82">			'W', // 0x16 wetland (marsh with forest)</span>
+<span class="fc" id="L83">			'R', // 0x17 rain (swamp with forest)</span>
+
+<span class="fc" id="L85">			'_', // 0x18 ice</span>
+<span class="fc" id="L86">			'.', // 0x19 ocean</span>
+<span class="fc" id="L87">			':', // 0x1a sea lane</span>
+<span class="fc" id="L88">			'?', // undefined</span>
+<span class="fc" id="L89">			'?', // undefined</span>
+<span class="fc" id="L90">			'?', // undefined</span>
+<span class="fc" id="L91">			'?', // undefined</span>
+<span class="fc" id="L92">			'?', // undefined</span>
+	};
+
+	/** The Constant header. */
+<span class="fc" id="L96">	private static final byte[] header = { 58, 0, 72, 0, 4, 0 };</span>
+
+	/** The layer1. */
+<span class="fc" id="L99">	private static byte[] layer1;</span>
+
+	/**
+	 * The main method.
+	 *
+	 * @param args
+	 *            the arguments
+	 * @throws Exception
+	 *             the exception
+	 */
+	// main method throws exception
+	public static void main(String[] args) throws Exception {
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">		if (&quot;--palette&quot;.equals(args[0])) {</span>
+<span class="fc" id="L112">			RandomAccessFile writer = new RandomAccessFile(args[1], &quot;rw&quot;);</span>
+<span class="fc" id="L113">			byte width = 58;</span>
+<span class="fc" id="L114">			byte height = 72;</span>
+<span class="fc" id="L115">			int size = width * height * 3 + header.length;</span>
+<span class="fc" id="L116">			layer1 = new byte[size];</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">			for (int i = 0; i &lt; header.length; i++) {</span>
+<span class="fc" id="L118">				layer1[i] = header[i];</span>
+			}
+<span class="fc" id="L120">			Arrays.fill(layer1, header.length, header.length + width * height, (byte) 25); // fill</span>
+																							// with
+																							// ocean
+<span class="fc" id="L123">			int ROWS = 32;</span>
+<span class="fc" id="L124">			int COLUMNS = 8;</span>
+<span class="fc" id="L125">			int offset = header.length + width + 1;</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">			for (int y = 0; y &lt; ROWS; y++) {</span>
+<span class="fc" id="L127">				getLay1ValueinLoop(COLUMNS, offset, y);</span>
+<span class="fc" id="L128">				offset += width;</span>
+			}
+<span class="fc" id="L130">			writer.write(layer1);</span>
+<span class="fc" id="L131">		} else {</span>
+<span class="nc" id="L132">			RandomAccessFile reader = new RandomAccessFile(args[0], &quot;r&quot;);</span>
+<span class="nc" id="L133">			reader.read(header);</span>
+
+<span class="nc" id="L135">			System.out.println(String.format(&quot;Map width:  %02d&quot;, (int) header[WIDTH]));</span>
+<span class="nc" id="L136">			System.out.println(String.format(&quot;Map height: %02d&quot;, (int) header[HEIGHT]));</span>
+
+<span class="nc" id="L138">			int size = header[WIDTH] * header[HEIGHT];</span>
+<span class="nc" id="L139">			layer1 = new byte[size];</span>
+<span class="nc" id="L140">			reader.read(layer1);</span>
+
+<span class="nc" id="L142">			int index = 0;</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">			for (int y = 0; y &lt; header[HEIGHT]; y++) {</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">				for (int x = 0; x &lt; header[WIDTH]; x++) {</span>
+<span class="nc" id="L145">					char terrain = goCaseLoop(index);</span>
+<span class="nc" id="L146">					System.out.print(terrain);</span>
+<span class="nc" id="L147">					index++;</span>
+				}
+<span class="nc" id="L149">				System.out.println(&quot;\n&quot;);</span>
+			}
+<span class="nc" id="L151">			System.out.println(&quot;\n&quot;);</span>
+		}
+<span class="fc" id="L153">	}</span>
+
+	/**
+	 * Go switch case loop
+	 * 
+	 * @param index
+	 * @return
+	 */
+	private static char goCaseLoop(int index) {
+<span class="nc" id="L162">		int decimal = layer1[index] &amp; 0xff;</span>
+<span class="nc" id="L163">		char terrain = tiletypes[decimal &amp; 31];</span>
+<span class="nc" id="L164">		int overlay = decimal &gt;&gt; 5;</span>
+<span class="nc bnc" id="L165" title="All 7 branches missed.">		switch (overlay) {</span>
+		case 1:
+<span class="nc" id="L167">			terrain = '^'; // hill</span>
+<span class="nc" id="L168">			break;</span>
+		case 2:
+<span class="nc" id="L170">			terrain = '~'; // minor river</span>
+<span class="nc" id="L171">			break;</span>
+		case 3:
+<span class="nc" id="L173">			terrain = 'x'; // hill + minor river</span>
+<span class="nc" id="L174">			break;</span>
+		case 5:
+<span class="nc" id="L176">			terrain = '*'; // mountain</span>
+<span class="nc" id="L177">			break;</span>
+		case 6:
+<span class="nc" id="L179">			terrain = '='; // major river</span>
+<span class="nc" id="L180">			break;</span>
+		case 7:
+<span class="nc" id="L182">			terrain = 'X'; // mountain + major river</span>
+<span class="nc" id="L183">			break;</span>
+		default:
+			break;
+		}
+		;
+<span class="nc" id="L188">		return terrain;</span>
+	}
+
+	/**
+	 * get the Lay1 value in for loop
+	 * 
+	 * @param COLUMNS
+	 * @param offset
+	 * @param y
+	 */
+	private static void getLay1ValueinLoop(int COLUMNS, int offset, int y) {
+<span class="fc bfc" id="L199" title="All 2 branches covered.">		for (int x = 0; x &lt; COLUMNS; x++) {</span>
+<span class="fc" id="L200">			byte value = (byte) (COLUMNS * y + x);</span>
+<span class="fc" id="L201">			getLayer1Value(offset, x, value);</span>
+		}
+<span class="fc" id="L203">	}</span>
+
+	/**
+	 * get Lay1[] value
+	 * 
+	 * @param offset
+	 * @param x
+	 * @param value
+	 */
+	private static void getLayer1Value(int offset, int x, byte value) {
+<span class="fc bfc" id="L213" title="All 4 branches covered.">		if ((value &amp; 24) == 24 &amp;&amp; x &gt; 2) {</span>
+			// undefined
+<span class="fc" id="L215">			value = 26;</span>
+		}
+<span class="fc" id="L217">		layer1[offset + x] = value;</span>
+<span class="fc" id="L218">	}</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

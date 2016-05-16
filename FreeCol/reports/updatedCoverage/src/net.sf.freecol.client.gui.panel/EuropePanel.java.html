@@ -1,0 +1,893 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>EuropePanel.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.gui.panel</a> &gt; <span class="el_source">EuropePanel.java</span></div><h1>EuropePanel.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.gui.panel;
+
+import java.awt.Component;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseListener;
+import java.util.Iterator;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.swing.ComponentInputMap;
+import javax.swing.InputMap;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextPane;
+import javax.swing.KeyStroke;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
+
+import net.miginfocom.swing.MigLayout;
+
+import net.sf.freecol.client.ClientOptions;
+import net.sf.freecol.client.FreeColClient;
+import net.sf.freecol.client.gui.ImageLibrary;
+import net.sf.freecol.common.i18n.Messages;
+import static net.sf.freecol.common.model.Constants.*;
+import net.sf.freecol.common.model.Europe;
+import net.sf.freecol.common.model.Goods;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.HighSeas;
+import net.sf.freecol.common.model.Location;
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Market;
+import net.sf.freecol.common.model.MarketData;
+import net.sf.freecol.common.model.StringTemplate;
+import net.sf.freecol.common.model.TransactionListener;
+import net.sf.freecol.common.model.Unit;
+
+
+/**
+ * This is a panel for the Europe display.  It shows the ships in Europe and
+ * allows the user to send them back.
+ */
+public final class EuropePanel extends PortPanel {
+
+<span class="nc" id="L73">    private static final Logger logger = Logger.getLogger(EuropePanel.class.getName());</span>
+
+    /**
+     * A panel to hold unit labels that represent units that are going
+     * to America or Europe.
+     */
+<span class="nc" id="L79">    private final class DestinationPanel extends JPanel implements DropTarget {</span>
+
+        private Location destination;
+
+
+        /**
+         * Initialize this DestinationPanel.
+         *
+         * @param destination The destination &lt;code&gt;Location&lt;/code&gt;
+         *     for this panel.
+         */
+        public void initialize(Location destination) {
+<span class="nc" id="L91">            this.destination = destination;</span>
+<span class="nc" id="L92">            update();</span>
+<span class="nc" id="L93">        }</span>
+
+        /**
+         * Cleans up this DestinationPanel.
+         */
+<span class="nc" id="L98">        public void cleanup() {}</span>
+
+        /**
+         * Update this DestinationPanel.
+         */
+        public void update() {
+<span class="nc" id="L104">            removeAll();</span>
+
+<span class="nc" id="L106">            HighSeas highSeas = getMyPlayer().getHighSeas();</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">            if (highSeas != null) {</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">                for (Unit unit : highSeas.getUnitList()) {</span>
+                    boolean belongs;
+<span class="nc bnc" id="L110" title="All 2 branches missed.">                    if (destination instanceof Europe) {</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">                        belongs = unit.getDestination() == destination;</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">                    } else if (destination instanceof Map) {</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">                        belongs = unit.getDestination() == destination</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">                            || (unit.getDestination() != null</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">                                &amp;&amp; unit.getDestination().getTile() != null</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">                                &amp;&amp; unit.getDestination().getTile().getMap()</span>
+<span class="nc" id="L117">                                == destination);</span>
+<span class="nc" id="L118">                    } else {</span>
+<span class="nc" id="L119">                        logger.warning(&quot;Bogus DestinationPanel location: &quot;</span>
+<span class="nc" id="L120">                            + destination</span>
+<span class="nc" id="L121">                            + &quot; for unit: &quot; + unit);</span>
+<span class="nc" id="L122">                        belongs = false;</span>
+                    }
+<span class="nc bnc" id="L124" title="All 2 branches missed.">                    if (belongs) {</span>
+<span class="nc" id="L125">                        UnitLabel unitLabel</span>
+<span class="nc" id="L126">                            = new UnitLabel(getFreeColClient(), unit);</span>
+<span class="nc" id="L127">                        unitLabel.setTransferHandler(defaultTransferHandler);</span>
+<span class="nc" id="L128">                        unitLabel.addMouseListener(pressListener);</span>
+<span class="nc" id="L129">                        add(unitLabel);</span>
+                    }
+                }
+            }
+
+            // &quot;ship&quot; is a tag, not a key
+<span class="nc" id="L135">            Utility.localizeBorder(this, Unit.getDestinationLabel(&quot;ship&quot;,</span>
+<span class="nc" id="L136">                    destination, getMyPlayer()));</span>
+<span class="nc" id="L137">            revalidate();</span>
+<span class="nc" id="L138">        }</span>
+
+
+        // Interface DropTarget
+
+        /**
+         * {@inheritDoc}
+         */
+        public boolean accepts(Unit unit) {
+<span class="nc bnc" id="L147" title="All 4 branches missed.">            return unit.isNaval() &amp;&amp; !unit.isDamaged();</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public boolean accepts(Goods goods) {
+<span class="nc" id="L154">            return false;</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public Component add(Component comp, boolean editState) {
+<span class="nc bnc" id="L161" title="All 2 branches missed.">            if (editState) {</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">                if (!(comp instanceof UnitLabel)) {</span>
+<span class="nc" id="L163">                    logger.warning(&quot;Invalid component: &quot; + comp);</span>
+<span class="nc" id="L164">                    return null;</span>
+                }
+<span class="nc" id="L166">                final Unit unit = ((UnitLabel)comp).getUnit();</span>
+
+<span class="nc bnc" id="L168" title="All 2 branches missed.">                if (unit.getTradeRoute() != null) {</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">                    if (!getGUI().confirmClearTradeRoute(unit)</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">                        || !igc().assignTradeRoute(unit, null)) return null;</span>
+                }
+
+<span class="nc" id="L173">                Location dest = destination;</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">                if (unit.isInEurope()) {</span>
+<span class="nc" id="L175">                    dest = getGUI().showSelectDestinationDialog(unit);</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">                    if (dest == null) return null; // user aborted</span>
+                }
+                
+<span class="nc" id="L179">                final ClientOptions co = getClientOptions();</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">                if (!co.getBoolean(ClientOptions.AUTOLOAD_EMIGRANTS)</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">                    &amp;&amp; unit.isInEurope()</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">                    &amp;&amp; !(destination instanceof Europe)</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">                    &amp;&amp; docksPanel.getComponentCount() &gt; 0</span>
+<span class="nc bnc" id="L184" title="All 2 branches missed.">                    &amp;&amp; unit.hasSpaceLeft()) {</span>
+<span class="nc" id="L185">                    StringTemplate locName = destination</span>
+<span class="nc" id="L186">                        .getLocationLabelFor(unit.getOwner());</span>
+<span class="nc" id="L187">                    if (!getGUI().confirm(null, StringTemplate</span>
+<span class="nc" id="L188">                            .template(&quot;europePanel.leaveColonists&quot;)</span>
+<span class="nc" id="L189">                            .addStringTemplate(&quot;%newWorld%&quot;, locName),</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">                            unit, &quot;ok&quot;, &quot;cancel&quot;)) return null;</span>
+                }
+
+<span class="nc" id="L193">                comp.getParent().remove(comp);</span>
+<span class="nc" id="L194">                igc().moveTo(unit, dest);</span>
+<span class="nc" id="L195">                inPortPanel.update();</span>
+<span class="nc" id="L196">                docksPanel.update();</span>
+<span class="nc" id="L197">                cargoPanel.update();</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">                if (unit == cargoPanel.getCarrier()) {</span>
+<span class="nc" id="L199">                    cargoPanel.setCarrier(null);</span>
+                }
+            }
+
+<span class="nc" id="L203">            Component c = add(comp);</span>
+<span class="nc" id="L204">            revalidate();</span>
+<span class="nc" id="L205">            EuropePanel.this.refresh();</span>
+<span class="nc" id="L206">            return c;</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+<span class="nc" id="L212">        public int suggested(GoodsType type) { return -1; } // N/A</span>
+    }
+
+    /**
+     * A panel that holds UnitLabels that represent Units that are
+     * waiting on the docks in Europe.
+     */
+    public final class DocksPanel extends UnitPanel implements DropTarget {
+
+<span class="nc" id="L221">        public DocksPanel() {</span>
+<span class="nc" id="L222">            super(EuropePanel.this, &quot;Europe - docks&quot;, true);</span>
+
+<span class="nc" id="L224">            setLayout(new MigLayout(&quot;wrap 6&quot;));</span>
+<span class="nc" id="L225">        }</span>
+
+
+        @Override
+        public void addPropertyChangeListeners() {
+<span class="nc" id="L230">            europe.addPropertyChangeListener(this);</span>
+<span class="nc" id="L231">        }</span>
+
+        @Override
+        public void removePropertyChangeListeners() {
+<span class="nc" id="L235">            europe.removePropertyChangeListener(this);</span>
+<span class="nc" id="L236">        }</span>
+
+
+        // Interface DropTarget
+
+        /**
+         * {@inheritDoc}
+         */
+        public boolean accepts(Unit unit) {
+<span class="nc bnc" id="L245" title="All 2 branches missed.">            return !unit.isNaval();</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public boolean accepts(Goods goods) {
+<span class="nc" id="L252">            return false;</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public Component add(Component comp, boolean editState) {
+<span class="nc" id="L259">            Component c = add(comp);</span>
+<span class="nc" id="L260">            update();</span>
+<span class="nc" id="L261">            return c;</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+<span class="nc" id="L267">        public int suggested(GoodsType type) { return -1; } // N/A</span>
+
+
+        // Override Container
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void remove(Component comp) {
+<span class="nc" id="L277">            update();</span>
+<span class="nc" id="L278">        }</span>
+    }
+
+    private static final class EuropeButton extends JButton {
+
+<span class="nc" id="L283">        public EuropeButton(String text, int keyEvent, String command,</span>
+                            ActionListener listener) {
+<span class="nc" id="L285">            setOpaque(true);</span>
+<span class="nc" id="L286">            setText(text);</span>
+<span class="nc" id="L287">            setActionCommand(command);</span>
+<span class="nc" id="L288">            addActionListener(listener);</span>
+<span class="nc" id="L289">            InputMap closeInputMap = new ComponentInputMap(this);</span>
+<span class="nc" id="L290">            closeInputMap.put(KeyStroke.getKeyStroke(keyEvent, 0, false),</span>
+<span class="nc" id="L291">                              &quot;pressed&quot;);</span>
+<span class="nc" id="L292">            closeInputMap.put(KeyStroke.getKeyStroke(keyEvent, 0, true),</span>
+<span class="nc" id="L293">                              &quot;released&quot;);</span>
+<span class="nc" id="L294">            SwingUtilities.replaceUIInputMap(this,</span>
+<span class="nc" id="L295">                                             JComponent.WHEN_IN_FOCUSED_WINDOW,</span>
+<span class="nc" id="L296">                                             closeInputMap);</span>
+<span class="nc" id="L297">        }</span>
+    }
+
+    /**
+     * A panel that holds unit labels that represent naval units that
+     * are waiting in Europe.
+     */
+    private final class EuropeInPortPanel extends InPortPanel {
+
+<span class="nc" id="L306">        public EuropeInPortPanel() {</span>
+<span class="nc" id="L307">            super(EuropePanel.this, &quot;Europe - port&quot;, true);</span>
+<span class="nc" id="L308">        }</span>
+
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void addPropertyChangeListeners() {
+<span class="nc" id="L316">            europe.addPropertyChangeListener(this);</span>
+<span class="nc" id="L317">        }</span>
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected void removePropertyChangeListeners() {
+<span class="nc" id="L324">            europe.removePropertyChangeListener(this);</span>
+<span class="nc" id="L325">        }</span>
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean accepts(Unit unit) {
+<span class="nc bnc" id="L332" title="All 2 branches missed.">            if (!unit.isNaval()) return false;</span>
+<span class="nc bnc" id="L333" title="All 2 branches missed.">            switch (unit.getState()) {</span>
+            case ACTIVE: case FORTIFIED: case FORTIFYING:
+            case SENTRY: case SKIPPED:
+<span class="nc" id="L336">                return true;</span>
+            }
+<span class="nc" id="L338">            return false;</span>
+        }
+    }
+
+    /**
+     * A panel that shows goods available for purchase in Europe.
+     */
+    private final class MarketPanel extends JPanel implements DropTarget {
+
+        /**
+         * Creates this MarketPanel.
+         *
+         * @param europePanel The panel that holds this CargoPanel.
+         */
+<span class="nc" id="L352">        public MarketPanel(EuropePanel europePanel) {</span>
+<span class="nc" id="L353">            super(new GridLayout(2, 8));</span>
+<span class="nc" id="L354">        }</span>
+
+
+        /**
+         * Initialize this MarketPanel.
+         */
+        public void initialize() {
+<span class="nc" id="L361">            removeAll();</span>
+
+<span class="nc" id="L363">            final Market market = getMyPlayer().getMarket();</span>
+<span class="nc" id="L364">            ImageLibrary lib = getImageLibrary();</span>
+<span class="nc bnc" id="L365" title="All 2 branches missed.">            for (GoodsType goodsType : getSpecification().getStorableGoodsTypeList()) {</span>
+<span class="nc" id="L366">                MarketLabel label = new MarketLabel(lib, goodsType, market);</span>
+<span class="nc" id="L367">                label.setTransferHandler(defaultTransferHandler);</span>
+<span class="nc" id="L368">                label.addMouseListener(pressListener);</span>
+<span class="nc" id="L369">                MarketData md = market.getMarketData(goodsType);</span>
+<span class="nc bnc" id="L370" title="All 2 branches missed.">                if (md != null) md.addPropertyChangeListener(label);</span>
+<span class="nc" id="L371">                add(label);</span>
+            }
+<span class="nc" id="L373">        }</span>
+
+        /**
+         * Cleans up this MarketPanel.
+         */
+<span class="nc" id="L378">        public void cleanup() {}</span>
+
+
+        // Interface DropTarget
+
+        /**
+         * {@inheritDoc}
+         */
+        public boolean accepts(Unit unit) {
+<span class="nc" id="L387">            return false;</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public boolean accepts(Goods goods) {
+<span class="nc" id="L394">            return true;</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public Component add(Component comp, boolean editState) {
+<span class="nc bnc" id="L401" title="All 2 branches missed.">            if (editState) {</span>
+<span class="nc bnc" id="L402" title="All 2 branches missed.">                if (!(comp instanceof GoodsLabel)) {</span>
+<span class="nc" id="L403">                    logger.warning(&quot;Invalid component: &quot; + comp);</span>
+<span class="nc" id="L404">                    return null;</span>
+                }
+
+<span class="nc" id="L407">                Goods goods = ((GoodsLabel)comp).getGoods();</span>
+<span class="nc bnc" id="L408" title="All 2 branches missed.">                if (getMyPlayer().canTrade(goods.getType())) {</span>
+<span class="nc" id="L409">                    igc().sellGoods(goods);</span>
+<span class="nc" id="L410">                } else {</span>
+<span class="nc" id="L411">                    BoycottAction act = getGUI()</span>
+<span class="nc" id="L412">                        .getBoycottChoice(goods, europe);</span>
+<span class="nc bnc" id="L413" title="All 2 branches missed.">                    if (act != null) {</span>
+<span class="nc bnc" id="L414" title="All 3 branches missed.">                        switch (act) {</span>
+                        case BOYCOTT_PAY_ARREARS:
+<span class="nc" id="L416">                            igc().payArrears(goods.getType());</span>
+<span class="nc" id="L417">                            break;</span>
+                        case BOYCOTT_DUMP_CARGO:
+<span class="nc" id="L419">                            igc().unloadCargo(goods, true);</span>
+<span class="nc" id="L420">                            break;</span>
+                        default:
+<span class="nc" id="L422">                            logger.warning(&quot;showBoycottedGoodsDialog fail: &quot;</span>
+<span class="nc" id="L423">                                + act);</span>
+                            break;
+                        }
+                    }
+                }
+<span class="nc" id="L428">                cargoPanel.revalidate();</span>
+<span class="nc" id="L429">                revalidate();</span>
+<span class="nc" id="L430">                igc().nextModelMessage();</span>
+            }
+<span class="nc" id="L432">            EuropePanel.this.refresh();</span>
+<span class="nc" id="L433">            return comp;</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        public int suggested(GoodsType type) {
+<span class="nc" id="L440">            return -1; // No good choice</span>
+        }
+
+
+        // Override Container
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void remove(Component comp) {
+            // Don't remove market labels.
+<span class="nc" id="L452">        }</span>
+    }
+
+    /**
+     * To log transactions made in Europe
+     */
+    private final class TransactionLog extends JTextPane
+        implements TransactionListener {
+
+        /**
+         * Creates a transaction log.
+         */
+<span class="nc" id="L464">        public TransactionLog() {</span>
+<span class="nc" id="L465">            setEditable(false);</span>
+<span class="nc" id="L466">        }</span>
+
+
+        /**
+         * Initializes this TransactionLog.
+         */
+        public void initialize() {
+<span class="nc" id="L473">            getMyPlayer().getMarket().addTransactionListener(this);</span>
+<span class="nc" id="L474">            setText(&quot;&quot;);</span>
+<span class="nc" id="L475">        }</span>
+
+        /**
+         * Cleans up this TransactionLog.
+         */
+        public void cleanup() {
+<span class="nc" id="L481">            getMyPlayer().getMarket().removeTransactionListener(this);</span>
+<span class="nc" id="L482">        }</span>
+
+        /**
+         * Add text to the transaction log.
+         *
+         * @param text The text to add.
+         */
+        private void add(String text) {
+<span class="nc" id="L490">            StyledDocument doc = getStyledDocument();</span>
+            try {
+<span class="nc bnc" id="L492" title="All 2 branches missed.">                if (doc.getLength() &gt; 0) text = &quot;\n\n&quot; + text;</span>
+<span class="nc" id="L493">                doc.insertString(doc.getLength(), text, null);</span>
+<span class="nc" id="L494">            } catch (Exception e) {</span>
+<span class="nc" id="L495">                logger.log(Level.WARNING, &quot;Transaction log update failure&quot;, e);</span>
+            }
+<span class="nc" id="L497">        }</span>
+
+        // Implement TransactionListener
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void logPurchase(GoodsType goodsType, int amount, int price) {
+<span class="nc" id="L506">            int total = amount * price;</span>
+<span class="nc" id="L507">            StringTemplate t1 = StringTemplate.template(&quot;europePanel.transaction.purchase&quot;)</span>
+<span class="nc" id="L508">                .addNamed(&quot;%goods%&quot;, goodsType)</span>
+<span class="nc" id="L509">                .addAmount(&quot;%amount%&quot;, amount)</span>
+<span class="nc" id="L510">                .addAmount(&quot;%gold%&quot;, price);</span>
+<span class="nc" id="L511">            StringTemplate t2 = StringTemplate.template(&quot;europePanel.transaction.price&quot;)</span>
+<span class="nc" id="L512">                .addAmount(&quot;%gold%&quot;, total);</span>
+<span class="nc" id="L513">            add(Messages.message(t1) + &quot;\n&quot; + Messages.message(t2));</span>
+<span class="nc" id="L514">        }</span>
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void logSale(GoodsType goodsType, int amount,
+                            int price, int tax) {
+<span class="nc" id="L522">            int totalBeforeTax = amount * price;</span>
+<span class="nc" id="L523">            int totalTax = totalBeforeTax * tax / 100;</span>
+<span class="nc" id="L524">            int totalAfterTax = totalBeforeTax - totalTax;</span>
+
+<span class="nc" id="L526">            StringTemplate t1 = StringTemplate.template(&quot;europePanel.transaction.sale&quot;)</span>
+<span class="nc" id="L527">                .addNamed(&quot;%goods%&quot;, goodsType)</span>
+<span class="nc" id="L528">                .addAmount(&quot;%amount%&quot;, amount)</span>
+<span class="nc" id="L529">                .addAmount(&quot;%gold%&quot;, price);</span>
+<span class="nc" id="L530">            StringTemplate t2 = StringTemplate.template(&quot;europePanel.transaction.price&quot;)</span>
+<span class="nc" id="L531">                .addAmount(&quot;%gold%&quot;, totalBeforeTax);</span>
+<span class="nc" id="L532">            StringTemplate t3 = StringTemplate.template(&quot;europePanel.transaction.tax&quot;)</span>
+<span class="nc" id="L533">                .addAmount(&quot;%tax%&quot;, tax)</span>
+<span class="nc" id="L534">                .addAmount(&quot;%gold%&quot;, totalTax);</span>
+<span class="nc" id="L535">            StringTemplate t4 = StringTemplate.template(&quot;europePanel.transaction.net&quot;)</span>
+<span class="nc" id="L536">                .addAmount(&quot;%gold%&quot;, totalAfterTax);</span>
+<span class="nc" id="L537">            add(Messages.message(t1) + &quot;\n&quot; + Messages.message(t2)</span>
+<span class="nc" id="L538">                + &quot;\n&quot; + Messages.message(t3) + &quot;\n&quot; + Messages.message(t4));</span>
+<span class="nc" id="L539">        }</span>
+    }
+
+
+<span class="nc" id="L543">    public static enum EuropeAction {</span>
+<span class="nc" id="L544">        EXIT,</span>
+<span class="nc" id="L545">        RECRUIT,</span>
+<span class="nc" id="L546">        PURCHASE,</span>
+<span class="nc" id="L547">        TRAIN,</span>
+<span class="nc" id="L548">        UNLOAD,</span>
+<span class="nc" id="L549">        SAIL</span>
+    }
+
+    private DestinationPanel toAmericaPanel;
+
+    private DestinationPanel toEuropePanel;
+
+    private DocksPanel docksPanel;
+
+    private MarketPanel marketPanel;
+
+    private TransactionLog log;
+
+    private JButton exitButton, trainButton, purchaseButton,
+                    recruitButton, unloadButton, sailButton;
+
+    private final Europe europe;
+
+
+    /**
+     * The constructor for a EuropePanel.
+     *
+     * @param freeColClient The &lt;code&gt;FreeColClient&lt;/code&gt; for the game.
+     * @param header True when a header should be added.
+     */
+    public EuropePanel(FreeColClient freeColClient, boolean header) {
+<span class="nc" id="L575">        super(freeColClient, new MigLayout(&quot;wrap 3, fill&quot;,</span>
+<span class="nc" id="L576">                                           &quot;[30%:][30%:][15%:]&quot;));</span>
+
+<span class="nc" id="L578">        exitButton = new EuropeButton(Messages.message(&quot;close&quot;),</span>
+<span class="nc" id="L579">            KeyEvent.VK_ESCAPE, EuropeAction.EXIT.toString(), this);</span>
+<span class="nc" id="L580">        trainButton = new EuropeButton(Messages.message(&quot;train&quot;),</span>
+<span class="nc" id="L581">            KeyEvent.VK_T, EuropeAction.TRAIN.toString(), this);</span>
+<span class="nc" id="L582">        purchaseButton = new EuropeButton(Messages.message(&quot;purchase&quot;),</span>
+<span class="nc" id="L583">            KeyEvent.VK_P, EuropeAction.PURCHASE.toString(), this);</span>
+<span class="nc" id="L584">        recruitButton = new EuropeButton(Messages.message(&quot;recruit&quot;),</span>
+<span class="nc" id="L585">            KeyEvent.VK_R, EuropeAction.RECRUIT.toString(), this);</span>
+<span class="nc" id="L586">        unloadButton = new EuropeButton(Messages.message(&quot;unload&quot;),</span>
+<span class="nc" id="L587">            KeyEvent.VK_U, EuropeAction.UNLOAD.toString(), this);</span>
+<span class="nc" id="L588">        sailButton = new EuropeButton(Messages.message(&quot;setSail&quot;),</span>
+<span class="nc" id="L589">            KeyEvent.VK_S, EuropeAction.SAIL.toString(), this);</span>
+
+<span class="nc" id="L591">        toAmericaPanel = new DestinationPanel();</span>
+<span class="nc" id="L592">        toEuropePanel = new DestinationPanel();</span>
+<span class="nc" id="L593">        inPortPanel = new EuropeInPortPanel();</span>
+<span class="nc" id="L594">        cargoPanel = new CargoPanel(freeColClient, true);</span>
+<span class="nc" id="L595">        docksPanel = new DocksPanel();</span>
+<span class="nc" id="L596">        marketPanel = new MarketPanel(this);</span>
+<span class="nc" id="L597">        log = new TransactionLog();</span>
+<span class="nc" id="L598">        europe = freeColClient.getMyPlayer().getEurope();</span>
+
+<span class="nc" id="L600">        SimpleAttributeSet attributes = new SimpleAttributeSet();</span>
+<span class="nc" id="L601">        StyleConstants.setAlignment(attributes, StyleConstants.ALIGN_RIGHT);</span>
+        //StyleConstants.setForeground(attributes, Color.WHITE);
+<span class="nc" id="L603">        StyleConstants.setBold(attributes, true);</span>
+<span class="nc" id="L604">        log.setParagraphAttributes(attributes, true);</span>
+
+<span class="nc" id="L606">        defaultTransferHandler</span>
+<span class="nc" id="L607">            = new DefaultTransferHandler(freeColClient, this);</span>
+<span class="nc" id="L608">        toAmericaPanel.setTransferHandler(defaultTransferHandler);</span>
+<span class="nc" id="L609">        toEuropePanel.setTransferHandler(defaultTransferHandler);</span>
+<span class="nc" id="L610">        inPortPanel.setTransferHandler(defaultTransferHandler);</span>
+<span class="nc" id="L611">        cargoPanel.setTransferHandler(defaultTransferHandler);</span>
+<span class="nc" id="L612">        docksPanel.setTransferHandler(defaultTransferHandler);</span>
+<span class="nc" id="L613">        marketPanel.setTransferHandler(defaultTransferHandler);</span>
+
+<span class="nc" id="L615">        pressListener = new DragListener(freeColClient, this);</span>
+<span class="nc" id="L616">        MouseListener releaseListener = new DropListener();</span>
+<span class="nc" id="L617">        toAmericaPanel.addMouseListener(releaseListener);</span>
+<span class="nc" id="L618">        toEuropePanel.addMouseListener(releaseListener);</span>
+<span class="nc" id="L619">        inPortPanel.addMouseListener(releaseListener);</span>
+<span class="nc" id="L620">        cargoPanel.addMouseListener(releaseListener);</span>
+<span class="nc" id="L621">        docksPanel.addMouseListener(releaseListener);</span>
+<span class="nc" id="L622">        marketPanel.addMouseListener(releaseListener);</span>
+
+<span class="nc" id="L624">        toAmericaPanel.setLayout(new GridLayout(1, 0));</span>
+<span class="nc" id="L625">        toEuropePanel.setLayout(new GridLayout(1, 0));</span>
+<span class="nc" id="L626">        inPortPanel.setLayout(new GridLayout(1, 0));</span>
+<span class="nc" id="L627">        cargoPanel.setLayout(new GridLayout(1, 0));</span>
+<span class="nc" id="L628">        docksPanel.setLayout(new GridLayout(0, 5));</span>
+
+<span class="nc" id="L630">        JScrollPane toAmericaScroll = new JScrollPane(toAmericaPanel,</span>
+<span class="nc" id="L631">            ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER,</span>
+<span class="nc" id="L632">            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);</span>
+<span class="nc" id="L633">        toAmericaScroll.getVerticalScrollBar().setUnitIncrement(16);</span>
+<span class="nc" id="L634">        JScrollPane toEuropeScroll = new JScrollPane(toEuropePanel,</span>
+<span class="nc" id="L635">            ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER,</span>
+<span class="nc" id="L636">            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);</span>
+<span class="nc" id="L637">        toEuropeScroll.getVerticalScrollBar().setUnitIncrement(16);</span>
+<span class="nc" id="L638">        JScrollPane inPortScroll = new JScrollPane(inPortPanel,</span>
+<span class="nc" id="L639">            ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER,</span>
+<span class="nc" id="L640">            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);</span>
+<span class="nc" id="L641">        inPortScroll.getVerticalScrollBar().setUnitIncrement(16);</span>
+<span class="nc" id="L642">        JScrollPane cargoScroll = new JScrollPane(cargoPanel,</span>
+<span class="nc" id="L643">            ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER,</span>
+<span class="nc" id="L644">            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);</span>
+<span class="nc" id="L645">        cargoScroll.getVerticalScrollBar().setUnitIncrement(16);</span>
+<span class="nc" id="L646">        JScrollPane docksScroll = new JScrollPane(docksPanel,</span>
+<span class="nc" id="L647">            ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,</span>
+<span class="nc" id="L648">            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);</span>
+<span class="nc" id="L649">        docksScroll.getVerticalScrollBar().setUnitIncrement(16);</span>
+<span class="nc" id="L650">        JScrollPane marketScroll = new JScrollPane(marketPanel,</span>
+<span class="nc" id="L651">            ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER,</span>
+<span class="nc" id="L652">            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);</span>
+<span class="nc" id="L653">        JScrollPane logScroll = new JScrollPane(log,</span>
+<span class="nc" id="L654">            ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,</span>
+<span class="nc" id="L655">            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);</span>
+<span class="nc" id="L656">        logScroll.getVerticalScrollBar().setUnitIncrement(16);</span>
+
+<span class="nc" id="L658">        toAmericaPanel.setBorder(Utility.localizedBorder(&quot;sailingToAmerica&quot;));</span>
+<span class="nc" id="L659">        toEuropePanel.setBorder(Utility.localizedBorder(&quot;sailingToEurope&quot;));</span>
+<span class="nc" id="L660">        docksPanel.setBorder(Utility.localizedBorder(&quot;docks&quot;));</span>
+<span class="nc" id="L661">        inPortPanel.setBorder(Utility.localizedBorder(&quot;inPort&quot;));</span>
+<span class="nc" id="L662">        marketPanel.setBorder(Utility.blankBorder(10, 10, 10, 10));</span>
+<span class="nc" id="L663">        log.setBorder(Utility.localizedBorder(&quot;sales&quot;));</span>
+
+<span class="nc" id="L665">        toAmericaScroll.getViewport().setOpaque(false);</span>
+<span class="nc" id="L666">        toAmericaPanel.setOpaque(false);</span>
+<span class="nc" id="L667">        toEuropeScroll.getViewport().setOpaque(false);</span>
+<span class="nc" id="L668">        toEuropePanel.setOpaque(false);</span>
+<span class="nc" id="L669">        inPortScroll.getViewport().setOpaque(false);</span>
+<span class="nc" id="L670">        inPortPanel.setOpaque(false);</span>
+<span class="nc" id="L671">        cargoScroll.getViewport().setOpaque(false);</span>
+<span class="nc" id="L672">        cargoPanel.setOpaque(false);</span>
+<span class="nc" id="L673">        docksScroll.getViewport().setOpaque(false);</span>
+<span class="nc" id="L674">        docksPanel.setOpaque(false);</span>
+<span class="nc" id="L675">        marketScroll.getViewport().setOpaque(false);</span>
+<span class="nc" id="L676">        marketPanel.setOpaque(false);</span>
+<span class="nc" id="L677">        logScroll.getViewport().setOpaque(false);</span>
+<span class="nc" id="L678">        log.setOpaque(false);</span>
+
+<span class="nc" id="L680">        initialize(europe);</span>
+
+<span class="nc bnc" id="L682" title="All 2 branches missed.">        if(header) {</span>
+<span class="nc" id="L683">            add(Utility.localizedHeader(europe.getNameKey(), false),</span>
+<span class="nc" id="L684">                &quot;span, top, center&quot;);</span>
+        }
+<span class="nc" id="L686">        add(toAmericaScroll, &quot;sg, height 15%:, grow&quot;);</span>
+<span class="nc" id="L687">        add(toEuropeScroll, &quot;sg, height 15%:, grow&quot;);</span>
+<span class="nc" id="L688">        add(logScroll, &quot;spany 3, grow&quot;);</span>
+<span class="nc" id="L689">        add(inPortScroll, &quot;sg, height 15%:, grow&quot;);</span>
+<span class="nc" id="L690">        add(docksScroll, &quot;spany 2, grow&quot;);</span>
+<span class="nc" id="L691">        add(cargoScroll, &quot;height 10%:, grow&quot;);</span>
+<span class="nc" id="L692">        add(marketScroll, &quot;span, height 10%:, grow&quot;);</span>
+
+<span class="nc" id="L694">        add(recruitButton, &quot;span, split 6&quot;);</span>
+<span class="nc" id="L695">        add(purchaseButton);</span>
+<span class="nc" id="L696">        add(trainButton);</span>
+<span class="nc" id="L697">        add(unloadButton);</span>
+<span class="nc" id="L698">        add(sailButton);</span>
+<span class="nc" id="L699">        add(exitButton, &quot;tag ok&quot;);</span>
+
+        // Select a unit, preferring most recently added
+<span class="nc" id="L702">        Unit u = europe.getLastUnit();</span>
+<span class="nc bnc" id="L703" title="All 2 branches missed.">        if (u == null) setSelectedUnitLabel(null); else setSelectedUnit(u);</span>
+
+<span class="nc" id="L705">        float scale = getImageLibrary().getScaleFactor();</span>
+<span class="nc" id="L706">        getGUI().restoreSavedSize(this, 200 + (int)(scale*850), 200 + (int)(scale*525));</span>
+<span class="nc" id="L707">    }</span>
+
+    /**
+     * Initialize this EuropePanel.
+     *
+     * @param europe The &lt;code&gt;Europe&lt;/code&gt; this panel should display.
+     */
+    private void initialize(Europe europe) {
+        // Initialize the subpanels.
+<span class="nc" id="L716">        toAmericaPanel.initialize(europe.getGame().getMap());</span>
+<span class="nc" id="L717">        toEuropePanel.initialize(europe);</span>
+        // Initialize cargoPanel *before* inPortPanel calls setSelectedUnit().
+<span class="nc" id="L719">        cargoPanel.initialize();</span>
+<span class="nc" id="L720">        inPortPanel.initialize();</span>
+<span class="nc" id="L721">        marketPanel.initialize();</span>
+<span class="nc" id="L722">        docksPanel.initialize();</span>
+<span class="nc" id="L723">        log.initialize();</span>
+<span class="nc" id="L724">    }</span>
+
+    /**
+     * Cleans up this EuropePanel.
+     */
+    public void cleanup() {
+<span class="nc" id="L730">        log.cleanup();</span>
+<span class="nc" id="L731">        docksPanel.cleanup();</span>
+<span class="nc" id="L732">        marketPanel.cleanup();</span>
+<span class="nc" id="L733">        inPortPanel.cleanup();</span>
+<span class="nc" id="L734">        cargoPanel.cleanup();</span>
+<span class="nc" id="L735">        toEuropePanel.cleanup();</span>
+<span class="nc" id="L736">        toAmericaPanel.cleanup();</span>
+<span class="nc" id="L737">    }</span>
+
+    /**
+     * What to do when requesting focus.
+     */
+    @Override
+    public void requestFocus() {
+<span class="nc" id="L744">        exitButton.requestFocus();</span>
+<span class="nc" id="L745">    }</span>
+
+    /**
+     * Refreshes this panel.
+     */
+    public void refresh() {
+<span class="nc" id="L751">        repaint(0, 0, getWidth(), getHeight());</span>
+<span class="nc" id="L752">    }</span>
+
+    /**
+     * Selects a unit that is located somewhere on this panel.
+     *
+     * @param unitLabel The &lt;code&gt;UnitLabel&lt;/code&gt; for the unit that
+     *     is being selected.
+     */
+    @Override
+    public void setSelectedUnitLabel(UnitLabel unitLabel) {
+<span class="nc bnc" id="L762" title="All 2 branches missed.">        if (selectedUnitLabel != unitLabel) {</span>
+<span class="nc bnc" id="L763" title="All 2 branches missed.">            if (selectedUnitLabel != null) {</span>
+<span class="nc" id="L764">                selectedUnitLabel.setSelected(false);</span>
+            }
+<span class="nc" id="L766">            selectedUnitLabel = unitLabel;</span>
+<span class="nc bnc" id="L767" title="All 2 branches missed.">            if (unitLabel == null) {</span>
+<span class="nc" id="L768">                cargoPanel.setCarrier(null);</span>
+<span class="nc" id="L769">            } else {</span>
+<span class="nc" id="L770">                cargoPanel.setCarrier(unitLabel.getUnit());</span>
+<span class="nc" id="L771">                unitLabel.setSelected(true);</span>
+            }
+        }
+<span class="nc" id="L774">        inPortPanel.revalidate();</span>
+<span class="nc" id="L775">        inPortPanel.repaint();</span>
+<span class="nc" id="L776">    }</span>
+
+    /**
+     * Exits this EuropePanel.
+     */
+    private void exitAction() {
+<span class="nc" id="L782">        cleanup();</span>
+<span class="nc" id="L783">        getGUI().removeFromCanvas(this);</span>
+<span class="nc" id="L784">        igc().nextModelMessage();</span>
+<span class="nc" id="L785">    }</span>
+
+    /**
+     * Unload the contents of the currently selected carrier.
+     */
+    private void unloadAction() {
+<span class="nc" id="L791">        Unit unit = getSelectedUnit();</span>
+<span class="nc bnc" id="L792" title="All 4 branches missed.">        if (unit != null &amp;&amp; unit.isCarrier()) {</span>
+<span class="nc" id="L793">            Iterator&lt;Goods&gt; goodsIterator = unit.getGoodsIterator();</span>
+<span class="nc bnc" id="L794" title="All 2 branches missed.">            while (goodsIterator.hasNext()) {</span>
+<span class="nc" id="L795">                Goods goods = goodsIterator.next();</span>
+<span class="nc bnc" id="L796" title="All 2 branches missed.">                if (getMyPlayer().canTrade(goods.getType())) {</span>
+<span class="nc" id="L797">                    igc().sellGoods(goods);</span>
+<span class="nc" id="L798">                } else {</span>
+<span class="nc" id="L799">                    igc().payArrears(goods.getType());</span>
+                }
+            }
+<span class="nc" id="L802">            Iterator&lt;Unit&gt; unitIterator = unit.getUnitIterator();</span>
+<span class="nc bnc" id="L803" title="All 2 branches missed.">            while (unitIterator.hasNext()) {</span>
+<span class="nc" id="L804">                Unit newUnit = unitIterator.next();</span>
+<span class="nc" id="L805">                igc().leaveShip(newUnit);</span>
+            }
+<span class="nc" id="L807">            cargoPanel.update();</span>
+<span class="nc" id="L808">            docksPanel.update();</span>
+        }
+<span class="nc" id="L810">        requestFocus();</span>
+<span class="nc" id="L811">    }</span>
+
+    /**
+     * A unit sets sail for the new world.
+     */
+    private void sailAction() {
+<span class="nc" id="L817">        Unit unit = getSelectedUnit();</span>
+<span class="nc bnc" id="L818" title="All 4 branches missed.">        if (unit != null &amp;&amp; unit.isNaval()) {</span>
+<span class="nc" id="L819">            UnitLabel unitLabel = getSelectedUnitLabel();</span>
+<span class="nc" id="L820">            toAmericaPanel.add(unitLabel, true);</span>
+        }
+<span class="nc" id="L822">        requestFocus();</span>
+<span class="nc" id="L823">    }</span>
+
+
+    // Interface PortPanel
+
+    /**
+     * Get the units in Europe.
+     *
+     * @return A list of units in Europe.
+     */
+    @Override
+    public List&lt;Unit&gt; getUnitList() {
+<span class="nc" id="L835">        return europe.getUnitList();</span>
+    }
+
+
+    // Interface ActionListener
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void actionPerformed(ActionEvent ae) {
+<span class="nc" id="L846">        final String command = ae.getActionCommand();</span>
+<span class="nc" id="L847">        EuropeAction act = EuropeAction.valueOf(command);</span>
+<span class="nc bnc" id="L848" title="All 7 branches missed.">        switch (act) {</span>
+        case EXIT:
+<span class="nc" id="L850">            exitAction();</span>
+<span class="nc" id="L851">            break;</span>
+        case PURCHASE:
+<span class="nc" id="L853">            getGUI().showPurchasePanel();</span>
+<span class="nc" id="L854">            break;</span>
+        case RECRUIT:
+<span class="nc" id="L856">            getGUI().showRecruitPanel();</span>
+<span class="nc" id="L857">            break;</span>
+        case SAIL:
+<span class="nc" id="L859">            sailAction();</span>
+<span class="nc" id="L860">            break;</span>
+        case TRAIN:
+<span class="nc" id="L862">            getGUI().showTrainPanel();</span>
+<span class="nc" id="L863">            break;</span>
+        case UNLOAD:
+<span class="nc" id="L865">            unloadAction();</span>
+<span class="nc" id="L866">            break;</span>
+        default:
+<span class="nc" id="L868">            super.actionPerformed(ae);</span>
+            break;
+        }
+<span class="nc" id="L871">    }</span>
+
+
+    // Override Component
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void removeNotify() {
+<span class="nc" id="L881">        super.removeNotify();</span>
+
+<span class="nc" id="L883">        removeAll();</span>
+<span class="nc" id="L884">        toAmericaPanel = null;</span>
+<span class="nc" id="L885">        toEuropePanel = null;</span>
+<span class="nc" id="L886">        docksPanel = null;</span>
+<span class="nc" id="L887">        marketPanel = null;</span>
+<span class="nc" id="L888">        log = null;</span>
+<span class="nc" id="L889">        exitButton = trainButton = purchaseButton = recruitButton</span>
+<span class="nc" id="L890">            = unloadButton = sailButton = null;</span>
+<span class="nc" id="L891">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

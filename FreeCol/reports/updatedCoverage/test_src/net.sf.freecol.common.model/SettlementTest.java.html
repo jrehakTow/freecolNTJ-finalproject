@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>SettlementTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">SettlementTest.java</span></div><h1>SettlementTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import net.sf.freecol.common.FreeColException;
+import net.sf.freecol.common.model.Modifier;
+import net.sf.freecol.common.model.Modifier.ModifierType;
+import net.sf.freecol.server.model.ServerBuilding;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L29">public class SettlementTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L31">    private static final GoodsType horsesType</span>
+<span class="nc" id="L32">        = spec().getGoodsType(&quot;model.goods.horses&quot;);</span>
+<span class="nc" id="L33">    private static final GoodsType musketsType</span>
+<span class="nc" id="L34">        = spec().getGoodsType(&quot;model.goods.muskets&quot;);</span>
+
+<span class="nc" id="L36">    private static final Role dragoonRole</span>
+<span class="nc" id="L37">        = spec().getRole(&quot;model.role.dragoon&quot;);</span>
+<span class="nc" id="L38">    private static final Role mountedBraveRole</span>
+<span class="nc" id="L39">        = spec().getRole(&quot;model.role.mountedBrave&quot;);</span>
+<span class="nc" id="L40">    private static final Role nativeDragoonRole</span>
+<span class="nc" id="L41">        = spec().getRole(&quot;model.role.nativeDragoon&quot;);</span>
+<span class="nc" id="L42">    private static final Role soldierRole</span>
+<span class="nc" id="L43">        = spec().getRole(&quot;model.role.soldier&quot;);</span>
+
+
+    public void testSettlementRadius() throws FreeColException {
+
+<span class="nc" id="L48">        Game game = getStandardGame();</span>
+<span class="nc" id="L49">        Map map = getTestMap();</span>
+<span class="nc" id="L50">        game.setMap(map);</span>
+
+<span class="nc" id="L52">        FreeColTestCase.IndianSettlementBuilder builder =</span>
+<span class="nc" id="L53">            new FreeColTestCase.IndianSettlementBuilder(game);</span>
+
+<span class="nc" id="L55">        Player arawak = game.getPlayerByNationId(&quot;model.nation.arawak&quot;);</span>
+<span class="nc" id="L56">        builder.player(arawak);</span>
+<span class="nc" id="L57">        IndianSettlement settlement = builder.build();</span>
+<span class="nc" id="L58">        assertEquals(1, arawak.getNationType().getSettlementType(false).getClaimableRadius());</span>
+<span class="nc" id="L59">        assertEquals(1, settlement.getType().getClaimableRadius());</span>
+<span class="nc" id="L60">        settlement.dispose();</span>
+
+<span class="nc" id="L62">        builder.capital(true);</span>
+<span class="nc" id="L63">        settlement = builder.build();</span>
+<span class="nc" id="L64">        assertEquals(2, arawak.getNationType().getCapitalType().getClaimableRadius());</span>
+<span class="nc" id="L65">        assertEquals(2, settlement.getType().getClaimableRadius());</span>
+<span class="nc" id="L66">        settlement.dispose();</span>
+
+<span class="nc" id="L68">        Player inca = game.getPlayerByNationId(&quot;model.nation.inca&quot;);</span>
+<span class="nc" id="L69">        builder.player(inca);</span>
+<span class="nc" id="L70">        builder.capital(false);</span>
+<span class="nc" id="L71">        settlement = builder.build();</span>
+<span class="nc" id="L72">        assertEquals(2, inca.getNationType().getSettlementType(false).getClaimableRadius());</span>
+<span class="nc" id="L73">        assertEquals(2, settlement.getType().getClaimableRadius());</span>
+<span class="nc" id="L74">        settlement.dispose();</span>
+
+<span class="nc" id="L76">        builder.capital(true);</span>
+<span class="nc" id="L77">        settlement = builder.build();</span>
+<span class="nc" id="L78">        assertEquals(3, inca.getNationType().getCapitalType().getClaimableRadius());</span>
+<span class="nc" id="L79">        assertEquals(3, settlement.getType().getClaimableRadius());</span>
+<span class="nc" id="L80">        settlement.dispose();</span>
+<span class="nc" id="L81">    }</span>
+
+    public void testColonyRadius() {
+
+<span class="nc" id="L85">        Game game = getGame();</span>
+<span class="nc" id="L86">        Map map = getTestMap();</span>
+<span class="nc" id="L87">        game.setMap(map);</span>
+
+<span class="nc" id="L89">        Colony colony = getStandardColony();</span>
+<span class="nc" id="L90">        assertEquals(1, colony.getOwner().getNationType().getSettlementType(false).getClaimableRadius());</span>
+        //assertEquals(1, colony.getOwner().getNationType().getCapitalType().getClaimableRadius());
+<span class="nc" id="L92">        assertEquals(1, colony.getRadius());</span>
+<span class="nc" id="L93">        assertFalse(colony.isCapital());</span>
+
+<span class="nc" id="L95">    }</span>
+
+    public void testSettlementDoesNotClaimWater() {
+
+<span class="nc" id="L99">        Game game = getStandardGame();</span>
+<span class="nc" id="L100">        Map map = getTestMap();</span>
+<span class="nc" id="L101">        game.setMap(map);</span>
+<span class="nc" id="L102">        map.getTile(4, 8).setType(spec().getTileType(&quot;model.tile.ocean&quot;));</span>
+<span class="nc" id="L103">        assertFalse(map.getTile(4, 8).isLand());</span>
+
+<span class="nc" id="L105">        FreeColTestCase.IndianSettlementBuilder builder =</span>
+<span class="nc" id="L106">            new FreeColTestCase.IndianSettlementBuilder(game);</span>
+
+<span class="nc" id="L108">        IndianSettlement settlement = builder.build();</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        for (Tile tile : settlement.getTile().getSurroundingTiles(1)) {</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">            assertEquals(tile.isLand(), tile.getOwner() == settlement.getOwner());</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">            assertEquals(tile.isLand(), tile.getOwningSettlement() == settlement);</span>
+        }
+<span class="nc" id="L113">    }</span>
+
+    public void testColonyClaimsWater() {
+<span class="nc" id="L116">        Game game = getGame();</span>
+<span class="nc" id="L117">        Map map = getTestMap();</span>
+<span class="nc" id="L118">        game.setMap(map);</span>
+<span class="nc" id="L119">        map.getTile(4, 8).setType(spec().getTileType(&quot;model.tile.ocean&quot;));</span>
+<span class="nc" id="L120">        assertFalse(map.getTile(4, 8).isLand());</span>
+
+<span class="nc" id="L122">        Colony colony = getStandardColony();</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">        for (Tile tile : colony.getTile().getSurroundingTiles(1)) {</span>
+<span class="nc" id="L124">            assertEquals(&quot;Tile &quot; + tile.toString()</span>
+<span class="nc" id="L125">                         + &quot; should be owned by &quot; + colony.getOwner().getId(),</span>
+<span class="nc" id="L126">                         tile.getOwner(), colony.getOwner());</span>
+<span class="nc" id="L127">            assertEquals(&quot;Tile &quot; + tile.toString()</span>
+<span class="nc" id="L128">                         + &quot; should be owned by &quot; + colony.getId(),</span>
+<span class="nc" id="L129">                         tile.getOwningSettlement(), colony);</span>
+        }
+<span class="nc" id="L131">    }</span>
+
+    public void testLineOfSight() {
+<span class="nc" id="L134">        Game game = getGame();</span>
+<span class="nc" id="L135">        Map map = getTestMap();</span>
+<span class="nc" id="L136">        game.setMap(map);</span>
+<span class="nc" id="L137">        Colony colony = getStandardColony();</span>
+
+<span class="nc" id="L139">        assertEquals(2, colony.getLineOfSight());</span>
+
+<span class="nc" id="L141">        BuildingType towerType = new BuildingType(&quot;tower&quot;, spec());</span>
+<span class="nc" id="L142">        Modifier modifier = new Modifier(Modifier.LINE_OF_SIGHT_BONUS, 2,</span>
+<span class="nc" id="L143">                                         ModifierType.ADDITIVE);</span>
+<span class="nc" id="L144">        towerType.addModifier(modifier);</span>
+<span class="nc" id="L145">        Building tower = new ServerBuilding(getGame(), colony, towerType);</span>
+<span class="nc" id="L146">        colony.addBuilding(tower);</span>
+
+<span class="nc" id="L148">        assertEquals(4, colony.getLineOfSight());</span>
+<span class="nc" id="L149">    }</span>
+
+    public void testCanImproveUnitMilitaryRole() {
+<span class="nc" id="L152">        Game game = getGame();</span>
+<span class="nc" id="L153">        Map map = getTestMap();</span>
+<span class="nc" id="L154">        game.setMap(map);</span>
+<span class="nc" id="L155">        Colony colony = getStandardColony(4);</span>
+
+        // Colony has no equipment for the unit
+<span class="nc" id="L158">        Unit colonist = colony.getUnitList().get(0);</span>
+<span class="nc" id="L159">        assertNull(colony.canImproveUnitMilitaryRole(colonist));</span>
+        
+        // Colony has some equipment, but not enough
+<span class="nc" id="L162">        colony.addGoods(musketsType, 40);</span>
+<span class="nc" id="L163">        assertNull(colony.canImproveUnitMilitaryRole(colonist));</span>
+
+        // Colony now has enough equipment
+<span class="nc" id="L166">        colony.addGoods(musketsType, 10);</span>
+<span class="nc" id="L167">        assertTrue(colony.canProvideGoods(soldierRole.getRequiredGoods()));</span>
+<span class="nc" id="L168">        assertEquals(soldierRole,</span>
+<span class="nc" id="L169">                     colony.canImproveUnitMilitaryRole(colonist));</span>
+
+        // Equipping succeeds, colony can no longer improve
+<span class="nc" id="L172">        assertTrue(colony.equipForRole(colonist, soldierRole, 1));</span>
+<span class="nc" id="L173">        assertNull(colony.canImproveUnitMilitaryRole(colonist));</span>
+
+        // Adding more muskets does not help
+<span class="nc" id="L176">        colony.addGoods(musketsType, 100);</span>
+<span class="nc" id="L177">        assertNull(colony.canImproveUnitMilitaryRole(colonist));</span>
+
+        // But adding horses does
+<span class="nc" id="L180">        colony.addGoods(horsesType, 100);</span>
+<span class="nc" id="L181">        assertEquals(dragoonRole,</span>
+<span class="nc" id="L182">                     colony.canImproveUnitMilitaryRole(colonist));</span>
+
+        // Unless now a dragoon
+<span class="nc" id="L185">        assertTrue(colony.equipForRole(colonist, dragoonRole, 1));</span>
+<span class="nc" id="L186">        assertNull(colony.canImproveUnitMilitaryRole(colonist));</span>
+
+        // Repeat previous tests for natives
+<span class="nc" id="L189">        Player arawak = game.getPlayerByNationId(&quot;model.nation.arawak&quot;);</span>
+<span class="nc" id="L190">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="nc" id="L191">            = new FreeColTestCase.IndianSettlementBuilder(game)</span>
+<span class="nc" id="L192">            .player(arawak).initialBravesInCamp(4);</span>
+<span class="nc" id="L193">        IndianSettlement settlement = builder.build();</span>
+
+<span class="nc" id="L195">        Unit brave = settlement.getUnitList().get(0);</span>
+<span class="nc" id="L196">        assertNull(settlement.canImproveUnitMilitaryRole(brave));</span>
+        
+<span class="nc" id="L198">        settlement.addGoods(horsesType, 20);</span>
+<span class="nc" id="L199">        assertNull(settlement.canImproveUnitMilitaryRole(brave));</span>
+
+<span class="nc" id="L201">        settlement.addGoods(horsesType, 10); // avoid breeding number</span>
+<span class="nc" id="L202">        assertEquals(mountedBraveRole,</span>
+<span class="nc" id="L203">                     settlement.canImproveUnitMilitaryRole(brave));</span>
+
+<span class="nc" id="L205">        assertTrue(settlement.equipForRole(brave, mountedBraveRole, 1));</span>
+<span class="nc" id="L206">        assertNull(settlement.canImproveUnitMilitaryRole(brave));</span>
+
+<span class="nc" id="L208">        settlement.addGoods(horsesType, 100);</span>
+<span class="nc" id="L209">        assertNull(settlement.canImproveUnitMilitaryRole(brave));</span>
+
+<span class="nc" id="L211">        settlement.addGoods(musketsType, 100);</span>
+<span class="nc" id="L212">        assertEquals(nativeDragoonRole,</span>
+<span class="nc" id="L213">                     settlement.canImproveUnitMilitaryRole(brave));</span>
+
+<span class="nc" id="L215">        assertTrue(settlement.equipForRole(brave, nativeDragoonRole, 1));</span>
+<span class="nc" id="L216">        assertNull(settlement.canImproveUnitMilitaryRole(brave));</span>
+<span class="nc" id="L217">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

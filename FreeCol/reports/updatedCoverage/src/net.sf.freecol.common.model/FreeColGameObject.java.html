@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>FreeColGameObject.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">FreeColGameObject.java</span></div><h1>FreeColGameObject.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.util.Introspector;
+import net.sf.freecol.common.util.LogBuilder;
+import net.sf.freecol.common.util.Utils;
+
+
+/**
+ * The superclass of all game objects in FreeCol.
+ *
+ * All FreeColGameObjects need to be able to refer to the game they belong
+ * to.  Therefore, the game attribute must not be null, except in the special
+ * case where a Game is being initially created.
+ *
+ * Most FreeColGameObjects are intended to be accessible by identifier (@see
+ * Game#getFreeColObject) but some are not, and should override isInternable
+ * to return false.
+ */
+public abstract class FreeColGameObject extends FreeColObject {
+
+<span class="fc" id="L49">    private static final Logger logger = Logger.getLogger(FreeColGameObject.class.getName());</span>
+
+    /** The game this object belongs to. */
+    private Game game;
+
+    /** Has this object been disposed? */
+<span class="nc" id="L55">    private boolean disposed = false;</span>
+
+    /** Has this object been initialized? */
+    protected boolean initialized;
+
+
+    /**
+     * Creates a new &lt;code&gt;FreeColGameObject&lt;/code&gt;.
+     *
+     * Automatically assign an object identifier and register this
+     * object at the specified &lt;code&gt;Game&lt;/code&gt;.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     */
+<span class="nc" id="L69">    public FreeColGameObject(Game game) {</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        if (game != null) {</span>
+<span class="nc" id="L71">            setGame(game); // Set game before calling internId</span>
+<span class="nc" id="L72">            internId(getXMLTagName() + &quot;:&quot; + game.getNextId());</span>
+        }
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        this.initialized = getId() != null;</span>
+<span class="nc" id="L75">        this.disposed = false;</span>
+<span class="nc" id="L76">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;FreeColGameObject&lt;/code&gt;.
+     * If an identifier is supplied, use that, otherwise leave it undefined.
+     *
+     * This routine should be used when we know that the object will need
+     * further initialization.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param id The object identifier.
+     */
+<span class="nc" id="L88">    public FreeColGameObject(Game game, String id) {</span>
+<span class="nc" id="L89">        setGame(game); // Set game before calling internId</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        if (id != null) internId(id);</span>
+<span class="nc" id="L91">        this.initialized = false;</span>
+<span class="nc" id="L92">        this.disposed = false;</span>
+<span class="nc" id="L93">    }</span>
+
+
+    /**
+     * Instantiate an uninitialized FreeColGameObject within a game.
+     *
+     * @param &lt;T&gt; The actual return type.
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to instantiate within.
+     * @param returnClass The required &lt;code&gt;FreeColObject&lt;/code&gt; class.
+     * @return The new uninitialized object, or null on error.
+     */
+    public static &lt;T extends FreeColObject&gt; T newInstance(Game game,
+        Class&lt;T&gt; returnClass) {
+        try {
+<span class="nc" id="L107">            return Introspector.instantiate(returnClass,</span>
+<span class="nc" id="L108">                new Class[] { Game.class, String.class },</span>
+<span class="nc" id="L109">                new Object[] { game, (String)null }); // No intern!</span>
+<span class="nc" id="L110">        } catch (Introspector.IntrospectorException ex) {}</span>
+        // OK, did not work, try the simpler constructors
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        return (FreeColSpecObject.class.isAssignableFrom(returnClass))</span>
+<span class="nc" id="L113">            ? FreeColSpecObject.newInstance(game.getSpecification(),</span>
+<span class="nc" id="L114">                                            returnClass)</span>
+<span class="nc" id="L115">            : FreeColObject.newInstance(returnClass);</span>
+    }
+
+    /**
+     * Sets the unique identifier of this object and registers it in its
+     * &lt;code&gt;Game&lt;/code&gt; with that identifier, i.e. &quot;intern&quot; this object.
+     *
+     * @param newId The unique identifier of this object.
+     */
+    public final void internId(final String newId) {
+<span class="nc" id="L125">        final Game game = getGame();</span>
+<span class="nc bnc" id="L126" title="All 6 branches missed.">        if (game != null &amp;&amp; newId != null &amp;&amp; isInternable()) {</span>
+<span class="nc" id="L127">            final String oldId = getId();</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">            if (!newId.equals(oldId)) {</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">                if (oldId != null) {</span>
+<span class="nc" id="L130">                    game.removeFreeColGameObject(oldId, &quot;override&quot;);</span>
+                }
+<span class="nc" id="L132">                setId(newId);</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">                if (newId != null) {</span>
+<span class="nc" id="L134">                    game.setFreeColGameObject(newId, this);</span>
+                }
+            }
+<span class="nc" id="L137">        } else {</span>
+<span class="nc" id="L138">            setId(newId);</span>
+        }
+<span class="nc" id="L140">    }</span>
+
+    /**
+     * Has this object been initialized?
+     *
+     * @return True if this object is initialized.
+     */
+    public final boolean isInitialized() {
+<span class="nc" id="L148">        return this.initialized;</span>
+    }
+
+    /**
+     * Has this object been disposed?
+     *
+     * @return True if this object has been disposed.
+     * @see #dispose
+     */
+    public final boolean isDisposed() {
+<span class="nc" id="L158">        return this.disposed;</span>
+    }
+
+    /**
+     * Destroy this object and all its parts, releasing resources and
+     * removing references.
+     */
+    public final void dispose() {
+<span class="nc bnc" id="L166" title="All 2 branches missed.">        if (this.disposed) return;</span>
+<span class="nc" id="L167">        LogBuilder lb = new LogBuilder(64);</span>
+<span class="nc" id="L168">        lb.add(&quot;Destroying:&quot;);</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        for (FreeColGameObject fcgo : getDisposeList()) {</span>
+<span class="nc" id="L170">            lb.add(&quot; &quot;, fcgo.getId());</span>
+<span class="nc" id="L171">            fcgo.disposeResources();</span>
+        }
+<span class="nc" id="L173">        lb.log(logger, Level.INFO);</span>
+<span class="nc" id="L174">    }</span>
+
+    /**
+     * Low level base dispose, removing the object from the game.
+     */
+    public final void fundamentalDispose() {
+<span class="nc" id="L180">        getGame().removeFreeColGameObject(getId(), &quot;dispose&quot;);</span>
+<span class="nc" id="L181">        this.disposed = true;</span>
+<span class="nc" id="L182">    }</span>
+
+
+    // Routines to be overridden where meaningful by subclasses.
+
+    /**
+     * Should this object be interned into its Game?
+     *
+     * Usually true, but there are some special containers that have to be
+     * FCGOs but are unsuitable to be interned.  These classes will override
+     * this routine.
+     *
+     * @return True if this object should be interned.
+     */
+    public boolean isInternable() {
+<span class="nc" id="L197">        return true;</span>
+    }
+
+    /**
+     * Collect a list of this object and all its subparts that should be
+     * disposed of when this object goes away.
+     *
+     * Overriding routines should reference this routine, and arrange
+     * that the object itself is last.
+     *
+     * @return A list of &lt;code&gt;FreeColGameObject&lt;/code&gt;s to dispose of.
+     */
+    public List&lt;FreeColGameObject&gt; getDisposeList() {
+<span class="nc" id="L210">        List&lt;FreeColGameObject&gt; fcgos = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L211">        fcgos.add(this);</span>
+<span class="nc" id="L212">        return fcgos;</span>
+    }
+
+    /**
+     * Dispose of the resources of this object, and finally remove it from the
+     * game.
+     *
+     * To be extended by subclasses, but they must tail call up
+     * towards this.
+     */
+    public void disposeResources() {
+<span class="nc" id="L223">        fundamentalDispose();</span>
+<span class="nc" id="L224">    }</span>
+
+    /**
+     * Get a suitable game object to use as a clickable link in messages
+     * to a player.
+     *
+     * Objects do not have links by default, hence the null return
+     * here.  However, for example, a player's colony should return
+     * itself as a link target.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; to make a link for.
+     * @return A suitable link target if available, although usually null.
+     */
+    public FreeColGameObject getLinkTarget(Player player) {
+<span class="nc" id="L238">        return null;</span>
+    }
+
+    /**
+     * Checks the integrity of this game object.
+     *
+     * @param fix If true, fix problems if possible.
+     * @return Negative if there are problems remaining, zero if
+     *     problems were fixed, positive if no problems found at all.
+     */
+    public int checkIntegrity(boolean fix) {
+<span class="nc" id="L249">        return 1;</span>
+    }
+
+
+    // Override FreeColObject
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Specification getSpecification() {
+<span class="nc bnc" id="L260" title="All 2 branches missed.">        return (this.game == null) ? null : this.game.getSpecification();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setSpecification(Specification specification) {
+<span class="nc" id="L268">        throw new RuntimeException(&quot;Can not set specification&quot;);</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Game getGame() {
+<span class="nc" id="L276">        return this.game;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setGame(Game game) {
+<span class="nc bnc" id="L284" title="All 2 branches missed.">        if (game == null) throw new RuntimeException(&quot;Null game&quot;);</span>
+<span class="nc" id="L285">        this.game = game;</span>
+<span class="nc" id="L286">    }</span>
+
+
+    // Override Object
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L296" title="All 2 branches missed.">        if (this == o) return true;</span>
+<span class="nc bnc" id="L297" title="All 2 branches missed.">        if (o instanceof FreeColGameObject) {</span>
+            // FreeColGameObjects are equal if the two fcgos are in
+            // the same game and have the same identifier.
+<span class="nc" id="L300">            FreeColGameObject fco = (FreeColGameObject)o;</span>
+<span class="nc bnc" id="L301" title="All 2 branches missed.">            return this.getGame() == fco.getGame()</span>
+<span class="nc bnc" id="L302" title="All 2 branches missed.">                &amp;&amp; super.equals(o);</span>
+        }
+<span class="nc" id="L304">        return false;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int hashCode() {
+<span class="nc" id="L312">        int hash = super.hashCode();</span>
+<span class="nc" id="L313">        return 31 * hash + Utils.hashCode(this.game);</span>
+    }
+
+
+    // Serialization
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L325">        super.readAttributes(xr);</span>
+
+<span class="nc bnc" id="L327" title="All 2 branches missed.">        if (xr.shouldIntern()) internId(getId());</span>
+<span class="nc" id="L328">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readFromXML(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L335">        this.initialized = true;</span>
+<span class="nc" id="L336">        super.readFromXML(xr);</span>
+<span class="nc" id="L337">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

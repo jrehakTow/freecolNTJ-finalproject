@@ -1,0 +1,607 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>UnitTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">UnitTest.java</span></div><h1>UnitTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.io.ByteArrayInputStream;
+import java.lang.reflect.Field;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.DocumentBuilder;
+
+import net.sf.freecol.common.model.Role;
+import net.sf.freecol.server.model.ServerColony;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+
+<span class="nc" id="L36">public class UnitTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L38">    private static final BuildingType carpenterHouseType</span>
+<span class="nc" id="L39">        = spec().getBuildingType(&quot;model.building.carpenterHouse&quot;);</span>
+<span class="nc" id="L40">    private static final BuildingType churchType</span>
+<span class="nc" id="L41">        = spec().getBuildingType(&quot;model.building.chapel&quot;);</span>
+
+<span class="nc" id="L43">    private static final GoodsType cottonType</span>
+<span class="nc" id="L44">        = spec().getGoodsType(&quot;model.goods.cotton&quot;);</span>
+<span class="nc" id="L45">    private static final GoodsType foodType</span>
+<span class="nc" id="L46">        = spec().getPrimaryFoodType();</span>
+
+<span class="nc" id="L48">    private static final Role dragoonRole</span>
+<span class="nc" id="L49">        = spec().getRole(&quot;model.role.dragoon&quot;);</span>
+<span class="nc" id="L50">    private static final Role missionaryRole</span>
+<span class="nc" id="L51">        = spec().getRole(&quot;model.role.missionary&quot;);</span>
+<span class="nc" id="L52">    private static final Role scoutRole</span>
+<span class="nc" id="L53">        = spec().getRole(&quot;model.role.scout&quot;);</span>
+<span class="nc" id="L54">    private static final Role soldierRole</span>
+<span class="nc" id="L55">        = spec().getRole(&quot;model.role.soldier&quot;);</span>
+
+<span class="nc" id="L57">    private static final TileType ocean</span>
+<span class="nc" id="L58">        = spec().getTileType(&quot;model.tile.ocean&quot;);</span>
+<span class="nc" id="L59">    private static final TileType plains</span>
+<span class="nc" id="L60">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+
+<span class="nc" id="L62">    private static final UnitType artilleryType</span>
+<span class="nc" id="L63">        = spec().getUnitType(&quot;model.unit.artillery&quot;);</span>
+<span class="nc" id="L64">    private static final UnitType braveType</span>
+<span class="nc" id="L65">        = spec().getUnitType(&quot;model.unit.brave&quot;);</span>
+<span class="nc" id="L66">    private static final UnitType caravelType</span>
+<span class="nc" id="L67">        = spec().getUnitType(&quot;model.unit.caravel&quot;);</span>
+<span class="nc" id="L68">    private static final UnitType colonialRegularType</span>
+<span class="nc" id="L69">        = spec().getUnitType(&quot;model.unit.colonialRegular&quot;);</span>
+<span class="nc" id="L70">    private static final UnitType colonistType</span>
+<span class="nc" id="L71">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="nc" id="L72">    private static final UnitType expertFarmerType</span>
+<span class="nc" id="L73">        = spec().getUnitType(&quot;model.unit.expertFarmer&quot;);</span>
+<span class="nc" id="L74">    private static final UnitType frigateType</span>
+<span class="nc" id="L75">        = spec().getUnitType(&quot;model.unit.frigate&quot;);</span>
+<span class="nc" id="L76">    private static final UnitType galleonType</span>
+<span class="nc" id="L77">        = spec().getUnitType(&quot;model.unit.galleon&quot;);</span>
+<span class="nc" id="L78">    private static final UnitType hardyPioneerType</span>
+<span class="nc" id="L79">        = spec().getUnitType(&quot;model.unit.hardyPioneer&quot;);</span>
+<span class="nc" id="L80">    private static final UnitType indianConvertType</span>
+<span class="nc" id="L81">        = spec().getUnitType(&quot;model.unit.indianConvert&quot;);</span>
+<span class="nc" id="L82">    private static final UnitType jesuitMissionaryType</span>
+<span class="nc" id="L83">        = spec().getUnitType(&quot;model.unit.jesuitMissionary&quot;);</span>
+<span class="nc" id="L84">    private static final UnitType kingsRegularType</span>
+<span class="nc" id="L85">        = spec().getUnitType(&quot;model.unit.kingsRegular&quot;);</span>
+<span class="nc" id="L86">    private static final UnitType merchantmanType</span>
+<span class="nc" id="L87">        = spec().getUnitType(&quot;model.unit.merchantman&quot;);</span>
+<span class="nc" id="L88">    private static final UnitType seasonedScoutType</span>
+<span class="nc" id="L89">        = spec().getUnitType(&quot;model.unit.seasonedScout&quot;);</span>
+<span class="nc" id="L90">    private static final UnitType treasureTrainType</span>
+<span class="nc" id="L91">        = spec().getUnitType(&quot;model.unit.treasureTrain&quot;);</span>
+<span class="nc" id="L92">    private static final UnitType revengerType</span>
+<span class="nc" id="L93">        = spec().getUnitType(&quot;model.unit.revenger&quot;);</span>
+<span class="nc" id="L94">    private static final UnitType undeadType</span>
+<span class="nc" id="L95">        = spec().getUnitType(&quot;model.unit.undead&quot;);</span>
+<span class="nc" id="L96">    private static final UnitType veteranSoldierType</span>
+<span class="nc" id="L97">        = spec().getUnitType(&quot;model.unit.veteranSoldier&quot;);</span>
+<span class="nc" id="L98">    private static final UnitType wagonType</span>
+<span class="nc" id="L99">        = spec().getUnitType(&quot;model.unit.wagonTrain&quot;);</span>
+
+    /**
+     * Test unit for colonist status
+     *
+     */
+    public void testIsColonist() {
+<span class="nc" id="L106">        Game game = getStandardGame();</span>
+<span class="nc" id="L107">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L108">        Player sioux = game.getPlayerByNationId(&quot;model.nation.sioux&quot;);</span>
+<span class="nc" id="L109">        Map map = getTestMap(plains, true);</span>
+<span class="nc" id="L110">        game.setMap(map);</span>
+
+<span class="nc" id="L112">        Tile tile1 = map.getTile(6, 8);</span>
+<span class="nc" id="L113">        Tile tile2 = map.getTile(6, 9);</span>
+
+<span class="nc" id="L115">        Unit merchantman = new ServerUnit(game, tile1, dutch, merchantmanType);</span>
+<span class="nc" id="L116">        assertFalse(&quot;Merchantman is not a colonist&quot;, merchantman.isColonist());</span>
+
+<span class="nc" id="L118">        Unit soldier = new ServerUnit(game, tile1, dutch, veteranSoldierType);</span>
+<span class="nc" id="L119">        assertTrue(&quot;A soldier is a colonist&quot;, soldier.isColonist());</span>
+
+<span class="nc" id="L121">        Unit brave = new ServerUnit(game, tile2, sioux, braveType);</span>
+<span class="nc" id="L122">        assertFalse(&quot;A brave is not a colonist&quot;, brave.isColonist());</span>
+<span class="nc" id="L123">    }</span>
+
+    public void testCanAdd() {
+<span class="nc" id="L126">        Game game = getStandardGame();</span>
+<span class="nc" id="L127">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+
+<span class="nc" id="L129">        Unit galleon = new ServerUnit(game, null, dutch, galleonType);</span>
+<span class="nc" id="L130">        Unit caravel = new ServerUnit(game, null, dutch, caravelType);</span>
+<span class="nc" id="L131">        Unit colonist = new ServerUnit(game, null, dutch, colonistType);</span>
+<span class="nc" id="L132">        Unit wagonTrain = new ServerUnit(game, null, dutch, wagonType);</span>
+<span class="nc" id="L133">        Unit treasureTrain = new ServerUnit(game, null, dutch, </span>
+<span class="nc" id="L134">                                            treasureTrainType);</span>
+
+        // tests according to standard rules
+<span class="nc" id="L137">        assertTrue(galleon.canAdd(colonist));</span>
+<span class="nc" id="L138">        assertTrue(galleon.canAdd(treasureTrain));</span>
+
+<span class="nc" id="L140">        assertFalse(galleon.canAdd(wagonTrain));</span>
+<span class="nc" id="L141">        assertFalse(galleon.canAdd(caravel));</span>
+<span class="nc" id="L142">        assertFalse(galleon.canAdd(galleon));</span>
+
+<span class="nc" id="L144">        assertTrue(caravel.canAdd(colonist));</span>
+
+<span class="nc" id="L146">        assertFalse(caravel.canAdd(wagonTrain));</span>
+<span class="nc" id="L147">        assertFalse(caravel.canAdd(treasureTrain));</span>
+<span class="nc" id="L148">        assertFalse(caravel.canAdd(caravel));</span>
+<span class="nc" id="L149">        assertFalse(caravel.canAdd(galleon));</span>
+
+        // Save old specification values to restore after test
+<span class="nc" id="L152">        int wagonTrainOldSpace = wagonTrain.getCargoCapacity();</span>
+<span class="nc" id="L153">        int wagonTrainOldSpaceTaken = wagonTrain.getCargoCapacity();</span>
+<span class="nc" id="L154">        int caravelOldSpaceTaken = caravel.getCargoCapacity();</span>
+
+        // tests according to other possible rules
+<span class="nc" id="L157">        wagonTrain.getType().setSpace(1);</span>
+<span class="nc" id="L158">        wagonTrain.getType().setSpaceTaken(2);</span>
+<span class="nc" id="L159">        caravel.getType().setSpaceTaken(1);</span>
+
+<span class="nc" id="L161">        assertTrue(galleon.canAdd(wagonTrain));</span>
+<span class="nc" id="L162">        assertTrue(caravel.canAdd(wagonTrain));</span>
+        // this may seem strange, but ships do carry smaller boats
+<span class="nc" id="L164">        assertTrue(galleon.canAdd(caravel));</span>
+<span class="nc" id="L165">        assertFalse(caravel.canAdd(caravel));</span>
+
+        // restore values to not affect other tests
+<span class="nc" id="L168">        wagonTrain.getType().setSpace(wagonTrainOldSpace);</span>
+<span class="nc" id="L169">        wagonTrain.getType().setSpaceTaken(wagonTrainOldSpaceTaken);</span>
+<span class="nc" id="L170">        caravel.getType().setSpaceTaken(caravelOldSpaceTaken);</span>
+<span class="nc" id="L171">    }</span>
+
+    public void testFailedAddGoods() {
+<span class="nc" id="L174">        Game game = getStandardGame();</span>
+<span class="nc" id="L175">        Map map = getTestMap();</span>
+<span class="nc" id="L176">        game.setMap(map);</span>
+
+<span class="nc" id="L178">        Colony colony = this.getStandardColony();</span>
+<span class="nc" id="L179">        int foodInColony = 300;</span>
+<span class="nc" id="L180">        colony.addGoods(foodType, foodInColony);</span>
+<span class="nc" id="L181">        assertEquals(&quot;Setup error, colony does goods quantity wrong&quot;,</span>
+<span class="nc" id="L182">                     foodInColony, colony.getGoodsCount(foodType));</span>
+
+<span class="nc" id="L184">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L185">        Unit wagonTrain = new ServerUnit(game, colony.getTile(), dutch, </span>
+<span class="nc" id="L186">                                         wagonType);</span>
+<span class="nc" id="L187">        assertEquals(&quot;Setup error, unit should not carry anything&quot;, 0,</span>
+<span class="nc" id="L188">                     wagonTrain.getGoodsSpaceTaken());</span>
+<span class="nc" id="L189">        assertEquals(&quot;Setup error, unit has wrong initial moves&quot;,</span>
+<span class="nc" id="L190">                     wagonTrain.getInitialMovesLeft(),</span>
+<span class="nc" id="L191">                     wagonTrain.getMovesLeft());</span>
+
+<span class="nc" id="L193">        int tooManyGoods = colony.getGoodsCount(foodType);</span>
+<span class="nc" id="L194">        assertFalse(&quot;Can not add too many goods&quot;,</span>
+<span class="nc" id="L195">            wagonTrain.add(new Goods(game, null, foodType, tooManyGoods)));</span>
+<span class="nc" id="L196">        assertEquals(&quot;Unit should not carry anything&quot;, 0,</span>
+<span class="nc" id="L197">                     wagonTrain.getGoodsSpaceTaken());</span>
+<span class="nc" id="L198">        assertEquals(&quot;Unit moves should not have been modified&quot;,</span>
+<span class="nc" id="L199">                     wagonTrain.getInitialMovesLeft(),</span>
+<span class="nc" id="L200">                     wagonTrain.getMovesLeft());</span>
+<span class="nc" id="L201">    }</span>
+
+    public void testMissionary() {
+<span class="nc" id="L204">        Game game = getStandardGame();</span>
+<span class="nc" id="L205">        Map map = getTestMap(plains, true);</span>
+<span class="nc" id="L206">        game.setMap(map);</span>
+<span class="nc" id="L207">        Player sioux = game.getPlayerByNationId(&quot;model.nation.sioux&quot;);</span>
+<span class="nc" id="L208">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L209">        Tile tile = map.getTile(6, 9);</span>
+
+<span class="nc" id="L211">        Colony colony = getStandardColony(3);</span>
+<span class="nc" id="L212">        Building church = colony.getBuilding(churchType);</span>
+<span class="nc" id="L213">        church.upgrade();</span>
+<span class="nc" id="L214">        Unit jesuit = new ServerUnit(game, tile, dutch, jesuitMissionaryType);</span>
+<span class="nc" id="L215">        Unit colonist = new ServerUnit(game, colony, dutch, colonistType);</span>
+
+        // check abilities
+<span class="nc" id="L218">        assertFalse(colonist.hasAbility(Ability.ESTABLISH_MISSION));</span>
+<span class="nc" id="L219">        colonist.setRole(missionaryRole);</span>
+<span class="nc" id="L220">        assertTrue(colonist.hasAbility(Ability.ESTABLISH_MISSION));</span>
+
+<span class="nc" id="L222">        assertEquals(missionaryRole, jesuit.getRole());</span>
+<span class="nc" id="L223">        assertTrue(jesuit.hasAbility(Ability.ESTABLISH_MISSION));</span>
+
+        // check mission creation
+<span class="nc" id="L226">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="nc" id="L227">            = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="nc" id="L228">        IndianSettlement s = builder.player(sioux).settlementTile(tile)</span>
+<span class="nc" id="L229">            .capital(true).build();</span>
+<span class="nc" id="L230">        s.setContacted(dutch);</span>
+
+        // add the missionary
+<span class="nc" id="L233">        s.setMissionary(jesuit);</span>
+<span class="nc" id="L234">        assertTrue(&quot;No missionary set&quot;, s.hasMissionary());</span>
+<span class="nc" id="L235">        assertEquals(&quot;Wrong missionary set&quot;, s.getMissionary(), jesuit);</span>
+<span class="nc" id="L236">        s.setMissionary(null);</span>
+<span class="nc" id="L237">        assertFalse(&quot;Missionary not removed&quot;, s.hasMissionary());</span>
+<span class="nc" id="L238">    }</span>
+
+    public void testGetLineOfSight() {
+<span class="nc" id="L241">        final Game game = getStandardGame();</span>
+<span class="nc" id="L242">        final Map map = getTestMap(plains, true);</span>
+<span class="nc" id="L243">        game.setMap(map);</span>
+
+<span class="nc" id="L245">        Player player = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L246">        Tile tile = map.getTile(6, 9);</span>
+<span class="nc" id="L247">        Unit frigate = new ServerUnit(game, tile, player, frigateType);</span>
+
+<span class="nc" id="L249">        assertEquals(2, frigate.getLineOfSight());</span>
+<span class="nc" id="L250">        assertTrue(frigate.hasAbility(Ability.NAVAL_UNIT));</span>
+
+<span class="nc" id="L252">        Unit revenger = new ServerUnit(game, tile, player, revengerType);</span>
+<span class="nc" id="L253">        assertEquals(3, revenger.getLineOfSight());</span>
+
+<span class="nc" id="L255">        Unit colonist = new ServerUnit(game, tile, player, colonistType);</span>
+<span class="nc" id="L256">        assertEquals(1, colonist.getLineOfSight());</span>
+<span class="nc" id="L257">        assertTrue(colonist.hasAbility(Ability.CAN_BE_EQUIPPED));</span>
+
+<span class="nc" id="L259">        colonist.changeRole(scoutRole, 1);</span>
+<span class="nc" id="L260">        assertEquals(2, colonist.getLineOfSight());</span>
+
+        // with Hernando De Soto, land units should see further
+<span class="nc" id="L263">        FoundingFather father</span>
+<span class="nc" id="L264">            = spec().getFoundingFather(&quot;model.foundingFather.hernandoDeSoto&quot;);</span>
+<span class="nc" id="L265">        player.addFather(father);</span>
+
+<span class="nc" id="L267">        assertEquals(2, frigate.getLineOfSight());  // should not increase</span>
+<span class="nc" id="L268">        assertEquals(4, revenger.getLineOfSight()); // should get +1 bonus</span>
+<span class="nc" id="L269">        assertEquals(3, colonist.getLineOfSight()); // should get +1 bonus</span>
+<span class="nc" id="L270">    }</span>
+
+    public void testUnitCanBuildColony() {
+<span class="nc" id="L273">        Game game = getStandardGame();</span>
+<span class="nc" id="L274">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L275">        Player sioux = game.getPlayerByNationId(&quot;model.nation.sioux&quot;);</span>
+
+<span class="nc" id="L277">        Map map = getTestMap(plains, true);</span>
+<span class="nc" id="L278">        game.setMap(map);</span>
+<span class="nc" id="L279">        Tile tile1 = map.getTile(10, 4);</span>
+
+<span class="nc" id="L281">        Unit farmer = new ServerUnit(game, tile1, dutch, expertFarmerType);</span>
+<span class="nc" id="L282">        assertTrue(farmer.canBuildColony());</span>
+
+<span class="nc" id="L284">        Unit arty = new ServerUnit(game, tile1, dutch, artilleryType);</span>
+<span class="nc" id="L285">        assertFalse(arty.canBuildColony());</span>
+
+<span class="nc" id="L287">        Unit ship = new ServerUnit(game, tile1, dutch, galleonType);</span>
+<span class="nc" id="L288">        assertFalse(ship.canBuildColony());</span>
+
+<span class="nc" id="L290">        Unit treasure = new ServerUnit(game, tile1, dutch, treasureTrainType);</span>
+<span class="nc" id="L291">        assertFalse(treasure.canBuildColony());</span>
+
+<span class="nc" id="L293">        Unit wagon = new ServerUnit(game, tile1, dutch, wagonType);</span>
+<span class="nc" id="L294">        assertFalse(wagon.canBuildColony());</span>
+
+<span class="nc" id="L296">        Unit indianConvert = new ServerUnit(game, tile1, dutch,</span>
+<span class="nc" id="L297">                                            indianConvertType);</span>
+<span class="nc" id="L298">        assertFalse(indianConvert.canBuildColony());</span>
+
+<span class="nc" id="L300">        Unit brave = new ServerUnit(game, tile1, sioux, braveType);</span>
+<span class="nc" id="L301">        assertTrue(brave.canBuildColony());</span>
+<span class="nc" id="L302">    }</span>
+
+    public void testIndianDies() {
+<span class="nc" id="L305">        Game game = getStandardGame();</span>
+<span class="nc" id="L306">        Map map = getTestMap();</span>
+<span class="nc" id="L307">        game.setMap(map);</span>
+
+<span class="nc" id="L309">        Player indianPlayer = game.getPlayerByNationId(&quot;model.nation.sioux&quot;);</span>
+<span class="nc" id="L310">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="nc" id="L311">            = new FreeColTestCase.IndianSettlementBuilder(game)</span>
+<span class="nc" id="L312">            .player(indianPlayer);</span>
+<span class="nc" id="L313">        IndianSettlement camp = builder.build();</span>
+<span class="nc" id="L314">        assertEquals(&quot;Indian player owns the camp&quot;, indianPlayer,</span>
+<span class="nc" id="L315">                     camp.getOwner());</span>
+
+<span class="nc" id="L317">        Unit brave = new ServerUnit(game, camp, indianPlayer, braveType);</span>
+<span class="nc" id="L318">        camp.addOwnedUnit(brave);</span>
+
+<span class="nc" id="L320">        assertEquals(&quot;Brave should have been added to camp&quot;, 2,</span>
+<span class="nc" id="L321">                     camp.getUnitCount());</span>
+<span class="nc" id="L322">        assertTrue(&quot;Brave should be on player unit list&quot;,</span>
+<span class="nc" id="L323">                   indianPlayer.hasUnit(brave));</span>
+
+        // unit dies
+<span class="nc" id="L326">        brave.dispose();</span>
+<span class="nc" id="L327">        assertTrue(&quot;Brave was not disposed properly&quot;,</span>
+<span class="nc" id="L328">                   brave.isDisposed());</span>
+<span class="nc" id="L329">        assertEquals(&quot;Brave was not removed from camp&quot;, 1,</span>
+<span class="nc" id="L330">                     camp.getUnitCount());</span>
+<span class="nc" id="L331">        assertFalse(&quot;Brave was not removed from player unit list&quot;,</span>
+<span class="nc" id="L332">                    indianPlayer.hasUnit(brave));</span>
+<span class="nc" id="L333">    }</span>
+
+
+    public void testUnitAvailability() {
+<span class="nc" id="L337">        Game game = getStandardGame();</span>
+<span class="nc" id="L338">        Player indian = game.getPlayerByNationId(&quot;model.nation.sioux&quot;);</span>
+<span class="nc" id="L339">        Player european = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L340">        Player king = game.getPlayerByNationId(&quot;model.nation.dutchREF&quot;);</span>
+
+<span class="nc" id="L342">        assertTrue(kingsRegularType.isAvailableTo(king));</span>
+<span class="nc" id="L343">        assertFalse(kingsRegularType.isAvailableTo(indian));</span>
+<span class="nc" id="L344">        assertFalse(kingsRegularType.isAvailableTo(european));</span>
+
+<span class="nc" id="L346">        assertFalse(colonialRegularType.isAvailableTo(king));</span>
+<span class="nc" id="L347">        assertFalse(colonialRegularType.isAvailableTo(indian));</span>
+<span class="nc" id="L348">        assertFalse(colonialRegularType.isAvailableTo(european));</span>
+
+<span class="nc" id="L350">        assertFalse(braveType.isAvailableTo(king));</span>
+<span class="nc" id="L351">        assertTrue(braveType.isAvailableTo(indian));</span>
+<span class="nc" id="L352">        assertFalse(braveType.isAvailableTo(european));</span>
+
+<span class="nc" id="L354">        assertFalse(undeadType.isAvailableTo(king));</span>
+<span class="nc" id="L355">        assertFalse(undeadType.isAvailableTo(indian));</span>
+<span class="nc" id="L356">        assertFalse(undeadType.isAvailableTo(european));</span>
+
+<span class="nc" id="L358">        european.addAbility(new Ability(Ability.INDEPENDENCE_DECLARED));</span>
+<span class="nc" id="L359">        assertTrue(colonialRegularType.isAvailableTo(european));</span>
+<span class="nc" id="L360">    }</span>
+
+    public void testUnitLocationAfterBuildingColony() {
+<span class="nc" id="L363">        Game game = getStandardGame();</span>
+<span class="nc" id="L364">        Map map = getTestMap();</span>
+<span class="nc" id="L365">        game.setMap(map);</span>
+<span class="nc" id="L366">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+
+<span class="nc" id="L368">        Tile colonyTile = map.getTile(6, 8);</span>
+
+<span class="nc" id="L370">        Unit soldier = new ServerUnit(game, colonyTile, dutch,</span>
+<span class="nc" id="L371">                                      veteranSoldierType);</span>
+<span class="nc" id="L372">        assertEquals(&quot;Soldier location should be the colony tile&quot;, colonyTile,</span>
+<span class="nc" id="L373">                     soldier.getLocation());</span>
+<span class="nc" id="L374">        assertEquals(&quot;Soldier tile should be the colony tile&quot;, colonyTile,</span>
+<span class="nc" id="L375">                     soldier.getTile());</span>
+
+<span class="nc" id="L377">        boolean found = false;</span>
+<span class="nc bnc" id="L378" title="All 2 branches missed.">        for (Unit u : colonyTile.getUnitList()) {</span>
+<span class="nc bnc" id="L379" title="All 2 branches missed.">            if (u == soldier) found = true;</span>
+        }
+<span class="nc" id="L381">        assertTrue(&quot;Unit not found in tile&quot;, found);</span>
+
+<span class="nc" id="L383">        Colony colony = new ServerColony(game, dutch, &quot;New Amsterdam&quot;,</span>
+<span class="nc" id="L384">                                         colonyTile);</span>
+<span class="nc" id="L385">        dutch.addSettlement(colony);</span>
+<span class="nc" id="L386">        nonServerBuildColony(soldier, colony);</span>
+
+<span class="nc" id="L388">        assertTrue(&quot;Soldier should be inside the colony&quot;,</span>
+<span class="nc" id="L389">                   soldier.isInColony());</span>
+<span class="nc" id="L390">        assertEquals(&quot;Soldier tile should be the colony tile&quot;, colonyTile,</span>
+<span class="nc" id="L391">                     soldier.getTile());</span>
+<span class="nc bnc" id="L392" title="All 2 branches missed.">        for (Unit u : colonyTile.getUnitList()) {</span>
+<span class="nc bnc" id="L393" title="All 2 branches missed.">            if (u == soldier) fail(&quot;Unit building colony still in tile&quot;);</span>
+        }
+
+<span class="nc" id="L396">        found = false;</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">        for (WorkLocation loc : colony.getCurrentWorkLocations()) {</span>
+<span class="nc" id="L398">            found |= loc.getUnitList().contains(soldier);</span>
+        }
+<span class="nc" id="L400">        assertTrue(&quot;Soldier should be in a work location in the colony&quot;,</span>
+<span class="nc" id="L401">                   found);</span>
+<span class="nc" id="L402">        WorkLocation wl = soldier.getWorkLocation();</span>
+<span class="nc" id="L403">        assertNotNull(&quot;Soldier should be in a work location in the colony&quot;, wl);</span>
+<span class="nc" id="L404">        assertFalse(&quot;Soldier should not be working in central tile&quot;,</span>
+<span class="nc bnc" id="L405" title="All 2 branches missed.">                    colony.getColonyTile(colonyTile) == wl);</span>
+<span class="nc" id="L406">    }</span>
+
+    public void testUnitLosesExperienceWithRoleChange() {
+<span class="nc" id="L409">        Game game = getStandardGame();</span>
+<span class="nc" id="L410">        Map map = getTestMap();</span>
+<span class="nc" id="L411">        game.setMap(map);</span>
+
+<span class="nc" id="L413">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+
+<span class="nc" id="L415">        Unit colonist = new ServerUnit(game, map.getTile(6, 8), dutch,</span>
+<span class="nc" id="L416">                                       colonistType);</span>
+<span class="nc" id="L417">        colonist.modifyExperience(10);</span>
+<span class="nc" id="L418">        assertEquals(spec().getDefaultRole(), colonist.getRole());</span>
+<span class="nc" id="L419">        assertTrue(&quot;Colonist should some initial experience&quot;,</span>
+<span class="nc bnc" id="L420" title="All 2 branches missed.">                   colonist.getExperience() &gt; 0);</span>
+
+<span class="nc" id="L422">        colonist.changeRole(soldierRole, 1);</span>
+<span class="nc" id="L423">        assertEquals(&quot;Colonist should have lost all experience&quot;, 0,</span>
+<span class="nc" id="L424">                     colonist.getExperience());</span>
+
+<span class="nc" id="L426">        colonist.modifyExperience(10);</span>
+<span class="nc" id="L427">        colonist.changeRole(dragoonRole, 1);</span>
+<span class="nc" id="L428">        assertTrue(&quot;Colonist should not have lost experience, compatible role&quot;,</span>
+<span class="nc bnc" id="L429" title="All 2 branches missed.">                   colonist.getExperience() &gt; 0);</span>
+<span class="nc" id="L430">    }</span>
+
+    public void testOwnerChange(){
+<span class="nc" id="L433">        Game game = getStandardGame();</span>
+<span class="nc" id="L434">        Map map = getTestMap();</span>
+<span class="nc" id="L435">        game.setMap(map);</span>
+
+<span class="nc" id="L437">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L438">        Player french = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+
+<span class="nc" id="L440">        Unit colonist = new ServerUnit(game, map.getTile(6, 8), dutch,</span>
+<span class="nc" id="L441">                                       colonistType);</span>
+<span class="nc" id="L442">        assertEquals(&quot;Colonist should be dutch&quot;, dutch,</span>
+<span class="nc" id="L443">                     colonist.getOwner());</span>
+<span class="nc" id="L444">        assertEquals(&quot;Dutch player should have 1 unit&quot;, 1,</span>
+<span class="nc" id="L445">                     dutch.getUnits().size());</span>
+<span class="nc" id="L446">        assertEquals(&quot;French player should have no units&quot;, 0,</span>
+<span class="nc" id="L447">                     french.getUnits().size());</span>
+
+        // change owner
+<span class="nc" id="L450">        colonist.changeOwner(french);</span>
+<span class="nc" id="L451">        assertEquals(&quot;Colonist should be french&quot;, french,</span>
+<span class="nc" id="L452">                     colonist.getOwner());</span>
+<span class="nc" id="L453">        assertEquals(&quot;Dutch player should have no units&quot;, 0,</span>
+<span class="nc" id="L454">                     dutch.getUnits().size());</span>
+<span class="nc" id="L455">        assertEquals(&quot;French player should have 1 unit&quot;, 1,</span>
+<span class="nc" id="L456">                     french.getUnits().size());</span>
+<span class="nc" id="L457">    }</span>
+
+    public void testCarrierOwnerChange(){
+<span class="nc" id="L460">        Game game = getStandardGame();</span>
+<span class="nc" id="L461">        Map map = getTestMap(ocean);</span>
+<span class="nc" id="L462">        game.setMap(map);</span>
+
+<span class="nc" id="L464">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L465">        Player french = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+
+<span class="nc" id="L467">        Unit galleon = new ServerUnit(game, map.getTile(6, 8), dutch,</span>
+<span class="nc" id="L468">                                      galleonType);</span>
+<span class="nc" id="L469">        assertEquals(&quot;Galleon should be empty&quot;, 0,</span>
+<span class="nc" id="L470">                     galleon.getUnitSpaceTaken());</span>
+<span class="nc" id="L471">        assertTrue(&quot;Galleon should be able to carry units&quot;,</span>
+<span class="nc" id="L472">                   galleon.canCarryUnits());</span>
+
+<span class="nc" id="L474">        Unit colonist = new ServerUnit(game, galleon, dutch, colonistType);</span>
+<span class="nc" id="L475">        assertEquals(&quot;Colonist should be aboard the galleon&quot;, galleon,</span>
+<span class="nc" id="L476">                     colonist.getLocation());</span>
+<span class="nc" id="L477">        assertEquals(&quot;Galleon is carrying wrong number of units&quot;, 1,</span>
+<span class="nc" id="L478">                     galleon.getUnitSpaceTaken());</span>
+
+<span class="nc" id="L480">        assertEquals(&quot;Colonist should be dutch&quot;, dutch,</span>
+<span class="nc" id="L481">                     galleon.getOwner());</span>
+<span class="nc" id="L482">        assertEquals(&quot;Colonist should be dutch&quot;, dutch,</span>
+<span class="nc" id="L483">                     colonist.getOwner());</span>
+<span class="nc" id="L484">        assertEquals(&quot;Dutch player should have 2 units&quot;, 2,</span>
+<span class="nc" id="L485">                     dutch.getUnits().size());</span>
+<span class="nc" id="L486">        assertEquals(&quot;French player should have no units&quot;, 0,</span>
+<span class="nc" id="L487">                     french.getUnits().size());</span>
+
+        // change carrier owner
+<span class="nc" id="L490">        galleon.changeOwner(french);</span>
+<span class="nc" id="L491">        assertEquals(&quot;Galleon should be french&quot;, french,</span>
+<span class="nc" id="L492">                     galleon.getOwner());</span>
+<span class="nc" id="L493">        assertEquals(&quot;Colonist should be french&quot;, french,</span>
+<span class="nc" id="L494">                     colonist.getOwner());</span>
+<span class="nc" id="L495">        assertEquals(&quot;Dutch player should have no units&quot;, 0,</span>
+<span class="nc" id="L496">                     dutch.getUnits().size());</span>
+<span class="nc" id="L497">        assertEquals(&quot;French player should have 2 units&quot;, 2,</span>
+<span class="nc" id="L498">                     french.getUnits().size());</span>
+<span class="nc" id="L499">    }</span>
+
+
+    public void testGetMovesAsString() {
+<span class="nc" id="L503">        Game game = getStandardGame();</span>
+<span class="nc" id="L504">        Map map = getTestMap();</span>
+<span class="nc" id="L505">        game.setMap(map);</span>
+
+<span class="nc" id="L507">        Colony colony = getStandardColony(1);</span>
+<span class="nc" id="L508">        Unit unit = colony.getUnitList().get(0);</span>
+<span class="nc" id="L509">        String initial = &quot;/&quot; + Integer.toString(unit.getInitialMovesLeft()/3);</span>
+
+<span class="nc" id="L511">        String[] expected = new String[] {</span>
+<span class="nc" id="L512">            &quot;0&quot;, &quot;(1/3) &quot;, &quot;(2/3) &quot;, &quot;1&quot;, &quot;1(1/3) &quot;, &quot;1(2/3) &quot;,</span>
+<span class="nc" id="L513">            &quot;2&quot;, &quot;2(1/3) &quot;, &quot;2(2/3) &quot;, &quot;3&quot;, &quot;3(1/3) &quot;, &quot;3(2/3) &quot;</span>
+        };
+
+<span class="nc bnc" id="L516" title="All 2 branches missed.">        for (int index = 0; index &lt; expected.length; index++) {</span>
+<span class="nc" id="L517">            unit.setMovesLeft(index);</span>
+<span class="nc" id="L518">            String expectedString = expected[index] + initial;</span>
+<span class="nc" id="L519">            String actualString = unit.getMovesAsString();</span>
+<span class="nc" id="L520">            assertTrue(expectedString + &quot;!=&quot; + actualString,</span>
+<span class="nc" id="L521">                       expectedString.equals(actualString));</span>
+        }
+<span class="nc" id="L523">    }</span>
+
+    public void testTreasureTransportFee() {
+<span class="nc" id="L526">        Game game = getStandardGame();</span>
+<span class="nc" id="L527">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+
+<span class="nc" id="L529">        Unit treasureTrain = new ServerUnit(game, null, dutch,</span>
+<span class="nc" id="L530">                                            treasureTrainType);</span>
+<span class="nc" id="L531">        treasureTrain.setTreasureAmount(6000);</span>
+
+<span class="nc" id="L533">        spec().applyDifficultyLevel(&quot;model.difficulty.veryEasy&quot;);</span>
+<span class="nc" id="L534">        assertEquals(50 * 60, treasureTrain.getTransportFee());</span>
+<span class="nc" id="L535">        spec().applyDifficultyLevel(&quot;model.difficulty.easy&quot;);</span>
+<span class="nc" id="L536">        assertEquals(55 * 60, treasureTrain.getTransportFee());</span>
+<span class="nc" id="L537">        spec().applyDifficultyLevel(&quot;model.difficulty.medium&quot;);</span>
+<span class="nc" id="L538">        assertEquals(60 * 60, treasureTrain.getTransportFee());</span>
+<span class="nc" id="L539">        spec().applyDifficultyLevel(&quot;model.difficulty.hard&quot;);</span>
+<span class="nc" id="L540">        assertEquals(65 * 60, treasureTrain.getTransportFee());</span>
+<span class="nc" id="L541">        spec().applyDifficultyLevel(&quot;model.difficulty.veryHard&quot;);</span>
+<span class="nc" id="L542">        assertEquals(70 * 60, treasureTrain.getTransportFee());</span>
+
+<span class="nc" id="L544">        dutch.addFather(spec()</span>
+<span class="nc" id="L545">            .getFoundingFather(&quot;model.foundingFather.hernanCortes&quot;));</span>
+
+<span class="nc" id="L547">        spec().applyDifficultyLevel(&quot;model.difficulty.veryEasy&quot;);</span>
+<span class="nc" id="L548">        assertEquals(0, treasureTrain.getTransportFee());</span>
+<span class="nc" id="L549">        spec().applyDifficultyLevel(&quot;model.difficulty.easy&quot;);</span>
+<span class="nc" id="L550">        assertEquals(0, treasureTrain.getTransportFee());</span>
+<span class="nc" id="L551">        spec().applyDifficultyLevel(&quot;model.difficulty.medium&quot;);</span>
+<span class="nc" id="L552">        assertEquals(0, treasureTrain.getTransportFee());</span>
+<span class="nc" id="L553">        spec().applyDifficultyLevel(&quot;model.difficulty.hard&quot;);</span>
+<span class="nc" id="L554">        assertEquals(0, treasureTrain.getTransportFee());</span>
+<span class="nc" id="L555">        spec().applyDifficultyLevel(&quot;model.difficulty.veryHard&quot;);</span>
+<span class="nc" id="L556">        assertEquals(0, treasureTrain.getTransportFee());</span>
+<span class="nc" id="L557">    }</span>
+
+
+    public void testCopy() {
+<span class="nc" id="L561">        Game game = getStandardGame();</span>
+<span class="nc" id="L562">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L563">        Map map = getTestMap(plains, true);</span>
+<span class="nc" id="L564">        game.setMap(map);</span>
+
+<span class="nc" id="L566">        Tile tile1 = map.getTile(6, 8);</span>
+<span class="nc" id="L567">        Tile tile2 = map.getTile(6, 9);</span>
+
+<span class="nc" id="L569">        Unit merchantman = new ServerUnit(game, tile1, dutch, merchantmanType);</span>
+<span class="nc" id="L570">        Unit soldier = new ServerUnit(game, merchantman, dutch, veteranSoldierType);</span>
+<span class="nc" id="L571">        Goods goods = new Goods(game, merchantman, cottonType, 44);</span>
+<span class="nc" id="L572">        merchantman.add(goods);</span>
+        
+<span class="nc" id="L574">        Unit other = merchantman.copy(game, merchantman.getClass());</span>
+
+<span class="nc bnc" id="L576" title="All 2 branches missed.">        assertFalse(merchantman == other);</span>
+<span class="nc" id="L577">        assertEquals(merchantman.getId(), other.getId());</span>
+<span class="nc" id="L578">        assertEquals(merchantman.getType(), other.getType());</span>
+<span class="nc" id="L579">        assertEquals(1, merchantman.getUnitCount());</span>
+<span class="nc" id="L580">        assertEquals(1, other.getUnitCount());</span>
+<span class="nc" id="L581">        assertEquals(44, merchantman.getGoodsCount(cottonType));</span>
+<span class="nc" id="L582">        assertEquals(44, other.getGoodsCount(cottonType));</span>
+<span class="nc" id="L583">        assertEquals(1, merchantman.getUnitCount());</span>
+<span class="nc" id="L584">        assertEquals(1, other.getUnitCount());</span>
+<span class="nc bnc" id="L585" title="All 2 branches missed.">        assertFalse(merchantman.getUnitList().get(0)</span>
+<span class="nc" id="L586">                    == other.getUnitList().get(0));</span>
+<span class="nc" id="L587">        assertEquals(merchantman.getUnitList().get(0).getId(),</span>
+<span class="nc" id="L588">            other.getUnitList().get(0).getId());</span>
+<span class="nc" id="L589">    }</span>
+    
+    public void testDefaultRole() {
+<span class="nc bnc" id="L592" title="All 2 branches missed.">        for (UnitType type : spec().getUnitTypeList()) {</span>
+<span class="nc" id="L593">            assertNotNull(type.getDefaultRole());</span>
+        }
+<span class="nc" id="L595">    }</span>
+
+    public void testAttrition() {
+<span class="nc bnc" id="L598" title="All 2 branches missed.">        for (UnitType type : spec().getUnitTypeList()) {</span>
+<span class="nc bnc" id="L599" title="All 2 branches missed.">            if (type == indianConvertType) {</span>
+<span class="nc" id="L600">                assertTrue(type.hasMaximumAttrition());</span>
+<span class="nc" id="L601">            } else {</span>
+<span class="nc" id="L602">                assertFalse(type.hasMaximumAttrition());</span>
+            }
+        }
+<span class="nc" id="L605">    }        </span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>REFTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai</a> &gt; <span class="el_source">REFTest.java</span></div><h1>REFTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai;
+
+import java.util.List;
+
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.AbstractUnit;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.server.control.InGameController;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L35">public class REFTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L37">    private static final UnitType artilleryType</span>
+<span class="nc" id="L38">        = spec().getUnitType(&quot;model.unit.artillery&quot;);</span>
+<span class="nc" id="L39">    private static final UnitType soldierType</span>
+<span class="nc" id="L40">        = spec().getUnitType(&quot;model.unit.kingsRegular&quot;);</span>
+
+
+    @Override
+    public void tearDown() throws Exception {
+<span class="nc" id="L45">        ServerTestHelper.stopServerGame();</span>
+<span class="nc" id="L46">        super.tearDown();</span>
+<span class="nc" id="L47">    }</span>
+
+
+    public void testCreateREFPlayer() {
+<span class="nc" id="L51">        Game game = ServerTestHelper.startServerGame(getTestMap());</span>
+<span class="nc" id="L52">        InGameController igc = ServerTestHelper.getInGameController();</span>
+
+        // Create player
+<span class="nc" id="L55">        ServerPlayer player1 = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L56">        List&lt;AbstractUnit&gt; refUnitsBeforeIndependence = player1.getMonarch()</span>
+<span class="nc" id="L57">            .getExpeditionaryForce().getUnits();</span>
+<span class="nc" id="L58">        int soldiersBeforeIndependence = 0;</span>
+<span class="nc" id="L59">        int dragoonsBeforeIndependence = 0;</span>
+<span class="nc" id="L60">        int artilleryBeforeIndependence = 0;</span>
+<span class="nc" id="L61">        int shipsBeforeIndependence = 0;</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        for (AbstractUnit au : refUnitsBeforeIndependence) {</span>
+<span class="nc" id="L63">            UnitType unitType = spec().getUnitType(au.getId());</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">            if (unitType.hasAbility(Ability.NAVAL_UNIT)) {</span>
+<span class="nc" id="L65">                shipsBeforeIndependence += au.getNumber();</span>
+<span class="nc" id="L66">                continue;</span>
+            }
+<span class="nc bnc" id="L68" title="All 2 branches missed.">            if (unitType == artilleryType) {</span>
+<span class="nc" id="L69">                artilleryBeforeIndependence += au.getNumber();</span>
+<span class="nc" id="L70">                continue;</span>
+            }
+<span class="nc bnc" id="L72" title="All 2 branches missed.">            if (unitType == soldierType) {</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">                if (&quot;model.role.infantry&quot;.equals(au.getRoleId())) {</span>
+<span class="nc" id="L74">                    soldiersBeforeIndependence += au.getNumber();</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">                } else if (&quot;model.role.cavalry&quot;.equals(au.getRoleId())) {</span>
+<span class="nc" id="L76">                    dragoonsBeforeIndependence += au.getNumber();</span>
+<span class="nc" id="L77">                } else {</span>
+<span class="nc" id="L78">                    fail(&quot;Unknown REF role for &quot; + unitType.getId()</span>
+<span class="nc" id="L79">                        + &quot;: &quot; + au.getRoleId());</span>
+                }
+<span class="nc" id="L81">                continue;</span>
+            }
+<span class="nc" id="L83">            fail(&quot;Unknown REF unit: &quot; + au);</span>
+        }
+
+<span class="nc" id="L86">        ServerPlayer refPlayer = igc.createREFPlayer(player1);</span>
+
+<span class="nc" id="L88">        assertNotNull(&quot;REF player is null&quot;, refPlayer);</span>
+<span class="nc" id="L89">        assertNotNull(&quot;Player ref is null&quot;, player1.getREFPlayer());</span>
+<span class="nc" id="L90">        assertEquals(&quot;REF player should be player1 ref&quot;, refPlayer,</span>
+<span class="nc" id="L91">            player1.getREFPlayer());</span>
+
+        // Execute
+<span class="nc" id="L94">        List&lt;Unit&gt; refUnitsAfterIndependence = refPlayer.getUnits();</span>
+
+        // Get results
+<span class="nc" id="L97">        int soldiersAfterIndependence = 0;</span>
+<span class="nc" id="L98">        int dragoonsAfterIndependence = 0;</span>
+<span class="nc" id="L99">        int artilleryAfterIndependence = 0;</span>
+<span class="nc" id="L100">        int shipsAfterIndependence = 0;</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        for (Unit unit : refUnitsAfterIndependence) {</span>
+<span class="nc" id="L102">            UnitType unitType = unit.getType();</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">            if (unitType.hasAbility(Ability.NAVAL_UNIT)) {</span>
+<span class="nc" id="L104">                shipsAfterIndependence++;</span>
+<span class="nc" id="L105">                continue;</span>
+            }
+<span class="nc bnc" id="L107" title="All 2 branches missed.">            if (unitType == artilleryType) {</span>
+<span class="nc" id="L108">                artilleryAfterIndependence++;</span>
+<span class="nc" id="L109">                continue;</span>
+            }
+<span class="nc bnc" id="L111" title="All 2 branches missed.">            if (unitType == soldierType) {</span>
+<span class="nc bnc" id="L112" title="All 4 branches missed.">                if (unit.isArmed() &amp;&amp; !unit.isMounted()) {</span>
+<span class="nc" id="L113">                    soldiersAfterIndependence++;</span>
+<span class="nc bnc" id="L114" title="All 4 branches missed.">                } else if (unit.isArmed() &amp;&amp; unit.isMounted()) {</span>
+<span class="nc" id="L115">                    dragoonsAfterIndependence++;</span>
+<span class="nc" id="L116">                } else {</span>
+<span class="nc" id="L117">                    fail(&quot;Unknown REF role: &quot; + unit.getRole());</span>
+                }
+<span class="nc" id="L119">                continue;</span>
+            }
+<span class="nc" id="L121">            fail(&quot;Unknown REF unit: &quot; +  unit.toString());</span>
+        }
+
+        // Verify results
+<span class="nc" id="L125">        assertEquals(&quot;Wrong number of ships&quot;, shipsBeforeIndependence,</span>
+<span class="nc" id="L126">                     shipsAfterIndependence);</span>
+<span class="nc" id="L127">        assertEquals(&quot;Wrong number of artillery&quot;, artilleryBeforeIndependence,</span>
+<span class="nc" id="L128">                     artilleryAfterIndependence);</span>
+<span class="nc" id="L129">        assertEquals(&quot;Wrong number of soldiers&quot;, soldiersBeforeIndependence,</span>
+<span class="nc" id="L130">                     soldiersAfterIndependence);</span>
+<span class="nc" id="L131">        assertEquals(&quot;Wrong number of dragoons&quot;, dragoonsBeforeIndependence,</span>
+<span class="nc" id="L132">                     dragoonsAfterIndependence);</span>
+<span class="nc" id="L133">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

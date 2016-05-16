@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>UtilsTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.utils</a> &gt; <span class="el_source">UtilsTest.java</span></div><h1>UtilsTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.utils;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import net.sf.freecol.common.util.CollectionUtils;
+
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L31">public class UtilsTest extends FreeColTestCase {</span>
+
+    private List&lt;Integer&gt; makeList(int... args) {
+<span class="nc" id="L34">        List&lt;Integer&gt; l = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L35" title="All 2 branches missed.">        for (int a : args) l.add(a);</span>
+<span class="nc" id="L36">        return l;</span>
+    }
+
+    public void testGetPermutations() {
+<span class="nc" id="L40">        List&lt;Integer&gt; l = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L41">        l.add(1);</span>
+<span class="nc" id="L42">        l.add(2);</span>
+<span class="nc" id="L43">        l.add(3);</span>
+<span class="nc" id="L44">        List&lt;List&lt;Integer&gt;&gt; p = new ArrayList&lt;&gt;();</span>
+        try {
+<span class="nc bnc" id="L46" title="All 2 branches missed.">            for (List&lt;Integer&gt; li : CollectionUtils.getPermutations(l)) p.add(li);</span>
+<span class="nc" id="L47">        } catch (Exception e) {</span>
+<span class="nc" id="L48">            fail();</span>
+        }
+<span class="nc" id="L50">        assertEquals(p.size(), 6);</span>
+<span class="nc" id="L51">        assertEquals(p.get(0), makeList(1,2,3));</span>
+<span class="nc" id="L52">        assertEquals(p.get(1), makeList(1,3,2));</span>
+<span class="nc" id="L53">        assertEquals(p.get(2), makeList(2,1,3));</span>
+<span class="nc" id="L54">        assertEquals(p.get(3), makeList(2,3,1));</span>
+<span class="nc" id="L55">        assertEquals(p.get(4), makeList(3,1,2));</span>
+<span class="nc" id="L56">        assertEquals(p.get(5), makeList(3,2,1));</span>
+<span class="nc" id="L57">    }</span>
+
+    public void testComparator() {
+        // This is more to prove that I know what I am doing with some
+        // trivial comparators than to actually test the code:-), MTP.
+<span class="nc" id="L62">        List&lt;Double&gt; d = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L63">        d.add(1.0);</span>
+<span class="nc" id="L64">        d.add(2.0);</span>
+<span class="nc" id="L65">        d.add(3.0);</span>
+<span class="nc" id="L66">        Collections.sort(d, CollectionUtils.descendingDoubleComparator);</span>
+<span class="nc" id="L67">        assertEquals(d.get(0), 3.0);</span>
+<span class="nc" id="L68">        Collections.sort(d, CollectionUtils.ascendingDoubleComparator);</span>
+<span class="nc" id="L69">        assertEquals(d.get(0), 1.0);</span>
+        
+<span class="nc" id="L71">        List&lt;List&lt;Object&gt;&gt; o = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L72">        List&lt;Object&gt; o1 = new ArrayList&lt;Object&gt;();</span>
+<span class="nc" id="L73">        List&lt;Object&gt; o2 = new ArrayList&lt;Object&gt;();</span>
+<span class="nc" id="L74">        List&lt;Object&gt; o3 = new ArrayList&lt;Object&gt;();</span>
+<span class="nc" id="L75">        o.add(o1);</span>
+<span class="nc" id="L76">        o.add(o2);</span>
+<span class="nc" id="L77">        o.add(o3);</span>
+<span class="nc" id="L78">        o1.add(1);</span>
+<span class="nc" id="L79">        o2.add(1);o2.add(2);</span>
+<span class="nc" id="L80">        o3.add(1);o3.add(2);o3.add(3);</span>
+<span class="nc" id="L81">        Collections.sort(o, CollectionUtils.descendingListLengthComparator);</span>
+<span class="nc" id="L82">        assertEquals(o.get(0), o3);</span>
+<span class="nc" id="L83">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

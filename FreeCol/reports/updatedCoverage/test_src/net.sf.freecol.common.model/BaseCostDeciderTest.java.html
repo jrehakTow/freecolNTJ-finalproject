@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>BaseCostDeciderTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">BaseCostDeciderTest.java</span></div><h1>BaseCostDeciderTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package net.sf.freecol.common.model;
+
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Stance;
+import net.sf.freecol.common.model.pathfinding.CostDecider;
+import net.sf.freecol.common.model.pathfinding.CostDeciders;
+import net.sf.freecol.common.option.BooleanOption;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+/**
+ * Tests for the {@link BaseCostDecider} class.
+ */
+<span class="nc" id="L33">public class BaseCostDeciderTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L35">    private static final GoodsType tradeGoodsType</span>
+<span class="nc" id="L36">        = spec().getGoodsType(&quot;model.goods.tradeGoods&quot;);</span>
+
+<span class="nc" id="L38">    private static final TileType plainsType</span>
+<span class="nc" id="L39">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+
+<span class="nc" id="L41">    private static final UnitType colonistType</span>
+<span class="nc" id="L42">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="nc" id="L43">    private static final UnitType galleonType</span>
+<span class="nc" id="L44">        = spec().getUnitType(&quot;model.unit.galleon&quot;);</span>
+<span class="nc" id="L45">    private static final UnitType pioneerType</span>
+<span class="nc" id="L46">        = spec().getUnitType(&quot;model.unit.hardyPioneer&quot;);</span>
+    
+    private Game game;
+
+
+    @Override
+    public void setUp() {
+<span class="nc" id="L53">        game = getStandardGame();</span>
+<span class="nc" id="L54">    }</span>
+
+    @Override
+    public void tearDown() {
+<span class="nc" id="L58">        game = null;</span>
+<span class="nc" id="L59">    }</span>
+
+    /**
+     * Checks that the decider returns the right cost for a plain to plain move.
+     */
+    public void testGetCostLandLand() {
+<span class="nc" id="L65">        Map map = getTestMap(plainsType);</span>
+<span class="nc" id="L66">        game.setMap(map);</span>
+    	
+<span class="nc" id="L68">        final CostDecider decider = CostDeciders.avoidSettlements();</span>
+<span class="nc" id="L69">        Tile start = game.getMap().getTile(5, 5);</span>
+<span class="nc" id="L70">        Unit unit = new ServerUnit(game, start, game.getCurrentPlayer(),</span>
+<span class="nc" id="L71">                                   pioneerType);</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        for (Direction dir : Direction.values()) {</span>
+<span class="nc" id="L73">            Tile end = start.getNeighbourOrNull(dir);</span>
+<span class="nc" id="L74">            assertNotNull(end);</span>
+<span class="nc" id="L75">            int cost = decider.getCost(unit, start, game.getMap().getTile(5, 6),</span>
+<span class="nc" id="L76">                                       100);</span>
+<span class="nc" id="L77">            assertEquals(plainsType.getBasicMoveCost(), cost);</span>
+        }
+<span class="nc" id="L79">    }</span>
+
+    /**
+     * Checks that {@link BaseCostDecider#getMovesLeft() } and {@link
+     * BaseCostDecider#isNewTurn() } return the expected values after
+     * a move.
+     */
+    public void testGetRemainingMovesAndNewTurn() {
+<span class="nc" id="L87">        Map map = getTestMap(plainsType);</span>
+<span class="nc" id="L88">        game.setMap(map);</span>
+        
+<span class="nc" id="L90">        final CostDecider decider = CostDeciders.avoidSettlements();</span>
+<span class="nc" id="L91">        Unit unit = new ServerUnit(game, game.getMap().getTile(1, 1),</span>
+<span class="nc" id="L92">                                   game.getCurrentPlayer(), pioneerType);</span>
+<span class="nc" id="L93">        int cost = decider.getCost(unit, game.getMap().getTile(1, 1),</span>
+<span class="nc" id="L94">                                   game.getMap().getTile(2, 2), 4);</span>
+<span class="nc" id="L95">        assertEquals(plainsType.getBasicMoveCost(), cost);</span>
+<span class="nc" id="L96">        assertEquals(4 - plainsType.getBasicMoveCost(), decider.getMovesLeft());</span>
+<span class="nc" id="L97">        assertEquals(0, decider.getNewTurns());</span>
+<span class="nc" id="L98">    }</span>
+    
+    /**
+     * Checks possible move of a land unit to an ocean tile
+     * Verifies that is invalid
+     */
+    public void testInvalidMoveOfLandUnitToAnOceanTile() {
+        // For this test we need a different map
+<span class="nc" id="L106">        Map map = getCoastTestMap(plainsType);</span>
+<span class="nc" id="L107">        game.setMap(map);</span>
+        
+<span class="nc" id="L109">        Tile unitTile = map.getTile(9, 9);</span>
+<span class="nc" id="L110">        assertTrue(&quot;Unit tile should be land&quot;,unitTile.isLand());</span>
+<span class="nc" id="L111">        Unit unit = new ServerUnit(game, unitTile, game.getCurrentPlayer(), pioneerType);</span>
+        
+<span class="nc" id="L113">        Tile seaTile = map.getTile(10, 9);</span>
+<span class="nc" id="L114">        assertFalse(&quot;Tile should be ocean&quot;,seaTile.isLand());</span>
+        
+        // Execute
+<span class="nc" id="L117">        CostDecider decider = CostDeciders.avoidSettlements();</span>
+<span class="nc" id="L118">        int cost = decider.getCost(unit, unitTile, seaTile, 4);</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        assertTrue(&quot;Move should be invalid&quot;, cost == CostDecider.ILLEGAL_MOVE);</span>
+<span class="nc" id="L120">    }</span>
+    
+    /**
+     * Checks possible move of a naval unit to a land tile without settlement
+     * Verifies that is invalid
+     */
+    public void testInvalidMoveOfNavalUnitToALandTile() {
+        // For this test we need a different map
+<span class="nc" id="L128">        Map map = getCoastTestMap(plainsType);</span>
+<span class="nc" id="L129">        game.setMap(map);</span>
+        
+<span class="nc" id="L131">        Tile unitTile = map.getTile(10, 9);</span>
+<span class="nc" id="L132">        assertFalse(&quot;Unit tile should be ocean&quot;, unitTile.isLand());</span>
+
+<span class="nc" id="L134">        Unit unit = new ServerUnit(game, unitTile, game.getCurrentPlayer(),</span>
+<span class="nc" id="L135">                                   galleonType);</span>
+        
+<span class="nc" id="L137">        Tile landTile = map.getTile(9, 9);</span>
+<span class="nc" id="L138">        assertTrue(&quot;Tile should be land&quot;, landTile.isLand());</span>
+        
+        // Execute
+<span class="nc" id="L141">        final CostDecider decider = CostDeciders.avoidSettlements();</span>
+<span class="nc" id="L142">        int cost = decider.getCost(unit, unitTile, landTile, 4);</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">        assertTrue(&quot;Move should be invalid&quot;, cost == CostDecider.ILLEGAL_MOVE);</span>
+<span class="nc" id="L144">    }</span>
+    
+    /**
+     * Checks possible move of a unit through a tile with a settlement
+     * Verifies that is invalid
+     */
+    public void testInvalidMoveThroughTileWithSettlement() {
+<span class="nc" id="L151">        Map map = getTestMap(plainsType);</span>
+<span class="nc" id="L152">        game.setMap(map);</span>
+
+        //Setup
+<span class="nc" id="L155">        Tile settlementTile = map.getTile(2,1);</span>
+<span class="nc" id="L156">        FreeColTestCase.IndianSettlementBuilder builder = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="nc" id="L157">        Settlement settlement = builder.settlementTile(settlementTile).build();</span>
+<span class="nc" id="L158">        settlementTile.setSettlement(settlement);</span>
+<span class="nc" id="L159">        settlementTile.changeOwningSettlement(settlement);</span>
+
+<span class="nc" id="L161">        Tile unitTile = map.getTile(1, 1);</span>
+<span class="nc" id="L162">        Unit unit = new ServerUnit(game, unitTile, game.getCurrentPlayer(), pioneerType);</span>
+        // unit is going somewhere else
+<span class="nc" id="L164">        Tile unitDestination = map.getTile(3, 1);</span>
+<span class="nc" id="L165">        unit.setDestination(unitDestination);</span>
+        
+        // Execute
+<span class="nc" id="L168">        final CostDecider decider = CostDeciders.avoidSettlements();</span>
+<span class="nc" id="L169">        int cost = decider.getCost(unit, unitTile, settlementTile, 4);</span>
+
+<span class="nc" id="L171">        assertEquals(&quot;Move should be invalid&quot;, CostDecider.ILLEGAL_MOVE, cost);</span>
+<span class="nc" id="L172">    }</span>
+        
+    /**
+     * Checks possible move of a naval unit to a tile with a settlement
+     */
+    public void testNavalUnitMoveToTileWithSettlement() {
+        // For this test we need a different map
+<span class="nc" id="L179">        Map map = getCoastTestMap(plainsType);</span>
+<span class="nc" id="L180">        game.setMap(map);</span>
+
+<span class="nc" id="L182">        Tile unitTile = map.getTile(10, 9);</span>
+<span class="nc" id="L183">        assertFalse(&quot;Unit tile should be ocean&quot;,unitTile.isLand());</span>
+
+<span class="nc" id="L185">        Unit galleon = new ServerUnit(game, unitTile, game.getCurrentPlayer(),</span>
+<span class="nc" id="L186">                                      galleonType);</span>
+        
+<span class="nc" id="L188">        Tile settlementTile = map.getTile(9, 9);</span>
+<span class="nc" id="L189">        assertTrue(&quot;Tile should be land&quot;, settlementTile.isLand());</span>
+        
+<span class="nc" id="L191">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="nc" id="L192">            = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="nc" id="L193">        Settlement settlement = builder.settlementTile(settlementTile).build();</span>
+
+        // galleon is trying go to settlement
+<span class="nc" id="L196">        galleon.setDestination(settlementTile);</span>
+        
+<span class="nc" id="L198">        CostDecider base = CostDeciders.avoidIllegal();</span>
+        int cost;
+
+        // Try to find a path
+<span class="nc" id="L202">        cost = base.getCost(galleon, unitTile, settlementTile, 4);</span>
+<span class="nc" id="L203">        assertEquals(&quot;Move should be invalid, no contact or goods to trade&quot;,</span>
+<span class="nc" id="L204">                     CostDecider.ILLEGAL_MOVE, cost);</span>
+
+        // Add contact, but disallow empty traders
+<span class="nc" id="L207">        Player.makeContact(galleon.getOwner(), settlement.getOwner());</span>
+<span class="nc" id="L208">        ((BooleanOption)spec().getOption(GameOptions.EMPTY_TRADERS))</span>
+<span class="nc" id="L209">            .setValue(Boolean.FALSE);</span>
+<span class="nc" id="L210">        cost = base.getCost(galleon, unitTile, settlementTile, 4);</span>
+<span class="nc" id="L211">        assertEquals(&quot;Move should be invalid, no goods to trade&quot;,</span>
+<span class="nc" id="L212">                     CostDecider.ILLEGAL_MOVE, cost);</span>
+
+        // Test empty traders
+<span class="nc" id="L215">        ((BooleanOption)spec().getOption(GameOptions.EMPTY_TRADERS))</span>
+<span class="nc" id="L216">            .setValue(Boolean.TRUE);</span>
+<span class="nc" id="L217">        cost = base.getCost(galleon, unitTile, settlementTile, 4);</span>
+<span class="nc" id="L218">        assertTrue(&quot;Move should be valid, no goods to trade&quot;,</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">                   cost != CostDecider.ILLEGAL_MOVE);</span>
+<span class="nc" id="L220">        ((BooleanOption)spec().getOption(GameOptions.EMPTY_TRADERS))</span>
+<span class="nc" id="L221">            .setValue(Boolean.FALSE);</span>
+
+        // Add goods to trade
+<span class="nc" id="L224">        Goods goods = new Goods(game, null, tradeGoodsType, 50);</span>
+<span class="nc" id="L225">        galleon.add(goods);</span>
+<span class="nc" id="L226">        cost = base.getCost(galleon, unitTile, settlementTile, 4);</span>
+<span class="nc" id="L227">        assertTrue(&quot;Move should be valid, has contact and goods to trade&quot;,</span>
+<span class="nc bnc" id="L228" title="All 2 branches missed.">                   cost != CostDecider.ILLEGAL_MOVE);</span>
+<span class="nc" id="L229">        assertTrue(&quot;Move should consume whole turn&quot;,</span>
+<span class="nc bnc" id="L230" title="All 4 branches missed.">                   base.getMovesLeft() == 0 &amp;&amp; base.getNewTurns() == 0);</span>
+
+        // Try with colonist on galleon
+<span class="nc" id="L233">        Unit colonist = new ServerUnit(game, galleon, game.getCurrentPlayer(),</span>
+<span class="nc" id="L234">                                       colonistType);</span>
+<span class="nc" id="L235">        cost = base.getCost(colonist, unitTile, settlementTile, 4);</span>
+<span class="nc bnc" id="L236" title="All 2 branches missed.">        if (spec().getBoolean(GameOptions.AMPHIBIOUS_MOVES)) {</span>
+<span class="nc" id="L237">            assertFalse(&quot;Move valid, direct from carrier to settlement&quot;,</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">                        cost == CostDecider.ILLEGAL_MOVE);</span>
+<span class="nc" id="L239">        } else {</span>
+<span class="nc" id="L240">            assertTrue(&quot;Move invalid, direct from carrier to settlement&quot;,</span>
+<span class="nc bnc" id="L241" title="All 2 branches missed.">                       cost == CostDecider.ILLEGAL_MOVE);</span>
+        }
+<span class="nc" id="L243">        assertNotNull(&quot;Path should be valid from carrier to settlement&quot;,</span>
+<span class="nc" id="L244">                      map.findPath(colonist, unitTile, settlementTile,</span>
+<span class="nc" id="L245">                                   galleon, base, null));</span>
+
+        // Set players at war
+<span class="nc" id="L248">        Player indianPlayer = settlement.getOwner();</span>
+<span class="nc" id="L249">        indianPlayer.setStance(galleon.getOwner(), Stance.WAR);</span>
+<span class="nc" id="L250">        galleon.getOwner().setStance(indianPlayer, Stance.WAR);</span>
+<span class="nc" id="L251">        cost = base.getCost(galleon, unitTile, settlementTile, 4);</span>
+<span class="nc" id="L252">        assertTrue(&quot;Move should be valid, war should not block gifts&quot;,</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">                   cost != CostDecider.ILLEGAL_MOVE);</span>
+<span class="nc" id="L254">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

@@ -1,0 +1,840 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>FreeColClient.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client</a> &gt; <span class="el_source">FreeColClient.java</span></div><h1>FreeColClient.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client;
+
+import java.awt.Dimension;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.swing.SwingUtilities;
+
+import net.sf.freecol.FreeCol;
+import net.sf.freecol.client.control.ConnectController;
+import net.sf.freecol.client.control.InGameController;
+import net.sf.freecol.client.control.InGameInputHandler;
+import net.sf.freecol.client.control.MapEditorController;
+import net.sf.freecol.client.control.PreGameController;
+import net.sf.freecol.client.control.PreGameInputHandler;
+import net.sf.freecol.client.control.SoundController;
+import net.sf.freecol.client.gui.GUI;
+import net.sf.freecol.client.gui.SwingGUI;
+import net.sf.freecol.client.gui.action.ActionManager;
+import net.sf.freecol.client.networking.UserServerAPI;
+import net.sf.freecol.common.FreeColSeed;
+import net.sf.freecol.common.debug.FreeColDebugger;
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.io.FreeColDataFile;
+import net.sf.freecol.common.io.FreeColDirectories;
+import net.sf.freecol.common.io.FreeColModFile;
+import net.sf.freecol.common.io.FreeColSavegameFile;
+import net.sf.freecol.common.io.FreeColTcFile;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.model.StringTemplate;
+import net.sf.freecol.common.networking.MessageHandler;
+import net.sf.freecol.common.networking.ServerAPI;
+import net.sf.freecol.common.resources.ResourceManager;
+import net.sf.freecol.common.resources.ResourceMapping;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.FreeColServer.GameState;
+
+
+/**
+ * The main control class for the FreeCol client.  This class both
+ * starts and keeps references to the GUI and the control objects.
+ */
+public final class FreeColClient {
+
+<span class="nc" id="L72">    private static final Logger logger = Logger.getLogger(FreeColClient.class.getName());</span>
+
+    private final ConnectController connectController;
+
+    private final PreGameController preGameController;
+
+    private final PreGameInputHandler preGameInputHandler;
+
+    private final InGameController inGameController;
+
+    private final InGameInputHandler inGameInputHandler;
+
+    private final MapEditorController mapEditorController;
+
+    private SoundController soundController;
+
+    /** The server that has been started from the client-GUI. */
+<span class="nc" id="L89">    private FreeColServer freeColServer = null;</span>
+
+    /** Encapsulation of the server API. */
+    private final UserServerAPI userServerAPI;
+
+    /** The GUI encapsulation. */
+    private final GUI gui;
+
+    /** The encapsulation of the actions. */
+    private final ActionManager actionManager;
+
+    /** The game itself. */
+    private Game game;
+
+    /** The player that `owns' this client. */
+    private Player player;
+
+    /** The client options specific to this player. */
+    private ClientOptions clientOptions;
+
+    /** A worker to perform game loading. */
+    private final Worker worker;
+
+    /**
+     * Indicates if the game has started, has nothing to do with
+     * whether or not the client is logged in.
+     */
+<span class="nc" id="L116">    private boolean inGame = false;</span>
+
+    /** Are we using the map editor? */
+    private boolean mapEditor;
+
+    /** Is this a single player game? */
+    private boolean singlePlayer;
+
+    /**
+     * Indicated whether or not there is an open connection to the
+     * server. This is not an indication of the existence of a
+     * Connection Object, but instead it is an indication of an
+     * approved login to a server.
+     */
+<span class="nc" id="L130">    private boolean loggedIn = false;</span>
+
+    /** Run in headless mode. */
+    private final boolean headless;
+
+
+    public FreeColClient(final InputStream splashStream,
+                         final String fontName) {
+<span class="nc" id="L138">        this(splashStream, fontName, FreeCol.GUI_SCALE_DEFAULT, true);</span>
+<span class="nc" id="L139">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;FreeColClient&lt;/code&gt;.  Creates the control
+     * objects.
+     *
+     * @param splashStream A stream to read the splash image from.
+     * @param fontName An optional override of the main font.
+     * @param scale The scale factor for gui elements.
+     * @param headless Run in headless mode.
+     */
+<span class="nc" id="L150">    public FreeColClient(final InputStream splashStream, final String fontName,</span>
+                         final float scale, boolean headless) {
+<span class="nc" id="L152">        mapEditor = false;</span>
+<span class="nc bnc" id="L153" title="All 4 branches missed.">        this.headless = headless || System.getProperty(&quot;java.awt.headless&quot;, &quot;false&quot;).equals(&quot;true&quot;);</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (this.headless) {</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">            if (!FreeColDebugger.isInDebugMode()</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">                || FreeColDebugger.getDebugRunTurns() &lt;= 0) {</span>
+<span class="nc" id="L157">                fatal(Messages.message(&quot;client.headlessDebug&quot;));</span>
+            }
+        }
+
+        // Get the splash screen up early on to show activity.
+<span class="nc bnc" id="L162" title="All 2 branches missed.">        gui = (this.headless) ? new GUI(this, scale)</span>
+<span class="nc" id="L163">                              : new SwingGUI(this, scale);</span>
+<span class="nc" id="L164">        gui.displaySplashScreen(splashStream);</span>
+
+        // Look for base data directory.  Failure is fatal.
+<span class="nc" id="L167">        File baseDirectory = FreeColDirectories.getBaseDirectory();</span>
+<span class="nc" id="L168">        FreeColDataFile baseData = null;</span>
+<span class="nc" id="L169">        String ioeMessage = null;</span>
+<span class="nc bnc" id="L170" title="All 4 branches missed.">        if (baseDirectory.exists() &amp;&amp; baseDirectory.isDirectory()) {</span>
+            try {
+<span class="nc" id="L172">                baseData = new FreeColDataFile(baseDirectory);</span>
+<span class="nc" id="L173">            } catch (IOException ioe) {</span>
+<span class="nc" id="L174">                ioeMessage = ioe.getMessage();</span>
+            }
+        }
+<span class="nc bnc" id="L177" title="All 2 branches missed.">        if (baseData == null) {</span>
+<span class="nc" id="L178">            fatal(Messages.message(StringTemplate.template(&quot;client.baseData&quot;)</span>
+<span class="nc" id="L179">                          .addName(&quot;%dir%&quot;, baseDirectory.getName()))</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">                + ((ioeMessage == null) ? &quot;&quot; : &quot;\n&quot; + ioeMessage));</span>
+        }
+<span class="nc" id="L182">        ResourceManager.setBaseMapping(baseData.getResourceMapping());</span>
+
+        // Once the basic resources are in place construct other things.
+<span class="nc" id="L185">        this.userServerAPI = new UserServerAPI(gui);</span>
+
+        // Control.  Controllers expect GUI to be available.
+<span class="nc" id="L188">        connectController = new ConnectController(this);</span>
+<span class="nc" id="L189">        preGameController = new PreGameController(this);</span>
+<span class="nc" id="L190">        preGameInputHandler = new PreGameInputHandler(this);</span>
+<span class="nc" id="L191">        inGameController = new InGameController(this);</span>
+<span class="nc" id="L192">        inGameInputHandler = new InGameInputHandler(this);</span>
+<span class="nc" id="L193">        mapEditorController = new MapEditorController(this);</span>
+
+<span class="nc" id="L195">        worker = new Worker();</span>
+<span class="nc" id="L196">        worker.start();</span>
+
+        // Load resources.
+        //   - base resources
+        //   - resources in the default &quot;classic&quot; ruleset,
+        //   - resources in the default actions
+        //
+        // FIXME: probably should not need to load &quot;classic&quot;, but there
+        // are a bunch of things in there (e.g. order buttons) that first
+        // need to move to base because the action manager requires them.
+        //
+        // Not so easy, since the ActionManager also creates tile
+        // improvement actions, which depend on the
+        // specification. However, this step could probably be
+        // delayed.
+        try {
+<span class="nc" id="L212">            FreeColTcFile tcData = new FreeColTcFile(&quot;classic&quot;);</span>
+<span class="nc" id="L213">            ResourceManager.setTcMapping(tcData.getResourceMapping());</span>
+<span class="nc" id="L214">        } catch (IOException e) {</span>
+<span class="nc" id="L215">            fatal(Messages.message(&quot;client.classic&quot;) + &quot;\n&quot; + e.getMessage());</span>
+        }
+
+<span class="nc bnc" id="L218" title="All 2 branches missed.">        if (!this.headless) {</span>
+            // Swing system and look-and-feel initialization.
+            try {
+<span class="nc" id="L221">                gui.installLookAndFeel(fontName);</span>
+<span class="nc" id="L222">            } catch (Exception e) {</span>
+<span class="nc" id="L223">                fatal(Messages.message(&quot;client.laf&quot;) + &quot;\n&quot; + e.getMessage());</span>
+            }
+        }
+<span class="nc" id="L226">        actionManager = new ActionManager(this);</span>
+<span class="nc" id="L227">        actionManager.initializeActions(inGameController, connectController);</span>
+<span class="nc" id="L228">    }</span>
+
+    /**
+     * Starts the new &lt;code&gt;FreeColClient&lt;/code&gt;, including the GUI.
+     *
+     * @param size An optional window size.
+     * @param userMsg An optional message key to be displayed early.
+     * @param sound True if sounds should be played
+     * @param showOpeningVideo Display the opening video.
+     * @param savedGame An optional saved game.
+     * @param spec If non-null, a &lt;code&gt;Specification&lt;/code&gt; to use to start
+     *     a new game immediately.
+     */
+    public void startClient(final Dimension size,
+                            final String userMsg,
+                            final boolean sound,
+                            final boolean showOpeningVideo,
+                            final File savedGame,
+                            final Specification spec) {
+<span class="nc bnc" id="L247" title="All 6 branches missed.">       if (headless &amp;&amp; savedGame == null &amp;&amp; spec == null) {</span>
+<span class="nc" id="L248">            fatal(Messages.message(&quot;client.headlessRequires&quot;));</span>
+        }
+
+        // Load the client options, which handle reloading the
+        // resources specified in the active mods.
+<span class="nc" id="L253">        this.clientOptions = loadClientOptions(savedGame);</span>
+<span class="nc" id="L254">        this.clientOptions.fixClientOptions();</span>
+
+        // Reset the mod resources as a result of the client option update.
+<span class="nc" id="L257">        ResourceMapping modMappings = new ResourceMapping();</span>
+<span class="nc bnc" id="L258" title="All 2 branches missed.">        for (FreeColModFile f : this.clientOptions.getActiveMods()) {</span>
+<span class="nc" id="L259">            modMappings.addAll(f.getResourceMapping());</span>
+        }
+<span class="nc" id="L261">        ResourceManager.setModMapping(modMappings);</span>
+        // Update the actions, resources may have changed.
+<span class="nc bnc" id="L263" title="All 2 branches missed.">        if (this.actionManager != null) updateActions();</span>
+
+        // Initialize Sound (depends on client options)
+<span class="nc" id="L266">        this.soundController = new SoundController(this, sound);</span>
+
+        // Start the GUI (headless-safe)
+<span class="nc" id="L269">        gui.hideSplashScreen();</span>
+<span class="nc" id="L270">        gui.startGUI(size);</span>
+
+        // Now the GUI is going, either:
+        //   - load the saved game if one was supplied
+        //   - use the debug shortcut to immediately start a new game with
+        //     supplied specification
+        //   - display the opening video (which goes on to display the
+        //     main panel when it completes)
+        //   - display the main panel and let the user choose what to
+        //     do (which will often be to progress through the
+        //     NewPanel to a call to the connect controller to start a game)
+<span class="nc bnc" id="L281" title="All 2 branches missed.">        if (savedGame != null) {</span>
+<span class="nc" id="L282">            soundController.playSound(&quot;sound.intro.general&quot;);</span>
+<span class="nc" id="L283">            SwingUtilities.invokeLater(() -&gt; {</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">                    if (!connectController.startSavedGame(savedGame, userMsg)) {</span>
+<span class="nc" id="L285">                        gui.showMainPanel(userMsg);</span>
+                    }
+<span class="nc" id="L287">                });</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">        } else if (spec != null) { // Debug or fast start</span>
+<span class="nc" id="L289">            soundController.playSound(&quot;sound.intro.general&quot;);</span>
+<span class="nc" id="L290">            SwingUtilities.invokeLater(() -&gt; {</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">                    if (!connectController.startSinglePlayerGame(spec, true)) {</span>
+<span class="nc" id="L292">                        gui.showMainPanel(userMsg);</span>
+                    }
+<span class="nc" id="L294">                });</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">        } else if (showOpeningVideo) {</span>
+<span class="nc" id="L296">            SwingUtilities.invokeLater(() -&gt; {</span>
+<span class="nc" id="L297">                    gui.showOpeningVideo(userMsg);</span>
+<span class="nc" id="L298">                });</span>
+<span class="nc" id="L299">        } else {</span>
+<span class="nc" id="L300">            soundController.playSound(&quot;sound.intro.general&quot;);</span>
+<span class="nc" id="L301">            SwingUtilities.invokeLater(() -&gt; {</span>
+<span class="nc" id="L302">                    gui.showMainPanel(userMsg);</span>
+<span class="nc" id="L303">                });</span>
+        }
+
+<span class="nc" id="L306">        String quit = FreeCol.CLIENT_THREAD + &quot;Quit Game&quot;;</span>
+<span class="nc" id="L307">        Runtime.getRuntime().addShutdownHook(new Thread(quit) {</span>
+                @Override
+                public void run() {
+<span class="nc" id="L310">                    getConnectController().quitGame(true);</span>
+<span class="nc" id="L311">                }</span>
+            });
+<span class="nc" id="L313">    }</span>
+
+    /**
+     * Loads the client options.
+     * There are several sources:
+     *   1) Base options (data/base/client-options.xml)
+     *   2) Standard action manager actions
+     *   3) Saved game
+     *   4) User options
+     *
+     * The base and action manager options are definitive, so they can
+     * just be added/loaded.  The others are from sources that may be
+     * out of date (i.e. options can be in the wrong group, or no longer
+     * exist), so they must be merged cautiously.
+     *
+     * @param savedGameFile An optional saved game &lt;code&gt;File&lt;/code&gt;
+     *     to load options from.
+     * @return The loaded &lt;code&gt;ClientOptions&lt;/code&gt;.
+     */
+    private ClientOptions loadClientOptions(File savedGameFile) {
+<span class="nc" id="L333">        ClientOptions clop = new ClientOptions();</span>
+<span class="nc" id="L334">        logger.info(&quot;Load default client options.&quot;);</span>
+<span class="nc" id="L335">        clop.load(FreeColDirectories.getBaseClientOptionsFile());</span>
+
+<span class="nc bnc" id="L337" title="All 2 branches missed.">        if (actionManager != null) {</span>
+<span class="nc" id="L338">            logger.info(&quot;Load client options from the action manager.&quot;);</span>
+<span class="nc" id="L339">            clop.add(actionManager);</span>
+        }
+
+<span class="nc bnc" id="L342" title="All 2 branches missed.">        if (savedGameFile != null) {</span>
+            try {
+<span class="nc" id="L344">                FreeColSavegameFile fcsf</span>
+<span class="nc" id="L345">                    = new FreeColSavegameFile(savedGameFile);</span>
+<span class="nc" id="L346">                logger.info(&quot;Merge client options from saved game: &quot;</span>
+<span class="nc" id="L347">                    + savedGameFile.getPath());</span>
+<span class="nc" id="L348">                clop.merge(fcsf);</span>
+<span class="nc" id="L349">            } catch (IOException ioe) {</span>
+<span class="nc" id="L350">                logger.log(Level.WARNING, &quot;Could not open saved game &quot;</span>
+<span class="nc" id="L351">                    + savedGameFile.getPath(), ioe);</span>
+            }
+        }
+
+<span class="nc" id="L355">        final File userOptions = FreeColDirectories.getClientOptionsFile();</span>
+<span class="nc bnc" id="L356" title="All 4 branches missed.">        if (userOptions != null &amp;&amp; userOptions.exists()) {</span>
+<span class="nc" id="L357">            logger.info(&quot;Merge client options from user options file: &quot;</span>
+<span class="nc" id="L358">                + userOptions.getPath());</span>
+<span class="nc" id="L359">            clop.merge(userOptions);</span>
+        }
+
+        //logger.info(&quot;Final client options: &quot; + clop.toString());
+<span class="nc" id="L363">        return clop;</span>
+    }
+
+    /**
+     * Quit and exit with an error.
+     *
+     * @param err The error message.
+     */
+    public static void fatal(String err) {
+<span class="nc" id="L372">        logger.log(Level.SEVERE, err);</span>
+<span class="nc" id="L373">        FreeCol.fatal(err);</span>
+<span class="nc" id="L374">    }</span>
+
+
+    // Accessors
+
+    /**
+     * Gets the controller responsible for starting a server and
+     * connecting to it.
+     *
+     * @return The &lt;code&gt;ConnectController&lt;/code&gt;.
+     */
+    public ConnectController getConnectController() {
+<span class="nc" id="L386">        return connectController;</span>
+    }
+
+    /**
+     * Gets the controller that will be used before the game has been started.
+     *
+     * @return The &lt;code&gt;PreGameController&lt;/code&gt;.
+     */
+    public PreGameController getPreGameController() {
+<span class="nc" id="L395">        return preGameController;</span>
+    }
+
+    /**
+     * Gets the input handler that will be used before the game has been
+     * started.
+     *
+     * @return The &lt;code&gt;PreGameInputHandler&lt;/code&gt;.
+     */
+    public PreGameInputHandler getPreGameInputHandler() {
+<span class="nc" id="L405">        return preGameInputHandler;</span>
+    }
+
+    /**
+     * Gets the controller that will be used when the game has been started.
+     *
+     * @return The &lt;code&gt;InGameController&lt;/code&gt;.
+     */
+    public InGameController getInGameController() {
+<span class="nc" id="L414">        return inGameController;</span>
+    }
+
+    /**
+     * Gets the input handler that will be used when the game has been started.
+     *
+     * @return The &lt;code&gt;InGameInputHandler&lt;/code&gt;.
+     */
+    public InGameInputHandler getInGameInputHandler() {
+<span class="nc" id="L423">        return inGameInputHandler;</span>
+    }
+
+    /**
+     * Gets the controller for the map editor, if we are in the map editor.
+     *
+     * @return The map editor controller, if any.
+     */
+    public MapEditorController getMapEditorController() {
+<span class="nc" id="L432">        return mapEditorController;</span>
+    }
+
+    /**
+     * Gets the controller for the sound.
+     *
+     * @return The sound controller, if any.
+     */
+    public SoundController getSoundController() {
+<span class="nc" id="L441">        return soundController;</span>
+    }
+
+    /**
+     * Gets the &lt;code&gt;FreeColServer&lt;/code&gt; started by the client.
+     *
+     * @return The &lt;code&gt;FreeColServer&lt;/code&gt; or &lt;code&gt;null&lt;/code&gt; if no
+     *     server has been started.
+     */
+    public FreeColServer getFreeColServer() {
+<span class="nc" id="L451">        return freeColServer;</span>
+    }
+
+    /**
+     * Sets the &lt;code&gt;FreeColServer&lt;/code&gt; which has been started by the
+     * client gui.
+     *
+     * @param freeColServer The &lt;code&gt;FreeColServer&lt;/code&gt;.
+     * @see #getFreeColServer()
+     */
+    public void setFreeColServer(FreeColServer freeColServer) {
+<span class="nc" id="L462">        this.freeColServer = freeColServer;</span>
+<span class="nc" id="L463">    }</span>
+
+    /**
+     * Meaningfully named access to the ServerAPI.
+     *
+     * @return The user wrapper for the &lt;code&gt;ServerAPI&lt;/code&gt;.
+     */
+    public UserServerAPI askServer() {
+<span class="nc" id="L471">        return this.userServerAPI;</span>
+    }
+
+    /**
+     * Gets the GUI attached to this client.
+     *
+     * @return The current &lt;code&gt;GUI&lt;/code&gt;.
+     */
+    public GUI getGUI() {
+<span class="nc" id="L480">        return gui;</span>
+    }
+
+    /**
+     * Gets the action manager.
+     *
+     * @return The action manager.
+     */
+    public ActionManager getActionManager() {
+<span class="nc" id="L489">        return actionManager;</span>
+    }
+
+    /**
+     * Gets the &lt;code&gt;Game&lt;/code&gt; that we are currently playing.
+     *
+     * @return The current &lt;code&gt;Game&lt;/code&gt;.
+     * @see #setGame
+     */
+    public Game getGame() {
+<span class="nc" id="L499">        return game;</span>
+    }
+
+    /**
+     * Sets the &lt;code&gt;Game&lt;/code&gt; that we are currently playing.
+     *
+     * @param game The new &lt;code&gt;Game&lt;/code&gt;.
+     * @see #getGame
+     */
+    public void setGame(Game game) {
+<span class="nc" id="L509">        this.game = game;</span>
+<span class="nc" id="L510">    }</span>
+
+    /**
+     * Gets the &lt;code&gt;Player&lt;/code&gt; that uses this client.
+     *
+     * @return The &lt;code&gt;Player&lt;/code&gt; made to represent this clients user.
+     * @see #setMyPlayer(Player)
+     */
+    public Player getMyPlayer() {
+<span class="nc" id="L519">        return player;</span>
+    }
+
+    /**
+     * Sets the &lt;code&gt;Player&lt;/code&gt; that uses this client.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; made to represent this clients
+     *            user.
+     * @see #getMyPlayer()
+     */
+    public void setMyPlayer(Player player) {
+<span class="nc" id="L530">        this.player = player;</span>
+<span class="nc" id="L531">    }</span>
+
+    /**
+     * Gets the object keeping the current client options.
+     *
+     * @return The &lt;code&gt;ClientOptions&lt;/code&gt; attached to this
+     *     &lt;code&gt;FreeColClient&lt;/code&gt;.
+     */
+    public ClientOptions getClientOptions() {
+<span class="nc" id="L540">        return clientOptions;</span>
+    }
+
+    /**
+     * Convenience accessor for checking whether to display tutorial messages.
+     *
+     * @return True if tutorial messages should be displayed.
+     */
+    public boolean tutorialMode() {
+<span class="nc" id="L549">        return getClientOptions().getBoolean(&quot;model.option.guiShowTutorial&quot;);</span>
+    }
+
+    /**
+     * Has the game started?
+     *
+     * @return &lt;i&gt;true&lt;/i&gt; if the game has started.
+     * @see #setInGame
+     */
+    public boolean isInGame() {
+<span class="nc" id="L559">        return inGame;</span>
+    }
+
+    /**
+     * Set the game start state.
+     *
+     * @param inGame Whether or not the game has started.
+     */
+    public void setInGame(boolean inGame) {
+<span class="nc" id="L568">        this.inGame = inGame;</span>
+<span class="nc" id="L569">    }</span>
+
+    /**
+     * Are we using the map editor?
+     *
+     * @return True if the map editor is enabled.
+     */
+    public boolean isMapEditor() {
+<span class="nc" id="L577">        return mapEditor;</span>
+    }
+
+    /**
+     * Sets the map editor state.
+     *
+     * @param mapEditor True if the map editor is enabled.
+     */
+    public void setMapEditor(boolean mapEditor) {
+<span class="nc" id="L586">        this.mapEditor = mapEditor;</span>
+<span class="nc" id="L587">    }</span>
+
+    /**
+     * Is the user playing in single player mode?
+     *
+     * @return True if the user is playing in single player mode.
+     * @see #setSinglePlayer
+     */
+    public boolean isSinglePlayer() {
+<span class="nc" id="L596">        return singlePlayer;</span>
+    }
+
+    /**
+     * Sets whether or not this game is a single player game.
+     *
+     * @param singlePlayer Whether or not this game is a single player game.
+     * @see #isSinglePlayer
+     */
+    public void setSinglePlayer(boolean singlePlayer) {
+<span class="nc" id="L606">        this.singlePlayer = singlePlayer;</span>
+<span class="nc" id="L607">    }</span>
+
+    /**
+     * Is this client logged in to a server?
+     *
+     * @return True if this client is logged in to a server.
+     */
+    public boolean isLoggedIn() {
+<span class="nc" id="L615">        return loggedIn;</span>
+    }
+
+    /**
+     * Sets whether or not this client is logged in to a server.
+     *
+     * @param loggedIn Whether or not this client is logged in to a server.
+     */
+    public void setLoggedIn(boolean loggedIn) {
+<span class="nc" id="L624">        this.loggedIn = loggedIn;</span>
+<span class="nc" id="L625">    }</span>
+
+    /**
+     * Is the game in headless mode?
+     *
+     * @return a &lt;code&gt;boolean&lt;/code&gt; value
+     */
+    public boolean isHeadless() {
+<span class="nc" id="L633">        return headless;</span>
+    }
+
+
+    // Utilities
+
+    /**
+     * Set a message handler to handle messages from the server.
+     * Used when switching from pre-game to in-game.
+     *
+     * @param messageHandler The new &lt;code&gt;MessageHandler&lt;/code&gt;.
+     */
+    public void setMessageHandler(MessageHandler messageHandler) {
+<span class="nc" id="L646">        askServer().setMessageHandler(messageHandler);</span>
+<span class="nc" id="L647">    }</span>
+
+    /**
+     * Updates the game actions.  Generally useful when menu actions
+     * should change due to the current game context.
+     */
+    public void updateActions() {
+<span class="nc" id="L654">        actionManager.update();</span>
+<span class="nc" id="L655">    }</span>
+
+    /**
+     * Sets the actions derived from the specification.
+     *
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; to use.
+     */
+    public void addSpecificationActions(Specification specification) {
+<span class="nc" id="L663">        actionManager.addSpecificationActions(specification);</span>
+<span class="nc" id="L664">    }</span>
+
+
+    /**
+     * Checks if this client is the game admin.
+     *
+     * @return True if the client is the game admin and the game has begun.
+     */
+    public boolean isAdmin() {
+<span class="nc bnc" id="L673" title="All 4 branches missed.">        return player != null &amp;&amp; player.isAdmin();</span>
+    }
+
+    /**
+     * Verifies if this client can save the current game
+     *
+     * Clients that do not have the server running, or that have not
+     * the required permissions cannot save and should have the menu
+     * entry disabled
+     *
+     * @return True if this client can save the game in progress.
+     */
+    public boolean canSaveCurrentGame() {
+<span class="nc bnc" id="L686" title="All 2 branches missed.">        return freeColServer != null</span>
+<span class="nc bnc" id="L687" title="All 4 branches missed.">            &amp;&amp; (isAdmin() || freeColServer.getGameState() != GameState.IN_GAME);</span>
+    }
+
+    /**
+     * Is the current player the client owner player?
+     *
+     * @return True if the current player is owned by this client.
+     */
+    public boolean currentPlayerIsMyPlayer() {
+<span class="nc bnc" id="L696" title="All 2 branches missed.">        return inGame</span>
+<span class="nc bnc" id="L697" title="All 2 branches missed.">            &amp;&amp; game != null</span>
+<span class="nc bnc" id="L698" title="All 2 branches missed.">            &amp;&amp; player != null</span>
+<span class="nc bnc" id="L699" title="All 2 branches missed.">            &amp;&amp; player.equals(game.getCurrentPlayer());</span>
+    }
+
+    /**
+     * Common utility routine to retrieve animation speed.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; to be animated.
+     * @return The animation speed.
+     */
+    public int getAnimationSpeed(Player player) {
+<span class="nc bnc" id="L709" title="All 2 branches missed.">        String key = (getMyPlayer() == player)</span>
+<span class="nc" id="L710">            ? ClientOptions.MOVE_ANIMATION_SPEED</span>
+<span class="nc" id="L711">            : ClientOptions.ENEMY_MOVE_ANIMATION_SPEED;</span>
+<span class="nc" id="L712">        return getClientOptions().getInteger(key);</span>
+    }
+
+    /**
+     * Get a list of the player colonies.
+     *
+     * @return The players colonies sorted according to the chosen comparator.
+     */
+    public List&lt;Colony&gt; getMySortedColonies() {
+<span class="nc bnc" id="L721" title="All 4 branches missed.">        return (clientOptions == null || player == null)</span>
+<span class="nc" id="L722">            ? Collections.&lt;Colony&gt;emptyList()</span>
+<span class="nc" id="L723">            : clientOptions.getSortedColonies(player);</span>
+    }
+
+    /**
+     * Give the worker some work.
+     *
+     * @param runnable The &lt;code&gt;Runnable&lt;/code&gt; to do.
+     */
+    public void setWork(Runnable runnable) {
+<span class="nc" id="L732">        worker.schedule(runnable);</span>
+<span class="nc" id="L733">    }</span>
+
+    // Fundamental game start/stop/continue actions
+
+    /**
+     * If currently in a game, displays a quit dialog and if desired,
+     * logs out of the current game.
+     *
+     * When the game is clear, show the new game panel.
+     *
+     * Called from the New action, often from the button on the MainPanel,
+     * and IGC.victory()
+     *
+     * @param prompt If true, prompt to confirm stopping the game.
+     */
+    public void newGame(boolean prompt) {
+<span class="nc" id="L749">        Specification specification = null;</span>
+<span class="nc bnc" id="L750" title="All 2 branches missed.">        if (getGame() != null) {</span>
+<span class="nc bnc" id="L751" title="All 2 branches missed.">            if (isMapEditor()) {</span>
+<span class="nc" id="L752">                specification = getGame().getSpecification();</span>
+<span class="nc bnc" id="L753" title="All 4 branches missed.">            } else if (!prompt || gui.confirmStopGame()) {</span>
+<span class="nc" id="L754">                getConnectController().quitGame(true);</span>
+<span class="nc" id="L755">                FreeColSeed.incrementFreeColSeed();</span>
+<span class="nc" id="L756">            } else {</span>
+<span class="nc" id="L757">                return;</span>
+            }
+        }
+<span class="nc" id="L760">        gui.removeInGameComponents();</span>
+<span class="nc" id="L761">        gui.showNewPanel(specification);</span>
+<span class="nc" id="L762">    }</span>
+
+    /**
+     * Continue playing after winning the game.
+     */
+    public void continuePlaying() {
+<span class="nc" id="L768">        askServer().continuePlaying();</span>
+<span class="nc" id="L769">    }</span>
+
+    /**
+     * Start the game skipping turns.
+     *
+     * @param turns The number of turns to skip.
+     */
+    public void skipTurns(int turns) {
+<span class="nc bnc" id="L777" title="All 2 branches missed.">        if (freeColServer == null) return;</span>
+<span class="nc bnc" id="L778" title="All 2 branches missed.">        if (turns &lt;= 0) {</span>
+<span class="nc" id="L779">            freeColServer.getInGameController().setSkippedTurns(0);</span>
+<span class="nc" id="L780">            return;</span>
+        }
+<span class="nc" id="L782">        gui.closeMenus();</span>
+<span class="nc" id="L783">        freeColServer.getInGameController().setSkippedTurns(turns);</span>
+<span class="nc" id="L784">        askServer().startSkipping();</span>
+<span class="nc" id="L785">    }</span>
+
+    /**
+     * Quits the application.
+     */
+    public void askToQuit() {
+<span class="nc bnc" id="L791" title="All 2 branches missed.">        if (gui.confirm(&quot;quitDialog.areYouSure.text&quot;, &quot;ok&quot;, &quot;cancel&quot;)) quit();</span>
+<span class="nc" id="L792">    }</span>
+
+    /**
+     * Retire from the game.
+     */
+    public void retire() {
+<span class="nc bnc" id="L798" title="All 2 branches missed.">        if (gui.confirm(&quot;retireDialog.areYouSure.text&quot;, &quot;ok&quot;, &quot;cancel&quot;)) {</span>
+<span class="nc" id="L799">            final Game game = getGame();</span>
+<span class="nc" id="L800">            final Player player = getMyPlayer();</span>
+<span class="nc" id="L801">            player.changePlayerType(Player.PlayerType.RETIRED);</span>
+<span class="nc" id="L802">            getInGameController().displayHighScores(null);</span>
+<span class="nc" id="L803">            askServer().retire(game);</span>
+        }
+<span class="nc" id="L805">    }</span>
+
+    /**
+     * Quits the application without any questions.
+     */
+    public void quit() {
+<span class="nc" id="L811">        getConnectController().quitGame(isSinglePlayer());</span>
+        try { // delete outdated autosave files
+<span class="nc" id="L813">            long validPeriod = 1000L * 24L * 60L * 60L // days to ms</span>
+<span class="nc" id="L814">                * clientOptions.getInteger(ClientOptions.AUTOSAVE_VALIDITY);</span>
+<span class="nc" id="L815">            long timeNow = System.currentTimeMillis();</span>
+<span class="nc" id="L816">            File autoSave = FreeColDirectories.getAutosaveDirectory();</span>
+            String[] flist;
+<span class="nc bnc" id="L818" title="All 4 branches missed.">            if (validPeriod != 0L &amp;&amp; autoSave != null</span>
+<span class="nc bnc" id="L819" title="All 2 branches missed.">                &amp;&amp; (flist = autoSave.list()) != null) {</span>
+<span class="nc bnc" id="L820" title="All 2 branches missed.">                for (String f : flist) {</span>
+<span class="nc bnc" id="L821" title="All 2 branches missed.">                    if (!f.endsWith(&quot;.&quot; + FreeCol.FREECOL_SAVE_EXTENSION)) continue;</span>
+                    // delete files which are older than user option allows
+<span class="nc" id="L823">                    File saveGameFile = new File(autoSave, f);</span>
+<span class="nc bnc" id="L824" title="All 2 branches missed.">                    if (saveGameFile.lastModified() + validPeriod &lt; timeNow) {</span>
+<span class="nc" id="L825">                        saveGameFile.delete();</span>
+                    }
+                }
+            }
+<span class="nc" id="L829">        } catch (Exception e) {</span>
+<span class="nc" id="L830">            logger.log(Level.WARNING, &quot;Failed to delete autosave&quot;, e);</span>
+        }
+        try {
+<span class="nc" id="L833">            gui.quit();</span>
+<span class="nc" id="L834">        } catch (Exception e) {</span>
+<span class="nc" id="L835">            System.exit(1);</span>
+        }
+<span class="nc" id="L837">        System.exit(0);</span>
+<span class="nc" id="L838">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

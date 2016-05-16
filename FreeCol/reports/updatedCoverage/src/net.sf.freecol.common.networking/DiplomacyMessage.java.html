@@ -1,0 +1,411 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>DiplomacyMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">DiplomacyMessage.java</span></div><h1>DiplomacyMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.DiplomaticTrade;
+import net.sf.freecol.common.model.FreeColObject;
+import net.sf.freecol.common.model.FreeColGameObject;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.control.ChangeSet;
+import net.sf.freecol.server.control.InGameController;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent when executing a diplomatic trade.
+ */
+public class DiplomacyMessage extends DOMMessage {
+
+    public static final String TAG = &quot;diplomacy&quot;;
+    private static final String OTHER_ID_TAG = &quot;otherId&quot;;
+    private static final String OUR_ID_TAG = &quot;ourId&quot;;
+
+    /**
+     * The identifier of our entity that is conducting diplomacy
+     * (either a unit or a settlement).
+     */
+    private final String ourId;
+
+    /**
+     * The identifier of the other entity to negotiate with (unit or
+     * settlement).
+     */
+    private final String otherId;
+
+    /** The agreement being negotiated. */
+    private DiplomaticTrade agreement;
+
+    /** An extra unit if needed (when a scout is on board a ship). */
+    private Unit extraUnit;
+
+
+    /**
+     * Create a new &lt;code&gt;DiplomacyMessage&lt;/code&gt;.
+     *
+     * @param our Our &lt;code&gt;FreeColGameObject&lt;/code&gt; that is negotiating.
+     * @param other The other &lt;code&gt;FreeColGameObject&lt;/code&gt; to negotiate with.
+     * @param agreement The &lt;code&gt;DiplomaticTrade&lt;/code&gt; to make.
+     */
+    public DiplomacyMessage(FreeColGameObject our, FreeColGameObject other,
+                            DiplomaticTrade agreement) {
+<span class="nc" id="L75">        super(getTagName());</span>
+
+<span class="nc" id="L77">        this.ourId = our.getId();</span>
+<span class="nc" id="L78">        this.otherId = other.getId();</span>
+<span class="nc" id="L79">        this.agreement = agreement;</span>
+<span class="nc" id="L80">        this.extraUnit = null;</span>
+<span class="nc" id="L81">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;DiplomacyMessage&lt;/code&gt;.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; that is negotiating.
+     * @param otherUnit The other &lt;code&gt;Unit&lt;/code&gt; to negotiate with.
+     * @param agreement The &lt;code&gt;DiplomaticTrade&lt;/code&gt; to make.
+     */
+    public DiplomacyMessage(Unit unit, Unit otherUnit,
+                            DiplomaticTrade agreement) {
+<span class="nc" id="L92">        this((FreeColGameObject)unit, (FreeColGameObject)otherUnit, agreement);</span>
+<span class="nc" id="L93">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;DiplomacyMessage&lt;/code&gt;.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; that is negotiating.
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; to negotiate with.
+     * @param agreement The &lt;code&gt;DiplomaticTrade&lt;/code&gt; to make.
+     */
+    public DiplomacyMessage(Unit unit, Colony colony,
+                            DiplomaticTrade agreement) {
+<span class="nc" id="L104">        this((FreeColGameObject)unit, (FreeColGameObject)colony, agreement);</span>
+<span class="nc" id="L105">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;DiplomacyMessage&lt;/code&gt;.
+     *
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; that is negotiating.
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; that to negotiate with.
+     * @param agreement The &lt;code&gt;DiplomaticTrade&lt;/code&gt; to make.
+     */
+    public DiplomacyMessage(Colony colony, Unit unit,
+                            DiplomaticTrade agreement) {
+<span class="nc" id="L116">        this((FreeColGameObject)colony, (FreeColGameObject)unit, agreement);</span>
+<span class="nc" id="L117">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;DiplomacyMessage&lt;/code&gt; from a
+     * supplied element.  The unit is supplied in case it was hidden in
+     * some way, such as aboard a ship.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public DiplomacyMessage(Game game, Element element) {
+<span class="nc" id="L128">        super(getTagName());</span>
+
+<span class="nc" id="L130">        this.ourId = getStringAttribute(element, OUR_ID_TAG);</span>
+<span class="nc" id="L131">        this.otherId = getStringAttribute(element, OTHER_ID_TAG);</span>
+<span class="nc" id="L132">        this.agreement = getChild(game, element, 0, false, DiplomaticTrade.class);</span>
+<span class="nc" id="L133">        this.extraUnit = getChild(game, element, 1, true, Unit.class);</span>
+<span class="nc" id="L134">    }</span>
+
+
+    // Public interface
+
+    /**
+     * Get the extra &lt;code&gt;Unit&lt;/code&gt;.
+     *
+     * @return The extra &lt;code&gt;Unit&lt;/code&gt;, or null if none.
+     */
+    public Unit getExtraUnit() {
+<span class="nc" id="L145">        return this.extraUnit;</span>
+    }
+
+    /**
+     * Get our FCGO.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to extract the FCGO from.
+     * @return Our &lt;code&gt;FreeColGameObject&lt;/code&gt;.
+     */
+    public FreeColGameObject getOurFCGO(Game game) {
+<span class="nc" id="L155">        return game.getFreeColGameObject(this.ourId);</span>
+    }
+
+    /**
+     * Get the other FCGO.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to extract the FCGO from.
+     * @return The other &lt;code&gt;FreeColGameObject&lt;/code&gt;.
+     */
+    public FreeColGameObject getOtherFCGO(Game game) {
+<span class="nc" id="L165">        return game.getFreeColGameObject(this.otherId);</span>
+    }
+
+    /**
+     * Get the agreement (a &lt;code&gt;DiplomaticTrade&lt;/code&gt;) in this message.
+     *
+     * @return The agreement in this message.
+     */
+    public DiplomaticTrade getAgreement() {
+<span class="nc" id="L174">        return this.agreement;</span>
+    }
+
+    /**
+     * Set the agreement (a &lt;code&gt;DiplomaticTrade&lt;/code&gt;) in this message.
+     *
+     * @param agreement The &lt;code&gt;DiplomaticTrade&lt;/code&gt; to set.
+     * @return This message.
+     */
+    public DiplomacyMessage setAgreement(DiplomaticTrade agreement) {
+<span class="nc" id="L184">        this.agreement = agreement;</span>
+<span class="nc" id="L185">        return this;</span>
+    }
+
+
+    /**
+     * Handle a &quot;diplomacy&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; that handles the message.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the message is from.
+     * @return An &lt;code&gt;Element&lt;/code&gt; describing the trade with
+     *     either &quot;accept&quot; or &quot;reject&quot; status, null on trade failure,
+     *     or an error &lt;code&gt;Element&lt;/code&gt; on outright error.
+     */
+    public Element handle(FreeColServer server, Connection connection) {
+<span class="nc" id="L199">        final ServerPlayer serverPlayer = server.getPlayer(connection);</span>
+<span class="nc" id="L200">        final Game game = serverPlayer.getGame();</span>
+
+<span class="nc bnc" id="L202" title="All 2 branches missed.">        if (this.agreement == null) {</span>
+<span class="nc" id="L203">            return serverPlayer.clientError(&quot;Null diplomatic agreement.&quot;)</span>
+<span class="nc" id="L204">                .build(serverPlayer);</span>
+        }
+
+<span class="nc" id="L207">        Unit ourUnit = null;</span>
+<span class="nc" id="L208">        Colony ourColony = null;</span>
+<span class="nc" id="L209">        FreeColGameObject our = getOurFCGO(game);</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">        if (our == null) {</span>
+<span class="nc" id="L211">            return serverPlayer.clientError(&quot;Missing our object: &quot;</span>
+<span class="nc" id="L212">                + this.ourId)</span>
+<span class="nc" id="L213">                .build(serverPlayer);</span>
+<span class="nc bnc" id="L214" title="All 2 branches missed.">        } if (our instanceof Unit) {</span>
+<span class="nc" id="L215">            ourUnit = (Unit)our;</span>
+<span class="nc bnc" id="L216" title="All 2 branches missed.">            if (!serverPlayer.owns(ourUnit)) {</span>
+<span class="nc" id="L217">                return serverPlayer.clientError(&quot;Not our unit: &quot; + this.ourId)</span>
+<span class="nc" id="L218">                    .build(serverPlayer);</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">            } else if (!ourUnit.hasTile()) {</span>
+<span class="nc" id="L220">                return serverPlayer.clientError(&quot;Our unit is not on the map: &quot;</span>
+<span class="nc" id="L221">                    + this.ourId)</span>
+<span class="nc" id="L222">                    .build(serverPlayer);</span>
+            }
+<span class="nc bnc" id="L224" title="All 2 branches missed.">        } else if (our instanceof Colony) {</span>
+<span class="nc" id="L225">            ourColony = (Colony)our;</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">            if (!serverPlayer.owns(ourColony)) {</span>
+<span class="nc" id="L227">                return serverPlayer.clientError(&quot;Not our settlement: &quot;</span>
+<span class="nc" id="L228">                    + this.ourId)</span>
+<span class="nc" id="L229">                    .build(serverPlayer);</span>
+            }
+        } else {
+<span class="nc" id="L232">            return serverPlayer.clientError(&quot;Our object is bogus: &quot; + our)</span>
+<span class="nc" id="L233">                .build(serverPlayer);</span>
+        }
+
+<span class="nc" id="L236">        Unit otherUnit = null;</span>
+<span class="nc" id="L237">        Colony otherColony = null;</span>
+<span class="nc" id="L238">        Player otherPlayer = null;</span>
+<span class="nc" id="L239">        FreeColGameObject other = getOtherFCGO(game);</span>
+<span class="nc bnc" id="L240" title="All 2 branches missed.">        if (other == null) {</span>
+<span class="nc" id="L241">            return serverPlayer.clientError(&quot;Missing other object: &quot;</span>
+<span class="nc" id="L242">                + this.otherId)</span>
+<span class="nc" id="L243">                .build(serverPlayer);</span>
+<span class="nc bnc" id="L244" title="All 2 branches missed.">        } else if (other instanceof Unit) {</span>
+<span class="nc" id="L245">            otherUnit = (Unit)other;</span>
+<span class="nc bnc" id="L246" title="All 2 branches missed.">            if (serverPlayer.owns(otherUnit)) {</span>
+<span class="nc" id="L247">                return serverPlayer.clientError(&quot;Contacting our unit? &quot;</span>
+<span class="nc" id="L248">                    + this.otherId)</span>
+<span class="nc" id="L249">                    .build(serverPlayer);</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">            } else if (!otherUnit.hasTile()) {</span>
+<span class="nc" id="L251">                return serverPlayer.clientError(&quot;Other unit is not on the map: &quot;</span>
+<span class="nc" id="L252">                    + this.otherId)</span>
+<span class="nc" id="L253">                    .build(serverPlayer);</span>
+<span class="nc bnc" id="L254" title="All 2 branches missed.">            } else if (ourUnit != null</span>
+<span class="nc bnc" id="L255" title="All 2 branches missed.">                &amp;&amp; !ourUnit.getTile().isAdjacent(otherUnit.getTile())) {</span>
+<span class="nc" id="L256">                return serverPlayer.clientError(&quot;Our unit &quot; + this.ourId</span>
+<span class="nc" id="L257">                    + &quot; is not adjacent to other unit &quot; + this.otherId)</span>
+<span class="nc" id="L258">                    .build(serverPlayer);</span>
+<span class="nc bnc" id="L259" title="All 2 branches missed.">            } else if (ourColony != null</span>
+<span class="nc bnc" id="L260" title="All 2 branches missed.">                &amp;&amp; !ourColony.getTile().isAdjacent(otherUnit.getTile())) {</span>
+<span class="nc" id="L261">                return serverPlayer.clientError(&quot;Our colony &quot; + this.ourId</span>
+<span class="nc" id="L262">                    + &quot; is not adjacent to other unit &quot; + this.otherId)</span>
+<span class="nc" id="L263">                    .build(serverPlayer);</span>
+            }
+<span class="nc" id="L265">            otherPlayer = otherUnit.getOwner();</span>
+<span class="nc bnc" id="L266" title="All 2 branches missed.">        } else if (other instanceof Colony) {</span>
+<span class="nc" id="L267">            otherColony = (Colony)other;</span>
+<span class="nc bnc" id="L268" title="All 2 branches missed.">            if (serverPlayer.owns(otherColony)) {</span>
+<span class="nc" id="L269">                return serverPlayer.clientError(&quot;Contacting our colony? &quot;</span>
+<span class="nc" id="L270">                    + this.otherId)</span>
+<span class="nc" id="L271">                    .build(serverPlayer);</span>
+<span class="nc bnc" id="L272" title="All 2 branches missed.">            } else if (ourUnit != null</span>
+<span class="nc bnc" id="L273" title="All 2 branches missed.">                &amp;&amp; !ourUnit.getTile().isAdjacent(otherColony.getTile())) {</span>
+<span class="nc" id="L274">                return serverPlayer.clientError(&quot;Our unit &quot; + this.ourId</span>
+<span class="nc" id="L275">                    + &quot; is not adjacent to other colony &quot; + this.otherId)</span>
+<span class="nc" id="L276">                    .build(serverPlayer);</span>
+<span class="nc bnc" id="L277" title="All 2 branches missed.">            } else if (ourColony != null</span>
+<span class="nc bnc" id="L278" title="All 2 branches missed.">                &amp;&amp; !ourColony.getTile().isAdjacent(otherColony.getTile())) {</span>
+<span class="nc" id="L279">                return serverPlayer.clientError(&quot;Our colony &quot; + this.ourId</span>
+<span class="nc" id="L280">                    + &quot; is not adjacent to other colony &quot; + this.otherId)</span>
+<span class="nc" id="L281">                    .build(serverPlayer);</span>
+            }
+<span class="nc" id="L283">            otherPlayer = otherColony.getOwner();</span>
+<span class="nc" id="L284">        } else {</span>
+<span class="nc" id="L285">            return serverPlayer.clientError(&quot;Other object is bogus: &quot; + other)</span>
+<span class="nc" id="L286">                .build(serverPlayer);</span>
+        }
+<span class="nc bnc" id="L288" title="All 4 branches missed.">        if (ourUnit == null &amp;&amp; otherUnit == null) {</span>
+<span class="nc" id="L289">            return serverPlayer.clientError(&quot;Both units null&quot;)</span>
+<span class="nc" id="L290">                .build(serverPlayer);</span>
+        }
+
+<span class="nc" id="L293">        Player senderPlayer = this.agreement.getSender();</span>
+<span class="nc" id="L294">        Player recipientPlayer = this.agreement.getRecipient();</span>
+<span class="nc" id="L295">        Player refPlayer = serverPlayer.getREFPlayer();</span>
+<span class="nc bnc" id="L296" title="All 2 branches missed.">        if (senderPlayer == null) {</span>
+<span class="nc" id="L297">            return serverPlayer.clientError(&quot;Null sender in agreement.&quot;)</span>
+<span class="nc" id="L298">                .build(serverPlayer);</span>
+<span class="nc bnc" id="L299" title="All 2 branches missed.">        } else if (recipientPlayer == null) {</span>
+<span class="nc" id="L300">            return serverPlayer.clientError(&quot;Null recipient in agreement.&quot;)</span>
+<span class="nc" id="L301">                .build(serverPlayer);</span>
+<span class="nc bnc" id="L302" title="All 2 branches missed.">        } else if (senderPlayer != (Player)serverPlayer) {</span>
+<span class="nc" id="L303">            return serverPlayer.clientError(&quot;Sender is not our player: &quot;</span>
+<span class="nc" id="L304">                + senderPlayer.getId())</span>
+<span class="nc" id="L305">                .build(serverPlayer);</span>
+<span class="nc bnc" id="L306" title="All 2 branches missed.">        } else if (recipientPlayer != otherPlayer) {</span>
+<span class="nc" id="L307">            return serverPlayer.clientError(&quot;Recipient is not other player: &quot;</span>
+<span class="nc" id="L308">                + recipientPlayer.getId())</span>
+<span class="nc" id="L309">                .build(serverPlayer);</span>
+<span class="nc bnc" id="L310" title="All 4 branches missed.">        } else if (senderPlayer == refPlayer || recipientPlayer == refPlayer) {</span>
+<span class="nc" id="L311">            return serverPlayer.clientError(&quot;The REF does not negotiate: &quot;</span>
+<span class="nc" id="L312">                + refPlayer.getId())</span>
+<span class="nc" id="L313">                .build(serverPlayer);</span>
+        }
+
+<span class="nc" id="L316">        final InGameController igc = server.getInGameController();</span>
+<span class="nc" id="L317">        ChangeSet cs = null;</span>
+<span class="nc bnc" id="L318" title="All 5 branches missed.">        switch (this.agreement.getContext()) {</span>
+        case CONTACT:
+<span class="nc bnc" id="L320" title="All 2 branches missed.">            cs = (ourColony != null)</span>
+<span class="nc" id="L321">                ? igc.europeanFirstContact(serverPlayer, ourColony, otherUnit,</span>
+<span class="nc" id="L322">                                           this.agreement)</span>
+<span class="nc bnc" id="L323" title="All 2 branches missed.">                : (otherUnit != null)</span>
+<span class="nc" id="L324">                ? igc.europeanFirstContact(serverPlayer, ourUnit, otherUnit,</span>
+<span class="nc" id="L325">                                           this.agreement)</span>
+<span class="nc" id="L326">                : igc.europeanFirstContact(serverPlayer, ourUnit, otherColony,</span>
+<span class="nc" id="L327">                                           this.agreement);</span>
+<span class="nc" id="L328">            break;</span>
+        case DIPLOMATIC:
+<span class="nc bnc" id="L330" title="All 2 branches missed.">            cs = (ourUnit != null) </span>
+<span class="nc bnc" id="L331" title="All 2 branches missed.">                ? ((!ourUnit.hasAbility(Ability.NEGOTIATE))</span>
+<span class="nc" id="L332">                    ? serverPlayer.clientError(&quot;Unit lacks ability&quot;</span>
+<span class="nc" id="L333">                        + &quot; to negotiate: &quot; + ourUnit)</span>
+<span class="nc bnc" id="L334" title="All 2 branches missed.">                    : (otherColony == null)</span>
+<span class="nc" id="L335">                    ? serverPlayer.clientError(&quot;Null other settlement&quot;)</span>
+<span class="nc" id="L336">                    : igc.diplomacy(serverPlayer, ourUnit, otherColony,</span>
+<span class="nc" id="L337">                                    this.agreement))</span>
+<span class="nc bnc" id="L338" title="All 2 branches missed.">                : ((!otherUnit.hasAbility(Ability.NEGOTIATE))</span>
+<span class="nc" id="L339">                    ? serverPlayer.clientError(&quot;Unit lacks ability&quot;</span>
+<span class="nc" id="L340">                        + &quot; to negotiate: &quot; + otherUnit)</span>
+<span class="nc" id="L341">                    : igc.diplomacy(serverPlayer, ourColony, otherUnit,</span>
+<span class="nc" id="L342">                                    this.agreement));</span>
+<span class="nc" id="L343">            break;</span>
+        case TRADE:
+<span class="nc bnc" id="L345" title="All 2 branches missed.">            cs = (ourUnit != null)</span>
+<span class="nc bnc" id="L346" title="All 2 branches missed.">                ? ((!ourUnit.isCarrier())</span>
+<span class="nc" id="L347">                    ? serverPlayer.clientError(&quot;Unit is not a carrier: &quot;</span>
+<span class="nc" id="L348">                        + ourUnit)</span>
+<span class="nc bnc" id="L349" title="All 2 branches missed.">                    : (!serverPlayer.hasAbility(Ability.TRADE_WITH_FOREIGN_COLONIES))</span>
+<span class="nc" id="L350">                    ? serverPlayer.clientError(&quot;Player lacks ability&quot;</span>
+<span class="nc" id="L351">                        + &quot; to trade with other Europeans: &quot; + serverPlayer)</span>
+<span class="nc bnc" id="L352" title="All 2 branches missed.">                    : (otherColony == null)</span>
+<span class="nc" id="L353">                    ? serverPlayer.clientError(&quot;Null other settlement&quot;)</span>
+<span class="nc" id="L354">                    : igc.diplomacy(serverPlayer, ourUnit, otherColony,</span>
+<span class="nc" id="L355">                                    this.agreement))</span>
+<span class="nc bnc" id="L356" title="All 2 branches missed.">                : ((!otherUnit.isCarrier())</span>
+<span class="nc" id="L357">                    ? serverPlayer.clientError(&quot;Unit is not a carrier: &quot;</span>
+<span class="nc" id="L358">                        + otherUnit)</span>
+<span class="nc bnc" id="L359" title="All 2 branches missed.">                    : (!otherPlayer.hasAbility(Ability.TRADE_WITH_FOREIGN_COLONIES))</span>
+<span class="nc" id="L360">                    ? serverPlayer.clientError(&quot;Player lacks ability&quot;</span>
+<span class="nc" id="L361">                        + &quot; to trade with other Europeans: &quot; + otherPlayer)</span>
+<span class="nc" id="L362">                    : igc.diplomacy(serverPlayer, ourColony, otherUnit,</span>
+<span class="nc" id="L363">                                    this.agreement));</span>
+<span class="nc" id="L364">            break;</span>
+        case TRIBUTE:
+<span class="nc bnc" id="L366" title="All 2 branches missed.">            cs = (ourUnit != null)</span>
+<span class="nc bnc" id="L367" title="All 4 branches missed.">                ? ((!ourUnit.isOffensiveUnit() || ourUnit.isNaval())</span>
+<span class="nc" id="L368">                    ? serverPlayer.clientError(&quot;Unit is not an offensive&quot;</span>
+<span class="nc" id="L369">                        + &quot; land unit: &quot; + ourUnit)</span>
+<span class="nc bnc" id="L370" title="All 2 branches missed.">                    : (otherColony == null)</span>
+<span class="nc" id="L371">                    ? serverPlayer.clientError(&quot;Null other settlement&quot;)</span>
+<span class="nc" id="L372">                    : igc.diplomacy(serverPlayer, ourUnit, otherColony,</span>
+<span class="nc" id="L373">                                    this.agreement))</span>
+<span class="nc bnc" id="L374" title="All 4 branches missed.">                : ((!otherUnit.isOffensiveUnit() || otherUnit.isNaval())</span>
+<span class="nc" id="L375">                    ? serverPlayer.clientError(&quot;Unit is not an offensive&quot;</span>
+<span class="nc" id="L376">                        + &quot; land unit: &quot; + otherUnit)</span>
+<span class="nc" id="L377">                    : igc.diplomacy(serverPlayer, ourColony, otherUnit,</span>
+<span class="nc" id="L378">                                    this.agreement));</span>
+<span class="nc" id="L379">            break;</span>
+        default:
+            break;
+        }
+<span class="nc bnc" id="L383" title="All 2 branches missed.">        if (cs == null) cs = serverPlayer.clientError(&quot;Invalid diplomacy for &quot;</span>
+<span class="nc" id="L384">            + this.agreement.getContext());</span>
+<span class="nc" id="L385">        return cs.build(serverPlayer);</span>
+    }
+
+    /**
+     * Convert this DiplomacyMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="nc" id="L395">        return new DOMMessage(getTagName(),</span>
+<span class="nc" id="L396">            OUR_ID_TAG, this.ourId,</span>
+<span class="nc" id="L397">            OTHER_ID_TAG, this.otherId)</span>
+<span class="nc" id="L398">            .add(this.agreement)</span>
+<span class="nc" id="L399">            .add(this.extraUnit).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;diplomacy&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L408">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

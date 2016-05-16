@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>GameTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">GameTest.java</span></div><h1>GameTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import net.sf.freecol.common.FreeColException;
+import net.sf.freecol.server.model.ServerGame;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L32">public class GameTest extends FreeColTestCase {</span>
+
+    public void testGame() throws FreeColException {
+
+<span class="nc" id="L36">        Game game = new ServerGame(spec());</span>
+<span class="nc" id="L37">        game.setNationOptions(new NationOptions(spec()));</span>
+<span class="nc" id="L38">        game.setMap(getTestMap());</span>
+<span class="nc" id="L39">        Nation dutchNation = spec().getNation(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L40">        game.addPlayer(new ServerPlayer(game, false, dutchNation, null, null));</span>
+        // map tiles are null
+        // game.newTurn();
+<span class="nc" id="L43">    }</span>
+
+    public void testAddPlayer() {
+<span class="nc" id="L46">        Game game = new ServerGame(spec());</span>
+<span class="nc" id="L47">        NationOptions defaultOptions = new NationOptions(spec());</span>
+<span class="nc" id="L48">        game.setNationOptions(defaultOptions);</span>
+
+<span class="nc" id="L50">        List&lt;Player&gt; players = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L52">        int counter = 0;</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        for (Nation n : spec().getNations()) {</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">            if (defaultOptions.getNationState(n)</span>
+<span class="nc" id="L55">                == NationOptions.NationState.NOT_AVAILABLE) {</span>
+<span class="nc" id="L56">                counter++;</span>
+<span class="nc" id="L57">            } else {</span>
+<span class="nc" id="L58">                Player p = new ServerPlayer(game, false, n, null, null);</span>
+<span class="nc bnc" id="L59" title="All 4 branches missed.">                p.setAI(!n.getType().isEuropean() || n.getType().isREF());</span>
+<span class="nc" id="L60">                game.addPlayer(p);</span>
+<span class="nc" id="L61">                players.add(p);</span>
+            }
+        }
+
+<span class="nc" id="L65">        Collections.sort(players, Player.playerComparator);</span>
+<span class="nc" id="L66">        Collections.sort(game.getPlayers(), Player.playerComparator);</span>
+<span class="nc" id="L67">        assertEquals(spec().getNations().size() - counter,</span>
+<span class="nc" id="L68">                     game.getPlayers().size());</span>
+<span class="nc" id="L69">        assertEquals(players, game.getPlayers());</span>
+<span class="nc" id="L70">    }</span>
+
+    public void testTurn() {
+<span class="nc" id="L73">        assertEquals(1492, Turn.getStartingYear());</span>
+<span class="nc" id="L74">        assertEquals(1600, Turn.getSeasonYear());</span>
+<span class="nc" id="L75">        assertEquals(2, Turn.getSeasonNumber());</span>
+
+<span class="nc" id="L77">        assertEquals(1492, Turn.getYear(1));</span>
+<span class="nc" id="L78">        assertEquals(1, Turn.yearToTurn(1492));</span>
+<span class="nc" id="L79">        assertEquals(-1, Turn.getSeason(1));</span>
+<span class="nc" id="L80">        assertEquals(0, spec().getAge(new Turn(1)));</span>
+
+<span class="nc" id="L82">        assertEquals(1599, Turn.getYear(108));</span>
+<span class="nc" id="L83">        assertEquals(108, Turn.yearToTurn(1599));</span>
+<span class="nc" id="L84">        assertEquals(-1, Turn.getSeason(108));</span>
+<span class="nc" id="L85">        assertEquals(0, spec().getAge(new Turn(108)));</span>
+
+<span class="nc" id="L87">        assertEquals(1600, Turn.getYear(109));</span>
+<span class="nc" id="L88">        assertEquals(109, Turn.yearToTurn(1600, 0));</span>
+<span class="nc" id="L89">        assertEquals(0, Turn.getSeason(109));</span>
+<span class="nc" id="L90">        assertEquals(1, spec().getAge(new Turn(109)));</span>
+
+<span class="nc" id="L92">        assertEquals(1600, Turn.getYear(110));</span>
+<span class="nc" id="L93">        assertEquals(110, Turn.yearToTurn(1600, 1));</span>
+<span class="nc" id="L94">        assertEquals(1, Turn.getSeason(110));</span>
+<span class="nc" id="L95">        assertEquals(1, spec().getAge(new Turn(308)));</span>
+
+<span class="nc" id="L97">        assertEquals(1700, Turn.getYear(309));</span>
+<span class="nc" id="L98">        assertEquals(309, Turn.yearToTurn(1700, 0));</span>
+<span class="nc" id="L99">        assertEquals(0, Turn.getSeason(309));</span>
+<span class="nc" id="L100">        assertEquals(2, spec().getAge(new Turn(309)));</span>
+
+<span class="nc" id="L102">        assertEquals(1700, Turn.getYear(310));</span>
+<span class="nc" id="L103">        assertEquals(310, Turn.yearToTurn(1700, 1));</span>
+<span class="nc" id="L104">        assertEquals(1, Turn.getSeason(310));</span>
+<span class="nc" id="L105">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

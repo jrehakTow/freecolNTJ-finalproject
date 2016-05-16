@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>FreeColModFile.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.io</a> &gt; <span class="el_source">FreeColModFile.java</span></div><h1>FreeColModFile.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.io;
+
+import java.io.File;
+import java.io.FileFilter;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+
+import javax.xml.stream.XMLStreamException;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import net.sf.freecol.common.ObjectWithId;
+import net.sf.freecol.common.model.Specification;
+
+
+/**
+ * A wrapped for a file containing a FreeCol modification (mod).
+ */
+public class FreeColModFile extends FreeColDataFile implements ObjectWithId {
+
+<span class="fc" id="L42">    private static final Logger logger = Logger.getLogger(FreeColModFile.class.getName());</span>
+
+    protected static final String SPECIFICATION_FILE = &quot;specification.xml&quot;;
+    protected static final String MOD_DESCRIPTOR_FILE = &quot;mod.xml&quot;;
+
+    /** A file filter to select mods. */
+<span class="fc" id="L48">    private static final FileFilter fileFilter</span>
+<span class="fc" id="L49">        = makeFileFilter(MOD_DESCRIPTOR_FILE, &quot;fmd&quot;, ZIP_FILE_EXTENSION);</span>
+
+    /** The identifier for this mod. */
+    private String id;
+
+    /** The identifier for the parent of this mod, if any. */
+    private String parent;
+
+
+    /**
+     * Make a FreeColModFile from a File.
+     *
+     * @param file The &lt;code&gt;File&lt;/code&gt; containing a FreeCol mod.
+     * @exception IOException if thrown while opening the file.
+     */
+    public FreeColModFile(final File file) throws IOException {
+<span class="fc" id="L65">        super(file);</span>
+
+<span class="fc" id="L67">        readModDescriptor();</span>
+<span class="fc" id="L68">    }</span>
+
+
+    /**
+     * Gets the input stream to the specification.
+     *
+     * @return An &lt;code&gt;InputStream&lt;/code&gt; to the file
+     *     &quot;specification.xml&quot; within this data file, or null if none present.
+     * @exception IOException if thrown while opening the input stream.
+     */
+    public InputStream getSpecificationInputStream() throws IOException {
+        try {
+<span class="fc" id="L80">            return getInputStream(SPECIFICATION_FILE);</span>
+<span class="nc" id="L81">        } catch (FileNotFoundException fnfe) {</span>
+            ; // Normal for graphic-only mods.
+        }
+<span class="nc" id="L84">        return null;</span>
+    }
+
+    /**
+     * Gets the Specification.
+     *
+     * @return The &lt;code&gt;Specification&lt;/code&gt;, or null if none present.
+     * @exception IOException if an error occurs reading the specification.
+     */
+    public Specification getSpecification() throws IOException {
+<span class="fc" id="L94">        try (InputStream si = getSpecificationInputStream()) {</span>
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">            return (si == null) ? null : new Specification(si);</span>
+<span class="pc bpc" id="L96" title="7 of 8 branches missed.">        }</span>
+    }
+
+    /**
+     * Gets the input stream to the mod meta file.
+     *
+     * @return An &lt;code&gt;InputStream&lt;/code&gt; to the file &quot;mod.xml&quot;
+     *     within this data file.
+     * @exception IOException if thrown while opening the input stream.
+     */
+    private InputStream getModDescriptorInputStream() throws IOException {
+<span class="fc" id="L107">        return getInputStream(MOD_DESCRIPTOR_FILE);</span>
+    }
+
+    /**
+     * Reads a file object representing this mod.
+     *
+     * @exception IOException if thrown while reading the &quot;mod.xml&quot; file.
+     */
+    protected void readModDescriptor() throws IOException {
+<span class="fc" id="L116">        try (</span>
+<span class="fc" id="L117">            FreeColXMLReader xr</span>
+<span class="fc" id="L118">                = new FreeColXMLReader(getModDescriptorInputStream());</span>
+        ) {
+<span class="fc" id="L120">            xr.nextTag();</span>
+<span class="fc" id="L121">            id = xr.readId();</span>
+<span class="fc" id="L122">            parent = xr.getAttribute(&quot;parent&quot;, (String)null);</span>
+<span class="pc bpc" id="L123" title="7 of 8 branches missed.">        } catch (XMLStreamException xse) {</span>
+<span class="nc" id="L124">            throw new IOException(xse);</span>
+        }
+<span class="fc" id="L126">    }</span>
+
+    /**
+     * Gets the object identifier of this mod.
+     *
+     * @return The object identifier of the mod.
+     */
+    @Override
+    public String getId() {
+<span class="nc" id="L135">        return id;</span>
+    }
+
+    /**
+     * Gets the parent of the mod.
+     *
+     * @return The mod parent name.
+     */
+    public String getParent() {
+<span class="nc" id="L144">        return parent;</span>
+    }
+
+    /**
+     * Get the file filter to select mod files.
+     *
+     * @return The mod file filter.
+     */
+    public static FileFilter getFileFilter() {
+<span class="nc" id="L153">        return fileFilter;</span>
+    }
+
+    /**
+     * Helper to make a mod file from a given file, logging the exception.
+     *
+     * @param f The &lt;code&gt;File&lt;/code&gt; to try to make the mod from.
+     * @return A new &lt;code&gt;FreeColModFile&lt;/code&gt;, or null on error.
+     */
+    public static FreeColModFile make(File f) {
+        try {
+<span class="nc" id="L164">            return new FreeColModFile(f);</span>
+<span class="nc" id="L165">        } catch (IOException ioe) {</span>
+<span class="nc" id="L166">            logger.log(Level.WARNING, &quot;Failed to load mod from: &quot; + f, ioe);</span>
+        }
+<span class="nc" id="L168">        return null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

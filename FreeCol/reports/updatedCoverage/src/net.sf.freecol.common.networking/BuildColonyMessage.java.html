@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>BuildColonyMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">BuildColonyMessage.java</span></div><h1>BuildColonyMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent when the client requests building of a colony.
+ */
+public class BuildColonyMessage extends DOMMessage {
+
+    public static final String TAG = &quot;buildColony&quot;;
+    private static final String NAME_TAG = &quot;name&quot;;
+    private static final String UNIT_TAG = &quot;unit&quot;;
+
+    /** The name of the new colony. */
+    private final String colonyName;
+
+    /** The unit that is building the colony. */
+    private final String unitId;
+
+
+    /**
+     * Create a new &lt;code&gt;BuildColonyMessage&lt;/code&gt; with the supplied name
+     * and building unit.
+     *
+     * @param colonyName The name for the new colony.
+     * @param builder The &lt;code&gt;Unit&lt;/code&gt; to do the building.
+     */
+    public BuildColonyMessage(String colonyName, Unit builder) {
+<span class="nc" id="L56">        super(getTagName());</span>
+
+<span class="nc" id="L58">        this.colonyName = colonyName;</span>
+<span class="nc" id="L59">        this.unitId = builder.getId();</span>
+<span class="nc" id="L60">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;BuildColonyMessage&lt;/code&gt; from a supplied element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public BuildColonyMessage(Game game, Element element) {
+<span class="nc" id="L69">        super(getTagName());</span>
+
+<span class="nc" id="L71">        this.colonyName = getStringAttribute(element, NAME_TAG);</span>
+<span class="nc" id="L72">        this.unitId = getStringAttribute(element, UNIT_TAG);</span>
+<span class="nc" id="L73">    }</span>
+
+
+    /**
+     * Handle a &quot;buildColony&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; handling the request.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; building the colony.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the message is from.
+     * @return An update &lt;code&gt;Element&lt;/code&gt; defining the new colony
+     *     and updating its surrounding tiles, or an error
+     *     &lt;code&gt;Element&lt;/code&gt; on failure.
+     */
+    public Element handle(FreeColServer server, Player player,
+                          Connection connection) {
+<span class="nc" id="L88">        final ServerPlayer serverPlayer = server.getPlayer(connection);</span>
+<span class="nc" id="L89">        final Game game = server.getGame();</span>
+
+        Unit unit;
+        try {
+<span class="nc" id="L93">            unit = player.getOurFreeColGameObject(this.unitId, Unit.class);</span>
+<span class="nc" id="L94">        } catch (Exception e) {</span>
+<span class="nc" id="L95">            return serverPlayer.clientError(e.getMessage())</span>
+<span class="nc" id="L96">                .build(serverPlayer);</span>
+        }
+<span class="nc bnc" id="L98" title="All 2 branches missed.">        if (!unit.canBuildColony()) {</span>
+<span class="nc" id="L99">            return serverPlayer.clientError(&quot;Unit &quot; + this.unitId</span>
+<span class="nc" id="L100">                + &quot; can not build colony.&quot;)</span>
+<span class="nc" id="L101">                .build(serverPlayer);</span>
+        }
+
+<span class="nc bnc" id="L104" title="All 2 branches missed.">        if (this.colonyName == null) {</span>
+<span class="nc" id="L105">            return serverPlayer.clientError(&quot;Null colony name&quot;)</span>
+<span class="nc" id="L106">                .build(serverPlayer);</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        } else if (Player.ASSIGN_SETTLEMENT_NAME.equals(this.colonyName)) {</span>
+            ; // ok
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        } else if (game.getSettlementByName(this.colonyName) != null) {</span>
+<span class="nc" id="L110">            return serverPlayer.clientError(&quot;Non-unique colony name &quot;</span>
+<span class="nc" id="L111">                + this.colonyName)</span>
+<span class="nc" id="L112">                .build(serverPlayer);</span>
+        }
+
+<span class="nc" id="L115">        Tile tile = unit.getTile();</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (!player.canClaimToFoundSettlement(tile)) {</span>
+<span class="nc" id="L117">            return serverPlayer.clientError(&quot;Can not build colony on tile &quot;</span>
+<span class="nc" id="L118">                + tile + &quot;: &quot; + player.canClaimToFoundSettlementReason(tile))</span>
+<span class="nc" id="L119">                .build(serverPlayer);</span>
+        }
+
+        // Build can proceed.
+<span class="nc" id="L123">        return server.getInGameController()</span>
+<span class="nc" id="L124">            .buildSettlement(serverPlayer, unit, colonyName)</span>
+<span class="nc" id="L125">            .build(serverPlayer);</span>
+    }
+
+    /**
+     * Convert this BuildColonyMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="nc" id="L135">        return new DOMMessage(getTagName(),</span>
+<span class="nc" id="L136">            NAME_TAG, this.colonyName,</span>
+<span class="nc" id="L137">            UNIT_TAG, this.unitId).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;buildColony&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L146">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

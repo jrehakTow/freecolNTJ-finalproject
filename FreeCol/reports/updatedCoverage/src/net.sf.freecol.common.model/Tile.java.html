@@ -1,0 +1,2783 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>Tile.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">Tile.java</span></div><h1>Tile.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Random;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.function.ToDoubleFunction;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.model.Direction;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+import net.sf.freecol.common.util.RandomChoice;
+import static net.sf.freecol.common.util.RandomUtils.*;
+
+
+/**
+ * Represents a single tile on the &lt;code&gt;Map&lt;/code&gt;.
+ *
+ * @see Map
+ */
+public final class Tile extends UnitLocation implements Named, Ownable {
+
+<span class="nc" id="L55">    private static final Logger logger = Logger.getLogger(Tile.class.getName());</span>
+
+    /** Comparator to sort tiles by increasing distance from the edge. */
+<span class="nc" id="L58">    public static final Comparator&lt;Tile&gt; edgeDistanceComparator</span>
+<span class="nc" id="L59">        = Comparator.comparingInt(Tile::getEdgeDistance);</span>
+
+    /** Comparator to find the smallest high seas count. */
+<span class="nc" id="L62">    public static final Comparator&lt;Tile&gt; highSeasComparator</span>
+<span class="nc" id="L63">        = Comparator.comparingInt(Tile::getHighSeasCount);</span>
+
+    /** Predicate to identify ordinary sea tiles. */
+<span class="nc" id="L66">    public static final Predicate&lt;Tile&gt; isSeaTile = t -&gt;</span>
+<span class="nc bnc" id="L67" title="All 4 branches missed.">        !t.isLand() &amp;&amp; t.getHighSeasCount() &gt;= 0;</span>
+
+    /**
+     * Information that is internal to the native settlements, and only
+     * updated on close contact.
+     */
+<span class="nc" id="L73">    private static class IndianSettlementInternals {</span>
+
+        /** The skill taught at the settlement. */
+<span class="nc" id="L76">        public UnitType skill = null;</span>
+
+        /** The goods the settlement is interested in. */
+<span class="nc" id="L79">        public GoodsType[] wantedGoods = null;</span>
+
+
+        /**
+         * Update the internal information from a native settlement.
+         *
+         * @param indianSettlement The &lt;code&gt;IndianSettlement&lt;/code&gt; to update.
+         */
+        public void update(IndianSettlement indianSettlement) {
+<span class="nc" id="L88">            setValues(indianSettlement.getLearnableSkill(),</span>
+<span class="nc" id="L89">                      indianSettlement.getWantedGoods());</span>
+<span class="nc" id="L90">        }</span>
+
+        /**
+         * Set the internal values.
+         *
+         * @param skill The skill taught.
+         * @param wanted The wanted goods.
+         */
+        public void setValues(UnitType skill, GoodsType[] wanted) {
+<span class="nc" id="L99">            this.skill = skill;</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">            if (wanted == null) {</span>
+<span class="nc" id="L101">                this.wantedGoods = null;</span>
+<span class="nc" id="L102">            } else {</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">                if (this.wantedGoods == null) {</span>
+<span class="nc" id="L104">                    this.wantedGoods</span>
+<span class="nc" id="L105">                        = new GoodsType[IndianSettlement.WANTED_GOODS_COUNT];</span>
+                }
+<span class="nc" id="L107">                System.arraycopy(wanted, 0, this.wantedGoods, 0,</span>
+<span class="nc" id="L108">                    Math.min(wanted.length, this.wantedGoods.length));</span>
+            }
+<span class="nc" id="L110">        }</span>
+    }
+
+    /**
+     * This must be distinct from ColonyTile/Building.UNIT_CHANGE or
+     * the colony panel can get confused.
+     */
+    public static final String UNIT_CHANGE = &quot;TILE_UNIT_CHANGE&quot;;
+
+    /**
+     * Flag to assign to the high seas count to flag that the high seas
+     * connectivity needs recalculation after reading in the map.
+     */
+    public static final int FLAG_RECALCULATE = Integer.MAX_VALUE;
+
+    /**
+     * Warn about colonies that can not produce this amount of
+     * a building material.
+     */
+    private static final int LOW_PRODUCTION_WARNING_VALUE = 4;
+
+    /**
+     * The maximum distance that will still be considered &quot;near&quot; when
+     * determining the location name.
+     *
+     * @see #getLocationLabel
+     */
+    public static final int NEAR_RADIUS = 8;
+
+    public static final int OVERLAY_ZINDEX = 100;
+    public static final int FOREST_ZINDEX = 200;
+    public static final int RESOURCE_ZINDEX = 400;
+    public static final int RUMOUR_ZINDEX = 500;
+
+    /**
+     * The type of the tile.
+     * Beware: this may appear to be null in the client when the tile is
+     * unexplored.
+     */
+    private TileType type;
+
+    /** The tile coordinates in the enclosing map. */
+    private int x, y;
+
+    /** The player that consider this tile to be their land. */
+    private Player owner;
+
+    /**
+     * A pointer to the settlement located on this tile or null if
+     * there is no settlement on this tile.
+     */
+    private Settlement settlement;
+
+    /**
+     * Indicates which settlement owns this tile (null indicates no
+     * owner).  A colony owns the tile it is located on, and every
+     * tile it has claimed by successfully moving a worker on to it.
+     * Note that while units and settlements are owned by a player, a
+     * tile is owned by a settlement.
+     */
+    private Settlement owningSettlement;
+
+    /** Stores all Improvements and Resources (if any). */
+    private TileItemContainer tileItemContainer;
+
+    /** The region this tile is in. */
+    private Region region;
+
+    /** The number of tiles to traverse to get to the high seas. */
+<span class="nc" id="L179">    private int highSeasCount = -1;</span>
+
+    /**
+     * Does this tile have an explicit moveToEurope state.  If null,
+     * just use the defaults (usually not, unless water and on map edge),
+     * otherwise use the explicit value provided here.
+     */
+    private Boolean moveToEurope;
+
+    /** The style of this Tile, as determined by adjacent tiles. */
+    private int style;
+
+    /**
+     * An artificial contiguous-region number to identify connected
+     * parts of the map.  That is, all land tiles with the same
+     * contiguity number can be reached by a land unit on any of
+     * those tiles in the absence of extra-geographic blockages like
+     * settlements and other units.  Similarly for water tiles/naval
+     * units.
+     *
+     * This is used to quickly scope out the sort of paths available
+     * to a unit attempting to reach some destination.  It only needs
+     * serialization from server to client, as it is set by the
+     * TerrainGenerator on map import or creation.
+     */
+<span class="nc" id="L204">    private int contiguity = -1;</span>
+
+    /** A map of cached tiles for each European player, null in clients. */
+    private final java.util.Map&lt;Player, Tile&gt; cachedTiles;
+
+    /**
+     * A map of native settlement internals for each European player,
+     * null in clients.
+     */
+    private final java.util.Map&lt;Player, IndianSettlementInternals&gt; playerIndianSettlements;
+
+
+    /**
+     * The main tile constructor.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param type The &lt;code&gt;TileType&lt;/code&gt;.
+     * @param locX The x-position of this tile on the map.
+     * @param locY The y-position of this tile on the map.
+     */
+    public Tile(Game game, TileType type, int locX, int locY) {
+<span class="nc" id="L225">        super(game);</span>
+
+<span class="nc" id="L227">        this.type = type;</span>
+<span class="nc" id="L228">        this.x = locX;</span>
+<span class="nc" id="L229">        this.y = locY;</span>
+<span class="nc" id="L230">        this.owningSettlement = null;</span>
+<span class="nc" id="L231">        this.settlement = null;</span>
+
+<span class="nc bnc" id="L233" title="All 2 branches missed.">        if (game.isInServer()) {</span>
+<span class="nc" id="L234">            this.cachedTiles = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L235">            this.playerIndianSettlements = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L236">        } else {</span>
+<span class="nc" id="L237">            this.cachedTiles = null;</span>
+<span class="nc" id="L238">            this.playerIndianSettlements = null;</span>
+        }
+<span class="nc" id="L240">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;Tile&lt;/code&gt; with the given identifier.
+     * The object should later be initialized by calling either
+     * {@link #readFromXML(FreeColXMLReader)}.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param id The object identifier.
+     */
+    public Tile(Game game, String id) {
+<span class="nc" id="L251">        super(game, id);</span>
+
+<span class="nc bnc" id="L253" title="All 2 branches missed.">        if (game.isInServer()) {</span>
+<span class="nc" id="L254">            this.cachedTiles = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L255">            this.playerIndianSettlements = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L256">        } else {</span>
+<span class="nc" id="L257">            this.cachedTiles = null;</span>
+<span class="nc" id="L258">            this.playerIndianSettlements = null;</span>
+        }
+<span class="nc" id="L260">    }</span>
+
+
+    //
+    // Basic accessors and mutators
+    //
+
+    /**
+     * Gets the type of this Tile.
+     *
+     * @return The &lt;code&gt;TileType&lt;/code&gt;.
+     */
+    public TileType getType() {
+<span class="nc" id="L273">        return type;</span>
+    }
+
+    /**
+     * Sets the type for this Tile.
+     *
+     * -til: Changes appearance.
+     *
+     * @param t The new &lt;code&gt;TileType&lt;/code&gt; for this &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public void setType(TileType t) {
+<span class="nc" id="L284">        type = t;</span>
+<span class="nc" id="L285">    }</span>
+
+    /**
+     * Check if the tile has been explored.
+     *
+     * @return True if this is an explored &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public boolean isExplored() {
+<span class="nc bnc" id="L293" title="All 2 branches missed.">        return type != null;</span>
+    }
+
+    /**
+     * Is this a land tile?
+     *
+     * @return True if this a land &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public boolean isLand() {
+<span class="nc bnc" id="L302" title="All 4 branches missed.">        return type != null &amp;&amp; !type.isWater();</span>
+    }
+
+    /**
+     * Is this a forested tile?
+     *
+     * @return True if this is a forested &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public boolean isForested() {
+<span class="nc bnc" id="L311" title="All 4 branches missed.">        return type != null &amp;&amp; type.isForested();</span>
+    }
+
+    /**
+     * Gets the x-coordinate of this tile.
+     *
+     * @return The x-coordinate of this &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public int getX() {
+<span class="nc" id="L320">        return x;</span>
+    }
+
+    /**
+     * Gets the y-coordinate of this tile.
+     *
+     * @return The y-coordinate of this &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public int getY() {
+<span class="nc" id="L329">        return y;</span>
+    }
+
+    /**
+     * Get the map in which this tile belongs.
+     *
+     * @return The enclosing &lt;code&gt;Map&lt;/code&gt;.
+     */
+    public Map getMap() {
+<span class="nc" id="L338">        return getGame().getMap();</span>
+    }
+
+    /**
+     * Gets the settlement on this tile.
+     *
+     * @return The &lt;code&gt;Settlement&lt;/code&gt; that is located on this
+     *     &lt;code&gt;Tile&lt;/code&gt;, or null if none is present.
+     * @see #setSettlement
+     */
+    @Override
+    public Settlement getSettlement() {
+<span class="nc" id="L350">        return settlement;</span>
+    }
+
+    /**
+     * Put a settlement onto this tile.  A tile can only have one
+     * settlement located on it.  The settlement will also become the
+     * owner of this tile.
+     *
+     * -til: Changes appearance.
+     *
+     * @param settlement A &lt;code&gt;Settlement&lt;/code&gt; to put on this
+     *     &lt;code&gt;Tile&lt;/code&gt;.
+     * @see #getSettlement
+     */
+    public void setSettlement(Settlement settlement) {
+<span class="nc" id="L365">        this.settlement = settlement;</span>
+<span class="nc" id="L366">    }</span>
+
+    /**
+     * Does this tile have a settlement.
+     *
+     * @return True if there is a settlement present.
+     */
+    public boolean hasSettlement() {
+<span class="nc bnc" id="L374" title="All 2 branches missed.">        return settlement != null;</span>
+    }
+
+    /**
+     * Gets the owning settlement for this tile.
+     *
+     * @return The &lt;code&gt;Settlement&lt;/code&gt; that owns this &lt;code&gt;Tile&lt;/code&gt;.
+     * @see #setOwner
+     */
+    public Settlement getOwningSettlement() {
+<span class="nc" id="L384">        return owningSettlement;</span>
+    }
+
+    /**
+     * Sets the settlement that owns this tile.
+     *
+     * -til: Changes appearance.
+     *
+     * @param owner The &lt;code&gt;Settlement&lt;/code&gt; to own this &lt;code&gt;Tile&lt;/code&gt;.
+     * @see #getOwner
+     */
+    public void setOwningSettlement(Settlement owner) {
+<span class="nc" id="L396">        this.owningSettlement = owner;</span>
+<span class="nc" id="L397">    }</span>
+
+    /**
+     * Gets this tiles &lt;code&gt;TileItemContainer&lt;/code&gt;.
+     *
+     * @return The &lt;code&gt;TileItemContainer&lt;/code&gt;.
+     */
+    public TileItemContainer getTileItemContainer() {
+<span class="nc" id="L405">        return tileItemContainer;</span>
+    }
+
+    /**
+     * Sets the &lt;code&gt;TileItemContainer&lt;/code&gt;.
+     *
+     * @param newTileItemContainer The new &lt;code&gt;TileItemContainer&lt;/code&gt; value.
+     */
+    public void setTileItemContainer(TileItemContainer newTileItemContainer) {
+<span class="nc" id="L414">        tileItemContainer = newTileItemContainer;</span>
+<span class="nc" id="L415">    }</span>
+
+    /**
+     * Get the completed tile items for this tile.
+     *
+     * @return A list of completed &lt;code&gt;TileItem&lt;/code&gt;s.
+     */
+    public List&lt;TileItem&gt; getCompleteItems() {
+<span class="nc bnc" id="L423" title="All 2 branches missed.">        return (tileItemContainer == null) ? Collections.&lt;TileItem&gt;emptyList()</span>
+<span class="nc" id="L424">            : tileItemContainer.getCompleteItems();</span>
+    }
+
+    /**
+     * Get the tile region.
+     *
+     * @return The tile &lt;code&gt;Region&lt;/code&gt;.
+     */
+    public Region getRegion() {
+<span class="nc" id="L433">        return region;</span>
+    }
+
+    /**
+     * Set the tile region.
+     *
+     * -til: Changes appearance.
+     *
+     * @param newRegion The new &lt;code&gt;Region&lt;/code&gt; value.
+     */
+    public void setRegion(final Region newRegion) {
+<span class="nc" id="L444">        this.region = newRegion;</span>
+<span class="nc" id="L445">    }</span>
+
+    /**
+     * Get the discoverable region of this tile.
+     *
+     * @return Any discoverable &lt;code&gt;Region&lt;/code&gt;.
+     */
+    public Region getDiscoverableRegion() {
+<span class="nc bnc" id="L453" title="All 2 branches missed.">        return (region == null) ? null : region.getDiscoverableRegion();</span>
+    }
+
+    /**
+     * Gets whether this tile is connected to the high seas.
+     *
+     * @return True if this &lt;code&gt;Tile&lt;/code&gt; is connected to the high seas.
+     */
+    public boolean isHighSeasConnected() {
+<span class="nc bnc" id="L462" title="All 2 branches missed.">        return highSeasCount &gt;= 0;</span>
+    }
+
+    /**
+     * Gets the high seas count.
+     *
+     * @return The high seas count value.
+     */
+    public int getHighSeasCount() {
+<span class="nc" id="L471">        return this.highSeasCount;</span>
+    }
+
+    /**
+     * Set the high seas count.
+     *
+     * @param count The new high seas count value.
+     */
+    public void setHighSeasCount(final int count) {
+<span class="nc" id="L480">        this.highSeasCount = count;</span>
+<span class="nc" id="L481">    }</span>
+
+    /**
+     * Is this a land tile on the sea coast (lakes do not count).
+     *
+     * @return True if this is a coastland tile.
+     */
+    public boolean isCoastland() {
+<span class="nc bnc" id="L489" title="All 4 branches missed.">        return isLand() &amp;&amp; getHighSeasCount() &gt; 0;</span>
+    }
+
+    /**
+     * Get the move-to-Europe state of the tile.
+     *
+     * @return The move-to-Europe state of the &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public Boolean getMoveToEurope() {
+<span class="nc" id="L498">        return moveToEurope;</span>
+    }
+
+    /**
+     * Set the move-to-Europe state of the tile.
+     *
+     * @param moveToEurope The new move-to-Europe state for the
+     *     &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public void setMoveToEurope(Boolean moveToEurope) {
+<span class="nc" id="L508">        this.moveToEurope = moveToEurope;</span>
+<span class="nc" id="L509">    }</span>
+
+    /**
+     * Can a unit move to the high seas from this tile?
+     *
+     * @return True if a unit can move to high seas from this tile.
+     */
+    public boolean isDirectlyHighSeasConnected() {
+<span class="nc bnc" id="L517" title="All 2 branches missed.">        return (moveToEurope != null) ? moveToEurope</span>
+<span class="nc bnc" id="L518" title="All 2 branches missed.">            : (type == null) ? false</span>
+<span class="nc" id="L519">            : type.isDirectlyHighSeasConnected();</span>
+    }
+
+    /**
+     * Is this tile on a river corner?
+     *
+     * @return True if this is a river corner.
+     */
+    public boolean isRiverCorner() {
+<span class="nc" id="L528">        List&lt;Tile&gt; tiles = transform(getSurroundingTiles(0, 1),</span>
+<span class="nc" id="L529">                                     Tile::isOnRiver, Collectors.toList());</span>
+<span class="nc bnc" id="L530" title="All 4 branches missed.">        switch (tiles.size()) {</span>
+        case 0: case 1:
+<span class="nc" id="L532">            return false;</span>
+        case 2:
+<span class="nc" id="L534">            return tiles.get(0).isAdjacent(tiles.get(1));</span>
+        case 3:
+<span class="nc bnc" id="L536" title="All 2 branches missed.">            return tiles.get(0).isAdjacent(tiles.get(1))</span>
+<span class="nc bnc" id="L537" title="All 2 branches missed.">                || tiles.get(1).isAdjacent(tiles.get(2))</span>
+<span class="nc bnc" id="L538" title="All 2 branches missed.">                || tiles.get(2).isAdjacent(tiles.get(0));</span>
+        default:
+            break;
+        }
+<span class="nc" id="L542">        return true;</span>
+    }
+
+    /**
+     * Get the minimum distance in tiles from this tile to the map edge.
+     *
+     * @return The distance to the edge.
+     */
+    private int getEdgeDistance() {
+<span class="nc" id="L551">        final Map map = getMap();</span>
+<span class="nc" id="L552">        final int x = getX(), y = getY();</span>
+<span class="nc" id="L553">        return Math.min(Math.min(x, map.getWidth() - x),</span>
+<span class="nc" id="L554">                        Math.min(y, map.getHeight() - y));</span>
+    }
+
+    /**
+     * Get the style value.
+     *
+     * @return The &lt;code&gt;Tile&lt;/code&gt; style.
+     */
+    public int getStyle() {
+<span class="nc" id="L563">        return style;</span>
+    }
+
+    /**
+     * Set the tile style.
+     *
+     * -til: Changes appearance.
+     *
+     * @param newStyle The new style value.
+     */
+    public void setStyle(final int newStyle) {
+<span class="nc" id="L574">        this.style = newStyle;</span>
+<span class="nc" id="L575">    }</span>
+
+    /**
+     * Get the contiguity identifier for this tile.
+     *
+     * @return A contiguity number.
+     */
+    public int getContiguity() {
+<span class="nc" id="L583">        return contiguity;</span>
+    }
+
+    /**
+     * Sets the contiguity identifier for this tile.
+     *
+     * @param contiguity A contiguity number.
+     */
+    public void setContiguity(int contiguity) {
+<span class="nc" id="L592">        this.contiguity = contiguity;</span>
+<span class="nc" id="L593">    }</span>
+
+    /**
+     * Is this tile connected to another across the same contiguous piece
+     * of land or water?
+     *
+     * @param other The other &lt;code&gt;Tile&lt;/code&gt; to check.
+     * @return True if the &lt;code&gt;Tile&lt;/code&gt;s are connected.
+     */
+    public boolean isConnectedTo(Tile other) {
+<span class="nc bnc" id="L603" title="All 2 branches missed.">        return getContiguity() == other.getContiguity();</span>
+    }
+
+    /**
+     * Get the adjacent tiles that have a given contiguity.
+     *
+     * @param contiguity The contiguity to search for.
+     * @return A set of &lt;code&gt;Tile&lt;/code&gt;s with the required contiguity.
+     */
+    public Set&lt;Tile&gt; getContiguityAdjacent(final int contiguity) {
+<span class="nc" id="L613">        return transform(getSurroundingTiles(1, 1),</span>
+<span class="nc bnc" id="L614" title="All 2 branches missed.">                         t -&gt; t.getContiguity() == contiguity,</span>
+<span class="nc" id="L615">                         Collectors.toSet());</span>
+    }
+
+    /**
+     * Is this tile on or adjacent to a navigable river but not the ocean.
+     *
+     * @return True if on a navigable river.
+     */
+    public boolean isOnRiver() {
+<span class="nc" id="L624">        final TileType greatRiver</span>
+<span class="nc" id="L625">            = getSpecification().getTileType(&quot;model.tile.greatRiver&quot;);</span>
+<span class="nc" id="L626">        final TileType ocean</span>
+<span class="nc" id="L627">            = getSpecification().getTileType(&quot;model.tile.ocean&quot;);</span>
+<span class="nc bnc" id="L628" title="All 2 branches missed.">        boolean ret = getType() == greatRiver;</span>
+<span class="nc bnc" id="L629" title="All 2 branches missed.">        for (Tile t : getSurroundingTiles(1)) {</span>
+<span class="nc bnc" id="L630" title="All 2 branches missed.">            if (t.getType() == ocean) return false;</span>
+<span class="nc bnc" id="L631" title="All 2 branches missed.">            ret |= t.getType() == greatRiver;</span>
+        }
+<span class="nc" id="L633">        return ret;</span>
+    }
+
+    /**
+     * Quick test whether this tile is trivially blocked to moves from
+     * a unit.  This is a simplification, use getMoveType().isProgress()
+     * for the full details.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; to test.
+     * @return True if the unit can not move to this tile.
+     */
+    public boolean isBlocked(Unit unit) {
+<span class="nc" id="L645">        Player owner = unit.getOwner();</span>
+
+<span class="nc" id="L647">        Unit u = getFirstUnit();</span>
+<span class="nc bnc" id="L648" title="All 4 branches missed.">        if (u != null &amp;&amp; !owner.owns(u)) return true; // Blocked by unit</span>
+
+<span class="nc bnc" id="L650" title="All 2 branches missed.">        if (isLand()) {</span>
+<span class="nc" id="L651">            Settlement s = getSettlement();</span>
+<span class="nc bnc" id="L652" title="All 2 branches missed.">            if (unit.isNaval()) {</span>
+<span class="nc bnc" id="L653" title="All 4 branches missed.">                return s == null || !owner.owns(s); // Land, not our settlement</span>
+            } else {
+<span class="nc bnc" id="L655" title="All 4 branches missed.">                return s != null &amp;&amp; !owner.owns(s); // Not our settlement</span>
+            }
+        } else {
+<span class="nc bnc" id="L658" title="All 2 branches missed.">            return !unit.isNaval(); // Can not swim</span>
+        }
+    }
+       
+    /**
+     * Gets the &lt;code&gt;IndianSettlementInternals&lt;/code&gt; for the given player.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; to query.
+     * @return The &lt;code&gt;IndianSettlementInternals&lt;/code&gt; for the given player,
+     *     or null if none present.
+     */
+    private IndianSettlementInternals getPlayerIndianSettlement(Player player) {
+<span class="nc bnc" id="L670" title="All 2 branches missed.">        return (playerIndianSettlements == null) ? null</span>
+<span class="nc" id="L671">            : playerIndianSettlements.get(player);</span>
+    }
+
+
+    //
+    // Tile Item (LCR, Resource, TileImprovement) handling
+    //
+
+    /**
+     * Gets a list of &lt;code&gt;TileImprovements&lt;/code&gt;.
+     *
+     * @return A list of all the &lt;code&gt;TileImprovements&lt;/code&gt;.
+     */
+    public List&lt;TileImprovement&gt; getTileImprovements() {
+<span class="nc bnc" id="L685" title="All 2 branches missed.">        return (tileItemContainer == null)</span>
+<span class="nc" id="L686">            ? Collections.&lt;TileImprovement&gt;emptyList()</span>
+<span class="nc" id="L687">            : tileItemContainer.getImprovements();</span>
+    }
+
+    /**
+     * Gets a list of completed &lt;code&gt;TileImprovements&lt;/code&gt;.
+     *
+     * @return A list of all completed &lt;code&gt;TileImprovements&lt;/code&gt;.
+     */
+    public List&lt;TileImprovement&gt; getCompleteTileImprovements() {
+<span class="nc bnc" id="L696" title="All 2 branches missed.">        return (tileItemContainer == null)</span>
+<span class="nc" id="L697">            ? Collections.&lt;TileImprovement&gt;emptyList()</span>
+<span class="nc" id="L698">            : tileItemContainer.getCompleteImprovements();</span>
+    }
+
+    /**
+     * Does this tile contain a completed improvement of the given type?
+     *
+     * @param type The &lt;code&gt;TileImprovementType&lt;/code&gt; to look for.
+     * @return True if there is a completed improvement present.
+     */
+    public boolean hasTileImprovement(TileImprovementType type) {
+<span class="nc bnc" id="L708" title="All 2 branches missed.">        return (type.isChangeType()) ? type.changeContainsTarget(getType())</span>
+<span class="nc bnc" id="L709" title="All 2 branches missed.">            : (tileItemContainer == null) ? false</span>
+<span class="nc" id="L710">            : tileItemContainer.hasImprovement(type);</span>
+    }
+
+    /**
+     * Gets the TileImprovement of a given type, or null if there is no match.
+     *
+     * @param type The &lt;code&gt;TileImprovementType&lt;/code&gt; to look for.
+     * @return The &lt;code&gt;TileImprovement&lt;/code&gt; of the requested type found,
+     *     or null if none.
+     */
+    public TileImprovement getTileImprovement(TileImprovementType type) {
+<span class="nc bnc" id="L721" title="All 2 branches missed.">        return (tileItemContainer == null) ? null</span>
+<span class="nc" id="L722">            : tileItemContainer.getImprovement(type);</span>
+    }
+
+    /**
+     * Does this tile have a LCR?
+     *
+     * @return True if this &lt;code&gt;Tile&lt;/code&gt; has a
+     *     &lt;code&gt;LostCityRumour&lt;/code&gt; on it.
+     */
+    public boolean hasLostCityRumour() {
+<span class="nc bnc" id="L732" title="All 2 branches missed.">        return tileItemContainer != null</span>
+<span class="nc bnc" id="L733" title="All 2 branches missed.">            &amp;&amp; tileItemContainer.getLostCityRumour() != null;</span>
+    }
+
+    /**
+     * Gets a lost city rumour on this tile.
+     *
+     * @return The &lt;code&gt;LostCityRumour&lt;/code&gt; on this
+     *     &lt;code&gt;Tile&lt;/code&gt;, or null if none found.
+     */
+    public LostCityRumour getLostCityRumour() {
+<span class="nc bnc" id="L743" title="All 2 branches missed.">        return (tileItemContainer == null) ? null</span>
+<span class="nc" id="L744">            : tileItemContainer.getLostCityRumour();</span>
+    }
+
+    /**
+     * Does this tile have a resource?
+     *
+     * @return True if this is a resource &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public boolean hasResource() {
+<span class="nc bnc" id="L753" title="All 2 branches missed.">        return tileItemContainer != null</span>
+<span class="nc bnc" id="L754" title="All 2 branches missed.">            &amp;&amp; tileItemContainer.getResource() != null;</span>
+    }
+
+    /**
+     * Does this tile have a river?
+     *
+     * @return True if this is a river &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public boolean hasRiver() {
+<span class="nc bnc" id="L763" title="All 2 branches missed.">        return getRiver() != null;</span>
+    }
+
+    /**
+     * Gets the river on this tile.
+     *
+     * @return A river &lt;code&gt;TileImprovement&lt;/code&gt;, or null if none present.
+     */
+    public TileImprovement getRiver() {
+<span class="nc bnc" id="L772" title="All 2 branches missed.">        return (tileItemContainer == null) ? null</span>
+<span class="nc" id="L773">            : tileItemContainer.getRiver();</span>
+    }
+
+    /**
+     * Gets the style of a river improvement on this tile.
+     *
+     * @return The river &lt;code&gt;TileImprovementStyle&lt;/code&gt;.
+     */
+    public TileImprovementStyle getRiverStyle() {
+        TileImprovement river;
+<span class="nc bnc" id="L783" title="All 2 branches missed.">        return (tileItemContainer == null) ? null</span>
+<span class="nc bnc" id="L784" title="All 2 branches missed.">            : ((river = tileItemContainer.getRiver()) == null) ? null</span>
+<span class="nc" id="L785">            : river.getStyle();</span>
+    }
+
+    /**
+     * Does this tile have a road?
+     *
+     * @return True if this &lt;code&gt;Tile&lt;/code&gt; has a road.
+     */
+    public boolean hasRoad() {
+<span class="nc bnc" id="L794" title="All 2 branches missed.">        return getRoad() != null;</span>
+    }
+
+    /**
+     * Gets the road on this tile.
+     *
+     * @return A road &lt;code&gt;TileImprovement&lt;/code&gt;, or null if none present.
+     */
+    public TileImprovement getRoad() {
+<span class="nc bnc" id="L803" title="All 2 branches missed.">        return (tileItemContainer == null) ? null : tileItemContainer.getRoad();</span>
+    }
+
+    /**
+     * Adds a tile item to this tile.
+     *
+     * -til: Changes appearance.
+     *
+     * @param item The &lt;code&gt;TileItem&lt;/code&gt; to add.
+     * @return True if the item was added.
+     */
+    private boolean addTileItem(TileItem item) {
+<span class="nc bnc" id="L815" title="All 2 branches missed.">        if (item == null) return false;</span>
+<span class="nc bnc" id="L816" title="All 2 branches missed.">        if (tileItemContainer == null) {</span>
+<span class="nc" id="L817">            tileItemContainer = new TileItemContainer(getGame(), this);</span>
+        }
+<span class="nc" id="L819">        TileItem added = tileItemContainer.tryAddTileItem(item);</span>
+<span class="nc bnc" id="L820" title="All 2 branches missed.">        return added == item;</span>
+    }
+
+    /**
+     * Removes a tile item from this tile.
+     *
+     * -til: Changes appearance.
+     *
+     * @param &lt;T&gt; The actual &lt;code&gt;TileItem&lt;/code&gt; type.
+     * @param item The &lt;code&gt;TileItem&lt;/code&gt; to remove.
+     * @return The item removed, or null on failure.
+     */
+    private &lt;T extends TileItem&gt; T removeTileItem(T item) {
+<span class="nc bnc" id="L833" title="All 4 branches missed.">        if (item == null || tileItemContainer == null) return null;</span>
+<span class="nc" id="L834">        return tileItemContainer.removeTileItem(item);</span>
+    }
+
+    /**
+     * Adds a lost city rumour to this tile.
+     *
+     * -til: Changes appearance.
+     *
+     * @param rumour The &lt;code&gt;LostCityRumour&lt;/code&gt; to add.
+     */
+    public void addLostCityRumour(LostCityRumour rumour) {
+<span class="nc" id="L845">        addTileItem(rumour);</span>
+<span class="nc" id="L846">    }</span>
+
+    /**
+     * Removes the lost city rumour from this &lt;code&gt;Tile&lt;/code&gt; if there
+     * is one.
+     *
+     * -til: Changes appearance.
+     *
+     * @return The removed &lt;code&gt;LostCityRumour&lt;/code&gt;.
+     */
+    public LostCityRumour removeLostCityRumour() {
+<span class="nc" id="L857">        return removeTileItem(getLostCityRumour());</span>
+    }
+
+    /**
+     * Adds a new river to this tile.
+     *
+     * -til: Changes appearance.
+     *
+     * @param magnitude The magnitude of the river to be created
+     * @param conns The encoded river size/connections.
+     * @return The new river added, or null on failure.
+     */
+    public TileImprovement addRiver(int magnitude, String conns) {
+<span class="nc bnc" id="L870" title="All 2 branches missed.">        if (magnitude == TileImprovement.NO_RIVER) return null;</span>
+<span class="nc" id="L871">        TileImprovementType riverType = getSpecification()</span>
+<span class="nc" id="L872">            .getTileImprovementType(&quot;model.improvement.river&quot;);</span>
+<span class="nc" id="L873">        TileImprovement river = new TileImprovement(getGame(), this, riverType);</span>
+<span class="nc" id="L874">        river.setTurnsToComplete(0);</span>
+<span class="nc" id="L875">        river.setMagnitude(magnitude);</span>
+<span class="nc bnc" id="L876" title="All 2 branches missed.">        if (!addTileItem(river)) return null;</span>
+<span class="nc" id="L877">        river.updateRiverConnections(conns);</span>
+<span class="nc" id="L878">        return river;</span>
+    }
+
+    /**
+     * Removes a river from this tile.
+     *
+     * -til: Changes appearance.
+     *
+     * @return The removed river.
+     */
+    public TileImprovement removeRiver() {
+<span class="nc" id="L889">        TileImprovement river = getRiver();</span>
+<span class="nc bnc" id="L890" title="All 2 branches missed.">        if (river == null) return null;</span>
+<span class="nc" id="L891">        TileImprovement result = removeTileItem(river);</span>
+<span class="nc bnc" id="L892" title="All 2 branches missed.">        if (result == river) river.updateRiverConnections(null);</span>
+<span class="nc" id="L893">        return result;</span>
+    }
+
+    /**
+     * Adds a road to this tile.  It is not complete.
+     *
+     * -til: Changes appearance.
+     *
+     * @return The new road added, or the existing one.
+     */
+    public TileImprovement addRoad() {
+<span class="nc" id="L904">        TileImprovementType roadType = getSpecification()</span>
+<span class="nc" id="L905">            .getTileImprovementType(&quot;model.improvement.road&quot;);</span>
+<span class="nc" id="L906">        TileImprovement road = new TileImprovement(getGame(), this, roadType);</span>
+<span class="nc" id="L907">        road.setMagnitude(1);</span>
+<span class="nc bnc" id="L908" title="All 2 branches missed.">        return (addTileItem(road)) ? road : null;</span>
+    }
+
+    /**
+     * Removes a road from this tile.
+     *
+     * -til: Changes appearance.
+     *
+     * @return The removed road.
+     */
+    public TileImprovement removeRoad() {
+<span class="nc" id="L919">        TileImprovement road = getRoad();</span>
+<span class="nc bnc" id="L920" title="All 2 branches missed.">        if (road == null) return null;</span>
+<span class="nc" id="L921">        road.updateRoadConnections(false);</span>
+<span class="nc" id="L922">        return removeTileItem(road);</span>
+    }
+
+    /**
+     * Gets the resource on this tile.
+     *
+     * @return A &lt;code&gt;Resource&lt;/code&gt;, or null if none present.
+     */
+    public Resource getResource() {
+<span class="nc bnc" id="L931" title="All 2 branches missed.">        return (tileItemContainer == null) ? null</span>
+<span class="nc" id="L932">            : tileItemContainer.getResource();</span>
+    }
+
+    /**
+     * Adds a resource to this tile.
+     *
+     * -til: Changes appearance.
+     *
+     * @param resource The &lt;code&gt;Resource&lt;/code&gt; to add.
+     */
+    public void addResource(Resource resource) {
+<span class="nc" id="L943">        addTileItem(resource);</span>
+<span class="nc" id="L944">    }</span>
+
+    /**
+     * Removes a resource from this tile.
+     *
+     * -til: Changes appearance.
+     *
+     * @return The removed &lt;code&gt;Resource&lt;/code&gt;.
+     */
+    public Resource removeResource() {
+<span class="nc" id="L954">        Resource resource = getResource();</span>
+<span class="nc bnc" id="L955" title="All 2 branches missed.">        if (resource == null) return null;</span>
+<span class="nc" id="L956">        return removeTileItem(resource);</span>
+    }
+
+    /**
+     * Get the number of turns it takes for a non-expert pioneer to build
+     * the given &lt;code&gt;TileImprovementType&lt;/code&gt;. 
+     * It will check if it is valid for this &lt;code&gt;TileType&lt;/code&gt;.
+     *
+     * @param workType The &lt;code&gt;TileImprovementType&lt;/code&gt; to check.
+     * @return The number of turns it should take a non-expert pioneer
+     *     to finish the work.
+     */
+    public int getWorkAmount(TileImprovementType workType) {
+<span class="nc bnc" id="L969" title="All 2 branches missed.">        return (workType == null) ? -1</span>
+<span class="nc bnc" id="L970" title="All 2 branches missed.">            : (getTileImprovement(workType) != null) ? -1</span>
+            // Return the basic work turns + additional work turns
+<span class="nc" id="L972">            : getType().getBasicWorkTurns() + workType.getAddWorkTurns();</span>
+    }
+
+    /**
+     * Check if a given improvement type is valid for this tile.
+     *
+     * @param type The &lt;code&gt;TileImprovementType&lt;/code&gt; to check.
+     * @return True if this tile can be improved with the improvement type.
+     */
+    public boolean isImprovementTypeAllowed(TileImprovementType type) {
+        TileImprovement ti;
+<span class="nc bnc" id="L983" title="All 2 branches missed.">        return type != null</span>
+<span class="nc bnc" id="L984" title="All 2 branches missed.">            &amp;&amp; type.isTileTypeAllowed(getType())</span>
+<span class="nc bnc" id="L985" title="All 4 branches missed.">            &amp;&amp; ((ti = getTileImprovement(type)) == null || !ti.isComplete());</span>
+    }
+        
+    /**
+     * Check if a given improvement is valid for this tile.
+     *
+     * @param tip The &lt;code&gt;TileImprovement&lt;/code&gt; to check.
+     * @return True if this tile can be improved with the improvement.
+     */
+    public boolean isImprovementAllowed(TileImprovement tip) {
+<span class="nc" id="L995">        final TileImprovementType type = tip.getType();</span>
+<span class="nc bnc" id="L996" title="All 2 branches missed.">        if (!isImprovementTypeAllowed(type)) return false;</span>
+<span class="nc" id="L997">        TileImprovementType req = type.getRequiredImprovementType();</span>
+<span class="nc bnc" id="L998" title="All 4 branches missed.">        if (req != null &amp;&amp; getTileImprovement(req) == null) return false;</span>
+<span class="nc" id="L999">        TileImprovement ti = getTileImprovement(type);</span>
+<span class="nc bnc" id="L1000" title="All 4 branches missed.">        return ti == null || !ti.isComplete();</span>
+    }
+
+    /**
+     * Gets a weighted list of natural disasters than can strike
+     * this tile.  This list comprises all natural disasters that can
+     * strike a tile of this type or a completed tile improvement
+     * present.
+     *
+     * @return A weighted list of &lt;code&gt;Disaster&lt;/code&gt;s.
+     */
+    public List&lt;RandomChoice&lt;Disaster&gt;&gt; getDisasters() {
+<span class="nc" id="L1012">        List&lt;RandomChoice&lt;Disaster&gt;&gt; disasters = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1013">        disasters.addAll(type.getDisasters());</span>
+<span class="nc bnc" id="L1014" title="All 2 branches missed.">        for (TileImprovement ti : getCompleteTileImprovements()) {</span>
+<span class="nc" id="L1015">            disasters.addAll(ti.getType().getDisasters());</span>
+        }
+<span class="nc" id="L1017">        return disasters;</span>
+    }
+
+
+    //
+    // Naming
+    //
+
+    /**
+     * Gets a description of the &lt;code&gt;Tile&lt;/code&gt;, with the name of
+     * the tile and any improvements on it (road/plow/etc) from
+     * &lt;code&gt;TileItemContainer&lt;/code&gt;.
+     *
+     * @return The description label for this &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public StringTemplate getLabel() {
+<span class="nc" id="L1033">        StringTemplate label = StringTemplate.key(type);</span>
+<span class="nc bnc" id="L1034" title="All 2 branches missed.">        if (tileItemContainer != null) {</span>
+<span class="nc" id="L1035">            List&lt;TileItem&gt; keys = tileItemContainer.getCompleteItems();</span>
+<span class="nc bnc" id="L1036" title="All 2 branches missed.">            if (!keys.isEmpty()) {</span>
+<span class="nc" id="L1037">                label = StringTemplate.label(&quot;/&quot;).addNamed(type);</span>
+<span class="nc bnc" id="L1038" title="All 2 branches missed.">                for (Named key : keys) label.addNamed(key);</span>
+            }
+        }
+<span class="nc" id="L1041">        return label;</span>
+    }
+    /**
+     * Get a simple label for this tile, with just its coordinates.
+     *
+     * @return A simple &lt;code&gt;StringTemplate&lt;/code&gt; label.
+     */
+    public StringTemplate getSimpleLabel() {
+<span class="nc" id="L1049">        return StringTemplate.template(&quot;model.tile.simpleLabel&quot;)</span>
+<span class="nc" id="L1050">            .addAmount(&quot;%x%&quot;, getX())</span>
+<span class="nc" id="L1051">            .addAmount(&quot;%y%&quot;, getY());</span>
+    }
+
+    /**
+     * Get a detailed label for this tile.
+     *
+     * @return A suitable &lt;code&gt;StringTemplate&lt;/code&gt;.
+     */
+    public StringTemplate getDetailedLocationLabel() {
+<span class="nc" id="L1060">        Settlement nearSettlement = null;</span>
+<span class="nc bnc" id="L1061" title="All 2 branches missed.">        for (Tile tile : getSurroundingTiles(NEAR_RADIUS)) {</span>
+<span class="nc" id="L1062">            nearSettlement = tile.getSettlement();</span>
+<span class="nc bnc" id="L1063" title="All 4 branches missed.">            if (nearSettlement != null &amp;&amp; nearSettlement.getName() != null) {</span>
+<span class="nc" id="L1064">                Direction d = Map.getRoughDirection(tile, this);</span>
+<span class="nc" id="L1065">                StringTemplate t = StringTemplate</span>
+<span class="nc" id="L1066">                    .template(&quot;model.tile.nameLocation&quot;);</span>
+<span class="nc bnc" id="L1067" title="All 2 branches missed.">                if (d == null) {</span>
+<span class="nc" id="L1068">                    t.addName(&quot;%location%&quot;, nearSettlement.getName());</span>
+<span class="nc" id="L1069">                } else {</span>
+<span class="nc" id="L1070">                    t.addStringTemplate(&quot;%location%&quot;,</span>
+<span class="nc" id="L1071">                        getNearLocationLabel(d, nearSettlement.getLocationLabel()));</span>
+                }
+<span class="nc bnc" id="L1073" title="All 2 branches missed.">                if (type == null) {</span>
+<span class="nc" id="L1074">                    t.add(&quot;%name%&quot;, &quot;unexplored&quot;);</span>
+<span class="nc" id="L1075">                } else {</span>
+<span class="nc" id="L1076">                    t.addNamed(&quot;%name%&quot;, type);</span>
+                }
+<span class="nc" id="L1078">                return t;</span>
+            }
+        }
+<span class="nc bnc" id="L1081" title="All 4 branches missed.">        return (region != null &amp;&amp; region.getName() != null)</span>
+<span class="nc" id="L1082">            ? StringTemplate.template(&quot;model.tile.nameLocation&quot;)</span>
+<span class="nc" id="L1083">                .addNamed(&quot;%name%&quot;, type)</span>
+<span class="nc" id="L1084">                .addStringTemplate(&quot;%location%&quot;, region.getLabel())</span>
+<span class="nc" id="L1085">            : getSimpleLabel();</span>
+    }
+
+    /**
+     * Get a detailed label for this tile for a given player.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; to produce a label for.
+     * @return A suitable &lt;code&gt;StringTemplate&lt;/code&gt;.
+     */
+    public StringTemplate getDetailedLocationLabelFor(Player player) {
+<span class="nc" id="L1095">        Settlement nearSettlement = null;</span>
+<span class="nc bnc" id="L1096" title="All 2 branches missed.">        for (Tile tile : getSurroundingTiles(NEAR_RADIUS)) {</span>
+<span class="nc" id="L1097">            nearSettlement = tile.getSettlement();</span>
+<span class="nc bnc" id="L1098" title="All 2 branches missed.">            if (nearSettlement != null</span>
+<span class="nc bnc" id="L1099" title="All 2 branches missed.">                &amp;&amp; nearSettlement.hasContacted(player)) {</span>
+<span class="nc" id="L1100">                Direction d = Map.getRoughDirection(tile, this);</span>
+<span class="nc" id="L1101">                StringTemplate t = StringTemplate</span>
+<span class="nc" id="L1102">                    .template(&quot;model.tile.nameLocation&quot;)</span>
+<span class="nc bnc" id="L1103" title="All 2 branches missed.">                        .addStringTemplate(&quot;%location%&quot;, (d == null)</span>
+<span class="nc" id="L1104">                            ? nearSettlement.getLocationLabelFor(player)</span>
+<span class="nc" id="L1105">                            : getNearLocationLabel(d,</span>
+<span class="nc" id="L1106">                                nearSettlement.getLocationLabelFor(player)));</span>
+<span class="nc bnc" id="L1107" title="All 2 branches missed.">                if (type == null) {</span>
+<span class="nc" id="L1108">                    t.add(&quot;%name%&quot;, &quot;unexplored&quot;);</span>
+<span class="nc" id="L1109">                } else {</span>
+<span class="nc" id="L1110">                    t.addNamed(&quot;%name%&quot;, type);</span>
+                }
+<span class="nc" id="L1112">                return t;</span>
+            }
+        }
+<span class="nc bnc" id="L1115" title="All 4 branches missed.">        return (region != null &amp;&amp; region.getName() != null)</span>
+<span class="nc" id="L1116">            ? StringTemplate.template(&quot;model.tile.nameLocation&quot;)</span>
+<span class="nc" id="L1117">                .addNamed(&quot;%name%&quot;, type)</span>
+<span class="nc" id="L1118">                .addStringTemplate(&quot;%location%&quot;, region.getLabel())</span>
+<span class="nc" id="L1119">            : getSimpleLabel();</span>
+    }
+
+    /**
+     * Get a label for this tile assuming it is a colony tile of
+     * a given colony.
+     *
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; assumed to own this tile.
+     * @return A suitable &lt;code&gt;StringTemplate&lt;/code&gt;, or null if this
+     *     tile is not close enough to the colony to be a colony tile.
+     */
+    public StringTemplate getColonyTileLocationLabel(Colony colony) {
+<span class="nc" id="L1131">        Tile ct = colony.getTile();</span>
+<span class="nc" id="L1132">        StringTemplate t = StringTemplate.template(&quot;model.tile.nameLocation&quot;);</span>
+<span class="nc bnc" id="L1133" title="All 2 branches missed.">        if (ct == this) {</span>
+<span class="nc" id="L1134">            t.addStringTemplate(&quot;%location%&quot;,</span>
+<span class="nc" id="L1135">                StringTemplate.key(&quot;colonyCenter&quot;));</span>
+<span class="nc" id="L1136">        } else {</span>
+<span class="nc" id="L1137">            Direction d = getMap().getDirection(ct, this);</span>
+<span class="nc bnc" id="L1138" title="All 2 branches missed.">            if (d == null) return null;</span>
+<span class="nc" id="L1139">            t.addNamed(&quot;%location%&quot;, d);</span>
+        }
+<span class="nc bnc" id="L1141" title="All 2 branches missed.">        if (type == null) {</span>
+<span class="nc" id="L1142">            t.add(&quot;%name%&quot;, &quot;unexplored&quot;);</span>
+<span class="nc" id="L1143">        } else {</span>
+<span class="nc" id="L1144">            t.addNamed(&quot;%name%&quot;, type);</span>
+        }
+<span class="nc" id="L1146">        return t;</span>
+    }
+
+
+    //
+    // Map / geographic routines
+    //
+
+    /**
+     * Gets the distance in tiles between this tile and the specified
+     * one.
+     *
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; to check the distance to.
+     * @return The distance.
+     */
+    public int getDistanceTo(Tile tile) {
+<span class="nc" id="L1162">        return getMap().getDistance(this, tile);</span>
+    }
+
+    /**
+     * Gets the direction to a neighbouring tile from this one.
+     *
+     * @param tile The other &lt;code&gt;Tile&lt;/code&gt;.
+     * @return The direction to the other &lt;code&gt;Tile&lt;/code&gt;, or null
+     *     if the other tile is not a neighbour.
+     */
+    public Direction getDirection(Tile tile) {
+<span class="nc" id="L1173">        return getMap().getDirection(this, tile);</span>
+    }
+
+    /**
+     * Get the neighbouring tile in the given direction.
+     *
+     * @param direction The &lt;code&gt;Direction&lt;/code&gt; to check in.
+     * @return The neighbouring &lt;code&gt;Tile&lt;/code&gt; in the given
+     *     &lt;code&gt;Direction&lt;/code&gt;, or null if none present.
+     */
+    public Tile getNeighbourOrNull(Direction direction) {
+<span class="nc" id="L1184">        return getMap().getAdjacentTile(x, y, direction);</span>
+    }
+
+    /**
+     * Determines whether this tile is adjacent to the specified tile.
+     *
+     * @param tile A potentially adjacent &lt;code&gt;Tile&lt;/code&gt;.
+     * @return True if the &lt;code&gt;Tile&lt;/code&gt; is adjacent to this
+     *     &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public boolean isAdjacent(Tile tile) {
+<span class="nc bnc" id="L1195" title="All 2 branches missed.">        return (tile == null) ? false</span>
+<span class="nc bnc" id="L1196" title="All 2 branches missed.">            : any(getSurroundingTiles(1, 1), t -&gt; t == tile);</span>
+    }
+
+    /**
+     * Is this tile in the polar regions?
+     *
+     * @return True if the &lt;code&gt;Tile&lt;/code&gt; is polar.
+     */
+    public boolean isPolar() {
+<span class="nc" id="L1205">        return getMap().isPolar(this);</span>
+    }
+
+    /**
+     * Is this tile land locked?
+     *
+     * @return True if land locked.
+     */
+    public boolean isLandLocked() {
+<span class="nc bnc" id="L1214" title="All 2 branches missed.">        return (!isLand()) ? false</span>
+<span class="nc" id="L1215">            : all(getSurroundingTiles(1, 1), Tile::isLand);</span>
+    }
+
+    /**
+     * Is this a shoreline tile?
+     *
+     * The tile can be water or land, and the water can be ocean,
+     * river or an inland lake.  If this is true for a land tile with
+     * a colony, the colony can build docks.
+     *
+     * @return True if this &lt;code&gt;Tile&lt;/code&gt; is on the shore.
+     */
+    public boolean isShore() {
+<span class="nc" id="L1228">        return any(getSurroundingTiles(1, 1), t -&gt; t.isLand() != this.isLand());</span>
+    }
+
+
+    /**
+     * Gets all the tiles surrounding a tile within the given range.
+     * The center tile is not included.
+     *
+     * @param range How far away do we need to go starting from this.
+     * @return The tiles surrounding this &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public Iterable&lt;Tile&gt; getSurroundingTiles(int range) {
+<span class="nc" id="L1240">        return getMap().getCircleTiles(this, true, range);</span>
+    }
+
+    /**
+     * Gets all the tiles surrounding this tile within the given
+     * inclusive upper and lower bounds.
+     *
+     * getSurroundingTiles(r) is equivalent to getSurroundingTiles(1, r),
+     * thus this tile is included if rangeMin is zero.
+     *
+     * @param rangeMin The inclusive minimum distance from this
+     *     &lt;code&gt;Tile&lt;/code&gt;.
+     * @param rangeMax The inclusive maximum distance from this
+     *     &lt;code&gt;Tile&lt;/code&gt;.
+     * @return A list of the tiles surrounding this &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public List&lt;Tile&gt; getSurroundingTiles(int rangeMin, int rangeMax) {
+<span class="nc" id="L1257">        List&lt;Tile&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L1258" title="All 4 branches missed.">        if (rangeMin &gt; rangeMax || rangeMin &lt; 0) return result;</span>
+
+<span class="nc bnc" id="L1260" title="All 2 branches missed.">        if (rangeMin == 0) result.add(this);</span>
+
+<span class="nc bnc" id="L1262" title="All 2 branches missed.">        if (rangeMax &gt; 0) {</span>
+<span class="nc bnc" id="L1263" title="All 2 branches missed.">            for (Tile t : getSurroundingTiles(rangeMax)) {</span>
+                // add all tiles up to rangeMax
+<span class="nc" id="L1265">                result.add(t);</span>
+            }
+        }
+<span class="nc bnc" id="L1268" title="All 2 branches missed.">        if (rangeMin &gt; 1) {</span>
+<span class="nc bnc" id="L1269" title="All 2 branches missed.">            for (Tile t : getSurroundingTiles(rangeMin - 1)) {</span>
+                // remove the tiles closer than rangeMin
+<span class="nc" id="L1271">                result.remove(t);</span>
+            }
+        }
+<span class="nc" id="L1274">        return result;</span>
+    }
+
+    /**
+     * Determine whether this tile has adjacent tiles that are unexplored.
+     *
+     * @return True if at least one neighbouring &lt;code&gt;Tile&lt;/code&gt;s is
+     *     unexplored.
+     */
+    public boolean hasUnexploredAdjacent() {
+<span class="nc bnc" id="L1284" title="All 2 branches missed.">        return any(getSurroundingTiles(1, 1), t -&gt; !t.isExplored());</span>
+    }
+
+    /**
+     * Get the number of tiles adjacent to this one that are of the same
+     * land/water type such as to be nominally accessible to a unit.
+     *
+     * @return The number of adjacent available tiles.
+     */
+    public int getAvailableAdjacentCount() {
+<span class="nc bnc" id="L1294" title="All 2 branches missed.">        return count(getSurroundingTiles(1, 1), t -&gt; t.isLand() == isLand());</span>
+    }
+
+    /**
+     * Get the adjacent colonies.
+     *
+     * @return A list of adjacent &lt;code&gt;Colony&lt;/code&gt;s.
+     */
+    public List&lt;Colony&gt; getAdjacentColonies() {
+<span class="nc bnc" id="L1303" title="All 2 branches missed.">        return transform(getSurroundingTiles(0, 1), t -&gt; t.getColony() != null,</span>
+<span class="nc" id="L1304">                         Tile::getColony, Collectors.toList());</span>
+    }
+
+    /**
+     * Finds the nearest settlement to this tile.
+     *
+     * @param owner If non-null, the settlement should be owned by this player.
+     * @param radius The maximum radius of the search.
+     * @param same If true, require the settlement to be on the same land mass.
+     * @return The nearest settlement, or null if none.
+     */
+    public Settlement getNearestSettlement(Player owner, int radius,
+                                           boolean same) {
+<span class="nc bnc" id="L1317" title="All 2 branches missed.">        if (radius &lt;= 0) radius = INFINITY;</span>
+<span class="nc" id="L1318">        Map map = getGame().getMap();</span>
+<span class="nc bnc" id="L1319" title="All 2 branches missed.">        for (Tile t : map.getCircleTiles(this, true, radius)) {</span>
+<span class="nc bnc" id="L1320" title="All 2 branches missed.">            if (t == this</span>
+<span class="nc bnc" id="L1321" title="All 4 branches missed.">                || (same &amp;&amp; !isConnectedTo(t))) continue;</span>
+<span class="nc" id="L1322">            Settlement settlement = t.getSettlement();</span>
+<span class="nc bnc" id="L1323" title="All 2 branches missed.">            if (settlement != null</span>
+<span class="nc bnc" id="L1324" title="All 4 branches missed.">                &amp;&amp; (owner == null || owner.owns(settlement))) {</span>
+<span class="nc" id="L1325">                return settlement;</span>
+            }
+        }
+<span class="nc" id="L1328">        return null;</span>
+    }
+
+    /**
+     * Finds a safe tile to put a unit on, near to this one.
+     * Useful on return from Europe.
+     *
+     * @param player The owner of the unit to place (may be null).
+     * @param random An optional pseudo-random number source.
+     * @return A vacant &lt;code&gt;Tile&lt;/code&gt; near this one.
+     */
+    public Tile getSafeTile(Player player, Random random) {
+<span class="nc bnc" id="L1340" title="All 4 branches missed.">        if ((getFirstUnit() == null || getFirstUnit().getOwner() == player)</span>
+<span class="nc bnc" id="L1341" title="All 4 branches missed.">            &amp;&amp; (!hasSettlement() || getSettlement().getOwner() == player)) {</span>
+<span class="nc" id="L1342">            return this;</span>
+        }
+
+<span class="nc" id="L1345">        for (int r = 1; true; r++) {</span>
+<span class="nc" id="L1346">            List&lt;Tile&gt; tiles = getSurroundingTiles(r, r);</span>
+<span class="nc bnc" id="L1347" title="All 2 branches missed.">            if (tiles.isEmpty()) return null;</span>
+<span class="nc bnc" id="L1348" title="All 2 branches missed.">            if (random != null) {</span>
+<span class="nc" id="L1349">                randomShuffle(logger, &quot;Safe tile&quot;, tiles, random);</span>
+            }
+<span class="nc bnc" id="L1351" title="All 2 branches missed.">            for (Tile t : tiles) {</span>
+<span class="nc bnc" id="L1352" title="All 2 branches missed.">                if ((t.getFirstUnit() == null</span>
+<span class="nc bnc" id="L1353" title="All 2 branches missed.">                        || t.getFirstUnit().getOwner() == player)</span>
+<span class="nc bnc" id="L1354" title="All 2 branches missed.">                    &amp;&amp; (t.getSettlement() == null</span>
+<span class="nc bnc" id="L1355" title="All 2 branches missed.">                        || t.getSettlement().getOwner() == player)) {</span>
+<span class="nc" id="L1356">                    return t;</span>
+                }
+            }
+        }
+    }
+
+    /**
+     * Get the defence value for this tile type.
+     *
+     * @return The defence value.
+     */
+    public double getDefenceValue() {
+<span class="nc" id="L1368">        final TileType type = getType();</span>
+<span class="nc bnc" id="L1369" title="All 2 branches missed.">        return (type == null) ? 0.0</span>
+<span class="nc" id="L1370">            : applyModifiers(1.0f, null, type.getDefenceModifiers());</span>
+    }
+
+    /**
+     * Get the defence bonus as a percent.
+     *
+     * @return The percentage defence bonus.
+     */
+    public int getDefenceBonusPercentage() {
+<span class="nc" id="L1379">        return (int)getType().applyModifiers(100f, getGame().getTurn(),</span>
+<span class="nc" id="L1380">                                             Modifier.DEFENCE)</span>
+<span class="nc" id="L1381">            - 100;</span>
+    }
+
+    /**
+     * Get a list of surrounding land tiles, sorted with the most
+     * defensible first.  Useful when planning an attack.
+     *
+     * @param player A &lt;code&gt;Player&lt;/code&gt; to use to check for
+     *     tile access.
+     * @return A list of land &lt;code&gt;Tile&lt;/code&gt;s.
+     */
+    public List&lt;Tile&gt; getSafestSurroundingLandTiles(Player player) {
+<span class="nc" id="L1393">        final Comparator&lt;Tile&gt; comp = cachingDoubleComparator((Tile t) -&gt;</span>
+<span class="nc" id="L1394">            t.getDefenceValue()).reversed();</span>
+<span class="nc" id="L1395">        return toSortedList(getSurroundingTiles(0, 1).stream()</span>
+<span class="nc bnc" id="L1396" title="All 2 branches missed.">                .filter(t -&gt; t.isLand()</span>
+<span class="nc bnc" id="L1397" title="All 4 branches missed.">                    &amp;&amp; (!t.hasSettlement() || player.owns(t.getSettlement()))),</span>
+<span class="nc" id="L1398">            comp);</span>
+    }
+                    
+    /**
+     * Get the adjacent land tile with the best defence bonus.
+     * Useful for incoming attackers as a disembark site.
+     *
+     * @param player A &lt;code&gt;Player&lt;/code&gt; to use to check for
+     *     tile access.
+     * @return The most defensible adjacent land &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public Tile getBestDisembarkTile(Player player) {
+<span class="nc" id="L1410">        return find(getSafestSurroundingLandTiles(player),</span>
+<span class="nc" id="L1411">            Tile::isHighSeasConnected);</span>
+    }
+
+    /**
+     * Is this tile dangerous for a naval unit to enter?
+     * That is, is there an adjacent settlement that is likely to bombard it.
+     *
+     * @param ship The naval &lt;code&gt;Unit&lt;/code&gt; to check.
+     * @return True if moving the ship to this tile exposes it to attack.
+     */
+    public boolean isDangerousToShip(Unit ship) {
+<span class="nc" id="L1422">        final Player player = ship.getOwner();</span>
+<span class="nc" id="L1423">        return any(getSurroundingTiles(0, 1).stream()</span>
+<span class="nc" id="L1424">            .filter(Tile::hasSettlement),</span>
+<span class="nc" id="L1425">            t -&gt; {</span>
+<span class="nc" id="L1426">                Settlement settlement = t.getSettlement();</span>
+<span class="nc bnc" id="L1427" title="All 2 branches missed.">                return !player.owns(settlement)</span>
+<span class="nc bnc" id="L1428" title="All 2 branches missed.">                    &amp;&amp; settlement.canBombardEnemyShip()</span>
+<span class="nc bnc" id="L1429" title="All 2 branches missed.">                    &amp;&amp; (player.atWarWith(settlement.getOwner())</span>
+<span class="nc bnc" id="L1430" title="All 2 branches missed.">                        || ship.hasAbility(Ability.PIRACY));</span>
+            });
+    }
+
+    /**
+     * Get any safe sites for a naval transport unit to stop at to disembark
+     * a unit to this tile.  To be safe, the tile must be adjacent to this
+     * one but not adjacent to a dangerous settlement.
+     *
+     * @param unit The transport &lt;code&gt;Unit&lt;/code&gt; that needs a anchoring site.
+     * @return A list of suitable &lt;code&gt;Tile&lt;/code&gt;s.
+     */
+    public List&lt;Tile&gt; getSafeAnchoringTiles(Unit unit) {
+<span class="nc" id="L1443">        return transform(getSurroundingTiles(0, 1),</span>
+<span class="nc bnc" id="L1444" title="All 4 branches missed.">            t -&gt; !t.isLand() &amp;&amp; t.isHighSeasConnected()</span>
+<span class="nc bnc" id="L1445" title="All 2 branches missed.">                &amp;&amp; !t.isDangerousToShip(unit), Collectors.toList());</span>
+    }
+                
+
+    //
+    // Type and Ownership
+    //
+
+    /**
+     * Changes the type of this tile.
+     * The map generator et al should just use setType(), whereas this
+     * routine should be called for the special case of a change of an
+     * existing tile type (e.g. pioneer clearing forest).
+     *
+     * -til: Changes appearance.
+     *
+     * @param type The new &lt;code&gt;TileType&lt;/code&gt;.
+     */
+    public void changeType(TileType type) {
+<span class="nc" id="L1464">        setType(type);</span>
+
+<span class="nc bnc" id="L1466" title="All 2 branches missed.">        if (tileItemContainer != null) {</span>
+<span class="nc" id="L1467">            tileItemContainer.removeIncompatibleImprovements();</span>
+        }
+<span class="nc bnc" id="L1469" title="All 2 branches missed.">        if (!isLand()) settlement = null;</span>
+
+<span class="nc" id="L1471">        updateColonyTiles();</span>
+<span class="nc" id="L1472">    }</span>
+
+    /**
+     * Is this tile under active use?
+     *
+     * @return True if a &lt;code&gt;Colony&lt;/code&gt; is using this &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public boolean isInUse() {
+<span class="nc bnc" id="L1480" title="All 2 branches missed.">        return getOwningSettlement() instanceof Colony</span>
+<span class="nc bnc" id="L1481" title="All 2 branches missed.">            &amp;&amp; ((Colony)getOwningSettlement()).isTileInUse(this);</span>
+    }
+
+    /**
+     * Changes the owning settlement for this tile.
+     *
+     * -til: Changes appearance.
+     *
+     * @param settlement The new owning &lt;code&gt;Settlement&lt;/code&gt; for
+     *     this &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public void changeOwningSettlement(Settlement settlement) {
+<span class="nc bnc" id="L1493" title="All 2 branches missed.">        if (owningSettlement != null) {</span>
+<span class="nc" id="L1494">            owningSettlement.removeTile(this);</span>
+        }
+<span class="nc" id="L1496">        setOwningSettlement(settlement);//-til</span>
+<span class="nc bnc" id="L1497" title="All 2 branches missed.">        if (settlement != null) {</span>
+<span class="nc" id="L1498">            settlement.addTile(this);</span>
+        }
+<span class="nc" id="L1500">    }</span>
+
+    /**
+     * Change the tile ownership.  Also change the owning settlement
+     * as the two are commonly related.
+     *
+     * -til: Changes appearance.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; to own the tile.
+     * @param settlement The &lt;code&gt;Settlement&lt;/code&gt; to own the
+     *     &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public void changeOwnership(Player player, Settlement settlement) {
+<span class="nc" id="L1513">        setOwner(player);//-til</span>
+<span class="nc" id="L1514">        changeOwningSettlement(settlement);//-til</span>
+<span class="nc" id="L1515">    }</span>
+
+    /**
+     * A colony is proposed to be built on this tile.  Collect
+     * warnings if this has disadvantages.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; which is to build the colony.
+     * @return A &lt;code&gt;StringTemplate&lt;/code&gt; containing the warnings,
+     *      or null if none.
+     */
+    public StringTemplate getBuildColonyWarnings(Unit unit) {
+<span class="nc" id="L1526">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L1527">        final Player owner = unit.getOwner();</span>
+<span class="nc" id="L1528">        boolean landLocked = true;</span>
+<span class="nc" id="L1529">        boolean ownedByEuropeans = false;</span>
+<span class="nc" id="L1530">        boolean ownedBySelf = false;</span>
+<span class="nc" id="L1531">        boolean ownedByIndians = false;</span>
+
+<span class="nc" id="L1533">        java.util.Map&lt;GoodsType, Integer&gt; goodsMap = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L1534" title="All 2 branches missed.">        for (GoodsType goodsType : spec.getGoodsTypeList()) {</span>
+<span class="nc bnc" id="L1535" title="All 2 branches missed.">            if (goodsType.isBuildingMaterial()) {</span>
+<span class="nc bnc" id="L1536" title="All 2 branches missed.">                while (goodsType.isRefined()) {</span>
+<span class="nc" id="L1537">                    goodsType = goodsType.getInputType();</span>
+                }
+<span class="nc bnc" id="L1539" title="All 2 branches missed.">            } else if (!goodsType.isFoodType()) {</span>
+<span class="nc" id="L1540">                continue;</span>
+            }
+<span class="nc bnc" id="L1542" title="All 2 branches missed.">            for (ProductionType productionType : getType()</span>
+<span class="nc" id="L1543">                     .getAvailableProductionTypes(false)) {</span>
+<span class="nc bnc" id="L1544" title="All 2 branches missed.">                int potential = (productionType.getOutput(goodsType) == null)</span>
+<span class="nc" id="L1545">                    ? 0 : getPotentialProduction(goodsType, null);</span>
+<span class="nc" id="L1546">                Integer oldPotential = goodsMap.get(goodsType);</span>
+<span class="nc bnc" id="L1547" title="All 4 branches missed.">                if (oldPotential == null || potential &gt; oldPotential) {</span>
+<span class="nc" id="L1548">                    goodsMap.put(goodsType, potential);</span>
+                }
+            }
+        }
+
+<span class="nc bnc" id="L1553" title="All 2 branches missed.">        for (Tile t : getSurroundingTiles(1)) {</span>
+<span class="nc bnc" id="L1554" title="All 2 branches missed.">            if (!t.isLand()) landLocked = false;</span>
+<span class="nc bnc" id="L1555" title="All 2 branches missed.">            for (Entry&lt;GoodsType, Integer&gt; entry : goodsMap.entrySet()) {</span>
+<span class="nc" id="L1556">                entry.setValue(entry.getValue()</span>
+<span class="nc" id="L1557">                    + t.getPotentialProduction(entry.getKey(),</span>
+<span class="nc" id="L1558">                        spec.getDefaultUnitType(owner)));</span>
+            }
+<span class="nc" id="L1560">            Player tileOwner = t.getOwner();</span>
+<span class="nc bnc" id="L1561" title="All 2 branches missed.">            if (owner == tileOwner) {</span>
+<span class="nc bnc" id="L1562" title="All 2 branches missed.">                if (t.getOwningSettlement() != null) {</span>
+                    // we are using newTile
+<span class="nc" id="L1564">                    ownedBySelf = true;</span>
+<span class="nc" id="L1565">                } else {</span>
+<span class="nc bnc" id="L1566" title="All 2 branches missed.">                    for (Tile ownTile : t.getSurroundingTiles(1)) {</span>
+<span class="nc" id="L1567">                        Colony colony = ownTile.getColony();</span>
+<span class="nc bnc" id="L1568" title="All 4 branches missed.">                        if (colony != null &amp;&amp; colony.getOwner() == owner) {</span>
+                            // newTile can be used from an own colony
+<span class="nc" id="L1570">                            ownedBySelf = true;</span>
+<span class="nc" id="L1571">                            break;</span>
+                        }
+                    }
+                }
+<span class="nc bnc" id="L1575" title="All 4 branches missed.">            } else if (tileOwner != null &amp;&amp; tileOwner.isEuropean()) {</span>
+<span class="nc" id="L1576">                ownedByEuropeans = true;</span>
+<span class="nc bnc" id="L1577" title="All 2 branches missed.">            } else if (tileOwner != null) {</span>
+<span class="nc" id="L1578">                ownedByIndians = true;</span>
+            }
+        }
+
+<span class="nc" id="L1582">        StringTemplate ret = StringTemplate.label(&quot;\n&quot;);</span>
+<span class="nc bnc" id="L1583" title="All 2 branches missed.">        if (landLocked) {</span>
+<span class="nc" id="L1584">            ret.add(&quot;warning.landLocked&quot;);</span>
+        }
+<span class="nc" id="L1586">        int food = sum(goodsMap.entrySet(), e -&gt; e.getKey().isFoodType(),</span>
+<span class="nc" id="L1587">                       Entry::getValue);</span>
+<span class="nc bnc" id="L1588" title="All 2 branches missed.">        if (food &lt; 8) {</span>
+<span class="nc" id="L1589">            ret.add(&quot;warning.noFood&quot;);</span>
+        }
+<span class="nc bnc" id="L1591" title="All 2 branches missed.">        for (Entry&lt;GoodsType, Integer&gt; entry : goodsMap.entrySet()) {</span>
+<span class="nc bnc" id="L1592" title="All 2 branches missed.">            if (!entry.getKey().isFoodType()</span>
+<span class="nc bnc" id="L1593" title="All 2 branches missed.">                &amp;&amp; entry.getValue() &lt; LOW_PRODUCTION_WARNING_VALUE) {</span>
+<span class="nc" id="L1594">                ret.addStringTemplate(StringTemplate</span>
+<span class="nc" id="L1595">                    .template(&quot;warning.noBuildingMaterials&quot;)</span>
+<span class="nc" id="L1596">                    .addNamed(&quot;%goods%&quot;, entry.getKey()));</span>
+            }
+        }
+
+<span class="nc bnc" id="L1600" title="All 2 branches missed.">        if (ownedBySelf) {</span>
+<span class="nc" id="L1601">            ret.add(&quot;warning.ownLand&quot;);</span>
+        }
+<span class="nc bnc" id="L1603" title="All 2 branches missed.">        if (ownedByEuropeans) {</span>
+<span class="nc" id="L1604">            ret.add(&quot;warning.europeanLand&quot;);</span>
+        }
+<span class="nc bnc" id="L1606" title="All 2 branches missed.">        if (ownedByIndians) {</span>
+<span class="nc" id="L1607">            ret.add(&quot;warning.nativeLand&quot;);</span>
+        }
+
+<span class="nc" id="L1610">        return ret;</span>
+    }
+
+    //
+    // Production
+    //
+
+    /**
+     * Can this tile produce a given goods type?  To produce goods
+     * either the tile type must have a suitable production type, or
+     * the tile item container contains suitable resource.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to produce.
+     * @param unitType An optional &lt;code&gt;UnitType&lt;/code&gt; to use.
+     * @return True if the tile can produce the goods.
+     */
+    public boolean canProduce(GoodsType goodsType, UnitType unitType) {
+<span class="nc bnc" id="L1627" title="All 4 branches missed.">        return (type != null &amp;&amp; type.canProduce(goodsType, unitType))</span>
+<span class="nc bnc" id="L1628" title="All 2 branches missed.">            || (tileItemContainer != null</span>
+<span class="nc bnc" id="L1629" title="All 2 branches missed.">                &amp;&amp; tileItemContainer.canProduce(goodsType, unitType));</span>
+    }
+
+    /**
+     * Get the base production exclusive of any bonuses.
+     *
+     * @param productionType An optional &lt;code&gt;ProductionType&lt;/code&gt; to use,
+     *     if null the best available one is used.
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to produce.
+     * @param unitType An optional &lt;code&gt;UnitType&lt;/code&gt; to use.
+     * @return The base production due to tile type and resources.
+     */
+    public int getBaseProduction(ProductionType productionType,
+                                 GoodsType goodsType, UnitType unitType) {
+<span class="nc bnc" id="L1643" title="All 4 branches missed.">        if (type == null || goodsType == null</span>
+<span class="nc bnc" id="L1644" title="All 2 branches missed.">            || !goodsType.isFarmed()) return 0;</span>
+<span class="nc" id="L1645">        int amount = type.getBaseProduction(productionType, goodsType,</span>
+<span class="nc" id="L1646">                                            unitType);</span>
+<span class="nc bnc" id="L1647" title="All 2 branches missed.">        return (amount &lt; 0) ? 0 : amount;</span>
+    }
+
+    /**
+     * Get the potential production of this tile for a given goods type
+     * and optional worker type.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to check the
+     *     potential for.
+     * @param unitType An optional &lt;code&gt;UnitType&lt;/code&gt; to do the work.
+     * @return The potential production of this &lt;code&gt;Tile&lt;/code&gt; to
+     *     produce the given &lt;code&gt;GoodsType&lt;/code&gt;.
+     */
+    public int getPotentialProduction(GoodsType goodsType,
+                                      UnitType unitType) {
+<span class="nc bnc" id="L1662" title="All 2 branches missed.">        if (!canProduce(goodsType, unitType)) return 0;</span>
+
+<span class="nc" id="L1664">        int amount = getBaseProduction(null, goodsType, unitType);</span>
+<span class="nc" id="L1665">        amount = (int)applyModifiers(amount, getGame().getTurn(),</span>
+<span class="nc" id="L1666">            getProductionModifiers(goodsType, unitType));</span>
+<span class="nc bnc" id="L1667" title="All 2 branches missed.">        return (amount &lt; 0) ? 0 : amount;</span>
+    }
+
+    /**
+     * Get the production modifiers for this tile.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to produce.
+     * @param unitType An optional &lt;code&gt;UnitType&lt;/code&gt; to do the work.
+     * @return A list of production &lt;code&gt;Modifier&lt;/code&gt;s.
+     */
+    public List&lt;Modifier&gt; getProductionModifiers(GoodsType goodsType,
+                                                 UnitType unitType) {
+<span class="nc bnc" id="L1679" title="All 2 branches missed.">        if (!canProduce(goodsType, unitType)) {</span>
+<span class="nc" id="L1680">            return Collections.&lt;Modifier&gt;emptyList();</span>
+        }
+
+<span class="nc" id="L1683">        List&lt;Modifier&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L1684" title="All 2 branches missed.">        if (tileItemContainer != null) {</span>
+<span class="nc" id="L1685">            result.addAll(tileItemContainer</span>
+<span class="nc" id="L1686">                .getProductionModifiers(goodsType, unitType));</span>
+        }
+<span class="nc" id="L1688">        return result;</span>
+    }
+
+    /**
+     * Gets the maximum potential for producing the given type of
+     * goods.  The maximum potential is the potential of a tile after
+     * the tile has been plowed/built road on.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to check.
+     * @param unitType A &lt;code&gt;UnitType&lt;/code&gt; to do the work.
+     * @return The maximum potential.
+     */
+    public int getMaximumPotential(GoodsType goodsType, UnitType unitType) {
+        // If we consider maximum potential to the effect of having
+        // all possible improvements done, iterate through the
+        // improvements and get the bonuses of all related ones.  If
+        // there are options to change TileType using an improvement,
+        // consider that too.
+<span class="nc" id="L1706">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L1707">        List&lt;TileType&gt; tileTypes = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1708">        tileTypes.add(type);</span>
+
+        // Add to the list the various possible tile type changes
+<span class="nc bnc" id="L1711" title="All 2 branches missed.">        for (TileImprovementType impType : spec.getTileImprovementTypeList()) {</span>
+<span class="nc bnc" id="L1712" title="All 2 branches missed.">            if (impType.getChange(type) != null) {</span>
+                // There is an option to change TileType
+<span class="nc" id="L1714">                tileTypes.add(impType.getChange(type));</span>
+            }
+        }
+
+<span class="nc" id="L1718">        int maxProduction = 0;</span>
+<span class="nc bnc" id="L1719" title="All 2 branches missed.">        for (TileType tileType : tileTypes) {</span>
+<span class="nc" id="L1720">            float potential = tileType.getPotentialProduction(goodsType, unitType);</span>
+<span class="nc bnc" id="L1721" title="All 2 branches missed.">            if (tileType == type) {</span>
+<span class="nc bnc" id="L1722" title="All 2 branches missed.">                Resource resource = (tileItemContainer == null) ? null</span>
+<span class="nc" id="L1723">                    : tileItemContainer.getResource();</span>
+<span class="nc bnc" id="L1724" title="All 2 branches missed.">                if (resource != null) {</span>
+<span class="nc" id="L1725">                    potential = resource.applyBonus(goodsType, unitType,</span>
+<span class="nc" id="L1726">                                                    (int)potential);</span>
+                }
+            }
+<span class="nc bnc" id="L1729" title="All 2 branches missed.">            for (TileImprovementType ti : spec.getTileImprovementTypeList()) {</span>
+<span class="nc bnc" id="L1730" title="All 4 branches missed.">                if (ti.isNatural() || !ti.isTileTypeAllowed(tileType)) continue;</span>
+<span class="nc bnc" id="L1731" title="All 2 branches missed.">                if (ti.getBonus(goodsType) &gt; 0) {</span>
+<span class="nc" id="L1732">                    potential = ti.getProductionModifier(goodsType)</span>
+<span class="nc" id="L1733">                        .applyTo(potential);</span>
+                }
+            }
+<span class="nc" id="L1736">            maxProduction = Math.max((int)potential, maxProduction);</span>
+        }
+<span class="nc" id="L1738">        return maxProduction;</span>
+    }
+
+    /**
+     * Sort possible goods types according to potential.
+     *
+     * @return A list of goods, highest potential production first.
+     */
+    public List&lt;AbstractGoods&gt; getSortedPotential() {
+<span class="nc" id="L1747">        return getSortedPotential(null, null);</span>
+    }
+
+    /**
+     * Sort possible goods types according to potential.
+     *
+     * @param unit the &lt;code&gt;Unit&lt;/code&gt; to work on this &lt;code&gt;Tile&lt;/code&gt;
+     * @return A list of goods, highest potential production first.
+     */
+    public List&lt;AbstractGoods&gt; getSortedPotential(Unit unit) {
+<span class="nc" id="L1757">        return getSortedPotential(unit.getType(), unit.getOwner());</span>
+    }
+
+    /**
+     * Sort possible goods types according to potential.
+     *
+     * @param unitType The &lt;code&gt;UnitType&lt;/code&gt; to do the work.
+     * @param owner the &lt;code&gt;Player&lt;/code&gt; owning the unit.
+     * @return A list of goods, highest potential production first.
+     */
+    public List&lt;AbstractGoods&gt; getSortedPotential(UnitType unitType,
+                                                  Player owner) {
+<span class="nc" id="L1769">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L1770">        List&lt;AbstractGoods&gt; goodsTypeList = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L1771" title="All 2 branches missed.">        if (getType() != null) {</span>
+            // It is necessary to consider all farmed goods, since the
+            // tile might have a resource that produces goods not
+            // produced by the tile type.
+<span class="nc bnc" id="L1775" title="All 2 branches missed.">            for (GoodsType goodsType : spec.getFarmedGoodsTypeList()) {</span>
+<span class="nc" id="L1776">                int potential = getPotentialProduction(goodsType, unitType);</span>
+<span class="nc bnc" id="L1777" title="All 2 branches missed.">                if (potential &gt; 0) {</span>
+<span class="nc" id="L1778">                    goodsTypeList.add(new AbstractGoods(goodsType, potential));</span>
+                }
+            }
+<span class="nc" id="L1781">            Collections.sort(goodsTypeList,</span>
+<span class="nc bnc" id="L1782" title="All 4 branches missed.">                (owner == null || owner.getMarket() == null)</span>
+<span class="nc" id="L1783">                ? AbstractGoods.abstractGoodsComparator</span>
+<span class="nc" id="L1784">                : owner.getMarket().getSalePriceComparator());</span>
+        }
+<span class="nc" id="L1786">        return goodsTypeList;</span>
+    }
+
+    /**
+     * Get the best food type to produce here.
+     *
+     * @return The &lt;code&gt;AbstractGoods&lt;/code&gt; to produce.
+     */
+    public AbstractGoods getBestFoodProduction() {
+<span class="nc" id="L1795">        final Comparator&lt;AbstractGoods&gt; comp = Comparator.comparingInt(ag -&gt;</span>
+<span class="nc" id="L1796">            getPotentialProduction(ag.getType(), null));</span>
+<span class="nc" id="L1797">        return maximize(flatten(getType().getAvailableProductionTypes(true),</span>
+<span class="nc" id="L1798">                                pt -&gt; pt.getOutputs()),</span>
+<span class="nc" id="L1799">                        AbstractGoods.isFoodType, comp);</span>
+    }
+
+
+    //
+    // Colony and cached Tile maintenance
+    //
+
+    /**
+     * Update player explored tiles after a change to this tile.
+     */
+    private void updateColonyTiles() {
+<span class="nc bnc" id="L1811" title="All 2 branches missed.">        for (ColonyTile ct : transform(flatten(getGame().getAllColonies(null),</span>
+<span class="nc" id="L1812">                                               c -&gt; c.getColonyTiles()),</span>
+<span class="nc bnc" id="L1813" title="All 2 branches missed.">                                       ct -&gt; ct.getWorkTile() == this,</span>
+<span class="nc" id="L1814">                                       Collectors.toList())) {</span>
+<span class="nc" id="L1815">            ct.updateProductionType();</span>
+        }
+<span class="nc" id="L1817">    }</span>
+
+    /**
+     * Get a players view of this tile.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; who owns the view.
+     * @return The view of this &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public Tile getCachedTile(Player player) {
+<span class="nc bnc" id="L1826" title="All 2 branches missed.">        return (cachedTiles == null) ? null</span>
+<span class="nc bnc" id="L1827" title="All 2 branches missed.">            : (player.isEuropean()) ? cachedTiles.get(player)</span>
+<span class="nc" id="L1828">            : this;</span>
+    }
+
+    /**
+     * Set a players view of this tile.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; who owns the view.
+     * @param tile The view of the &lt;code&gt;Tile&lt;/code&gt; (either this
+     *     tile, or an uninterned copy of it).
+     */
+    public void setCachedTile(Player player, Tile tile) {
+<span class="nc bnc" id="L1839" title="All 4 branches missed.">        if (cachedTiles == null || !player.isEuropean()) return;</span>
+<span class="nc" id="L1840">        cachedTiles.put(player, tile);</span>
+<span class="nc" id="L1841">    }</span>
+
+    /**
+     * Set the players view of this tile to the tile itself if
+     * the player can see it.  Useful when the cache needs to be cleared
+     * forcibly such as when a native settlement is removed.
+     */
+    public void seeTile() {
+<span class="nc bnc" id="L1849" title="All 2 branches missed.">        for (Player p : getGame().getLiveEuropeanPlayers(null)) {</span>
+<span class="nc bnc" id="L1850" title="All 2 branches missed.">            if (p.canSee(this)) seeTile(p);</span>
+        }
+<span class="nc" id="L1852">    }</span>
+
+    /**
+     * Set a players view of this tile to the tile itself.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; who owns the view.
+     */
+    public void seeTile(Player player) {
+<span class="nc" id="L1860">        setCachedTile(player, this);</span>
+<span class="nc" id="L1861">    }</span>
+
+    /**
+     * A change is about to occur on this tile.  Cache it if unseen.
+     */
+    public void cacheUnseen() {
+<span class="nc" id="L1867">        cacheUnseen(null, null);</span>
+<span class="nc" id="L1868">    }</span>
+
+    /**
+     * Get a copy of this tile suitable for caching (lacking units).
+     *
+     * @return An uninterned copy of this &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public Tile getTileToCache() {
+<span class="nc" id="L1876">        Tile tile = this.copy(getGame(), Tile.class);</span>
+<span class="nc" id="L1877">        tile.clearUnitList();</span>
+        // Set the unit count for a copied colony
+<span class="nc" id="L1879">        Colony colony = getColony();</span>
+<span class="nc bnc" id="L1880" title="All 2 branches missed.">        if (colony != null) {</span>
+<span class="nc" id="L1881">            tile.getColony().setDisplayUnitCount(colony.getUnitCount());</span>
+        }
+<span class="nc" id="L1883">        return tile;</span>
+    }
+
+
+    /**
+     * A change is about to occur on this tile.  Cache it if unseen.
+     *
+     * @param player A &lt;code&gt;Player&lt;/code&gt; that currently may not be able
+     *     to see the tile, but will as a result of the change, and so
+     *     should not cache it.
+     */
+    public void cacheUnseen(Player player) {
+<span class="nc" id="L1895">        cacheUnseen(player, null);</span>
+<span class="nc" id="L1896">    }</span>
+
+    /**
+     * A change may have occured on this tile.  Establish caches where
+     * needed.  Use the copied tile if supplied (which should have
+     * been created previously with {@link #getTileToCache},
+     *
+     * @param copied An optional &lt;code&gt;Tile&lt;/code&gt; to cache.
+     */
+    public void cacheUnseen(Tile copied) {
+<span class="nc" id="L1906">        cacheUnseen(null, copied);</span>
+<span class="nc" id="L1907">    }</span>
+
+    /**
+     * A change may have occured on this tile.  Establish caches where
+     * needed.  Use the copied tile if supplied (which should have
+     * been created previously with {@link #getTileToCache},
+     *
+     * @param player A &lt;code&gt;Player&lt;/code&gt; that currently may not be able
+     *     to see the tile, but will as a result of the change, and so
+     *     should not cache it.
+     * @param copied An optional &lt;code&gt;Tile&lt;/code&gt; to cache.
+     */
+    public void cacheUnseen(Player player, Tile copied) {
+<span class="nc bnc" id="L1920" title="All 2 branches missed.">        if (cachedTiles == null) return;</span>
+<span class="nc bnc" id="L1921" title="All 2 branches missed.">        for (Player p : getGame().getLiveEuropeanPlayers(player)) {</span>
+<span class="nc bnc" id="L1922" title="All 4 branches missed.">            if (!p.canSee(this) &amp;&amp; getCachedTile(p) == this) {</span>
+<span class="nc bnc" id="L1923" title="All 2 branches missed.">                if (copied == null) copied = getTileToCache();</span>
+<span class="nc" id="L1924">                setCachedTile(p, copied);</span>
+            }
+        }
+<span class="nc" id="L1927">    }</span>
+
+    /**
+     * Updates the information about the native settlement on this
+     * &lt;code&gt;Tile&lt;/code&gt; for the given &lt;code&gt;Player&lt;/code&gt;.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt;.
+     */
+    public void updateIndianSettlement(Player player) {
+<span class="nc bnc" id="L1936" title="All 4 branches missed.">        if (playerIndianSettlements == null || !player.isEuropean()) return;</span>
+<span class="nc" id="L1937">        IndianSettlementInternals isi = getPlayerIndianSettlement(player);</span>
+<span class="nc" id="L1938">        IndianSettlement is = getIndianSettlement();</span>
+<span class="nc bnc" id="L1939" title="All 2 branches missed.">        if (is == null) {</span>
+<span class="nc bnc" id="L1940" title="All 2 branches missed.">            if (isi != null) removeIndianSettlementInternals(player);</span>
+<span class="nc" id="L1941">        } else {</span>
+<span class="nc bnc" id="L1942" title="All 2 branches missed.">            if (isi == null) {</span>
+<span class="nc" id="L1943">                isi = new IndianSettlementInternals();</span>
+<span class="nc" id="L1944">                playerIndianSettlements.put(player, isi);</span>
+            }
+<span class="nc" id="L1946">            isi.update(is);</span>
+        }
+<span class="nc" id="L1948">    }</span>
+
+    public void removeIndianSettlementInternals(Player player) {
+<span class="nc bnc" id="L1951" title="All 2 branches missed.">        if (playerIndianSettlements == null) return;</span>
+<span class="nc" id="L1952">        playerIndianSettlements.remove(player);</span>
+<span class="nc" id="L1953">    }</span>
+
+    public UnitType getLearnableSkill(Player player) {
+<span class="nc" id="L1956">        IndianSettlementInternals isi = getPlayerIndianSettlement(player);</span>
+<span class="nc bnc" id="L1957" title="All 2 branches missed.">        return (isi == null) ? null : isi.skill;</span>
+    }
+
+    public GoodsType[] getWantedGoods(Player player) {
+<span class="nc" id="L1961">        IndianSettlementInternals isi = getPlayerIndianSettlement(player);</span>
+<span class="nc bnc" id="L1962" title="All 2 branches missed.">        return (isi == null) ? null : isi.wantedGoods;</span>
+    }
+
+    /**
+     * Set native settlement information.  Do not check the current
+     * map state as we might leak destruction information.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; to pet belonged to.
+     * @param skill The skill taught by the settlement.
+     * @param wanted The goods wanted by the settlement.
+     */
+    public void setIndianSettlementInternals(Player player, UnitType skill,
+                                             GoodsType[] wanted) {
+<span class="nc" id="L1975">        IndianSettlementInternals isi = getPlayerIndianSettlement(player);</span>
+<span class="nc bnc" id="L1976" title="All 2 branches missed.">        if (isi == null) {</span>
+<span class="nc" id="L1977">            isi = new IndianSettlementInternals();</span>
+<span class="nc" id="L1978">            playerIndianSettlements.put(player, isi);</span>
+        }
+<span class="nc" id="L1980">        isi.setValues(skill, wanted);</span>
+<span class="nc" id="L1981">    }</span>
+
+    /**
+     * Checks if this &lt;code&gt;Tile&lt;/code&gt; has been explored by the given
+     * &lt;code&gt;Player&lt;/code&gt;.
+     *
+     * If we are in the server, then the presence of a cached tile
+     * determines whether exploration has happened.  In the client
+     * there are no cached tiles, but if the tile is explored the
+     * server will have updated the client with the tile type (checked
+     * by isExplored()).
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt;.
+     * @return True if this &lt;code&gt;Tile&lt;/code&gt; has been explored
+     *     by the given &lt;code&gt;Player&lt;/code&gt;.
+     */
+    public boolean isExploredBy(Player player) {
+<span class="nc bnc" id="L1998" title="All 2 branches missed.">        return (!player.isEuropean()) ? true</span>
+<span class="nc bnc" id="L1999" title="All 2 branches missed.">            : (!isExplored()) ? false</span>
+<span class="nc bnc" id="L2000" title="All 2 branches missed.">            : (cachedTiles == null) ? true</span>
+<span class="nc bnc" id="L2001" title="All 2 branches missed.">            : getCachedTile(player) != null;</span>
+    }
+
+    /**
+     * Explore/unexplore a tile for a player.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; that is exploring.
+     * @param reveal The exploration state.
+     */
+    public void setExplored(Player player, boolean reveal) {
+<span class="nc bnc" id="L2011" title="All 4 branches missed.">        if (cachedTiles == null || !player.isEuropean()) return;</span>
+<span class="nc bnc" id="L2012" title="All 2 branches missed.">        if (reveal) {</span>
+<span class="nc" id="L2013">            seeTile(player);</span>
+<span class="nc" id="L2014">        } else {</span>
+<span class="nc" id="L2015">            cachedTiles.remove(player);</span>
+        }
+<span class="nc" id="L2017">    }</span>
+
+
+    //
+    // Unit manipulation
+    //
+
+    /**
+     * Gets the unit that is currently defending this tile.
+     * &lt;p&gt;If this tile has a settlement, the units inside the
+     * settlement are also considered as potential defenders.
+     * &lt;p&gt;As this method is quite expensive, it should not be used to
+     * test for the presence of enemy units.
+     *
+     * @param attacker The &lt;code&gt;Unit&lt;/code&gt; that would be attacking
+     *     this &lt;code&gt;Tile&lt;/code&gt;.
+     * @return The &lt;code&gt;Unit&lt;/code&gt; that has been chosen to defend this
+     *     &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public Unit getDefendingUnit(Unit attacker) {
+<span class="nc" id="L2037">        CombatModel cm = getGame().getCombatModel();</span>
+<span class="nc" id="L2038">        Unit defender = null;</span>
+<span class="nc" id="L2039">        double defenderPower = -1.0, power;</span>
+
+        // Check the units on the tile...
+<span class="nc bnc" id="L2042" title="All 2 branches missed.">        for (Unit u : getUnitList()) {</span>
+<span class="nc bnc" id="L2043" title="All 2 branches missed.">            if (isLand() != u.isNaval()) {</span>
+                // On land, ships are normally docked in port and
+                // cannot defend.  Except if beached (see below).
+                // On ocean tiles, land units behave as ship cargo and
+                // can not defend.
+<span class="nc" id="L2048">                power = cm.getDefencePower(attacker, u);</span>
+<span class="nc bnc" id="L2049" title="All 2 branches missed.">                if (Unit.betterDefender(defender, defenderPower, u, power)) {</span>
+<span class="nc" id="L2050">                    defender = u;</span>
+<span class="nc" id="L2051">                    defenderPower = power;</span>
+                }
+            }
+        }
+
+        // ...then a settlement defender if any...
+<span class="nc bnc" id="L2057" title="All 4 branches missed.">        if ((defender == null || !defender.isDefensiveUnit())</span>
+<span class="nc bnc" id="L2058" title="All 2 branches missed.">            &amp;&amp; hasSettlement()) {</span>
+<span class="nc" id="L2059">            Unit u = null;</span>
+            try {
+                // HACK: The AI is prone to removing all units in a
+                // settlement which causes Colony.getDefendingUnit()
+                // to throw.
+<span class="nc" id="L2064">                u = settlement.getDefendingUnit(attacker);</span>
+<span class="nc" id="L2065">            } catch (IllegalStateException e) {</span>
+<span class="nc" id="L2066">                logger.log(Level.WARNING, &quot;Empty settlement: &quot;</span>
+<span class="nc" id="L2067">                    + settlement.getName(), e);</span>
+            }
+            // This routine can be called on the client for the pre-combat
+            // popup where enemy settlement defenders are not visible,
+            // thus u == null is valid.
+<span class="nc bnc" id="L2072" title="All 2 branches missed.">            if (u != null) {</span>
+<span class="nc" id="L2073">                power = cm.getDefencePower(attacker, u);</span>
+<span class="nc bnc" id="L2074" title="All 2 branches missed.">                if (Unit.betterDefender(defender, defenderPower, u, power)) {</span>
+<span class="nc" id="L2075">                    defender = u;</span>
+                    //defenderPower = power;
+                }
+            }
+        }
+
+        // ...finally, if we have failed to find a valid defender
+        // for a land tile, allow a beached naval unit to defend (and
+        // lose) as a last resort.
+<span class="nc bnc" id="L2084" title="All 4 branches missed.">        if (defender == null &amp;&amp; isLand()) defender = getFirstUnit();</span>
+
+<span class="nc" id="L2086">        return defender;</span>
+    }
+
+    /**
+     * Gets the unit that is occupying the tile.
+     *
+     * @return The &lt;code&gt;Unit&lt;/code&gt; that is occupying this &lt;code&gt;Tile&lt;/code&gt;.
+     * @see #isOccupied()
+     */
+    public Unit getOccupyingUnit() {
+<span class="nc" id="L2096">        Unit unit = getFirstUnit();</span>
+<span class="nc" id="L2097">        Player owner = null;</span>
+<span class="nc bnc" id="L2098" title="All 2 branches missed.">        if (getOwningSettlement() != null) {</span>
+<span class="nc" id="L2099">            owner = getOwningSettlement().getOwner();</span>
+        }
+<span class="nc bnc" id="L2101" title="All 6 branches missed.">        return (owner != null &amp;&amp; unit != null &amp;&amp; unit.getOwner() != owner</span>
+<span class="nc bnc" id="L2102" title="All 2 branches missed.">            &amp;&amp; unit.getOwner().atWarWith(owner))</span>
+<span class="nc" id="L2103">            ? find(getUnitList(), Unit::isOffensiveUnit)</span>
+<span class="nc" id="L2104">            : null;</span>
+    }
+
+    /**
+     * Checks whether there is an enemy unit occupying this tile.
+     * Units can not produce in occupied tiles.
+     *
+     * @return True if an enemy unit is occupying this &lt;code&gt;Tile&lt;/code&gt;.
+     */
+    public boolean isOccupied() {
+<span class="nc bnc" id="L2114" title="All 2 branches missed.">        return getOccupyingUnit() != null;</span>
+    }
+
+
+    // Interface Location
+    //   getSettlement and getColony are simple accessors of Tile
+    // Inherits
+    //   FreeColObject.getId
+    //   UnitLocation.getUnitCount
+    //   UnitLocation.getUnitList
+    //   UnitLocation.getGoodsContainer
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Tile getTile() {
+<span class="nc" id="L2131">        return this;</span>
+    }
+
+    /**
+     * Get a label for a nearby location.
+     *
+     * @param direction The &lt;code&gt;Direction&lt;/code&gt; from this tile to the
+     *     nearby location.
+     * @param location A &lt;code&gt;StringTemplate&lt;/code&gt; describing the location.
+     * @return A &lt;code&gt;StringTemplate&lt;/code&gt; stating that the location
+     *     is nearby.
+     */
+    public StringTemplate getNearLocationLabel(Direction direction,
+                                               StringTemplate location) {
+<span class="nc" id="L2145">        return StringTemplate.template(&quot;model.tile.nearLocation&quot;)</span>
+<span class="nc" id="L2146">            .addNamed(&quot;%direction%&quot;, direction)</span>
+<span class="nc" id="L2147">            .addStringTemplate(&quot;%location%&quot;, location);</span>
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public StringTemplate getLocationLabel() {
+<span class="nc bnc" id="L2155" title="All 2 branches missed.">        return (settlement != null) ? settlement.getLocationLabel()</span>
+<span class="nc" id="L2156">            : getDetailedLocationLabel();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public StringTemplate getLocationLabelFor(Player player) {
+<span class="nc bnc" id="L2164" title="All 2 branches missed.">        return (settlement != null) ? settlement.getLocationLabelFor(player)</span>
+<span class="nc" id="L2165">            : getDetailedLocationLabelFor(player);</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * -til: Changes appearance with TileItems.
+     */
+    @Override
+    public boolean add(Locatable locatable) {
+<span class="nc bnc" id="L2175" title="All 2 branches missed.">        if (locatable instanceof TileItem) {</span>
+<span class="nc" id="L2176">            return addTileItem((TileItem) locatable);//-til</span>
+
+<span class="nc bnc" id="L2178" title="All 2 branches missed.">        } else if (locatable instanceof Unit) {</span>
+<span class="nc bnc" id="L2179" title="All 2 branches missed.">            if (super.add(locatable)) {</span>
+<span class="nc" id="L2180">                ((Unit)locatable).setState(Unit.UnitState.ACTIVE);</span>
+<span class="nc" id="L2181">                return true;</span>
+            }
+<span class="nc" id="L2183">            return false;</span>
+
+        } else {
+<span class="nc" id="L2186">            return super.add(locatable);</span>
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * -til: Changes appearance with TileItems.
+     */
+    @Override
+    public boolean remove(Locatable locatable) {
+<span class="nc bnc" id="L2197" title="All 2 branches missed.">        if (locatable instanceof TileItem) {</span>
+<span class="nc bnc" id="L2198" title="All 2 branches missed.">            return removeTileItem((TileItem)locatable)</span>
+<span class="nc" id="L2199">                == locatable;//-til</span>
+
+        } else {
+<span class="nc" id="L2202">            return super.remove(locatable);</span>
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean contains(Locatable locatable) {
+<span class="nc bnc" id="L2211" title="All 2 branches missed.">        if (locatable instanceof TileItem) {</span>
+<span class="nc bnc" id="L2212" title="All 2 branches missed.">            return tileItemContainer != null</span>
+<span class="nc bnc" id="L2213" title="All 2 branches missed.">                &amp;&amp; tileItemContainer.contains((TileItem) locatable);</span>
+        } else {
+<span class="nc" id="L2215">            return super.contains(locatable);</span>
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean canAdd(Locatable locatable) {
+<span class="nc bnc" id="L2224" title="All 2 branches missed.">        if (locatable instanceof Unit) {</span>
+<span class="nc" id="L2225">            return ((Unit)locatable).isTileAccessible(this);</span>
+<span class="nc bnc" id="L2226" title="All 2 branches missed.">        } else if (locatable instanceof TileImprovement) {</span>
+<span class="nc" id="L2227">            return ((TileImprovement)locatable).getType()</span>
+<span class="nc" id="L2228">                .isTileTypeAllowed(getType());</span>
+        } else {
+<span class="nc" id="L2230">            return false;</span>
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Location up() {
+<span class="nc bnc" id="L2239" title="All 2 branches missed.">        return (hasSettlement()) ? getSettlement()</span>
+<span class="nc" id="L2240">            : this;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getRank() {
+<span class="nc" id="L2248">        return getX() + getY() * getMap().getWidth();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toShortString() {
+<span class="nc" id="L2256">        StringBuilder sb = new StringBuilder(16);</span>
+<span class="nc" id="L2257">        TileType type = getType();</span>
+<span class="nc" id="L2258">        sb.append(getX()).append(&quot;,&quot;).append(getY())</span>
+<span class="nc bnc" id="L2259" title="All 2 branches missed.">            .append(&quot;-&quot;).append((type == null) ? &quot;?&quot; : type.getSuffix());</span>
+<span class="nc" id="L2260">        return sb.toString();</span>
+    }
+
+
+    // Interface Named
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getNameKey() {
+<span class="nc bnc" id="L2271" title="All 2 branches missed.">        if (getGame().isInClient()) {</span>
+<span class="nc bnc" id="L2272" title="All 2 branches missed.">            return (isExplored()) ? getType().getNameKey() : &quot;unexplored&quot;;</span>
+        } else {
+<span class="nc" id="L2274">            Player player = getGame().getCurrentPlayer();</span>
+<span class="nc bnc" id="L2275" title="All 2 branches missed.">            if (player != null) {</span>
+<span class="nc bnc" id="L2276" title="All 2 branches missed.">                return (getCachedTile(player) == null) ? &quot;unexplored&quot;</span>
+<span class="nc" id="L2277">                    : getType().getNameKey();</span>
+            } else {
+<span class="nc" id="L2279">                logger.warning(&quot;player == null&quot;);</span>
+<span class="nc" id="L2280">                return &quot;&quot;;</span>
+            }
+        }
+    }
+
+
+    // Interface Ownable
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Player getOwner() {
+<span class="nc" id="L2293">        return owner;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * -til: Changes appearance.
+     */
+    @Override
+    public void setOwner(Player owner) {
+<span class="nc" id="L2303">        this.owner = owner;</span>
+<span class="nc" id="L2304">    }</span>
+
+
+    // Override FreeColGameObject
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void disposeResources() {
+<span class="nc bnc" id="L2314" title="All 2 branches missed.">        if (settlement != null) {</span>
+<span class="nc" id="L2315">            settlement.disposeResources();</span>
+<span class="nc" id="L2316">            settlement = null;</span>
+        }
+<span class="nc bnc" id="L2318" title="All 2 branches missed.">        if (tileItemContainer != null) {</span>
+<span class="nc" id="L2319">            tileItemContainer.disposeResources();</span>
+<span class="nc" id="L2320">            tileItemContainer = null;</span>
+        }
+<span class="nc" id="L2322">        super.disposeResources();</span>
+<span class="nc" id="L2323">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public FreeColGameObject getLinkTarget(Player player) {
+<span class="nc" id="L2330">        return this;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int checkIntegrity(boolean fix) {
+<span class="nc" id="L2338">        int result = super.checkIntegrity(fix);</span>
+<span class="nc" id="L2339">        Settlement settlement = getSettlement();</span>
+<span class="nc bnc" id="L2340" title="All 2 branches missed.">        if (settlement != null) {</span>
+<span class="nc" id="L2341">            result = Math.min(result, settlement.checkIntegrity(fix));</span>
+        }
+<span class="nc bnc" id="L2343" title="All 2 branches missed.">        if (tileItemContainer != null) {</span>
+<span class="nc" id="L2344">            result = Math.min(result, tileItemContainer.checkIntegrity(fix));</span>
+        }
+<span class="nc" id="L2346">        return result;</span>
+    }
+
+
+    // Override FreeColObject
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Set&lt;Ability&gt; getAbilities(String id,
+                                     FreeColSpecObjectType fcgot,
+                                     Turn turn) {
+        // Delegate to type
+<span class="nc" id="L2360">        return getType().getAbilities(id, fcgot, turn);</span>
+    }
+
+
+    // Serialization
+
+    private static final String CACHED_TILE_TAG = &quot;cachedTile&quot;;
+    private static final String CONNECTED_TAG = &quot;connected&quot;;
+    private static final String CONTIGUITY_TAG = &quot;contiguity&quot;;
+    private static final String COPIED_TAG = &quot;copied&quot;;
+    private static final String MOVE_TO_EUROPE_TAG = &quot;moveToEurope&quot;;
+    private static final String OWNER_TAG = &quot;owner&quot;;
+    private static final String OWNING_SETTLEMENT_TAG = &quot;owningSettlement&quot;;
+    private static final String PLAYER_TAG = &quot;player&quot;;
+    private static final String REGION_TAG = &quot;region&quot;;
+    private static final String STYLE_TAG = &quot;style&quot;;
+    private static final String TYPE_TAG = &quot;type&quot;;
+    private static final String X_TAG = &quot;x&quot;;
+    private static final String Y_TAG = &quot;y&quot;;
+    // @compat 0.10.1
+    public static final String OLD_UNITS_TAG = &quot;units&quot;;
+    // end @compat
+    // @compat 0.11.3
+<span class="nc" id="L2383">    public static final String OLD_TILE_ITEM_CONTAINER_TAG = &quot;tileitemcontainer&quot;;</span>
+    // end @compat 0.11.3
+    
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void toXML(FreeColXMLWriter xw, String tag) throws XMLStreamException {
+        // Special override of tile output serialization that handles
+        // the tile caching.
+        // 1. If not writing to a player, just write this tile.
+        // 2. If there is no cached tile then it is unexplored, so
+        //    write the minimal tile (id, x, y).
+        // 3. Otherwise write the cached tile, which will either be a
+        //    copy or &lt;code&gt;this&lt;/code&gt;.
+<span class="nc" id="L2399">        Player player = xw.getClientPlayer();</span>
+<span class="nc bnc" id="L2400" title="All 2 branches missed.">        Tile tile = (player == null) ? this : getCachedTile(player);</span>
+
+<span class="nc bnc" id="L2402" title="All 2 branches missed.">        if (tile == null) {</span>
+<span class="nc" id="L2403">            xw.writeStartElement(tag);</span>
+
+<span class="nc" id="L2405">            xw.writeAttribute(ID_ATTRIBUTE_TAG, getId());</span>
+
+<span class="nc" id="L2407">            xw.writeAttribute(X_TAG, this.x);</span>
+
+<span class="nc" id="L2409">            xw.writeAttribute(Y_TAG, this.y);</span>
+
+<span class="nc" id="L2411">            xw.writeEndElement();</span>
+<span class="nc" id="L2412">        } else {</span>
+<span class="nc" id="L2413">            tile.internalToXML(xw, tag);</span>
+        }
+<span class="nc" id="L2415">    }</span>
+
+    /**
+     * Fundamental (post-cache) version of toXML.
+     *
+     * @param xw The &lt;code&gt;FreeColXMLWriter&lt;/code&gt; to write to.
+     * @param tag The tag to use.
+     * @exception XMLStreamException if there are any problems writing
+     *     to the stream.
+     */
+    public void internalToXML(FreeColXMLWriter xw, String tag) throws XMLStreamException {
+<span class="nc" id="L2426">        xw.writeStartElement(tag);</span>
+
+<span class="nc" id="L2428">        writeAttributes(xw);</span>
+
+<span class="nc" id="L2430">        writeChildren(xw);</span>
+
+<span class="nc" id="L2432">        xw.writeEndElement();</span>
+<span class="nc" id="L2433">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L2440">        super.writeAttributes(xw);</span>
+
+<span class="nc" id="L2442">        xw.writeAttribute(X_TAG, this.x);</span>
+
+<span class="nc" id="L2444">        xw.writeAttribute(Y_TAG, this.y);</span>
+
+<span class="nc" id="L2446">        xw.writeAttribute(TYPE_TAG, type);</span>
+
+<span class="nc bnc" id="L2448" title="All 2 branches missed.">        if (owner != null) {</span>
+<span class="nc" id="L2449">            xw.writeAttribute(OWNER_TAG, owner);</span>
+        }
+        
+<span class="nc bnc" id="L2452" title="All 2 branches missed.">        if (owningSettlement != null) {</span>
+<span class="nc bnc" id="L2453" title="All 2 branches missed.">            if (owningSettlement.isDisposed()</span>
+<span class="nc bnc" id="L2454" title="All 2 branches missed.">                || owningSettlement.getId() == null) {</span>
+                // Owning settlement is a special case because it is a
+                // reference to something outside this tile.  If the
+                // tile being written here is a cached copy, and the
+                // owning settlement referred to therein has really
+                // been destroyed, then we risk corrupting or at least
+                // confusing the client by referring to the disposed
+                // settlement.  So clear out such cases.  This is an
+                // information leak, but a better option than the
+                // crashes caused by the alternative.
+<span class="nc" id="L2464">                this.owningSettlement = null;</span>
+<span class="nc" id="L2465">            } else {</span>
+<span class="nc" id="L2466">                xw.writeAttribute(OWNING_SETTLEMENT_TAG, owningSettlement);</span>
+            }
+        }
+        
+<span class="nc" id="L2470">        xw.writeAttribute(STYLE_TAG, style);</span>
+        
+<span class="nc bnc" id="L2472" title="All 2 branches missed.">        if (region != null) {</span>
+<span class="nc" id="L2473">            xw.writeAttribute(REGION_TAG, region);</span>
+        }
+        
+<span class="nc bnc" id="L2476" title="All 2 branches missed.">        if (moveToEurope != null) {</span>
+<span class="nc" id="L2477">            xw.writeAttribute(MOVE_TO_EUROPE_TAG,</span>
+<span class="nc" id="L2478">                              moveToEurope.booleanValue());</span>
+        }
+
+<span class="nc bnc" id="L2481" title="All 2 branches missed.">        if (highSeasCount &gt;= 0) {</span>
+<span class="nc" id="L2482">            xw.writeAttribute(CONNECTED_TAG, highSeasCount);</span>
+        }
+       
+<span class="nc bnc" id="L2485" title="All 2 branches missed.">        if (contiguity &gt;= 0) {</span>
+<span class="nc" id="L2486">            xw.writeAttribute(CONTIGUITY_TAG, contiguity);</span>
+        }
+<span class="nc" id="L2488">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeChildren(FreeColXMLWriter xw) throws XMLStreamException {
+        // Show tile contents (e.g. enemy units) if not scoped to a
+        // player that can not see the tile, and there is no blocking
+        // enemy settlement.
+<span class="nc" id="L2498">        Player player = xw.getClientPlayer();</span>
+<span class="nc bnc" id="L2499" title="All 4 branches missed.">        if ((player == null || player.canSee(this)) </span>
+<span class="nc bnc" id="L2500" title="All 2 branches missed.">            &amp;&amp; (settlement == null</span>
+<span class="nc bnc" id="L2501" title="All 2 branches missed.">                || xw.validFor(settlement.getOwner()))) {</span>
+<span class="nc" id="L2502">            super.writeChildren(xw);</span>
+        }
+
+<span class="nc bnc" id="L2505" title="All 2 branches missed.">        if (settlement != null) settlement.toXML(xw);</span>
+
+<span class="nc bnc" id="L2507" title="All 2 branches missed.">        if (tileItemContainer != null) tileItemContainer.toXML(xw);</span>
+
+        // Save the cached tiles to saved games.
+<span class="nc bnc" id="L2510" title="All 4 branches missed.">        if (xw.validForSave() &amp;&amp; cachedTiles != null) {</span>
+<span class="nc bnc" id="L2511" title="All 2 branches missed.">            for (Player p : getGame().getLiveEuropeanPlayers(null)) {</span>
+<span class="nc" id="L2512">                Tile t = getCachedTile(p);</span>
+<span class="nc bnc" id="L2513" title="All 2 branches missed.">                if (t == null) continue;</span>
+
+<span class="nc bnc" id="L2515" title="All 4 branches missed.">                if (t == this &amp;&amp; getIndianSettlement() != null) {</span>
+                    // Always save client view of native settlements
+                    // because of the hidden information.
+<span class="nc" id="L2518">                    t = getTileToCache();</span>
+<span class="nc" id="L2519">                    t.setIndianSettlementInternals(p, getLearnableSkill(p),</span>
+<span class="nc" id="L2520">                                                   getWantedGoods(p));</span>
+                }
+
+<span class="nc" id="L2523">                xw.writeStartElement(CACHED_TILE_TAG);</span>
+
+<span class="nc" id="L2525">                xw.writeAttribute(PLAYER_TAG, p);</span>
+
+<span class="nc bnc" id="L2527" title="All 2 branches missed.">                xw.writeAttribute(COPIED_TAG, t != this);</span>
+
+<span class="nc bnc" id="L2529" title="All 2 branches missed.">                if (t != this) {</span>
+                    // Only write copied tiles, with limited scope.
+<span class="nc" id="L2531">                    FreeColXMLWriter.WriteScope scope = xw.getWriteScope();</span>
+<span class="nc" id="L2532">                    xw.setWriteScope(FreeColXMLWriter.WriteScope.toClient(p));</span>
+                    // Do not call toXML!  It will look for a cached tile,
+                    // inside t which is already a cached copy!
+                    try {
+<span class="nc" id="L2536">                        t.internalToXML(xw, getTagName());</span>
+<span class="nc" id="L2537">                    } finally {</span>
+<span class="nc" id="L2538">                        xw.setWriteScope(scope);</span>
+<span class="nc" id="L2539">                    }</span>
+                }
+
+<span class="nc" id="L2542">                xw.writeEndElement();</span>
+            }
+        }
+<span class="nc" id="L2545">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L2552">        super.readAttributes(xr);</span>
+
+<span class="nc" id="L2554">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L2555">        final Game game = getGame();</span>
+
+<span class="nc" id="L2557">        x = xr.getAttribute(X_TAG, 0);</span>
+
+<span class="nc" id="L2559">        y = xr.getAttribute(Y_TAG, 0);</span>
+
+<span class="nc" id="L2561">        type = xr.getType(spec, TYPE_TAG, TileType.class, (TileType)null);</span>
+<span class="nc bnc" id="L2562" title="All 2 branches missed.">        if (type == null) { // Unexplored tile.</span>
+<span class="nc" id="L2563">            style = 0;</span>
+<span class="nc" id="L2564">            highSeasCount = -1;</span>
+<span class="nc" id="L2565">            owner = null;</span>
+<span class="nc" id="L2566">            region = null;</span>
+<span class="nc" id="L2567">            moveToEurope = null;</span>
+<span class="nc" id="L2568">            contiguity = -1;</span>
+<span class="nc" id="L2569">            return;</span>
+        }
+
+<span class="nc" id="L2572">        style = xr.getAttribute(STYLE_TAG, 0);</span>
+
+<span class="nc" id="L2574">        String str = xr.getAttribute(CONNECTED_TAG, (String)null);</span>
+<span class="nc bnc" id="L2575" title="All 4 branches missed.">        if (str == null || str.isEmpty()) {</span>
+<span class="nc" id="L2576">            highSeasCount = -1;</span>
+            // @compat 0.10.5
+            // High seas should have connected==0.  If it does not, this
+            // is probably an old save file, so flag a recalculation.
+<span class="nc" id="L2580">            String typeStr = xr.getAttribute(TYPE_TAG, (String)null);</span>
+<span class="nc bnc" id="L2581" title="All 2 branches missed.">            if (&quot;model.tile.highSeas&quot;.equals(typeStr)) {</span>
+<span class="nc" id="L2582">                highSeasCount = Tile.FLAG_RECALCULATE;</span>
+            }
+            // @end compatibility code
+<span class="nc" id="L2585">        } else {</span>
+            try {
+<span class="nc" id="L2587">                highSeasCount = Integer.parseInt(str);</span>
+<span class="nc" id="L2588">            } catch (NumberFormatException nfe) {</span>
+<span class="nc" id="L2589">                highSeasCount = -1;</span>
+                // @compat 0.10.5
+                // &lt; 0.10.6 used to have a simple boolean connected
+                // attribute, but it is now highSeasCount, the number of
+                // tiles to get to a tile where a unit can move
+                // directly to the high seas.
+<span class="nc" id="L2595">                highSeasCount = Tile.FLAG_RECALCULATE;</span>
+                // @end compatibility code
+            }
+        }
+
+<span class="nc" id="L2600">        owner = xr.findFreeColGameObject(game, OWNER_TAG,</span>
+<span class="nc" id="L2601">                                         Player.class, (Player)null, false);</span>
+
+<span class="nc" id="L2603">        region = xr.findFreeColGameObject(game, REGION_TAG,</span>
+<span class="nc" id="L2604">                                          Region.class, (Region)null, false);</span>
+        
+<span class="nc bnc" id="L2606" title="All 2 branches missed.">        moveToEurope = (xr.hasAttribute(MOVE_TO_EUROPE_TAG))</span>
+<span class="nc" id="L2607">            ? xr.getAttribute(MOVE_TO_EUROPE_TAG, false)</span>
+<span class="nc" id="L2608">            : null;</span>
+
+<span class="nc" id="L2610">        contiguity = xr.getAttribute(CONTIGUITY_TAG, -1);</span>
+
+        // Tiles are added to the settlement owned tiles list in Map.
+        // Doing it here can cause cache weirdness.
+<span class="nc" id="L2614">        Location loc = xr.getLocationAttribute(game, OWNING_SETTLEMENT_TAG,</span>
+<span class="nc" id="L2615">                                               true);</span>
+<span class="nc bnc" id="L2616" title="All 2 branches missed.">        owningSettlement = (loc instanceof Settlement) ? (Settlement)loc</span>
+<span class="nc" id="L2617">            : null;</span>
+<span class="nc" id="L2618">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChildren(FreeColXMLReader xr) throws XMLStreamException {
+        // Clear containers.
+<span class="nc" id="L2626">        settlement = null;</span>
+
+<span class="nc" id="L2628">        super.readChildren(xr);</span>
+
+        // @compat 0.10.1
+        // Old settlements were prone to not owning their tiles.
+<span class="nc bnc" id="L2632" title="All 2 branches missed.">        if (getSettlement() != null) {</span>
+<span class="nc" id="L2633">            Settlement settlement = getSettlement();</span>
+<span class="nc" id="L2634">            Player owner = settlement.getOwner();</span>
+<span class="nc bnc" id="L2635" title="All 4 branches missed.">            if (owner != null &amp;&amp; getOwner() != owner) {</span>
+<span class="nc" id="L2636">                this.owner = owner;</span>
+            }
+<span class="nc bnc" id="L2638" title="All 2 branches missed.">            if (this.owningSettlement != settlement) {</span>
+<span class="nc" id="L2639">                this.owningSettlement = settlement;</span>
+            }
+        }
+        // end @compat 0.10.1
+<span class="nc" id="L2643">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChild(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L2650">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L2651">        final Game game = getGame();</span>
+<span class="nc" id="L2652">        final String tag = xr.getLocalName();</span>
+
+<span class="nc bnc" id="L2654" title="All 4 branches missed.">        if (cachedTiles != null &amp;&amp; CACHED_TILE_TAG.equals(tag)) {</span>
+<span class="nc" id="L2655">            Player player = xr.findFreeColGameObject(game, PLAYER_TAG, </span>
+<span class="nc" id="L2656">                Player.class, (Player)null, true);</span>
+
+<span class="nc" id="L2658">            boolean copied = xr.getAttribute(COPIED_TAG, false);</span>
+<span class="nc bnc" id="L2659" title="All 2 branches missed.">            if (copied) {</span>
+<span class="nc" id="L2660">                FreeColXMLReader.ReadScope scope = xr.getReadScope();</span>
+<span class="nc" id="L2661">                xr.setReadScope(FreeColXMLReader.ReadScope.NOINTERN);</span>
+<span class="nc" id="L2662">                xr.nextTag();</span>
+<span class="nc" id="L2663">                xr.expectTag(Tile.getTagName());</span>
+<span class="nc" id="L2664">                Tile tile = xr.readFreeColGameObject(game, Tile.class);</span>
+
+                // Temporary workaround for BR#2618 on input
+<span class="nc" id="L2667">                Colony colony = tile.getColony();</span>
+<span class="nc bnc" id="L2668" title="All 4 branches missed.">                if (colony != null &amp;&amp; colony.getDisplayUnitCount() &lt;= 0) {</span>
+<span class="nc" id="L2669">                    logger.warning(&quot;Copied colony &quot; + colony.getId()</span>
+<span class="nc" id="L2670">                        + &quot; display unit count set to 1 from corrupt: &quot;</span>
+<span class="nc" id="L2671">                        + colony.getDisplayUnitCount());</span>
+<span class="nc" id="L2672">                    colony.setDisplayUnitCount(1);</span>
+                }
+                // end workaround
+
+<span class="nc" id="L2676">                setCachedTile(player, tile);</span>
+<span class="nc" id="L2677">                xr.setReadScope(scope);</span>
+
+<span class="nc" id="L2679">                IndianSettlement is = tile.getIndianSettlement();</span>
+<span class="nc bnc" id="L2680" title="All 2 branches missed.">                if (is == null) {</span>
+<span class="nc" id="L2681">                    removeIndianSettlementInternals(player);</span>
+<span class="nc" id="L2682">                } else {</span>
+<span class="nc" id="L2683">                    setIndianSettlementInternals(player,</span>
+<span class="nc" id="L2684">                        is.getLearnableSkill(), is.getWantedGoods());</span>
+                }
+
+<span class="nc" id="L2687">            } else {</span>
+<span class="nc" id="L2688">                setCachedTile(player, this);</span>
+            }
+<span class="nc" id="L2690">            xr.closeTag(CACHED_TILE_TAG);</span>
+
+        // @compat 0.10.1
+<span class="nc bnc" id="L2693" title="All 2 branches missed.">        } else if (OLD_UNITS_TAG.equals(tag)) {</span>
+<span class="nc bnc" id="L2694" title="All 2 branches missed.">            while (xr.nextTag() != XMLStreamConstants.END_ELEMENT) {</span>
+<span class="nc" id="L2695">                super.readChild(xr);</span>
+            }
+        // end @compat
+
+<span class="nc bnc" id="L2699" title="All 2 branches missed.">        } else if (Colony.getTagName().equals(tag)) {</span>
+<span class="nc" id="L2700">            settlement = xr.readFreeColGameObject(game, Colony.class);</span>
+
+<span class="nc bnc" id="L2702" title="All 2 branches missed.">        } else if (IndianSettlement.getTagName().equals(tag)) {</span>
+<span class="nc" id="L2703">            settlement = xr.readFreeColGameObject(game, IndianSettlement.class);</span>
+
+        // @compat 0.10.7
+<span class="nc bnc" id="L2706" title="All 2 branches missed.">        } else if (PlayerExploredTile.getTagName().equals(tag)) {</span>
+            // Only from a saved game.
+<span class="nc" id="L2708">            Player player = xr.findFreeColGameObject(game, PLAYER_TAG,</span>
+<span class="nc" id="L2709">                Player.class, (Player)null, true);</span>
+
+<span class="nc bnc" id="L2711" title="All 2 branches missed.">            if (xr.hasAttribute(IndianSettlement.LEARNABLE_SKILL_TAG)</span>
+<span class="nc bnc" id="L2712" title="All 2 branches missed.">                || xr.hasAttribute(IndianSettlement.WANTED_GOODS_TAG + &quot;0&quot;)) {</span>
+<span class="nc" id="L2713">                UnitType skill = xr.getType(spec,</span>
+<span class="nc" id="L2714">                    IndianSettlement.LEARNABLE_SKILL_TAG,</span>
+<span class="nc" id="L2715">                    UnitType.class, (UnitType)null);</span>
+<span class="nc" id="L2716">                GoodsType[] wanted</span>
+<span class="nc" id="L2717">                    = new GoodsType[IndianSettlement.WANTED_GOODS_COUNT];</span>
+<span class="nc bnc" id="L2718" title="All 2 branches missed.">                for (int i = 0; i &lt; wanted.length; i++) {</span>
+<span class="nc" id="L2719">                    wanted[i] = xr.getType(spec,</span>
+<span class="nc" id="L2720">                        IndianSettlement.WANTED_GOODS_TAG + i,</span>
+<span class="nc" id="L2721">                        GoodsType.class, (GoodsType)null);</span>
+                }
+<span class="nc" id="L2723">                setIndianSettlementInternals(player, skill, wanted);</span>
+            }
+
+<span class="nc" id="L2726">            PlayerExploredTile pet = xr.readFreeColGameObject(game,</span>
+<span class="nc" id="L2727">                PlayerExploredTile.class);</span>
+<span class="nc" id="L2728">            pet.fixCache();</span>
+        // end @compat 0.10.7
+
+<span class="nc bnc" id="L2731" title="All 2 branches missed.">        } else if (TileItemContainer.getTagName().equals(tag)</span>
+                   // @compat 0.11.3
+<span class="nc bnc" id="L2733" title="All 2 branches missed.">                   || OLD_TILE_ITEM_CONTAINER_TAG.equals(tag)</span>
+                   // end @compat 0.11.3
+                   ) {
+<span class="nc" id="L2736">            tileItemContainer = xr.readFreeColGameObject(game,</span>
+<span class="nc" id="L2737">                TileItemContainer.class);</span>
+
+<span class="nc" id="L2739">        } else {</span>
+<span class="nc" id="L2740">            super.readChild(xr);</span>
+        }
+
+        // @compat 0.10.x
+        // Fix bug where missionary locations get cleared.
+        // FIXME: Remove this when PETs have been revised to not store
+        // the actual unit.
+<span class="nc bnc" id="L2747" title="All 2 branches missed.">        if (settlement instanceof IndianSettlement) {</span>
+<span class="nc" id="L2748">            Unit missionary = ((IndianSettlement)settlement).getMissionary();</span>
+<span class="nc bnc" id="L2749" title="All 2 branches missed.">            if (missionary != null) missionary.setLocationNoUpdate(settlement);</span>
+        }
+        // end @compat 0.10.x
+<span class="nc" id="L2752">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L2759">        StringBuilder sb = new StringBuilder(64);</span>
+<span class="nc" id="L2760">        sb.append(&quot;[&quot;).append(getId())</span>
+<span class="nc bnc" id="L2761" title="All 2 branches missed.">            .append(&quot; &quot;).append((type == null) ? &quot;unknown&quot; : type.getSuffix())</span>
+<span class="nc" id="L2762">            .append(&quot; &quot;).append(x).append(&quot;,&quot;).append(y)</span>
+<span class="nc bnc" id="L2763" title="All 2 branches missed.">            .append((!hasSettlement()) ? &quot;&quot; : &quot; &quot; + getSettlement().getName())</span>
+<span class="nc" id="L2764">            .append(&quot;]&quot;);</span>
+<span class="nc" id="L2765">        return sb.toString();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="nc" id="L2772">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;tile&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L2780">        return &quot;tile&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

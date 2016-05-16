@@ -1,0 +1,1219 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ServerBuildingTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.model</a> &gt; <span class="el_source">ServerBuildingTest.java</span></div><h1>ServerBuildingTest.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.model;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.Building;
+import net.sf.freecol.common.model.BuildingType;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.util.test.FreeColTestCase;
+import net.sf.freecol.util.test.FreeColTestUtils;
+
+
+<span class="nc" id="L40">public class ServerBuildingTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L42">    private static final BuildingType collegeType</span>
+<span class="nc" id="L43">        = spec().getBuildingType(&quot;model.building.college&quot;);</span>
+<span class="nc" id="L44">    private static final BuildingType lumberMillType</span>
+<span class="nc" id="L45">        = spec().getBuildingType(&quot;model.building.lumberMill&quot;);</span>
+<span class="nc" id="L46">    private static final BuildingType schoolType</span>
+<span class="nc" id="L47">        = spec().getBuildingType(&quot;model.building.schoolhouse&quot;);</span>
+<span class="nc" id="L48">    private static final BuildingType townHallType</span>
+<span class="nc" id="L49">        = spec().getBuildingType(&quot;model.building.townHall&quot;);</span>
+<span class="nc" id="L50">    private static final BuildingType universityType</span>
+<span class="nc" id="L51">        = spec().getBuildingType(&quot;model.building.university&quot;);</span>
+
+<span class="nc" id="L53">    private static final GoodsType bellsType</span>
+<span class="nc" id="L54">        = spec().getGoodsType(&quot;model.goods.bells&quot;);</span>
+<span class="nc" id="L55">    private static final GoodsType foodType</span>
+<span class="nc" id="L56">        = spec().getGoodsType(&quot;model.goods.food&quot;);</span>
+<span class="nc" id="L57">    private static final GoodsType grainType</span>
+<span class="nc" id="L58">        = spec().getGoodsType(&quot;model.goods.grain&quot;);</span>
+
+<span class="nc" id="L60">    private static final UnitType freeColonistType</span>
+<span class="nc" id="L61">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="nc" id="L62">    private static final UnitType indenturedServantType</span>
+<span class="nc" id="L63">        = spec().getUnitType(&quot;model.unit.indenturedServant&quot;);</span>
+<span class="nc" id="L64">    private static final UnitType pettyCriminalType</span>
+<span class="nc" id="L65">        = spec().getUnitType(&quot;model.unit.pettyCriminal&quot;);</span>
+<span class="nc" id="L66">    private static final UnitType expertOreMinerType</span>
+<span class="nc" id="L67">        = spec().getUnitType(&quot;model.unit.expertOreMiner&quot;);</span>
+<span class="nc" id="L68">    private static final UnitType expertLumberJackType</span>
+<span class="nc" id="L69">        = spec().getUnitType(&quot;model.unit.expertLumberJack&quot;);</span>
+<span class="nc" id="L70">    private static final UnitType masterCarpenterType</span>
+<span class="nc" id="L71">        = spec().getUnitType(&quot;model.unit.masterCarpenter&quot;);</span>
+<span class="nc" id="L72">    private static final UnitType masterBlacksmithType</span>
+<span class="nc" id="L73">        = spec().getUnitType(&quot;model.unit.masterBlacksmith&quot;);</span>
+<span class="nc" id="L74">    private static final UnitType veteranSoldierType</span>
+<span class="nc" id="L75">        = spec().getUnitType(&quot;model.unit.veteranSoldier&quot;);</span>
+<span class="nc" id="L76">    private static final UnitType elderStatesmanType</span>
+<span class="nc" id="L77">        = spec().getUnitType(&quot;model.unit.elderStatesman&quot;);</span>
+<span class="nc" id="L78">    private static final UnitType colonialRegularType</span>
+<span class="nc" id="L79">        = spec().getUnitType(&quot;model.unit.colonialRegular&quot;);</span>
+
+
+<span class="nc" id="L82">    private enum SchoolLevel { SCHOOLHOUSE, COLLEGE, UNIVERSITY };</span>
+
+    /**
+     * Creates a colony with a university and n elder statesmen
+     */
+    private Colony getSchoolColony(int n, SchoolLevel slevel) {
+<span class="nc" id="L88">        Colony colony = getStandardColony(n);</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">        for (Unit u : colony.getUnitList()) u.setType(elderStatesmanType);</span>
+<span class="nc" id="L90">        BuildingType type = null;</span>
+<span class="nc bnc" id="L91" title="All 4 branches missed.">        switch (slevel) {</span>
+        case SCHOOLHOUSE:
+<span class="nc" id="L93">            type = schoolType;</span>
+<span class="nc" id="L94">            break;</span>
+        case COLLEGE:
+<span class="nc" id="L96">            type = collegeType;</span>
+<span class="nc" id="L97">            break;</span>
+        case UNIVERSITY:
+<span class="nc" id="L99">            type = universityType;</span>
+<span class="nc" id="L100">            break;</span>
+        default:
+<span class="nc" id="L102">            fail(&quot;Setup error, cannot setup school&quot;);</span>
+        }
+<span class="nc" id="L104">        Building school = new ServerBuilding(colony.getGame(), colony, type);</span>
+<span class="nc" id="L105">        colony.addBuilding(school);</span>
+<span class="nc" id="L106">        assertEquals(school.getUnitList().size(), 0);</span>
+<span class="nc" id="L107">        colony.addGoods(grainType, 150); // prevent starving during tests</span>
+<span class="nc" id="L108">        return colony;</span>
+    }
+
+    private void trainForTurns(Colony colony, int requiredTurns) {
+<span class="nc bnc" id="L112" title="All 2 branches missed.">        for (int turn = 0; turn &lt; requiredTurns; turn++) {</span>
+<span class="nc" id="L113">            ServerTestHelper.newTurn();</span>
+        }
+<span class="nc" id="L115">    }</span>
+
+    /**
+     * Returns a list of all units in this colony of the given type.
+     *
+     * @param type The type of the units to include in the list. For instance
+     *            Unit.EXPERT_FARMER.
+     * @return A list of all the units of the given type in this colony.
+     */
+    private List&lt;Unit&gt; getUnitList(Colony colony, UnitType type) {
+<span class="nc bnc" id="L125" title="All 2 branches missed.">        return transform(colony.getUnitList(), u -&gt; u.getType() == type,</span>
+<span class="nc" id="L126">                         Collectors.toList());</span>
+    }
+
+    /**
+     * Check that a free colonist can be taught something.
+     *
+     */
+    public void testExpertTeaching() {
+<span class="nc" id="L134">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+        // otherwise this test will crash and burn
+<span class="nc" id="L137">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+
+<span class="nc" id="L139">        Colony colony = getSchoolColony(4, SchoolLevel.SCHOOLHOUSE);</span>
+<span class="nc" id="L140">        Building school = colony.getBuilding(schoolType);</span>
+<span class="nc" id="L141">        assertTrue(school.canTeach());</span>
+<span class="nc" id="L142">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L144">        Unit colonist = units.next();</span>
+<span class="nc" id="L145">        colonist.setType(freeColonistType);</span>
+<span class="nc" id="L146">        colonist.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L148">        Unit lumber = units.next();</span>
+<span class="nc" id="L149">        lumber.setType(expertLumberJackType);</span>
+
+<span class="nc" id="L151">        Unit black = units.next();</span>
+<span class="nc" id="L152">        black.setType(masterBlacksmithType);</span>
+
+<span class="nc" id="L154">        Unit ore = units.next();</span>
+<span class="nc" id="L155">        ore.setType(expertOreMinerType);</span>
+
+<span class="nc" id="L157">        assertTrue(colony.canTrain(ore));</span>
+<span class="nc" id="L158">        ore.setLocation(school);</span>
+<span class="nc" id="L159">        assertEquals(ore.getStudent(), colonist);</span>
+
+<span class="nc" id="L161">        trainForTurns(colony, ore.getNeededTurnsOfTraining());</span>
+<span class="nc" id="L162">        assertEquals(expertOreMinerType, colonist.getType());</span>
+
+<span class="nc" id="L164">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L165">    }</span>
+
+    public void testCollege() {
+<span class="nc" id="L168">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+        // otherwise this test will crash and burn
+<span class="nc" id="L171">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+
+<span class="nc" id="L173">        Colony colony = getSchoolColony(4, SchoolLevel.COLLEGE);</span>
+<span class="nc" id="L174">        Building college = colony.getBuilding(collegeType);</span>
+<span class="nc" id="L175">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L177">        Unit colonist = units.next();</span>
+<span class="nc" id="L178">        colonist.setType(freeColonistType);</span>
+<span class="nc" id="L179">        colonist.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L181">        Unit blackSmith = units.next();</span>
+<span class="nc" id="L182">        blackSmith.setType(masterBlacksmithType);</span>
+
+<span class="nc" id="L184">        blackSmith.setLocation(college);</span>
+<span class="nc" id="L185">        assertEquals(blackSmith.getStudent(), colonist);</span>
+
+<span class="nc" id="L187">        trainForTurns(colony, blackSmith.getNeededTurnsOfTraining());</span>
+<span class="nc" id="L188">        assertEquals(masterBlacksmithType, colonist.getType());</span>
+
+<span class="nc" id="L190">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L191">    }</span>
+
+    public void testUniversity() {
+<span class="nc" id="L194">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+        // otherwise this test will crash and burn
+<span class="nc" id="L197">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+
+<span class="nc" id="L199">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+<span class="nc" id="L200">        assertEquals(4, colony.getUnitCount());</span>
+<span class="nc" id="L201">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L202">        assertNotNull(university);</span>
+<span class="nc" id="L203">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L205">        Unit colonist = units.next();</span>
+<span class="nc" id="L206">        colonist.setType(freeColonistType);</span>
+<span class="nc" id="L207">        colonist.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L209">        Unit elder = units.next();</span>
+<span class="nc" id="L210">        assertEquals(elder.getType(), elderStatesmanType);</span>
+
+<span class="nc" id="L212">        elder.setLocation(university);</span>
+<span class="nc" id="L213">        assertEquals(elder.getStudent(), colonist);</span>
+
+<span class="nc" id="L215">        trainForTurns(colony, elder.getNeededTurnsOfTraining());</span>
+<span class="nc" id="L216">        assertEquals(elderStatesmanType, colonist.getType());</span>
+
+<span class="nc" id="L218">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L219">    }</span>
+
+    /**
+     * [ 1616384 ] Teaching
+     *
+     * One LumberJack and one BlackSmith in a college. 4 Free Colonists, one as
+     * LumberJack, one as BlackSmith two as Farmers.
+     *
+     * After some turns (2 or 3 I don't know) a new LumberJack is ready.
+     * Removing the teacher LumberJack replaced by an Ore Miner.
+     *
+     * Next turn, a new BlackSmith is ready. Removing the teacher
+     * BlackSmith replaced by a Veteran Soldier. There is still 2 Free
+     * Colonists as Farmers in the Colony.
+     *
+     * Waiting during more than 8 turns. NOTHING happens.
+     *
+     * Changing the two Free Colonists by two other Free Colonists.
+     *
+     * After 2 or 3 turns, a new Ore Miner and a new Veteran Soldier
+     * are ready.
+     *
+     * http://sourceforge.net/tracker/index.php?func=detail&amp;aid=1616384&amp;group_id=43225&amp;atid=435578
+     *
+     * CO: I think this is a special case of the
+     * testSingleGuyTwoTeachers.  But since already the
+     * TwoTeachersSimple case fails, I think that needs to be sorted
+     * out first.
+     */
+    public void testTrackerBug1616384() {
+<span class="nc" id="L249">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+        // otherwise this test will crash and burn
+<span class="nc" id="L252">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+
+<span class="nc" id="L254">        Colony colony = getSchoolColony(8, SchoolLevel.COLLEGE);</span>
+        // prevent starvation
+<span class="nc" id="L256">        colony.addGoods(foodType, 100);</span>
+
+<span class="nc" id="L258">        Building townHall = colony.getBuilding(townHallType);</span>
+<span class="nc" id="L259">        Building lumberMill = colony.getBuilding(lumberMillType);</span>
+<span class="nc" id="L260">        Building college = colony.getBuilding(collegeType);</span>
+<span class="nc" id="L261">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L263">        clearWorkLocation(townHall);</span>
+<span class="nc" id="L264">        Unit colonist1 = units.next();</span>
+<span class="nc" id="L265">        colonist1.setType(freeColonistType);</span>
+<span class="nc" id="L266">        colonist1.setLocation(townHall);</span>
+<span class="nc" id="L267">        Unit colonist2 = units.next();</span>
+<span class="nc" id="L268">        colonist2.setType(freeColonistType);</span>
+<span class="nc" id="L269">        colonist2.setLocation(townHall);</span>
+
+<span class="nc" id="L271">        clearWorkLocation(lumberMill);</span>
+<span class="nc" id="L272">        Unit colonist3 = units.next();</span>
+<span class="nc" id="L273">        colonist3.setType(freeColonistType);</span>
+<span class="nc" id="L274">        colonist3.setLocation(lumberMill);</span>
+<span class="nc" id="L275">        Unit colonist4 = units.next();</span>
+<span class="nc" id="L276">        colonist4.setType(freeColonistType);</span>
+<span class="nc" id="L277">        colonist4.setLocation(lumberMill);</span>
+
+<span class="nc" id="L279">        Unit lumberjack = units.next();</span>
+<span class="nc" id="L280">        lumberjack.setType(expertLumberJackType);</span>
+
+<span class="nc" id="L282">        Unit blacksmith = units.next();</span>
+<span class="nc" id="L283">        blacksmith.setType(masterBlacksmithType);</span>
+
+<span class="nc" id="L285">        Unit veteran = units.next();</span>
+<span class="nc" id="L286">        veteran.setType(veteranSoldierType);</span>
+
+<span class="nc" id="L288">        Unit ore = units.next();</span>
+<span class="nc" id="L289">        ore.setType(expertOreMinerType);</span>
+
+<span class="nc" id="L291">        clearWorkLocation(college);</span>
+<span class="nc" id="L292">        lumberjack.setLocation(college);</span>
+<span class="nc" id="L293">        assertNotNull(lumberjack.getStudent());</span>
+<span class="nc" id="L294">        blacksmith.setLocation(college);</span>
+<span class="nc" id="L295">        assertNotNull(blacksmith.getStudent());</span>
+        
+<span class="nc" id="L297">        assertEquals(4, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L298">        assertEquals(1, getUnitList(colony, expertLumberJackType).size());</span>
+<span class="nc" id="L299">        assertEquals(1, getUnitList(colony, masterBlacksmithType).size());</span>
+
+<span class="nc bnc" id="L301" title="All 2 branches missed.">        while (4 == getUnitList(colony, freeColonistType).size()) {</span>
+<span class="nc" id="L302">            ServerTestHelper.newTurn();</span>
+        }
+
+<span class="nc" id="L305">        assertEquals(3, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L306">        assertEquals(2, getUnitList(colony, expertLumberJackType).size());</span>
+<span class="nc" id="L307">        assertEquals(1, getUnitList(colony, masterBlacksmithType).size());</span>
+
+<span class="nc" id="L309">        lumberjack.setLocation(colony.getWorkLocationFor(lumberjack,</span>
+<span class="nc" id="L310">                                                         grainType));</span>
+<span class="nc" id="L311">        assertNull(lumberjack.getStudent());</span>
+<span class="nc" id="L312">        Unit smithToBe = blacksmith.getStudent();</span>
+<span class="nc" id="L313">        assertNotNull(smithToBe);</span>
+<span class="nc" id="L314">        ore.setLocation(college);</span>
+<span class="nc" id="L315">        assertNotNull(ore.getStudent());</span>
+
+<span class="nc bnc" id="L317" title="All 2 branches missed.">        while (3 == getUnitList(colony, freeColonistType).size()) {</span>
+<span class="nc" id="L318">            ServerTestHelper.newTurn();</span>
+        }
+<span class="nc" id="L320">        assertEquals(masterBlacksmithType, smithToBe.getType());</span>
+<span class="nc" id="L321">        assertEquals(2, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L322">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+<span class="nc" id="L323">        assertEquals(2, getUnitList(colony, masterBlacksmithType).size());</span>
+
+<span class="nc" id="L325">        blacksmith.setLocation(colony.getWorkLocationFor(blacksmith,</span>
+<span class="nc" id="L326">                                                         grainType));</span>
+<span class="nc" id="L327">        assertNull(blacksmith.getStudent());</span>
+<span class="nc" id="L328">        veteran.setLocation(college);</span>
+<span class="nc" id="L329">        assertNotNull(veteran.getStudent());</span>
+
+<span class="nc bnc" id="L331" title="All 2 branches missed.">        while (2 == getUnitList(colony, freeColonistType).size()) {</span>
+<span class="nc" id="L332">            ServerTestHelper.newTurn();</span>
+        }
+<span class="nc" id="L334">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L335">        assertEquals(2, getUnitList(colony, expertOreMinerType).size());</span>
+
+<span class="nc" id="L337">        ore.setLocation(colony.getWorkLocationFor(ore, grainType));</span>
+<span class="nc" id="L338">        assertNull(ore.getStudent());</span>
+
+<span class="nc bnc" id="L340" title="All 2 branches missed.">        while (1 == getUnitList(colony, freeColonistType).size()) {</span>
+<span class="nc" id="L341">            ServerTestHelper.newTurn();</span>
+        }
+<span class="nc" id="L343">        assertEquals(0, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L344">        assertEquals(2, getUnitList(colony, veteranSoldierType).size());</span>
+
+<span class="nc" id="L346">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L347">    }</span>
+
+    public void testTwoTeachersSimple() {
+<span class="nc" id="L350">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+
+<span class="nc" id="L352">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+<span class="nc" id="L353">        Colony colony = getSchoolColony(5, SchoolLevel.UNIVERSITY);</span>
+        // prevent starvation
+<span class="nc" id="L355">        colony.addGoods(foodType, 100);</span>
+
+<span class="nc" id="L357">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L358">        Building townHall = colony.getBuilding(townHallType);</span>
+<span class="nc" id="L359">        clearWorkLocation(townHall);</span>
+<span class="nc" id="L360">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L362">        Unit colonist1 = units.next();</span>
+<span class="nc" id="L363">        colonist1.setType(freeColonistType);</span>
+<span class="nc" id="L364">        colonist1.setLocation(townHall);</span>
+
+<span class="nc" id="L366">        Unit colonist2 = units.next();</span>
+<span class="nc" id="L367">        colonist2.setType(freeColonistType);</span>
+<span class="nc" id="L368">        colonist2.setLocation(townHall);</span>
+
+<span class="nc" id="L370">        Unit colonist3 = units.next();</span>
+<span class="nc" id="L371">        colonist3.setType(freeColonistType);</span>
+<span class="nc" id="L372">        colonist3.setLocation(townHall);</span>
+
+<span class="nc" id="L374">        Unit black = units.next();</span>
+<span class="nc" id="L375">        black.setType(masterBlacksmithType);</span>
+<span class="nc" id="L376">        black.setLocation(university);</span>
+
+<span class="nc" id="L378">        Unit ore = units.next();</span>
+<span class="nc" id="L379">        ore.setType(expertOreMinerType);</span>
+<span class="nc" id="L380">        ore.setLocation(university);</span>
+
+<span class="nc" id="L382">        assertTrue(&quot;Should be longer to train blacksmith then ore miner&quot;,</span>
+<span class="nc bnc" id="L383" title="All 2 branches missed.">            black.getNeededTurnsOfTraining() &gt; ore.getNeededTurnsOfTraining());</span>
+<span class="nc" id="L384">        assertEquals(3, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L385">        assertEquals(1, getUnitList(colony, masterBlacksmithType).size());</span>
+<span class="nc" id="L386">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+
+<span class="nc" id="L388">        trainForTurns(colony, ore.getNeededTurnsOfTraining());</span>
+<span class="nc" id="L389">        assertEquals(2, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L390">        assertEquals(1, getUnitList(colony, masterBlacksmithType).size());</span>
+<span class="nc" id="L391">        assertEquals(2, getUnitList(colony, expertOreMinerType).size());</span>
+<span class="nc" id="L392">        assertNotNull(ore.getStudent());</span>
+<span class="nc" id="L393">        assertNotNull(black.getStudent());</span>
+
+<span class="nc" id="L395">        trainForTurns(colony, black.getNeededTurnsOfTraining()</span>
+<span class="nc" id="L396">                      - black.getTurnsOfTraining());</span>
+<span class="nc" id="L397">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L398">        assertEquals(2, getUnitList(colony, masterBlacksmithType).size());</span>
+<span class="nc" id="L399">        assertEquals(2, getUnitList(colony, expertOreMinerType).size());</span>
+
+<span class="nc" id="L401">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L402">    }</span>
+
+
+    /**
+     * If there are two teachers, but just one colonist to be taught.
+     */
+    public void testSingleGuyTwoTeachers() {
+<span class="nc" id="L409">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L410">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L412">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+<span class="nc" id="L413">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L414">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L416">        Unit colonist = units.next();</span>
+<span class="nc" id="L417">        colonist.setType(freeColonistType);</span>
+<span class="nc" id="L418">        Building townHall = colony.getBuilding(townHallType);</span>
+<span class="nc" id="L419">        clearWorkLocation(townHall);</span>
+<span class="nc" id="L420">        colonist.setLocation(townHall);</span>
+
+<span class="nc" id="L422">        Unit lumberJack = units.next();</span>
+<span class="nc" id="L423">        lumberJack.setType(expertLumberJackType);</span>
+
+<span class="nc" id="L425">        Unit blackSmith = units.next();</span>
+<span class="nc" id="L426">        blackSmith.setType(masterBlacksmithType);</span>
+
+        // It should take 4 turns to train an expert lumber jack and 6
+        // to train a blacksmith, so the lumber jack chould be
+        // finished teaching first.  The school works for now as
+        // first come first serve.
+<span class="nc" id="L432">        blackSmith.setLocation(university);</span>
+<span class="nc" id="L433">        lumberJack.setLocation(university);</span>
+<span class="nc bnc" id="L434" title="All 2 branches missed.">        assertTrue(colonist.getTeacher() == blackSmith);</span>
+<span class="nc" id="L435">        assertNull(lumberJack.getStudent());</span>
+
+<span class="nc" id="L437">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L438">        assertEquals(1, getUnitList(colony, expertLumberJackType).size());</span>
+<span class="nc" id="L439">        assertEquals(1, getUnitList(colony, masterBlacksmithType).size());</span>
+
+<span class="nc" id="L441">        trainForTurns(colony, blackSmith.getNeededTurnsOfTraining());</span>
+<span class="nc" id="L442">        assertEquals(0, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L443">        assertEquals(1, getUnitList(colony, expertLumberJackType).size());</span>
+<span class="nc" id="L444">        assertEquals(2, getUnitList(colony, masterBlacksmithType).size());</span>
+
+<span class="nc" id="L446">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L447">    }</span>
+
+    /**
+     * If there are two teachers of the same kind, but just one
+     * colonist to be taught, this should not mean any speed up.
+     */
+    public void testTwoTeachersOfSameKind() {
+<span class="nc" id="L454">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L455">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L457">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+<span class="nc" id="L458">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L459">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L461">        Unit colonist = units.next();</span>
+<span class="nc" id="L462">        colonist.setType(freeColonistType);</span>
+<span class="nc" id="L463">        Building townHall = colony.getBuilding(townHallType);</span>
+<span class="nc" id="L464">        clearWorkLocation(townHall);</span>
+<span class="nc" id="L465">        colonist.setLocation(townHall);</span>
+
+<span class="nc" id="L467">        Unit lumberjack1 = units.next();</span>
+<span class="nc" id="L468">        lumberjack1.setType(expertLumberJackType);</span>
+
+<span class="nc" id="L470">        Unit lumberjack2 = units.next();</span>
+<span class="nc" id="L471">        lumberjack2.setType(expertLumberJackType);</span>
+
+<span class="nc" id="L473">        lumberjack1.setLocation(university);</span>
+<span class="nc" id="L474">        lumberjack2.setLocation(university);</span>
+<span class="nc" id="L475">        assertEquals(colonist, lumberjack1.getStudent());</span>
+<span class="nc" id="L476">        assertNull(lumberjack2.getStudent());</span>
+
+<span class="nc bnc" id="L478" title="All 2 branches missed.">        for (int i = lumberjack1.getNeededTurnsOfTraining(); i &gt; 0; i--) {</span>
+<span class="nc" id="L479">            assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L480">            trainForTurns(colony, 1);</span>
+        }
+
+<span class="nc" id="L483">        assertEquals(0, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L484">        assertEquals(3, getUnitList(colony, expertLumberJackType).size());</span>
+
+<span class="nc" id="L486">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L487">    }</span>
+
+    /**
+     * If there are two teachers with the same skill level, the first
+     * to be put in the school should be used for teaching.
+     */
+    public void testSingleGuyTwoTeachers2() {
+<span class="nc" id="L494">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L495">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L497">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+<span class="nc" id="L498">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L499">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L501">        Unit colonist = units.next();</span>
+<span class="nc" id="L502">        colonist.setType(freeColonistType);</span>
+<span class="nc" id="L503">        Building townHall = colony.getBuilding(townHallType);</span>
+<span class="nc" id="L504">        clearWorkLocation(townHall);</span>
+<span class="nc" id="L505">        colonist.setLocation(townHall);</span>
+
+<span class="nc" id="L507">        Unit lumber = units.next();</span>
+<span class="nc" id="L508">        lumber.setType(expertLumberJackType);</span>
+
+<span class="nc" id="L510">        Unit ore = units.next();</span>
+<span class="nc" id="L511">        ore.setType(expertOreMinerType);</span>
+
+        // It should take 4 turns to train an expert lumber jack and
+        // also 4 to train a ore miner.  First come first serve, the
+        // lumber jack wins.
+<span class="nc" id="L516">        lumber.setLocation(university);</span>
+<span class="nc" id="L517">        ore.setLocation(university);</span>
+<span class="nc" id="L518">        assertEquals(colonist.getTeacher(), lumber);</span>
+<span class="nc" id="L519">        assertNull(ore.getStudent());</span>
+
+<span class="nc" id="L521">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L522">        assertEquals(1, getUnitList(colony, expertLumberJackType).size());</span>
+<span class="nc" id="L523">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+
+<span class="nc" id="L525">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L526">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L527">        assertEquals(1, getUnitList(colony, expertLumberJackType).size());</span>
+<span class="nc" id="L528">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+
+<span class="nc" id="L530">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L531">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L532">        assertEquals(1, getUnitList(colony, expertLumberJackType).size());</span>
+<span class="nc" id="L533">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+
+<span class="nc" id="L535">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L536">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L537">        assertEquals(1, getUnitList(colony, expertLumberJackType).size());</span>
+<span class="nc" id="L538">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+
+<span class="nc" id="L540">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L541">        assertEquals(0, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L542">        assertEquals(2, getUnitList(colony, expertLumberJackType).size());</span>
+<span class="nc" id="L543">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+
+<span class="nc" id="L545">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L546">    }</span>
+
+    /**
+     * Test that an petty criminal becomes an indentured servant
+     */
+    public void testTeachPettyCriminals() {
+<span class="nc" id="L552">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L553">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L555">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+<span class="nc" id="L556">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L557">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L559">        Unit criminal = units.next();</span>
+<span class="nc" id="L560">        criminal.setType(pettyCriminalType);</span>
+<span class="nc" id="L561">        criminal.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L563">        Unit teacher = units.next();</span>
+<span class="nc" id="L564">        teacher.setType(expertOreMinerType);</span>
+
+<span class="nc" id="L566">        teacher.setLocation(university);</span>
+<span class="nc" id="L567">        assertEquals(teacher.getNeededTurnsOfTraining(), 4);</span>
+<span class="nc" id="L568">        assertTrue(criminal.canBeStudent(teacher));</span>
+<span class="nc" id="L569">        assertEquals(criminal, teacher.getStudent());</span>
+
+        // PETTY_CRIMINALS become INDENTURED_SERVANTS
+<span class="nc" id="L572">        trainForTurns(colony, teacher.getNeededTurnsOfTraining());</span>
+<span class="nc" id="L573">        assertEquals(0, getUnitList(colony, pettyCriminalType).size());</span>
+<span class="nc" id="L574">        assertEquals(indenturedServantType, criminal.getType());</span>
+
+<span class="nc" id="L576">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L577">    }</span>
+
+    /**
+     * The time to teach somebody does not depend on the one who is
+     * being taught, but on the teacher.
+     */
+    public void testTeachPettyCriminalsByMaster() {
+<span class="nc" id="L584">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L585">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L587">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+<span class="nc" id="L588">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L589">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L591">        Unit criminal = units.next();</span>
+<span class="nc" id="L592">        criminal.setType(pettyCriminalType);</span>
+<span class="nc" id="L593">        criminal.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L595">        Unit teacher = units.next();</span>
+<span class="nc" id="L596">        teacher.setType(masterBlacksmithType);</span>
+
+<span class="nc" id="L598">        teacher.setLocation(university);</span>
+<span class="nc" id="L599">        assertEquals(teacher.getNeededTurnsOfTraining(), 4);</span>
+<span class="nc" id="L600">        assertEquals(criminal, teacher.getStudent());</span>
+
+<span class="nc" id="L602">        trainForTurns(colony, teacher.getNeededTurnsOfTraining());</span>
+<span class="nc" id="L603">        assertEquals(0, getUnitList(colony, pettyCriminalType).size());</span>
+<span class="nc" id="L604">        assertEquals(indenturedServantType, criminal.getType());</span>
+
+<span class="nc" id="L606">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L607">    }</span>
+
+    /**
+     * Test that an indentured servant becomes a free colonist
+     */
+    public void testTeachIndenturedServants() {
+<span class="nc" id="L613">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L614">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L616">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+<span class="nc" id="L617">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L618">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L620">        Unit indenturedServant = units.next();</span>
+<span class="nc" id="L621">        indenturedServant.setType(indenturedServantType);</span>
+
+<span class="nc" id="L623">        Unit teacher = units.next();</span>
+<span class="nc" id="L624">        teacher.setType(masterBlacksmithType);</span>
+
+<span class="nc" id="L626">        teacher.setLocation(university);</span>
+<span class="nc" id="L627">        assertEquals(teacher.getNeededTurnsOfTraining(), 4);</span>
+<span class="nc" id="L628">        assertEquals(indenturedServant, teacher.getStudent());</span>
+
+        // Train to become free colonist
+<span class="nc" id="L631">        trainForTurns(colony, teacher.getNeededTurnsOfTraining());</span>
+<span class="nc" id="L632">        assertEquals(0, getUnitList(colony, indenturedServantType).size());</span>
+<span class="nc" id="L633">        assertEquals(freeColonistType, indenturedServant.getType());</span>
+
+<span class="nc" id="L635">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L636">    }</span>
+
+    /**
+     * Progress in teaching is bound to the teacher and not the learner.
+     *
+     * Moving students around does not slow education. This behavior is
+     * there to simplify gameplay.
+     */
+    public void testTeacherStoresProgress() {
+<span class="nc" id="L645">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L646">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L648">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+<span class="nc" id="L649">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L650">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+<span class="nc" id="L651">        Unit outsider = new ServerUnit(game, colony.getTile(),</span>
+<span class="nc" id="L652">                                       colony.getOwner(), freeColonistType);</span>
+
+<span class="nc" id="L654">        Building townHall = colony.getBuilding(townHallType);</span>
+<span class="nc" id="L655">        Unit colonist = units.next();</span>
+<span class="nc" id="L656">        colonist.setType(freeColonistType);</span>
+<span class="nc" id="L657">        colonist.setLocation(townHall);</span>
+
+<span class="nc" id="L659">        Unit teacher = units.next();</span>
+<span class="nc" id="L660">        teacher.setType(expertOreMinerType);</span>
+<span class="nc" id="L661">        teacher.setLocation(university);</span>
+<span class="nc" id="L662">        assertEquals(teacher.getStudent(), colonist);</span>
+<span class="nc" id="L663">        assertEquals(colonist.getTeacher(), teacher);</span>
+
+        // Train to become free colonist then swap the colonist with
+        // another one.
+<span class="nc" id="L667">        trainForTurns(colony, teacher.getNeededTurnsOfTraining() - 1);</span>
+<span class="nc" id="L668">        colonist.setLocation(colony.getTile());</span>
+<span class="nc" id="L669">        outsider.setLocation(townHall);</span>
+<span class="nc" id="L670">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L671">        assertEquals(teacher.getStudent(), outsider);</span>
+
+<span class="nc" id="L673">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L674">        assertEquals(0, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L675">        assertEquals(expertOreMinerType, outsider.getType());</span>
+
+<span class="nc" id="L677">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L678">    }</span>
+
+    /**
+     * Progress in teaching is bound to the teacher and not the learner.
+     *
+     * Moving a teacher inside the colony should not reset its training.
+     */
+    public void testMoveTeacherInside() {
+<span class="nc" id="L686">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L687">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L689">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+        // prevent starvation
+<span class="nc" id="L691">        colony.addGoods(foodType, 100);</span>
+
+<span class="nc" id="L693">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L694">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L696">        Unit colonist = units.next();</span>
+<span class="nc" id="L697">        colonist.setType(freeColonistType);</span>
+<span class="nc" id="L698">        colonist.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L700">        Unit criminal = units.next();</span>
+<span class="nc" id="L701">        criminal.setType(pettyCriminalType);</span>
+<span class="nc" id="L702">        criminal.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L704">        Unit teacher1 = units.next();</span>
+<span class="nc" id="L705">        teacher1.setType(expertOreMinerType);</span>
+
+<span class="nc" id="L707">        Unit teacher2 = units.next();</span>
+<span class="nc" id="L708">        teacher2.setType(masterCarpenterType);</span>
+
+        // The carpenter is set in the school before the miner.
+        // In this case, the colonist will become a miner (and the criminal
+        // will become a servant).
+<span class="nc" id="L713">        teacher2.setLocation(university);</span>
+<span class="nc" id="L714">        teacher1.setLocation(university);</span>
+<span class="nc" id="L715">        assertEquals(4, teacher1.getNeededTurnsOfTraining());</span>
+<span class="nc" id="L716">        assertEquals(4, teacher2.getNeededTurnsOfTraining());</span>
+
+        // wait a little
+<span class="nc" id="L719">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L720">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L721">        assertEquals(2, teacher1.getTurnsOfTraining());</span>
+<span class="nc" id="L722">        assertEquals(2, teacher2.getTurnsOfTraining());</span>
+<span class="nc" id="L723">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L724">        assertEquals(1, getUnitList(colony, pettyCriminalType).size());</span>
+<span class="nc" id="L725">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+<span class="nc" id="L726">        assertEquals(1, getUnitList(colony, masterCarpenterType).size());</span>
+
+        // Now we want the colonist to be a carpenter. We just want to
+        // shuffle the teachers.  Move them out of the school.
+<span class="nc" id="L730">        teacher2.setLocation(colony.getWorkLocationFor(teacher2,</span>
+<span class="nc" id="L731">                                                       grainType));</span>
+<span class="nc" id="L732">        teacher1.setLocation(colony.getTile());</span>
+<span class="nc" id="L733">        assertNull(teacher1.getStudent());</span>
+<span class="nc" id="L734">        assertNull(teacher2.getStudent());</span>
+
+        // Moving outside school resets training
+<span class="nc" id="L737">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L738">        assertEquals(0, teacher1.getTurnsOfTraining());</span>
+<span class="nc" id="L739">        assertEquals(0, teacher2.getTurnsOfTraining());</span>
+<span class="nc" id="L740">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L741">        assertEquals(1, getUnitList(colony, pettyCriminalType).size());</span>
+
+        // Move teachers back to school, miner first to pick up the criminal
+<span class="nc" id="L744">        teacher1.setLocation(university);</span>
+<span class="nc" id="L745">        teacher2.setLocation(university);</span>
+
+<span class="nc" id="L747">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L748">        assertEquals(1, teacher1.getTurnsOfTraining());</span>
+<span class="nc" id="L749">        assertEquals(1, teacher2.getTurnsOfTraining());</span>
+<span class="nc" id="L750">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L751">        assertEquals(1, getUnitList(colony, pettyCriminalType).size());</span>
+
+<span class="nc" id="L753">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L754">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L755">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L756">        assertEquals(0, teacher1.getTurnsOfTraining());</span>
+<span class="nc" id="L757">        assertEquals(0, teacher2.getTurnsOfTraining());</span>
+
+        // Teacher1's student (criminal) should be a servant now
+        // Teacher2's student (colonist) should be a carpenter now
+<span class="nc" id="L761">        assertEquals(0, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L762">        assertEquals(0, getUnitList(colony, pettyCriminalType).size());</span>
+<span class="nc" id="L763">        assertEquals(1, getUnitList(colony, indenturedServantType).size());</span>
+<span class="nc" id="L764">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+<span class="nc" id="L765">        assertEquals(2, getUnitList(colony, masterCarpenterType).size());</span>
+
+<span class="nc" id="L767">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L768">    }</span>
+
+    public void testCaseTwoTeachersWithDifferentExp() {
+<span class="nc" id="L771">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L772">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L774">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+<span class="nc" id="L775">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L776">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L778">        Unit colonist = units.next();</span>
+<span class="nc" id="L779">        colonist.setType(freeColonistType);</span>
+<span class="nc" id="L780">        colonist.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L782">        Unit teacher1 = units.next();</span>
+<span class="nc" id="L783">        teacher1.setType(expertOreMinerType);</span>
+
+<span class="nc" id="L785">        Unit teacher2 = units.next();</span>
+<span class="nc" id="L786">        teacher2.setType(masterCarpenterType);</span>
+
+        // First we let the teacher1 train for 3 turns
+<span class="nc" id="L789">        teacher1.setLocation(university);</span>
+<span class="nc" id="L790">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L791">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L792">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L793">        assertEquals(3, teacher1.getTurnsOfTraining());</span>
+
+        // Then teacher2 for 1 turn
+<span class="nc" id="L796">        teacher1.setLocation(colony.getWorkLocationFor(teacher1,</span>
+<span class="nc" id="L797">                                                       grainType));</span>
+<span class="nc" id="L798">        teacher2.setLocation(university);</span>
+<span class="nc" id="L799">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L800">        assertEquals(0, teacher1.getTurnsOfTraining());</span>
+<span class="nc" id="L801">        assertEquals(1, teacher2.getTurnsOfTraining());</span>
+
+        // If we now also add teacher1 to the university, but
+        // teacher2 should still be the teacher in charge
+<span class="nc" id="L805">        teacher1.setLocation(university);</span>
+<span class="nc" id="L806">        assertNull(teacher1.getStudent());</span>
+<span class="nc" id="L807">        ServerTestHelper.newTurn();</span>
+
+<span class="nc" id="L809">        assertEquals(0, teacher1.getTurnsOfTraining());</span>
+<span class="nc" id="L810">        assertEquals(2, teacher2.getTurnsOfTraining());</span>
+
+<span class="nc" id="L812">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L813">    }</span>
+
+    /**
+     * Progress in teaching is bound to the teacher and not the learner.
+     *
+     * Moving a teacher outside the colony should reset its training.
+     */
+    public void testMoveTeacherOutside() {
+<span class="nc" id="L821">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L822">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L824">        Colony otherColony = getStandardColony(1, 10, 10);</span>
+<span class="nc" id="L825">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+        // prevent starvation
+<span class="nc" id="L827">        colony.addGoods(foodType, 100);</span>
+
+<span class="nc" id="L829">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L830">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L832">        Unit colonist = units.next();</span>
+<span class="nc" id="L833">        colonist.setType(freeColonistType);</span>
+<span class="nc" id="L834">        colonist.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L836">        Unit criminal = units.next();</span>
+<span class="nc" id="L837">        criminal.setType(pettyCriminalType);</span>
+<span class="nc" id="L838">        criminal.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L840">        Unit teacher1 = units.next();</span>
+<span class="nc" id="L841">        teacher1.setType(expertOreMinerType);</span>
+
+<span class="nc" id="L843">        Unit teacher2 = units.next();</span>
+<span class="nc" id="L844">        teacher2.setType(masterCarpenterType);</span>
+
+        // The carpenter is set in the school before the miner
+        // In this case, the colonist will become a miner (and the criminal
+        // will become a servant).
+<span class="nc" id="L849">        teacher2.setLocation(university);</span>
+<span class="nc" id="L850">        teacher1.setLocation(university);</span>
+
+        // wait a little
+<span class="nc" id="L853">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L854">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L855">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L856">        assertEquals(1, getUnitList(colony, pettyCriminalType).size());</span>
+<span class="nc" id="L857">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+<span class="nc" id="L858">        assertEquals(1, getUnitList(colony, masterCarpenterType).size());</span>
+<span class="nc" id="L859">        assertEquals(2, teacher1.getTurnsOfTraining());</span>
+<span class="nc" id="L860">        assertEquals(2, teacher2.getTurnsOfTraining());</span>
+
+        // Now we move the teachers somewhere beyond the colony
+<span class="nc" id="L863">        teacher1.setLocation(getGame().getMap().getTile(6, 8));</span>
+<span class="nc" id="L864">        teacher2.setLocation(otherColony);</span>
+<span class="nc" id="L865">        assertEquals(0, teacher1.getTurnsOfTraining());</span>
+<span class="nc" id="L866">        assertEquals(0, teacher2.getTurnsOfTraining());</span>
+<span class="nc" id="L867">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L868">        assertEquals(1, getUnitList(colony, pettyCriminalType).size());</span>
+<span class="nc" id="L869">        assertEquals(0, getUnitList(colony, expertOreMinerType).size());</span>
+<span class="nc" id="L870">        assertEquals(0, getUnitList(colony, masterCarpenterType).size());</span>
+
+        // Put them back here
+<span class="nc" id="L873">        teacher2.setLocation(university);</span>
+<span class="nc" id="L874">        teacher1.setLocation(university);</span>
+<span class="nc" id="L875">        assertEquals(0, teacher1.getTurnsOfTraining());</span>
+<span class="nc" id="L876">        assertEquals(0, teacher2.getTurnsOfTraining());</span>
+<span class="nc" id="L877">        assertEquals(teacher1, colonist.getTeacher());</span>
+<span class="nc" id="L878">        assertEquals(teacher2, criminal.getTeacher());</span>
+
+        // Check that 2 new turns aren't enough for training
+<span class="nc" id="L881">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L882">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L883">        assertEquals(1, getUnitList(colony, pettyCriminalType).size());</span>
+<span class="nc" id="L884">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+<span class="nc" id="L885">        assertEquals(1, getUnitList(colony, masterCarpenterType).size());</span>
+
+<span class="nc" id="L887">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L888">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L889">        assertEquals(1, getUnitList(colony, pettyCriminalType).size());</span>
+<span class="nc" id="L890">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+<span class="nc" id="L891">        assertEquals(1, getUnitList(colony, masterCarpenterType).size());</span>
+
+<span class="nc" id="L893">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L894">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L895">        assertEquals(1, getUnitList(colony, pettyCriminalType).size());</span>
+<span class="nc" id="L896">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+<span class="nc" id="L897">        assertEquals(1, getUnitList(colony, masterCarpenterType).size());</span>
+
+<span class="nc" id="L899">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L900">        assertEquals(0, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L901">        assertEquals(0, getUnitList(colony, pettyCriminalType).size());</span>
+<span class="nc" id="L902">        assertEquals(1, getUnitList(colony, indenturedServantType).size());</span>
+<span class="nc" id="L903">        assertEquals(2, getUnitList(colony, expertOreMinerType).size());</span>
+<span class="nc" id="L904">        assertEquals(1, getUnitList(colony, masterCarpenterType).size());</span>
+
+<span class="nc" id="L906">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L907">    }</span>
+
+    /**
+     * Sons of Liberty influences teaching.
+     */
+    public void testSonsOfLiberty() {
+<span class="nc" id="L913">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L914">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L916">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+<span class="nc" id="L917">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L918">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+<span class="nc" id="L919">        Unit colonist = units.next();</span>
+<span class="nc" id="L920">        colonist.setType(freeColonistType);</span>
+<span class="nc" id="L921">        colonist.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L923">        Unit lumberjack = units.next();</span>
+<span class="nc" id="L924">        lumberjack.setType(expertLumberJackType);</span>
+<span class="nc" id="L925">        lumberjack.setLocation(university);</span>
+
+<span class="nc" id="L927">        assertEquals(4, lumberjack.getNeededTurnsOfTraining());</span>
+
+<span class="nc" id="L929">        colony.addGoods(bellsType, 100000);</span>
+<span class="nc" id="L930">        assertEquals(2, lumberjack.getNeededTurnsOfTraining());</span>
+
+<span class="nc" id="L932">        trainForTurns(colony, 2);</span>
+<span class="nc" id="L933">        assertEquals(0, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L934">        assertEquals(2, getUnitList(colony, expertLumberJackType).size());</span>
+
+<span class="nc" id="L936">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L937">    }</span>
+
+    /**
+     * Trains partly one colonist then put another teacher.
+     *
+     * Should not save progress but start all over.
+     */
+    public void testPartTraining() {
+<span class="nc" id="L945">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L946">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L948">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+<span class="nc" id="L949">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L950">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L952">        Unit colonist = units.next();</span>
+<span class="nc" id="L953">        colonist.setType(freeColonistType);</span>
+<span class="nc" id="L954">        colonist.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L956">        Unit lumberjack = units.next();</span>
+<span class="nc" id="L957">        lumberjack.setType(expertLumberJackType);</span>
+
+<span class="nc" id="L959">        Unit miner = units.next();</span>
+<span class="nc" id="L960">        miner.setType(expertOreMinerType);</span>
+
+        // Put Lumberjack in School
+<span class="nc" id="L963">        lumberjack.setLocation(university);</span>
+<span class="nc" id="L964">        assertEquals(lumberjack.getStudent(), colonist);</span>
+<span class="nc" id="L965">        assertEquals(colonist.getTeacher(), lumberjack);</span>
+
+<span class="nc" id="L967">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L968">        ServerTestHelper.newTurn();</span>
+
+        // After 2 turns replace by miner. Progress starts from scratch.
+<span class="nc" id="L971">        lumberjack.setLocation(colony.getWorkLocationFor(lumberjack, grainType));</span>
+<span class="nc" id="L972">        assertNull(lumberjack.getStudent());</span>
+<span class="nc" id="L973">        assertNull(colonist.getTeacher());</span>
+
+<span class="nc" id="L975">        miner.setLocation(university);</span>
+<span class="nc" id="L976">        assertEquals(miner.getStudent(), colonist);</span>
+<span class="nc" id="L977">        assertEquals(colonist.getTeacher(), miner);</span>
+
+<span class="nc" id="L979">        trainForTurns(colony, miner.getNeededTurnsOfTraining());</span>
+<span class="nc" id="L980">        assertEquals(0, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L981">        assertEquals(2, getUnitList(colony, expertOreMinerType).size());</span>
+
+<span class="nc" id="L983">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L984">    }</span>
+
+    /**
+     * Test that free colonists are trained before indentured servants, which
+     * are preferred to petty criminals.
+     */
+    public void testTeachingOrder() {
+<span class="nc" id="L991">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L992">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L994">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+        // prevent starvation
+<span class="nc" id="L996">        colony.addGoods(foodType, 100);</span>
+
+<span class="nc" id="L998">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L999">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L1001">        Unit colonist = units.next();</span>
+<span class="nc" id="L1002">        colonist.setType(freeColonistType);</span>
+<span class="nc" id="L1003">        colonist.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L1005">        Unit indenturedServant = units.next();</span>
+<span class="nc" id="L1006">        indenturedServant.setType(indenturedServantType);</span>
+<span class="nc" id="L1007">        indenturedServant.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L1009">        Unit criminal = units.next();</span>
+<span class="nc" id="L1010">        criminal.setType(pettyCriminalType);</span>
+<span class="nc" id="L1011">        criminal.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L1013">        Unit teacher = units.next();</span>
+<span class="nc" id="L1014">        teacher.setType(expertOreMinerType);</span>
+<span class="nc" id="L1015">        teacher.setLocation(university);</span>
+
+<span class="nc" id="L1017">        assertTrue(colonist.canBeStudent(teacher));</span>
+<span class="nc" id="L1018">        assertTrue(indenturedServant.canBeStudent(teacher));</span>
+<span class="nc" id="L1019">        assertTrue(criminal.canBeStudent(teacher));</span>
+
+        // Criminal training
+<span class="nc" id="L1022">        assertEquals(teacher, criminal.getTeacher());</span>
+<span class="nc" id="L1023">        assertEquals(criminal, teacher.getStudent());</span>
+<span class="nc" id="L1024">        trainForTurns(colony, teacher.getNeededTurnsOfTraining());</span>
+
+<span class="nc" id="L1026">        assertEquals(0, getUnitList(colony, pettyCriminalType).size());</span>
+<span class="nc" id="L1027">        assertEquals(indenturedServantType, criminal.getType());</span>
+<span class="nc" id="L1028">        criminal.setLocation(getGame().getMap().getTile(10,8));</span>
+
+        // Servant training
+<span class="nc" id="L1031">        assertNull(teacher.getStudent());</span>
+<span class="nc" id="L1032">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L1033">        assertEquals(teacher, indenturedServant.getTeacher());</span>
+<span class="nc" id="L1034">        assertEquals(indenturedServant, teacher.getStudent());</span>
+<span class="nc" id="L1035">        trainForTurns(colony, teacher.getNeededTurnsOfTraining());</span>
+
+<span class="nc" id="L1037">        assertEquals(0, getUnitList(colony, indenturedServantType).size());</span>
+<span class="nc" id="L1038">        assertEquals(2, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L1039">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+<span class="nc" id="L1040">        assertEquals(freeColonistType, indenturedServant.getType());</span>
+
+        // Colonist(former servant) training continues
+<span class="nc" id="L1043">        assertEquals(teacher, indenturedServant.getTeacher());</span>
+<span class="nc" id="L1044">        assertEquals(indenturedServant, teacher.getStudent());</span>
+<span class="nc" id="L1045">        assertEquals(colonist.getTeacher(), null);</span>
+
+<span class="nc" id="L1047">        trainForTurns(colony, teacher.getNeededTurnsOfTraining());</span>
+<span class="nc" id="L1048">        assertEquals(0, getUnitList(colony, indenturedServantType).size());</span>
+<span class="nc" id="L1049">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L1050">        assertEquals(2, getUnitList(colony, expertOreMinerType).size());</span>
+<span class="nc" id="L1051">        assertEquals(expertOreMinerType, indenturedServant.getType());</span>
+<span class="nc" id="L1052">        assertEquals(indenturedServant.getTeacher(), null);</span>
+
+<span class="nc" id="L1054">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L1055">    }</span>
+
+    /**
+     * Test that an indentured servant cannot be promoted to free colonist and
+     * learn a skill at the same time.
+     */
+    public void testTeachingDoublePromotion() {
+<span class="nc" id="L1062">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L1063">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L1065">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+        // prevent starvation
+<span class="nc" id="L1067">        colony.addGoods(foodType, 100);</span>
+
+<span class="nc" id="L1069">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L1070">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L1072">        Unit indenturedServant = units.next();</span>
+<span class="nc" id="L1073">        indenturedServant.setType(indenturedServantType);</span>
+<span class="nc" id="L1074">        indenturedServant.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L1076">        Unit criminal = units.next();</span>
+<span class="nc" id="L1077">        criminal.setType(pettyCriminalType);</span>
+<span class="nc" id="L1078">        criminal.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L1080">        Unit teacher1 = units.next();</span>
+<span class="nc" id="L1081">        teacher1.setType(expertOreMinerType);</span>
+
+<span class="nc" id="L1083">        Unit teacher2 = units.next();</span>
+<span class="nc" id="L1084">        teacher2.setType(expertLumberJackType);</span>
+
+        // set location only AFTER all types have been set!
+<span class="nc" id="L1087">        teacher1.setLocation(university);</span>
+<span class="nc" id="L1088">        teacher2.setLocation(university);</span>
+<span class="nc" id="L1089">        assertEquals(criminal, teacher1.getStudent());</span>
+<span class="nc" id="L1090">        assertEquals(indenturedServant, teacher2.getStudent());</span>
+
+        // Training time
+<span class="nc" id="L1093">        trainForTurns(colony, teacher1.getNeededTurnsOfTraining());</span>
+
+        // indentured servant should have been promoted to free colonist
+        // petty criminal should have been promoted to indentured servant
+<span class="nc" id="L1097">        assertEquals(freeColonistType, indenturedServant.getType());</span>
+<span class="nc" id="L1098">        assertEquals(indenturedServantType, criminal.getType());</span>
+<span class="nc" id="L1099">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+<span class="nc" id="L1100">        assertEquals(1, getUnitList(colony, expertLumberJackType).size());</span>
+<span class="nc" id="L1101">        assertEquals(1, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L1102">        assertEquals(1, getUnitList(colony, indenturedServantType).size());</span>
+<span class="nc" id="L1103">        assertEquals(0, getUnitList(colony, pettyCriminalType).size());</span>
+<span class="nc" id="L1104">        criminal.setLocation(getGame().getMap().getTile(10,8));</span>
+<span class="nc" id="L1105">        assertNull(teacher1.getStudent());</span>
+<span class="nc" id="L1106">        assertEquals(teacher2, indenturedServant.getTeacher());</span>
+
+        // Train again
+<span class="nc" id="L1109">        trainForTurns(colony, teacher2.getNeededTurnsOfTraining());</span>
+<span class="nc" id="L1110">        assertEquals(expertLumberJackType, indenturedServant.getType());</span>
+<span class="nc" id="L1111">        assertEquals(1, getUnitList(colony, expertOreMinerType).size());</span>
+<span class="nc" id="L1112">        assertEquals(2, getUnitList(colony, expertLumberJackType).size());</span>
+<span class="nc" id="L1113">        assertEquals(0, getUnitList(colony, freeColonistType).size());</span>
+<span class="nc" id="L1114">        assertEquals(0, getUnitList(colony, indenturedServantType).size());</span>
+<span class="nc" id="L1115">        assertEquals(0, getUnitList(colony, pettyCriminalType).size());</span>
+
+<span class="nc" id="L1117">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L1118">    }</span>
+
+    public void testColonialRegular() {
+<span class="nc" id="L1121">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L1122">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L1124">        Colony colony = getSchoolColony(4, SchoolLevel.UNIVERSITY);</span>
+<span class="nc" id="L1125">        Building university = colony.getBuilding(universityType);</span>
+<span class="nc" id="L1126">        colony.getOwner().addAbility(new Ability(Ability.INDEPENDENCE_DECLARED));</span>
+<span class="nc" id="L1127">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L1129">        Unit regular = units.next();</span>
+<span class="nc" id="L1130">        regular.setType(colonialRegularType);</span>
+
+<span class="nc" id="L1132">        Unit colonist = units.next();</span>
+<span class="nc" id="L1133">        colonist.setType(freeColonistType);</span>
+<span class="nc" id="L1134">        colonist.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L1136">        regular.setLocation(university);</span>
+<span class="nc" id="L1137">        assertEquals(colonist, regular.getStudent());</span>
+<span class="nc" id="L1138">        trainForTurns(colony, freeColonistType.getEducationTurns(veteranSoldierType));</span>
+
+<span class="nc" id="L1140">        assertEquals(veteranSoldierType, colonist.getType());</span>
+
+<span class="nc" id="L1142">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L1143">    }</span>
+
+    public void testConcurrentUpgrade() {
+<span class="nc" id="L1146">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L1147">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L1149">        Colony colony = getSchoolColony(2, SchoolLevel.SCHOOLHOUSE);</span>
+<span class="nc" id="L1150">        Building school = colony.getBuilding(schoolType);</span>
+<span class="nc" id="L1151">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L1153">        Unit lumber = units.next();</span>
+<span class="nc" id="L1154">        lumber.setType(expertLumberJackType);</span>
+
+<span class="nc" id="L1156">        Unit student = units.next();</span>
+<span class="nc" id="L1157">        student.setType(pettyCriminalType);</span>
+<span class="nc" id="L1158">        student.setLocation(colony.getBuilding(townHallType));</span>
+
+<span class="nc" id="L1160">        assertTrue(school.canTeach());</span>
+<span class="nc" id="L1161">        assertTrue(colony.canTrain(lumber));</span>
+<span class="nc" id="L1162">        lumber.setLocation(school);</span>
+
+<span class="nc" id="L1164">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L1165">        assertEquals(student, lumber.getStudent());</span>
+
+        // lumber jack can teach indentured servant
+<span class="nc" id="L1168">        student.changeType(indenturedServantType);</span>
+<span class="nc" id="L1169">        assertEquals(student, lumber.getStudent());</span>
+
+        // lumber jack can teach free colonist
+<span class="nc" id="L1172">        student.changeType(freeColonistType);</span>
+<span class="nc" id="L1173">        assertEquals(student, lumber.getStudent());</span>
+
+        // lumber jack can not teach expert
+<span class="nc" id="L1176">        student.changeType(masterCarpenterType);</span>
+<span class="nc" id="L1177">        assertNull(lumber.getStudent());</span>
+<span class="nc" id="L1178">        assertNull(student.getTeacher());</span>
+
+<span class="nc" id="L1180">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L1181">    }</span>
+
+    public void testProductionBonus() {
+<span class="nc" id="L1184">        boolean selection = FreeColTestUtils.setStudentSelection(false);</span>
+<span class="nc" id="L1185">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L1187">        Colony colony = getSchoolColony(6, SchoolLevel.UNIVERSITY);</span>
+<span class="nc" id="L1188">        Building university = colony.getBuilding(universityType);</span>
+
+<span class="nc" id="L1190">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L1192">        Unit carpenter = units.next();</span>
+<span class="nc" id="L1193">        carpenter.setType(masterCarpenterType);</span>
+
+<span class="nc" id="L1195">        Unit blacksmith = units.next();</span>
+<span class="nc" id="L1196">        blacksmith.setType(masterBlacksmithType);</span>
+
+<span class="nc" id="L1198">        Unit statesman = units.next();</span>
+<span class="nc" id="L1199">        statesman.setType(elderStatesmanType);</span>
+
+<span class="nc" id="L1201">        units.next().setType(freeColonistType);</span>
+<span class="nc" id="L1202">        units.next().setType(freeColonistType);</span>
+<span class="nc" id="L1203">        units.next().setType(freeColonistType);</span>
+
+<span class="nc" id="L1205">        carpenter.setLocation(university);</span>
+<span class="nc" id="L1206">        blacksmith.setLocation(university);</span>
+<span class="nc" id="L1207">        statesman.setLocation(university);</span>
+
+<span class="nc bnc" id="L1209" title="All 2 branches missed.">        for (int bonus = -2; bonus &lt; 3; bonus++) {</span>
+<span class="nc" id="L1210">            setProductionBonus(colony, bonus);</span>
+<span class="nc" id="L1211">            assertEquals(4 - bonus, carpenter.getNeededTurnsOfTraining());</span>
+<span class="nc" id="L1212">            assertEquals(6 - bonus, blacksmith.getNeededTurnsOfTraining());</span>
+<span class="nc" id="L1213">            assertEquals(8 - bonus, statesman.getNeededTurnsOfTraining());</span>
+        }
+
+<span class="nc" id="L1216">        FreeColTestUtils.setStudentSelection(selection);</span>
+<span class="nc" id="L1217">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

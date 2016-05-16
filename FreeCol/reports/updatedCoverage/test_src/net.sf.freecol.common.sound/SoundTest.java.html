@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>SoundTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.sound</a> &gt; <span class="el_source">SoundTest.java</span></div><h1>SoundTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.sound;
+
+import java.io.File;
+import java.io.IOException;
+
+import net.sf.freecol.client.ClientOptions;
+import net.sf.freecol.common.io.FreeColDataFile;
+import net.sf.freecol.common.io.FreeColDirectories;
+import net.sf.freecol.common.io.FreeColTcFile;
+import net.sf.freecol.common.option.AudioMixerOption;
+import net.sf.freecol.common.option.PercentageOption;
+import net.sf.freecol.common.resources.ResourceManager;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L35">public class SoundTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L37">    private SoundPlayer soundPlayer = null;</span>
+
+    @Override
+    public void setUp() {
+<span class="nc" id="L41">        ClientOptions clientOptions = new ClientOptions();</span>
+<span class="nc" id="L42">        clientOptions.load(FreeColDirectories.getBaseClientOptionsFile());</span>
+<span class="nc" id="L43">        final AudioMixerOption amo = (AudioMixerOption) clientOptions.getOption(ClientOptions.AUDIO_MIXER);</span>
+<span class="nc" id="L44">        final PercentageOption po = (PercentageOption) clientOptions.getOption(ClientOptions.AUDIO_VOLUME);</span>
+<span class="nc" id="L45">        po.setValue(10); // 10% volume</span>
+        try {
+<span class="nc" id="L47">            soundPlayer = new SoundPlayer(amo, po);</span>
+<span class="nc" id="L48">        } catch (Exception e) {</span>
+<span class="nc" id="L49">            fail(&quot;Could not construct sound player: &quot; + e.getMessage());</span>
+        }
+<span class="nc" id="L51">        File baseDirectory = FreeColDirectories.getBaseDirectory();</span>
+<span class="nc" id="L52">        FreeColDataFile baseData = null;</span>
+        try {
+<span class="nc" id="L54">            baseData = new FreeColDataFile(baseDirectory);</span>
+<span class="nc" id="L55">        } catch (Exception e) {</span>
+<span class="nc" id="L56">            fail(&quot;Could not load base data: &quot; + e.getMessage());</span>
+        }
+<span class="nc" id="L58">        ResourceManager.setBaseMapping(baseData.getResourceMapping());</span>
+<span class="nc" id="L59">    }</span>
+
+    @Override
+    public void tearDown() {
+<span class="nc" id="L63">        soundPlayer = null;</span>
+<span class="nc" id="L64">    }</span>
+
+    private void playSound(String id) {
+<span class="nc" id="L67">        File file = ResourceManager.getAudio(id);</span>
+<span class="nc" id="L68">        assertNotNull(&quot;No sound resource: &quot; + id, file);</span>
+        try {
+<span class="nc" id="L70">            soundPlayer.playOnce(file);</span>
+            try { // Just play the beginning of the sound to check it works
+<span class="nc" id="L72">                Thread.sleep(100);</span>
+<span class="nc" id="L73">                soundPlayer.stop();</span>
+<span class="nc" id="L74">                Thread.sleep(50);</span>
+<span class="nc" id="L75">            } catch (InterruptedException e) {}</span>
+<span class="nc" id="L76">        } catch (Exception e) {</span>
+<span class="nc" id="L77">            fail(&quot;Could not play &quot; + id + &quot;: &quot; + e.getMessage());</span>
+        }
+<span class="nc" id="L79">    }</span>
+
+    public void testSound() {
+        // these sounds are base resources, and should be enough for a test
+<span class="nc" id="L83">        playSound(&quot;sound.intro.general&quot;);</span>
+        // other sounds require loading a rule set
+<span class="nc" id="L85">    }</span>
+
+    public void testClassic() {
+        try {
+<span class="nc" id="L89">            FreeColTcFile tcData = new FreeColTcFile(&quot;classic&quot;);</span>
+<span class="nc" id="L90">            ResourceManager.setTcMapping(tcData.getResourceMapping());</span>
+<span class="nc" id="L91">        } catch (IOException e) {</span>
+<span class="nc" id="L92">            fail(&quot;Could not load classic ruleset.&quot;);</span>
+        }
+
+<span class="nc" id="L95">        playSound(&quot;sound.intro.model.nation.english&quot;);</span>
+<span class="nc" id="L96">        playSound(&quot;sound.intro.model.nation.dutch&quot;);</span>
+<span class="nc" id="L97">        playSound(&quot;sound.intro.model.nation.french&quot;);</span>
+<span class="nc" id="L98">        playSound(&quot;sound.intro.model.nation.spanish&quot;);</span>
+<span class="nc" id="L99">        playSound(&quot;sound.anthem.model.nation.dutch&quot;);</span>
+<span class="nc" id="L100">        playSound(&quot;sound.anthem.model.nation.english&quot;);</span>
+<span class="nc" id="L101">        playSound(&quot;sound.anthem.model.nation.french&quot;);</span>
+<span class="nc" id="L102">        playSound(&quot;sound.anthem.model.nation.spanish&quot;);</span>
+<span class="nc" id="L103">        playSound(&quot;sound.attack.artillery&quot;);</span>
+<span class="nc" id="L104">        playSound(&quot;sound.attack.mounted&quot;);</span>
+<span class="nc" id="L105">        playSound(&quot;sound.attack.naval&quot;);</span>
+<span class="nc" id="L106">        playSound(&quot;sound.event.meet.model.nation.aztec&quot;);</span>
+<span class="nc" id="L107">        playSound(&quot;sound.event.illegalMove&quot;);</span>
+<span class="nc" id="L108">        playSound(&quot;sound.event.buildingComplete&quot;);</span>
+<span class="nc" id="L109">        playSound(&quot;sound.event.captureColony&quot;);</span>
+<span class="nc" id="L110">        playSound(&quot;sound.event.fountainOfYouth&quot;);</span>
+<span class="nc" id="L111">        playSound(&quot;sound.event.loadCargo&quot;);</span>
+<span class="nc" id="L112">        playSound(&quot;sound.event.missionEstablished&quot;);</span>
+<span class="nc" id="L113">        playSound(&quot;sound.event.sellCargo&quot;);</span>
+<span class="nc" id="L114">        playSound(&quot;sound.event.shipSunk&quot;);</span>
+<span class="nc" id="L115">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

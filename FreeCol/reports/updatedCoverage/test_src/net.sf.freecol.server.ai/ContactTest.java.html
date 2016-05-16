@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ContactTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai</a> &gt; <span class="el_source">ContactTest.java</span></div><h1>ContactTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai;
+
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Stance;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TileType;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.server.control.InGameController;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L38">public class ContactTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L40">    private static final TileType plains</span>
+<span class="nc" id="L41">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+<span class="nc" id="L42">    private static final TileType ocean</span>
+<span class="nc" id="L43">        = spec().getTileType(&quot;model.tile.ocean&quot;);</span>
+
+<span class="nc" id="L45">    private static final UnitType galleonType</span>
+<span class="nc" id="L46">        = spec().getUnitType(&quot;model.unit.galleon&quot;);</span>
+<span class="nc" id="L47">    private static final UnitType braveType</span>
+<span class="nc" id="L48">        = spec().getUnitType(&quot;model.unit.brave&quot;);</span>
+<span class="nc" id="L49">    private static final UnitType colonistType</span>
+<span class="nc" id="L50">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+
+
+    @Override
+    public void tearDown() throws Exception {
+<span class="nc" id="L55">        ServerTestHelper.stopServerGame();</span>
+<span class="nc" id="L56">        super.tearDown();</span>
+<span class="nc" id="L57">    }</span>
+
+
+    /* Disabled.  European contact now required diplomatic negotiation.
+
+    public void testEuropeanMeetsEuropean() throws Exception {
+        Game game = ServerTestHelper.startServerGame(getTestMap(plains));
+        Map map = game.getMap();
+        InGameController igc = ServerTestHelper.getInGameController();
+
+        ServerPlayer dutch = (ServerPlayer) game.getPlayer(&quot;model.nation.dutch&quot;);
+        ServerPlayer french = (ServerPlayer) game.getPlayer(&quot;model.nation.french&quot;);
+        Tile tile1 = map.getTile(6, 8);
+        tile1.setExplored(dutch, true);
+        tile1.setExplored(french, true);
+        Tile tile2 = map.getTile(5, 8);
+        tile2.setExplored(dutch, true);
+        tile2.setExplored(french, true);
+        Tile tile3 = map.getTile(4, 8);
+        tile3.setExplored(dutch, true);
+        tile3.setExplored(french, true);
+
+        assertFalse(french.hasContacted(dutch));
+        assertFalse(dutch.hasContacted(french));
+
+        Unit colonist = new ServerUnit(game, tile1, dutch, colonistType);
+        colonist.setState(Unit.UnitState.FORTIFYING);
+        colonist.setState(Unit.UnitState.FORTIFIED);
+        Unit soldier = new ServerUnit(game, tile3, french, colonistType);
+        igc.move(french, soldier, tile2);
+
+        assertEquals(Stance.PEACE, french.getStance(dutch));
+        assertEquals(Stance.PEACE, dutch.getStance(french));
+    }
+    */
+
+    public void testEuropeanMeetsNative() throws Exception {
+<span class="nc" id="L94">        Game game = ServerTestHelper.startServerGame(getTestMap(plains));</span>
+<span class="nc" id="L95">        Map map = game.getMap();</span>
+<span class="nc" id="L96">        InGameController igc = ServerTestHelper.getInGameController();</span>
+
+<span class="nc" id="L98">        ServerPlayer dutch = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L99">        ServerPlayer iroquois = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.iroquois&quot;);</span>
+<span class="nc" id="L100">        Tile tile1 = map.getTile(6, 8);</span>
+<span class="nc" id="L101">        tile1.setExplored(dutch, true);</span>
+<span class="nc" id="L102">        Tile tile2 = map.getTile(5, 8);</span>
+<span class="nc" id="L103">        tile2.setExplored(dutch, true);</span>
+<span class="nc" id="L104">        Tile tile3 = map.getTile(4, 8);</span>
+<span class="nc" id="L105">        tile3.setExplored(dutch, true);</span>
+
+<span class="nc" id="L107">        assertFalse(iroquois.hasContacted(dutch));</span>
+<span class="nc" id="L108">        assertFalse(dutch.hasContacted(iroquois));</span>
+
+<span class="nc" id="L110">        ServerUnit colonist = new ServerUnit(game, tile1, dutch, colonistType);</span>
+<span class="nc" id="L111">        colonist.setState(Unit.UnitState.FORTIFYING);</span>
+<span class="nc" id="L112">        colonist.setState(Unit.UnitState.FORTIFIED);</span>
+<span class="nc" id="L113">        ServerUnit soldier = new ServerUnit(game, tile3, iroquois, braveType);</span>
+<span class="nc" id="L114">        assertNotNull(soldier);</span>
+
+<span class="nc" id="L116">        igc.move(dutch, colonist, tile2);</span>
+
+<span class="nc" id="L118">        assertTrue(iroquois.hasContacted(dutch));</span>
+<span class="nc" id="L119">        assertTrue(dutch.hasContacted(iroquois));</span>
+<span class="nc" id="L120">        assertEquals(Stance.PEACE, iroquois.getStance(dutch));</span>
+<span class="nc" id="L121">        assertEquals(Stance.PEACE, dutch.getStance(iroquois));</span>
+
+<span class="nc" id="L123">        assertNotNull(iroquois.getTension(dutch));</span>
+<span class="nc" id="L124">    }</span>
+
+    /* Disabled.  European contact now required diplomatic negotiation.
+
+    public void testEuropeanMeetsColony() throws Exception {
+        Game game = ServerTestHelper.startServerGame(getTestMap(plains));
+        Map map = game.getMap();
+        InGameController igc = ServerTestHelper.getInGameController();
+
+        ServerPlayer dutch = (ServerPlayer) game.getPlayer(&quot;model.nation.dutch&quot;);
+        ServerPlayer french = (ServerPlayer) game.getPlayer(&quot;model.nation.french&quot;);
+        Tile tile1 = map.getTile(5, 8);
+        tile1.setExplored(dutch, true);
+        tile1.setExplored(french, true);
+        Tile tile2 = map.getTile(4, 8);
+        tile2.setExplored(dutch, true);
+        tile2.setExplored(french, true);
+        Tile tile3 = map.getTile(3, 8);
+        tile3.setExplored(dutch, true);
+        tile3.setExplored(french, true);
+
+        assertFalse(french.hasContacted(dutch));
+        assertFalse(dutch.hasContacted(french));
+
+        @SuppressWarnings(&quot;unused&quot;)
+        Colony colony = getStandardColony(1, 5, 8);
+        Unit soldier = new ServerUnit(game, tile3, french, colonistType);
+        igc.move(french, soldier, tile2);
+
+        assertEquals(Stance.PEACE, french.getStance(dutch));
+        assertEquals(Stance.PEACE, dutch.getStance(french));
+    }
+    */
+
+    public void testEuropeanMeetsIndianSettlement() throws Exception {
+<span class="nc" id="L159">        Game game = ServerTestHelper.startServerGame(getTestMap(plains));</span>
+<span class="nc" id="L160">        Map map = game.getMap();</span>
+<span class="nc" id="L161">        InGameController igc = ServerTestHelper.getInGameController();</span>
+
+<span class="nc" id="L163">        ServerPlayer dutch = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L164">        ServerPlayer iroquois = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.iroquois&quot;);</span>
+<span class="nc" id="L165">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="nc" id="L166">        tile1.setExplored(dutch, true);</span>
+<span class="nc" id="L167">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="nc" id="L168">        tile2.setExplored(dutch, true);</span>
+<span class="nc" id="L169">        Tile tile3 = map.getTile(3, 8);</span>
+<span class="nc" id="L170">        tile3.setExplored(dutch, true);</span>
+
+<span class="nc" id="L172">        assertFalse(iroquois.hasContacted(dutch));</span>
+<span class="nc" id="L173">        assertFalse(dutch.hasContacted(iroquois));</span>
+
+<span class="nc" id="L175">        FreeColTestCase.IndianSettlementBuilder builder = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="nc" id="L176">        IndianSettlement settlement = builder.player(iroquois).settlementTile(tile3).skillToTeach(null).build();</span>
+<span class="nc" id="L177">        ServerUnit colonist = new ServerUnit(game, tile1, dutch, colonistType);</span>
+<span class="nc" id="L178">        colonist.setState(Unit.UnitState.FORTIFYING);</span>
+<span class="nc" id="L179">        colonist.setState(Unit.UnitState.FORTIFIED);</span>
+<span class="nc" id="L180">        igc.move(dutch, colonist, tile2);</span>
+
+<span class="nc" id="L182">        assertTrue(iroquois.hasContacted(dutch));</span>
+<span class="nc" id="L183">        assertTrue(dutch.hasContacted(iroquois));</span>
+<span class="nc" id="L184">        assertEquals(Stance.PEACE, iroquois.getStance(dutch));</span>
+<span class="nc" id="L185">        assertEquals(Stance.PEACE, dutch.getStance(iroquois));</span>
+
+<span class="nc" id="L187">        assertNotNull(iroquois.getTension(dutch));</span>
+<span class="nc" id="L188">        assertNotNull(settlement.getAlarm(dutch));</span>
+<span class="nc" id="L189">    }</span>
+
+    public void testNativeMeetsEuropean() throws Exception {
+<span class="nc" id="L192">        Game game = ServerTestHelper.startServerGame(getTestMap(plains));</span>
+<span class="nc" id="L193">        Map map = game.getMap();</span>
+<span class="nc" id="L194">        InGameController igc = ServerTestHelper.getInGameController();</span>
+
+<span class="nc" id="L196">        ServerPlayer apache = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.apache&quot;);</span>
+<span class="nc" id="L197">        ServerPlayer french = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="nc" id="L198">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="nc" id="L199">        tile1.setExplored(french, true);</span>
+<span class="nc" id="L200">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="nc" id="L201">        tile2.setExplored(french, true);</span>
+<span class="nc" id="L202">        Tile tile3 = map.getTile(3, 8);</span>
+<span class="nc" id="L203">        tile3.setExplored(french, true);</span>
+
+<span class="nc" id="L205">        assertFalse(french.hasContacted(apache));</span>
+<span class="nc" id="L206">        assertFalse(apache.hasContacted(french));</span>
+
+<span class="nc" id="L208">        ServerUnit brave = new ServerUnit(game, tile1, apache, braveType);</span>
+<span class="nc" id="L209">        brave.setState(Unit.UnitState.FORTIFYING);</span>
+<span class="nc" id="L210">        brave.setState(Unit.UnitState.FORTIFIED);</span>
+<span class="nc" id="L211">        ServerUnit colonist = new ServerUnit(game, tile3, french, colonistType);</span>
+<span class="nc" id="L212">        assertNotNull(colonist);</span>
+<span class="nc" id="L213">        igc.move(apache, brave, tile2);</span>
+
+<span class="nc" id="L215">        assertTrue(french.hasContacted(apache));</span>
+<span class="nc" id="L216">        assertTrue(apache.hasContacted(french));</span>
+<span class="nc" id="L217">        assertEquals(Stance.PEACE, french.getStance(apache));</span>
+<span class="nc" id="L218">        assertEquals(Stance.PEACE, apache.getStance(french));</span>
+<span class="nc" id="L219">    }</span>
+
+    public void testNativeMeetsNative() throws Exception {
+<span class="nc" id="L222">        Game game = ServerTestHelper.startServerGame(getTestMap(plains));</span>
+<span class="nc" id="L223">        Map map = game.getMap();</span>
+<span class="nc" id="L224">        InGameController igc = ServerTestHelper.getInGameController();</span>
+
+<span class="nc" id="L226">        ServerPlayer apache = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.apache&quot;);</span>
+<span class="nc" id="L227">        ServerPlayer iroquois = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.iroquois&quot;);</span>
+<span class="nc" id="L228">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="nc" id="L229">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="nc" id="L230">        Tile tile3 = map.getTile(3, 8);</span>
+
+<span class="nc" id="L232">        assertTrue(iroquois.hasContacted(apache));</span>
+<span class="nc" id="L233">        assertTrue(apache.hasContacted(iroquois));</span>
+
+<span class="nc" id="L235">        ServerUnit brave1 = new ServerUnit(game, tile1, apache, braveType);</span>
+<span class="nc" id="L236">        brave1.setState(Unit.UnitState.FORTIFYING);</span>
+<span class="nc" id="L237">        brave1.setState(Unit.UnitState.FORTIFIED);</span>
+<span class="nc" id="L238">        ServerUnit brave2 = new ServerUnit(game, tile3, iroquois, braveType);</span>
+<span class="nc" id="L239">        assertNotNull(brave2);</span>
+<span class="nc" id="L240">        igc.move(apache, brave1, tile2);</span>
+
+<span class="nc" id="L242">        assertTrue(iroquois.hasContacted(apache));</span>
+<span class="nc" id="L243">        assertTrue(apache.hasContacted(iroquois));</span>
+<span class="nc" id="L244">        assertEquals(Stance.PEACE, iroquois.getStance(apache));</span>
+<span class="nc" id="L245">        assertEquals(Stance.PEACE, apache.getStance(iroquois));</span>
+<span class="nc" id="L246">    }</span>
+
+    public void testNativeMeetsColony() throws Exception {
+<span class="nc" id="L249">        Game game = ServerTestHelper.startServerGame(getTestMap(plains));</span>
+<span class="nc" id="L250">        Map map = game.getMap();</span>
+<span class="nc" id="L251">        InGameController igc = ServerTestHelper.getInGameController();</span>
+
+<span class="nc" id="L253">        ServerPlayer apache = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.apache&quot;);</span>
+<span class="nc" id="L254">        ServerPlayer dutch = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L255">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="nc" id="L256">        tile1.setExplored(dutch, true);</span>
+<span class="nc" id="L257">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="nc" id="L258">        tile2.setExplored(dutch, true);</span>
+<span class="nc" id="L259">        Tile tile3 = map.getTile(3, 8);</span>
+<span class="nc" id="L260">        tile3.setExplored(dutch, true);</span>
+
+<span class="nc" id="L262">        assertFalse(dutch.hasContacted(apache));</span>
+<span class="nc" id="L263">        assertFalse(apache.hasContacted(dutch));</span>
+
+<span class="nc" id="L265">        Colony colony = getStandardColony(1, 5, 8);</span>
+<span class="nc" id="L266">        assertNotNull(colony);</span>
+<span class="nc" id="L267">        ServerUnit brave = new ServerUnit(game, tile3, apache, braveType);</span>
+<span class="nc" id="L268">        igc.move(apache, brave, tile2);</span>
+
+<span class="nc" id="L270">        assertTrue(dutch.hasContacted(apache));</span>
+<span class="nc" id="L271">        assertTrue(apache.hasContacted(dutch));</span>
+<span class="nc" id="L272">        assertEquals(Stance.PEACE, dutch.getStance(apache));</span>
+<span class="nc" id="L273">        assertEquals(Stance.PEACE, apache.getStance(dutch));</span>
+<span class="nc" id="L274">    }</span>
+
+    public void testNativeMeetsIndianSettlement() throws Exception {
+<span class="nc" id="L277">        Game game = ServerTestHelper.startServerGame(getTestMap(plains));</span>
+<span class="nc" id="L278">        Map map = game.getMap();</span>
+<span class="nc" id="L279">        InGameController igc = ServerTestHelper.getInGameController();</span>
+
+<span class="nc" id="L281">        ServerPlayer apache = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.apache&quot;);</span>
+<span class="nc" id="L282">        ServerPlayer iroquois = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.iroquois&quot;);</span>
+<span class="nc" id="L283">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="nc" id="L284">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="nc" id="L285">        Tile tile3 = map.getTile(3, 8);</span>
+
+<span class="nc" id="L287">        assertTrue(iroquois.hasContacted(apache));</span>
+<span class="nc" id="L288">        assertTrue(apache.hasContacted(iroquois));</span>
+
+        // build settlement
+<span class="nc" id="L291">        FreeColTestCase.IndianSettlementBuilder builder = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="nc" id="L292">        builder.player(iroquois).settlementTile(tile3).skillToTeach(null).build();</span>
+<span class="nc" id="L293">        ServerUnit brave = new ServerUnit(game, tile1, apache, braveType);</span>
+<span class="nc" id="L294">        brave.setState(Unit.UnitState.FORTIFYING);</span>
+<span class="nc" id="L295">        brave.setState(Unit.UnitState.FORTIFIED);</span>
+<span class="nc" id="L296">        igc.move(apache, brave, tile2);</span>
+
+<span class="nc" id="L298">        assertTrue(iroquois.hasContacted(apache));</span>
+<span class="nc" id="L299">        assertTrue(apache.hasContacted(iroquois));</span>
+<span class="nc" id="L300">        assertEquals(Stance.PEACE, iroquois.getStance(apache));</span>
+<span class="nc" id="L301">        assertEquals(Stance.PEACE, apache.getStance(iroquois));</span>
+<span class="nc" id="L302">    }</span>
+
+    public void testShipMeetsShip() throws Exception {
+<span class="nc" id="L305">        Game game = ServerTestHelper.startServerGame(getTestMap(ocean));</span>
+<span class="nc" id="L306">        Map map = game.getMap();</span>
+<span class="nc" id="L307">        InGameController igc = ServerTestHelper.getInGameController();</span>
+
+<span class="nc" id="L309">        ServerPlayer dutch = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L310">        ServerPlayer french = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="nc" id="L311">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="nc" id="L312">        tile1.setExplored(dutch, true);</span>
+<span class="nc" id="L313">        tile1.setExplored(french, true);</span>
+<span class="nc" id="L314">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="nc" id="L315">        tile2.setExplored(dutch, true);</span>
+<span class="nc" id="L316">        tile2.setExplored(french, true);</span>
+<span class="nc" id="L317">        Tile tile3 = map.getTile(3, 8);</span>
+<span class="nc" id="L318">        tile3.setExplored(dutch, true);</span>
+<span class="nc" id="L319">        tile3.setExplored(french, true);</span>
+
+<span class="nc" id="L321">        assertFalse(french.hasContacted(dutch));</span>
+<span class="nc" id="L322">        assertFalse(dutch.hasContacted(french));</span>
+
+<span class="nc" id="L324">        ServerUnit ship1 = new ServerUnit(game, tile1, dutch, galleonType);</span>
+<span class="nc" id="L325">        ship1.setState(Unit.UnitState.FORTIFYING);</span>
+<span class="nc" id="L326">        ship1.setState(Unit.UnitState.FORTIFIED);</span>
+<span class="nc" id="L327">        ServerUnit ship2 = new ServerUnit(game, tile3, french, galleonType);</span>
+<span class="nc" id="L328">        assertNotNull(ship2);</span>
+<span class="nc" id="L329">        igc.move(dutch, ship1, tile2);</span>
+
+<span class="nc" id="L331">        assertFalse(french.hasContacted(dutch));</span>
+<span class="nc" id="L332">        assertFalse(dutch.hasContacted(french));</span>
+<span class="nc" id="L333">        assertEquals(Stance.UNCONTACTED, french.getStance(dutch));</span>
+<span class="nc" id="L334">        assertEquals(Stance.UNCONTACTED, dutch.getStance(french));</span>
+<span class="nc" id="L335">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

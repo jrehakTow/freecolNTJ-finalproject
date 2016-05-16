@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>TensionTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai</a> &gt; <span class="el_source">TensionTest.java</span></div><h1>TensionTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai;
+
+import net.sf.freecol.common.model.Constants;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Stance;
+import net.sf.freecol.common.model.Tension;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TileType;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.util.LogBuilder;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.server.control.InGameController;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L41">public class TensionTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L43">    private static final TileType plainsType</span>
+<span class="nc" id="L44">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+
+
+    @Override
+    public void tearDown() throws Exception {
+<span class="nc" id="L49">        ServerTestHelper.stopServerGame();</span>
+<span class="nc" id="L50">        super.tearDown();</span>
+<span class="nc" id="L51">    }</span>
+
+
+    public void testTension()  {
+<span class="nc" id="L55">        Game game = ServerTestHelper.startServerGame(getTestMap(plainsType));</span>
+<span class="nc" id="L56">        Map map = game.getMap();</span>
+<span class="nc" id="L57">        InGameController igc = ServerTestHelper.getInGameController();</span>
+<span class="nc" id="L58">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+
+<span class="nc" id="L60">        ServerPlayer european = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L61">        ServerPlayer indian = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.tupi&quot;);</span>
+<span class="nc" id="L62">        NativeAIPlayer indianAI = (NativeAIPlayer)aiMain.getAIPlayer(indian);</span>
+
+        // initially, the players are unknown to each other
+<span class="nc" id="L65">        Tension tension = indian.getTension(european);</span>
+<span class="nc" id="L66">        Stance stance = indian.getStance(european);</span>
+<span class="nc bnc" id="L67" title="All 4 branches missed.">        assertTrue(tension != null &amp;&amp; tension.getValue() == 0);</span>
+<span class="nc" id="L68">        assertEquals(Stance.UNCONTACTED, stance);</span>
+<span class="nc" id="L69">        assertFalse(indian.hasContacted(european));</span>
+
+        // create an Indian settlement
+<span class="nc" id="L72">        Tile tile = map.getTile(6, 9);</span>
+
+<span class="nc" id="L74">        FreeColTestCase.IndianSettlementBuilder builder = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="nc" id="L75">        IndianSettlement settlement = builder.player(indian).settlementTile(tile).skillToTeach(null).capital(true).build();</span>
+
+<span class="nc" id="L77">        int unitCount = settlement.getType().getMaximumSize();</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        for (int i = 0; i &lt; unitCount; i++) {</span>
+<span class="nc" id="L79">            UnitType unitType = spec().getDefaultUnitType(indian);</span>
+<span class="nc" id="L80">            Unit unit = new ServerUnit(game, settlement, indian, unitType);</span>
+<span class="nc" id="L81">            unit.setHomeIndianSettlement(settlement);</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">            if (i == 0) {</span>
+<span class="nc" id="L83">                unit.setLocation(tile);</span>
+<span class="nc" id="L84">            } else {</span>
+<span class="nc" id="L85">                unit.setLocation(settlement);</span>
+            }
+        }
+<span class="nc" id="L88">        Player.makeContact(indian, european);</span>
+<span class="nc" id="L89">        tension = indian.getTension(european);</span>
+<span class="nc" id="L90">        stance = indian.getStance(european);</span>
+<span class="nc" id="L91">        assertNotNull(tension);</span>
+<span class="nc" id="L92">        assertEquals(Stance.PEACE, stance);</span>
+
+        // create 2 unarmed european units next to the indianSettlement
+<span class="nc" id="L95">        Tile tile2 = map.getTile(6,8);</span>
+<span class="nc" id="L96">        UnitType unitType = spec().getUnitType(&quot;model.unit.hardyPioneer&quot;);</span>
+<span class="nc" id="L97">        Unit unit1 = new ServerUnit(game, tile2, european, unitType);</span>
+<span class="nc" id="L98">        european.exploreForUnit(unit1);</span>
+
+        // the european player steals 1 tile from the indians
+<span class="nc" id="L101">        assertEquals(indian, tile2.getOwner());</span>
+        
+<span class="nc" id="L103">        igc.claimLand(european, tile2, null, Constants.STEAL_LAND);</span>
+<span class="nc" id="L104">        assertEquals(european, tile2.getOwner());</span>
+
+        // check the tension and stance have expected values
+<span class="nc" id="L107">        tension = indian.getTension(european);</span>
+<span class="nc" id="L108">        stance = indian.getStance(european);</span>
+<span class="nc" id="L109">        assertNotNull(tension);</span>
+<span class="nc" id="L110">        assertEquals(Tension.TENSION_ADD_LAND_TAKEN, tension.getValue());</span>
+<span class="nc" id="L111">        assertEquals(Stance.PEACE, stance);</span>
+
+        // ask the AI to secure the settlement
+<span class="nc" id="L114">        indianAI.secureIndianSettlement(settlement, new LogBuilder(0));</span>
+
+        // the tension and stance have not changed
+<span class="nc" id="L117">        tension = indian.getTension(european);</span>
+<span class="nc" id="L118">        stance = indian.getStance(european);</span>
+<span class="nc" id="L119">        assertNotNull(tension);</span>
+<span class="nc" id="L120">        assertEquals(Tension.TENSION_ADD_LAND_TAKEN, tension.getValue());</span>
+<span class="nc" id="L121">        assertEquals(Stance.PEACE, stance);</span>
+<span class="nc" id="L122">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

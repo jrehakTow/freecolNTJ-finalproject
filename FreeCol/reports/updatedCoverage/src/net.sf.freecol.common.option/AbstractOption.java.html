@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>AbstractOption.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.option</a> &gt; <span class="el_source">AbstractOption.java</span></div><h1>AbstractOption.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.option;
+
+import java.util.logging.Logger;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.model.FreeColSpecObject;
+import net.sf.freecol.common.model.Specification;
+
+
+/**
+ * The super class of all options.  GUI components making use of this
+ * class can refer to its name and shortDescription properties.  The
+ * complete keys of these properties consist of the identifier of the
+ * option group (if any), followed by a &quot;.&quot;  unless the option group
+ * is null, followed by the identifier of the option object, followed
+ * by a &quot;.&quot;, followed by &quot;name&quot; or &quot;shortDescription&quot;.
+ */
+public abstract class AbstractOption&lt;T&gt; extends FreeColSpecObject
+    implements Option&lt;T&gt; {
+
+<span class="fc" id="L42">    private static final Logger logger = Logger.getLogger(AbstractOption.class.getName());</span>
+
+    /** The option group prefix. */
+<span class="fc" id="L45">    private String optionGroup = &quot;&quot;;</span>
+
+    /**
+     * Determine if the option has been defined.  When defined an
+     * option won't change when a default value is read from an XML file.
+     */
+<span class="fc" id="L51">    protected boolean isDefined = false;</span>
+
+
+    /**
+     * Creates a new &lt;code&gt;AbstractOption&lt;/code&gt;.
+     *
+     * @param id The object identifier.
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; to refer to.
+     */
+    public AbstractOption(String id, Specification specification) {
+<span class="fc" id="L61">        super(specification);</span>
+
+<span class="fc" id="L63">        setId(id);</span>
+<span class="fc" id="L64">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;AbstractOption&lt;/code&gt;.
+     *
+     * @param id The object identifier.
+     */
+    public AbstractOption(String id) {
+<span class="nc" id="L72">        this(id, null);</span>
+<span class="nc" id="L73">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;AbstractOption&lt;/code&gt;.
+     *
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; to refer to.
+     */
+    public AbstractOption(Specification specification) {
+<span class="fc" id="L81">        this(null, specification);</span>
+<span class="fc" id="L82">    }</span>
+
+
+    /**
+     * Gets the string prefix that identifies the group of this
+     * &lt;code&gt;Option&lt;/code&gt;.
+     *
+     * @return The string prefix provided by the OptionGroup.
+     */
+    public String getGroup() {
+<span class="nc" id="L92">        return optionGroup;</span>
+    }
+
+    /**
+     * Set the option group prefix.
+     *
+     * @param group The prefix to set.
+     */
+    public void setGroup(String group) {
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">        optionGroup = (group == null) ? &quot;&quot; : group;</span>
+<span class="fc" id="L102">    }</span>
+
+    /**
+     * Sets the values from another option.
+     *
+     * @param source The other &lt;code&gt;AbstractOption&lt;/code&gt;.
+     */
+    protected void setValues(AbstractOption&lt;T&gt; source) {
+<span class="nc" id="L110">        setId(source.getId());</span>
+<span class="nc" id="L111">        setSpecification(source.getSpecification());</span>
+<span class="nc" id="L112">        setValue(source.getValue());</span>
+<span class="nc" id="L113">        setGroup(source.getGroup());</span>
+<span class="nc" id="L114">        isDefined = source.isDefined;</span>
+<span class="nc" id="L115">    }</span>
+
+    /**
+     * Sets the value of this option from the given string
+     * representation.  Both parameters must not be null at the same
+     * time.  This method does nothing.  Override it if the option has
+     * a suitable string representation.
+     *
+     * @param valueString The string representation of the value of
+     *     this &lt;code&gt;Option&lt;/code&gt;.
+     * @param defaultValueString The string representation of the
+     *     default value of this &lt;code&gt;Option&lt;/code&gt;.
+     * @exception XMLStreamException if the value is invalid.
+     */
+    protected void setValue(String valueString, String defaultValueString)
+        throws XMLStreamException {
+<span class="nc" id="L131">        throw new XMLStreamException(&quot;Unsupported method: setValue.&quot;);</span>
+    }
+
+    /**
+     * Generate the choices to provide to the UI.
+     *
+     * Override if the subclass needs to determine its choices dynamically.
+     */
+    public void generateChoices() {
+        // do nothing
+<span class="fc" id="L141">    }</span>
+
+    /**
+     * Is null an acceptable value for this option?
+     *
+     * Override this in subclasses where necessary.
+     *
+     * @return False.
+     */
+    public boolean isNullValueOK() {
+<span class="nc" id="L151">        return false;</span>
+    }
+
+
+    // Interface Option
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public abstract AbstractOption&lt;T&gt; clone() throws CloneNotSupportedException;
+
+    /**
+     * Gets the value of this option.
+     *
+     * @return The value of this &lt;code&gt;Option&lt;/code&gt;.
+     */
+    @Override
+    public abstract T getValue();
+
+    /**
+     * Sets the value of this option.
+     *
+     * @param value The new value of this &lt;code&gt;Option&lt;/code&gt;.
+     */
+    @Override
+    public abstract void setValue(T value);
+
+
+    // Serialization
+
+    protected static final String ACTION_TAG = &quot;action&quot;;
+<span class="fc" id="L183">    protected static final String DEFAULT_VALUE_TAG = &quot;defaultValue&quot;;</span>
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L191">        super.readAttributes(xr);</span>
+
+<span class="fc" id="L193">        String defaultValue = xr.getAttribute(DEFAULT_VALUE_TAG, (String)null);</span>
+
+<span class="fc" id="L195">        String value = xr.getAttribute(VALUE_TAG, (String)null);</span>
+<span class="fc bfc" id="L196" title="All 4 branches covered.">        if (defaultValue == null &amp;&amp; value == null) {</span>
+<span class="pc bpc" id="L197" title="1 of 2 branches missed.">            if (!isNullValueOK()) {</span>
+<span class="nc" id="L198">                throw new XMLStreamException(&quot;invalid option &quot; + getId()</span>
+<span class="nc" id="L199">                    + &quot;: no value nor default value found.&quot;);</span>
+            }
+        } else {
+<span class="fc" id="L202">            setValue(value, defaultValue);</span>
+        }
+<span class="fc" id="L204">    }</span>
+
+    // Note: writeAttributes() is not needed/present.
+    // - The identifier is correctly written by the super class.
+    // - The default value does not need to be written in general.
+    // - The value *must* be written by the implementing subclass.
+
+    /**
+     * General option reader routine.
+     *
+     * @param xr The &lt;code&gt;FreeColXMLReader&lt;/code&gt; to read from.
+     * @return An option.
+     * @exception XMLStreamException on stream errors.
+     */
+    protected AbstractOption readOption(FreeColXMLReader xr)
+        throws XMLStreamException {
+<span class="fc" id="L220">        final Specification spec = getSpecification();</span>
+<span class="fc" id="L221">        final String tag = xr.getLocalName();</span>
+<span class="fc" id="L222">        AbstractOption option = null;</span>
+
+<span class="pc bpc" id="L224" title="1 of 2 branches missed.">        if (ACTION_TAG.equals(tag)) {</span>
+            // FIXME: load FreeColActions from client options?
+<span class="nc" id="L226">            logger.finest(&quot;Skipping action &quot; + xr.readId());</span>
+<span class="nc" id="L227">            xr.nextTag();</span>
+
+<span class="pc bfc" id="L229" title="All 2 branches covered.">        } else if (AbstractUnitOption.getTagName().equals(tag)) {</span>
+<span class="fc" id="L230">            option = new AbstractUnitOption(spec);</span>
+
+<span class="pc bpc" id="L232" title="1 of 2 branches missed.">        } else if (AudioMixerOption.getTagName().equals(tag)) {</span>
+<span class="nc" id="L233">            option = new AudioMixerOption(spec);</span>
+
+<span class="pc bfc" id="L235" title="All 2 branches covered.">        } else if (BooleanOption.getTagName().equals(tag)) {</span>
+<span class="fc" id="L236">            option = new BooleanOption(spec);</span>
+
+<span class="fc bfc" id="L238" title="All 2 branches covered.">        } else if (FileOption.getTagName().equals(tag)) {</span>
+<span class="fc" id="L239">            option = new FileOption(spec);</span>
+
+<span class="fc bfc" id="L241" title="All 2 branches covered.">        } else if (IntegerOption.getTagName().equals(tag)) {</span>
+<span class="fc" id="L242">            option = new IntegerOption(spec);</span>
+
+<span class="pc bpc" id="L244" title="1 of 2 branches missed.">        } else if (LanguageOption.getTagName().equals(tag)) {</span>
+<span class="nc" id="L245">            option = new LanguageOption(spec);</span>
+
+<span class="pc bpc" id="L247" title="1 of 2 branches missed.">        } else if (ModListOption.getTagName().equals(tag)) {</span>
+<span class="nc" id="L248">            option = new ModListOption(spec);</span>
+
+<span class="pc bpc" id="L250" title="1 of 2 branches missed.">        } else if (ModOption.getTagName().equals(tag)) {</span>
+<span class="nc" id="L251">            option = new ModOption(spec);</span>
+
+<span class="pc bfc" id="L253" title="All 2 branches covered.">        } else if (OptionGroup.getTagName().equals(tag)) {</span>
+<span class="fc" id="L254">            option = new OptionGroup(spec);</span>
+
+<span class="fc bfc" id="L256" title="All 2 branches covered.">        } else if (PercentageOption.getTagName().equals(tag)) {</span>
+<span class="fc" id="L257">            option = new PercentageOption(spec);</span>
+
+<span class="fc bfc" id="L259" title="All 2 branches covered.">        } else if (RangeOption.getTagName().equals(tag)) {</span>
+<span class="fc" id="L260">            option = new RangeOption(spec);</span>
+
+<span class="fc bfc" id="L262" title="All 2 branches covered.">        } else if (SelectOption.getTagName().equals(tag)) {</span>
+<span class="fc" id="L263">            option = new SelectOption(spec);</span>
+
+<span class="fc bfc" id="L265" title="All 2 branches covered.">        } else if (StringOption.getTagName().equals(tag)) {</span>
+<span class="fc" id="L266">            option = new StringOption(spec);</span>
+
+<span class="fc bfc" id="L268" title="All 2 branches covered.">        } else if (UnitListOption.getTagName().equals(tag)) {</span>
+<span class="fc" id="L269">            option = new UnitListOption(spec);</span>
+
+<span class="pc bpc" id="L271" title="1 of 2 branches missed.">        } else if (UnitTypeOption.getTagName().equals(tag)) {</span>
+<span class="nc" id="L272">            option = new UnitTypeOption(spec);</span>
+
+<span class="pc bpc" id="L274" title="1 of 2 branches missed.">        } else if (TextOption.getTagName().equals(tag)) {</span>
+<span class="fc" id="L275">            option = new TextOption(spec);</span>
+
+<span class="fc" id="L277">        } else {</span>
+<span class="nc" id="L278">            logger.warning(&quot;Not an option type: &quot; + tag);</span>
+<span class="nc" id="L279">            xr.nextTag();</span>
+        }
+
+<span class="pc bpc" id="L282" title="1 of 2 branches missed.">        if (option != null) option.readFromXML(xr);</span>
+<span class="fc" id="L283">        return option;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

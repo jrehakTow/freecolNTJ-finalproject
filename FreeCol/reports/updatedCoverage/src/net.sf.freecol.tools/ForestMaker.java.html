@@ -1,0 +1,458 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ForestMaker.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.tools</a> &gt; <span class="el_source">ForestMaker.java</span></div><h1>ForestMaker.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.tools;
+
+import java.awt.Color;
+import java.awt.geom.Rectangle2D;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.TexturePaint;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
+import javax.imageio.ImageIO;
+
+// TODO: Auto-generated Javadoc
+/**
+ * Generate forest tiles.
+ */
+<span class="fc" id="L42">public class ForestMaker {</span>
+
+	/** The Constant DESTDIR. */
+	private static final String DESTDIR = &quot;data/rules/classic/resources/images/forest&quot;;
+
+	/** The Constant BASE_WIDTH. */
+	private static final int BASE_WIDTH = 128;
+
+	/** The Constant BASE_HEIGHT. */
+	private static final int BASE_HEIGHT = 64;
+
+	/** The Constant MARGIN. */
+	private static final int MARGIN = 20;
+
+	/** The Constant TREES. */
+	private static final int TREES = 60;
+
+	/** The Constant RIVER_HEIGHT. */
+	private static final int RIVER_HEIGHT = 8;
+
+	/** The Constant RIVER_WIDTH. */
+	private static final int RIVER_WIDTH = 2 * RIVER_HEIGHT;
+
+	/** The Constant HALF_WIDTH. */
+	private static final int HALF_WIDTH = BASE_WIDTH / 2;
+
+	/** The Constant HALF_HEIGHT. */
+	private static final int HALF_HEIGHT = BASE_HEIGHT / 2;
+
+	/** The Constant LIMIT. */
+<span class="fc" id="L72">	private static final int[] LIMIT = { HALF_WIDTH, HALF_WIDTH, -HALF_WIDTH, -HALF_WIDTH };</span>
+
+	/** The Constant SLOPE. */
+<span class="fc" id="L75">	private static final double[] SLOPE = { -0.5, 0.5, -0.5, 0.5 };</span>
+
+	/** The Constant POWERS_OF_TWO. */
+<span class="fc" id="L78">	private static final int[] POWERS_OF_TWO = { 1, 2, 4, 8 };</span>
+
+	/** The Constant drawBorders. */
+	private static final boolean drawBorders = true;
+
+	/** The Constant drawTrees. */
+<span class="fc" id="L84">	private static final boolean drawTrees = true;</span>
+
+	/**
+	 * The Class ImageLocation.
+	 */
+	private static class ImageLocation implements Comparable&lt;ImageLocation&gt; {
+
+		/** The image. */
+		final BufferedImage image;
+
+		/** The x. */
+		final int x;
+
+		/** The y. */
+		final int y;
+
+		/**
+		 * Instantiates a new image location.
+		 *
+		 * @param image
+		 *            the image
+		 * @param x
+		 *            the x
+		 * @param y
+		 *            the y
+		 */
+<span class="nc" id="L110">		public ImageLocation(BufferedImage image, int x, int y) {</span>
+<span class="nc" id="L111">			this.image = image;</span>
+<span class="nc" id="L112">			this.x = x;</span>
+<span class="nc" id="L113">			this.y = y;</span>
+<span class="nc" id="L114">		}</span>
+
+		// Implement Comparable&lt;ImageLocation&gt;
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Comparable#compareTo(java.lang.Object)
+		 */
+		@Override
+		public int compareTo(ImageLocation other) {
+<span class="nc" id="L125">			int dy = other.y - this.y;</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">			return (dy == 0) ? other.x - this.x : dy;</span>
+		}
+
+		// Override Object
+
+		/**
+		 * {@inheritDoc}
+		 */
+		@Override
+		public boolean equals(Object other) {
+<span class="nc bnc" id="L136" title="All 2 branches missed.">			if (other instanceof ImageLocation) {</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">				return this.compareTo((ImageLocation) other) == 0;</span>
+			}
+<span class="nc" id="L139">			return super.equals(other);</span>
+		}
+
+		/**
+		 * {@inheritDoc}
+		 */
+		@Override
+		public int hashCode() {
+<span class="nc" id="L147">			int hash = super.hashCode();</span>
+<span class="nc" id="L148">			hash = 37 * hash + x;</span>
+<span class="nc" id="L149">			hash = 37 * hash + y;</span>
+<span class="nc" id="L150">			return 37 * hash + image.hashCode();</span>
+		}
+	}
+
+	/**
+	 * Pass the source directory as first argument.
+	 *
+	 * @param args
+	 *            The program arguments.
+	 * @exception IOException
+	 *                if the resources can not be read or written.
+	 */
+	public static void main(String[] args) throws IOException {
+
+<span class="fc" id="L164">		checkDirectory(args);</span>
+
+<span class="fc" id="L166">		String riverName = &quot;data/rules/classic/resources/images/terrain/&quot; + &quot;ocean/center0.png&quot;;</span>
+<span class="fc" id="L167">		BufferedImage river = ImageIO.read(new File(riverName));</span>
+		// grab a rectangle completely filled with water
+<span class="fc" id="L169">		river = river.getSubimage(44, 22, 40, 20);</span>
+<span class="fc" id="L170">		Rectangle2D rectangle = new Rectangle(0, 0, river.getWidth(), river.getHeight());</span>
+<span class="fc" id="L171">		TexturePaint texture = new TexturePaint(river, rectangle);</span>
+
+<span class="fc bfc" id="L173" title="All 2 branches covered.">		for (String arg : args) {</span>
+<span class="fc" id="L174">			File sourceDirectory = new File(arg);</span>
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">			if (!sourceDirectory.exists()) {</span>
+<span class="fc" id="L176">				System.out.println(&quot;Source directory &quot; + arg + &quot; does not exist.&quot;);</span>
+<span class="fc" id="L177">				continue;</span>
+			}
+<span class="nc" id="L179">			String baseName = sourceDirectory.getName();</span>
+<span class="nc" id="L180">			File destinationDirectory = new File(DESTDIR, baseName);</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">			if (!destinationDirectory.exists()) {</span>
+<span class="nc" id="L182">				System.out.println(&quot;Destination directory &quot; + destinationDirectory.getPath() + &quot; does not exist.&quot;);</span>
+<span class="nc" id="L183">				continue;</span>
+			}
+<span class="nc" id="L185">			File[] imageFiles = sourceDirectory.listFiles();</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">			if (imageFiles == null) {</span>
+<span class="nc" id="L187">				System.out.println(&quot;No images found in source directory &quot; + arg + &quot;.&quot;);</span>
+<span class="nc" id="L188">				continue;</span>
+			} else {
+<span class="nc" id="L190">				System.out.println(imageFiles.length + &quot; images found in source directory &quot; + arg + &quot;.&quot;);</span>
+			}
+<span class="nc" id="L192">			List&lt;BufferedImage&gt; images = new ArrayList&lt;&gt;(imageFiles.length);</span>
+<span class="nc" id="L193">			int maximumHeight = loadImageFiles(imageFiles, images);</span>
+<span class="nc" id="L194">			int numberOfImages = images.size();</span>
+<span class="nc" id="L195">			Random random = new Random(1492);</span>
+
+			/**
+			 * In order to ensure that trees do not occlude the rivers on other
+			 * tiles, we must move the rivers to the top NE and NW edges of the
+			 * tile.
+			 *
+			 * If we consider two adjoining edges of the diamond to be vectors,
+			 * any point within the diamond can be generated as the addition of
+			 * these two vectors, suitably scaled. For the sake of convenience,
+			 * we choose the two edges that will be shortened if a river is
+			 * present, i.e. the SE and SW edges, and move the origin to their
+			 * intersection.
+			 */
+<span class="nc" id="L209">			buildTiles(texture, sourceDirectory, destinationDirectory, images, numberOfImages, random);</span>
+		}
+<span class="fc" id="L211">	}</span>
+
+	/**
+	 * @param texture
+	 * @param sourceDirectory
+	 * @param destinationDirectory
+	 * @param images
+	 * @param numberOfImages
+	 * @param random
+	 * @throws IOException
+	 */
+	private static void buildTiles(TexturePaint texture, File sourceDirectory, File destinationDirectory,
+			List&lt;BufferedImage&gt; images, int numberOfImages, Random random) throws IOException {
+<span class="nc bnc" id="L224" title="All 2 branches missed.">		for (int index = 0; index &lt; 16; index++) {</span>
+<span class="nc" id="L225">			BufferedImage base = new BufferedImage(BASE_WIDTH, BASE_HEIGHT + MARGIN, BufferedImage.TYPE_INT_ARGB);</span>
+<span class="nc" id="L226">			Graphics2D g = base.createGraphics();</span>
+<span class="nc" id="L227">			g.translate(HALF_WIDTH, BASE_HEIGHT + MARGIN);</span>
+
+<span class="nc" id="L229">			g.setPaint(texture);</span>
+<span class="nc" id="L230">			String counter = &quot;&quot;;</span>
+<span class="nc" id="L231">			boolean[] branches = new boolean[4];</span>
+<span class="nc" id="L232">			counter = checkConditions(images, numberOfImages, random, index, g, counter, branches);</span>
+<span class="nc" id="L233">			g.dispose();</span>
+
+<span class="nc" id="L235">			ImageIO.write(base, &quot;png&quot;, new File(destinationDirectory, sourceDirectory.getName() + counter + &quot;.png&quot;));</span>
+
+		}
+<span class="nc" id="L238">	}</span>
+
+	/**
+	 * @param images
+	 * @param numberOfImages
+	 * @param random
+	 * @param index
+	 * @param g
+	 * @param counter
+	 * @param branches
+	 * @return
+	 */
+	private static String checkConditions(List&lt;BufferedImage&gt; images, int numberOfImages, Random random, int index,
+			Graphics2D g, String counter, boolean[] branches) {
+<span class="nc bnc" id="L252" title="All 2 branches missed.">		if (index &gt; 0) {</span>
+<span class="nc" id="L253">			counter = buildBranches(index, counter, branches);</span>
+		}
+
+		// the two vectors that describe the diamond
+<span class="nc" id="L257">		Point right = new Point(HALF_WIDTH, -HALF_HEIGHT);</span>
+<span class="nc" id="L258">		Point left = new Point(-HALF_WIDTH, -HALF_HEIGHT);</span>
+<span class="nc" id="L259">		int treeCount = 0;</span>
+		// make space for rivers
+<span class="nc bnc" id="L261" title="All 4 branches missed.">		if (branches[0] || branches[2]) {</span>
+<span class="nc" id="L262">			left.translate(RIVER_WIDTH, RIVER_HEIGHT);</span>
+<span class="nc" id="L263">			treeCount++;</span>
+		}
+<span class="nc bnc" id="L265" title="All 4 branches missed.">		if (branches[1] || branches[3]) {</span>
+<span class="nc" id="L266">			right.translate(-RIVER_WIDTH, RIVER_HEIGHT);</span>
+<span class="nc" id="L267">			treeCount++;</span>
+		}
+
+		if (drawBorders) {
+<span class="nc" id="L271">			int dx = right.x + left.x;</span>
+<span class="nc" id="L272">			int dy = right.y + left.y;</span>
+<span class="nc" id="L273">			g.setColor(Color.RED);</span>
+<span class="nc" id="L274">			g.drawLine(0, 0, right.x, right.y);</span>
+<span class="nc" id="L275">			g.drawLine(right.x, right.y, dx, dy);</span>
+<span class="nc" id="L276">			g.drawLine(dx, dy, left.x, left.y);</span>
+<span class="nc" id="L277">			g.drawLine(left.x, left.y, 0, 0);</span>
+		}
+
+		if (drawTrees) {
+<span class="nc" id="L281">			List&lt;ImageLocation&gt; trees = drawTrees(images, numberOfImages, random, branches, right, left, treeCount);</span>
+
+			// sort by y, x coordinate
+<span class="nc" id="L284">			Collections.sort(trees);</span>
+<span class="nc bnc" id="L285" title="All 2 branches missed.">			for (ImageLocation imageLocation : trees) {</span>
+<span class="nc" id="L286">				g.drawImage(imageLocation.image, imageLocation.x, imageLocation.y, null);</span>
+			}
+
+		}
+<span class="nc" id="L290">		return counter;</span>
+	}
+
+	/**
+	 * @param index
+	 * @param counter
+	 * @param branches
+	 * @return
+	 */
+	private static String buildBranches(int index, String counter, boolean[] branches) {
+<span class="nc bnc" id="L300" title="All 2 branches missed.">		for (int i = 0; i &lt; POWERS_OF_TWO.length; i++) {</span>
+<span class="nc bnc" id="L301" title="All 2 branches missed.">			if ((index &amp; POWERS_OF_TWO[i]) == POWERS_OF_TWO[i]) {</span>
+<span class="nc" id="L302">				branches[i] = true;</span>
+<span class="nc" id="L303">				counter += &quot;1&quot;;</span>
+<span class="nc" id="L304">			} else {</span>
+<span class="nc" id="L305">				counter += &quot;0&quot;;</span>
+			}
+		}
+<span class="nc" id="L308">		return counter;</span>
+	}
+
+	/**
+	 * @param images
+	 * @param numberOfImages
+	 * @param random
+	 * @param branches
+	 * @param right
+	 * @param left
+	 * @param treeCount
+	 * @return
+	 */
+	private static List&lt;ImageLocation&gt; drawTrees(List&lt;BufferedImage&gt; images, int numberOfImages, Random random,
+			boolean[] branches, Point right, Point left, int treeCount) {
+<span class="nc" id="L323">		List&lt;ImageLocation&gt; trees = new ArrayList&lt;&gt;(TREES);</span>
+		// reduce number of trees if river branches are present
+<span class="nc" id="L325">		int numberOfTrees = (6 - treeCount) * TREES / 6;</span>
+
+<span class="nc" id="L327">		int count = 0;</span>
+<span class="nc bnc" id="L328" title="All 2 branches missed.">		while (count &lt; numberOfTrees) {</span>
+<span class="nc" id="L329">			BufferedImage image = images.get(random.nextInt(numberOfImages));</span>
+<span class="nc" id="L330">			int width = image.getWidth();</span>
+<span class="nc" id="L331">			int height = image.getHeight();</span>
+<span class="nc" id="L332">			int halfWidth = width / 2;</span>
+			/**
+			 * Find a point for the root of the tree, that is the center of the
+			 * lower edge of the tree image.
+			 */
+<span class="nc" id="L337">			float a = random.nextFloat();</span>
+<span class="nc" id="L338">			float b = random.nextFloat();</span>
+<span class="nc" id="L339">			int x = (int) (a * right.x + b * left.x);</span>
+<span class="nc" id="L340">			int y = (int) (a * right.y + b * left.y);</span>
+			/**
+			 * Additional constraint: the left and right edges of the tree image
+			 * must be within the tile bounds (this will fail if the tree image
+			 * is too large).
+			 */
+<span class="nc" id="L346">			x = checkLeftRightEdges(halfWidth, x);</span>
+			/**
+			 * Additional constraint: the top edge of the tree image must be
+			 * within the tile bounds.
+			 */
+<span class="nc" id="L351">			int crown = Math.max(y - height, -(BASE_HEIGHT + MARGIN));</span>
+			/**
+			 * Additional constraint: if there is a river along the top right
+			 * edge of the diamond, the top right corner of the tree most not be
+			 * &quot;above&quot; the line defined by that edge.
+			 */
+<span class="nc bnc" id="L357" title="All 6 branches missed.">			if ((branches[1] || branches[3]) &amp;&amp; crown &lt; -BASE_HEIGHT + RIVER_HEIGHT + (x + halfWidth) / 2) {</span>
+<span class="nc" id="L358">				continue;</span>
+			}
+			/**
+			 * Additional constraint: if there is a river along the top left
+			 * edge of the diamond, the top left corner of the tree most not be
+			 * &quot;above&quot; the line defined by that edge.
+			 */
+<span class="nc bnc" id="L365" title="All 6 branches missed.">			if ((branches[0] || branches[2]) &amp;&amp; crown &lt; -BASE_HEIGHT + RIVER_HEIGHT - (x - halfWidth) / 2) {</span>
+<span class="nc" id="L366">				continue;</span>
+			}
+			// System.out.println(&quot;x=&quot; + x + &quot;, y=&quot; + (y - height));
+<span class="nc" id="L369">			trees.add(new ImageLocation(image, x - halfWidth, crown));</span>
+<span class="nc" id="L370">			count++;</span>
+		}
+<span class="nc" id="L372">		return trees;</span>
+	}
+
+	/**
+	 * @param halfWidth
+	 * @param x
+	 * @return
+	 */
+	private static int checkLeftRightEdges(int halfWidth, int x) {
+<span class="nc bnc" id="L381" title="All 2 branches missed.">		if (x - halfWidth &lt; -HALF_WIDTH) {</span>
+<span class="nc" id="L382">			x = -HALF_WIDTH + halfWidth; // left</span>
+		}
+<span class="nc bnc" id="L384" title="All 2 branches missed.">		if (x + halfWidth &gt; HALF_WIDTH) {</span>
+<span class="nc" id="L385">			x = HALF_WIDTH - halfWidth; // right</span>
+		}
+<span class="nc" id="L387">		return x;</span>
+	}
+
+	/**
+	 * @param imageFiles
+	 * @param images
+	 * @return
+	 */
+	private static int loadImageFiles(File[] imageFiles, List&lt;BufferedImage&gt; images) {
+<span class="nc" id="L396">		int maximumHeight = 0;</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">		for (File imageFile : imageFiles) {</span>
+<span class="nc bnc" id="L398" title="All 4 branches missed.">			if (imageFile.isFile() &amp;&amp; imageFile.canRead()) {</span>
+				try {
+<span class="nc" id="L400">					BufferedImage image = ImageIO.read(imageFile);</span>
+<span class="nc" id="L401">					images.add(image);</span>
+<span class="nc bnc" id="L402" title="All 2 branches missed.">					if (image.getHeight() &gt; maximumHeight) {</span>
+<span class="nc" id="L403">						maximumHeight = image.getHeight();</span>
+					}
+<span class="nc" id="L405">				} catch (IOException e) {</span>
+<span class="nc" id="L406">					System.out.println(&quot;Unable to load image &quot; + imageFile.getName() + &quot;:\n&quot;);</span>
+<span class="nc" id="L407">					e.printStackTrace();</span>
+				}
+			}
+		}
+<span class="nc" id="L411">		return maximumHeight;</span>
+	}
+
+	/**
+	 * @param args
+	 */
+	private static void checkDirectory(String[] args) {
+<span class="pc bpc" id="L418" title="1 of 2 branches missed.">		if (args.length == 0) {</span>
+<span class="nc" id="L419">			System.out.println(&quot;Usage: ForestMaker &lt;directory&gt;...&quot;);</span>
+<span class="nc" id="L420">			System.out.println(&quot;Directory name should match a directory in&quot;);</span>
+<span class="nc" id="L421">			System.out.println(&quot;   &quot; + DESTDIR);</span>
+<span class="nc" id="L422">			System.exit(1);</span>
+		}
+<span class="fc" id="L424">	}</span>
+
+	/**
+	 * Gets the y.
+	 *
+	 * @param x
+	 *            the x
+	 * @param y
+	 *            the y
+	 * @param slope
+	 *            the slope
+	 * @param newX
+	 *            the new x
+	 * @return the y
+	 */
+	private static int getY(int x, int y, double slope, int newX) {
+<span class="nc" id="L440">		return (int) (y + slope * (newX - x));</span>
+	}
+
+	/**
+	 * Gets the random y.
+	 *
+	 * @param random
+	 *            the random
+	 * @param x
+	 *            the x
+	 * @return the random y
+	 */
+	private static int getRandomY(Random random, int x) {
+<span class="nc" id="L453">		int height = HALF_HEIGHT - Math.abs(x) / 2;</span>
+<span class="nc bnc" id="L454" title="All 2 branches missed.">		return (height == 0) ? 0 : random.nextInt(2 * height) - height;</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

@@ -1,0 +1,1420 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>SimpleMapGenerator.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.generator</a> &gt; <span class="el_source">SimpleMapGenerator.java</span></div><h1>SimpleMapGenerator.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.generator;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Random;
+import java.util.logging.Logger;
+
+import net.sf.freecol.common.debug.FreeColDebugger;
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.AbstractUnit;
+import net.sf.freecol.common.model.Building;
+import net.sf.freecol.common.model.BuildingType;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.ColonyTile;
+import net.sf.freecol.common.model.EuropeanNationType;
+import net.sf.freecol.common.model.FreeColObject;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.GameOptions;
+import net.sf.freecol.common.model.Goods;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.IndianNationType;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.LandMap;
+import net.sf.freecol.common.model.LostCityRumour;
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.Map.Position;
+import net.sf.freecol.common.model.Nation;
+import net.sf.freecol.common.model.NationType;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Role;
+import net.sf.freecol.common.model.Settlement;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TileImprovement;
+import net.sf.freecol.common.model.TileImprovementType;
+import net.sf.freecol.common.model.TileType;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.option.IntegerOption;
+import net.sf.freecol.common.option.FileOption;
+import net.sf.freecol.common.option.MapGeneratorOptions;
+import net.sf.freecol.common.option.OptionGroup;
+import net.sf.freecol.common.util.LogBuilder;
+import net.sf.freecol.common.util.RandomChoice;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+import static net.sf.freecol.common.util.RandomUtils.*;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerBuilding;
+import net.sf.freecol.server.model.ServerColony;
+import net.sf.freecol.server.model.ServerIndianSettlement;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.model.ServerRegion;
+import net.sf.freecol.server.model.ServerUnit;
+
+
+// TODO: Auto-generated Javadoc
+/**
+ * Creates random maps and sets the starting locations for the players.
+ *
+ * No visibility implications here as this all happens pre-game,
+ * so no +/-vis annotations are needed.
+ */
+public class SimpleMapGenerator implements MapGenerator {
+
+    /** The Constant logger. */
+<span class="nc" id="L92">    private static final Logger logger = Logger.getLogger(SimpleMapGenerator.class.getName());</span>
+
+    /**
+     * To avoid starting positions too close to the poles, this
+     * percentage indicating how much of the half map close to the
+     * pole cannot be spawned on.
+     */
+<span class="nc" id="L99">    private static final float MIN_DISTANCE_FROM_POLE = 0.30f;</span>
+
+   
+    /**
+     * The Class Territory.
+     */
+    private static class Territory {
+        
+        /** The region. */
+        public ServerRegion region;
+        
+        /** The tile. */
+        public Tile tile;
+        
+        /** The player. */
+        public final Player player;
+        
+        /** The number of settlements. */
+        public int numberOfSettlements;
+
+        /**
+         * Instantiates a new territory.
+         *
+         * @param player the player
+         * @param tile the tile
+         */
+<span class="nc" id="L125">        public Territory(Player player, Tile tile) {</span>
+<span class="nc" id="L126">            this.player = player;</span>
+<span class="nc" id="L127">            this.tile = tile;</span>
+<span class="nc" id="L128">        }</span>
+
+        /**
+         * Instantiates a new territory.
+         *
+         * @param player the player
+         * @param region the region
+         */
+<span class="nc" id="L136">        public Territory(Player player, ServerRegion region) {</span>
+<span class="nc" id="L137">            this.player = player;</span>
+<span class="nc" id="L138">            this.region = region;</span>
+<span class="nc" id="L139">        }</span>
+
+        /**
+         * Gets the center tile.
+         *
+         * @param map the map
+         * @return the center tile
+         */
+        public Tile getCenterTile(Map map) {
+<span class="nc bnc" id="L148" title="All 2 branches missed.">            if (tile != null) return tile;</span>
+<span class="nc" id="L149">            int[] xy = region.getCenter();</span>
+<span class="nc" id="L150">            return map.getTile(xy[0], xy[1]);</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public String toString() {
+<span class="nc" id="L158">            return player + &quot; territory at &quot; + region;</span>
+        }
+    }
+
+    /** The game to generate for. */
+    private final Game game;
+
+    /** The random number source. */
+    private final Random random;
+
+    /** The cached map generator options. */
+    private OptionGroup mapOptions;
+
+    /** The cached specification to use. */
+    private Specification spec;
+
+    /** The game to selectively import from. */
+    private Game importGame;
+
+
+    /**
+     * Creates a &lt;code&gt;MapGenerator&lt;/code&gt;.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to generate for.
+     * @param random The &lt;code&gt;Random&lt;/code&gt; number source to use.
+     * @see #createMap
+     */
+<span class="nc" id="L185">    public SimpleMapGenerator(Game game, Random random) {</span>
+<span class="nc" id="L186">        this.game = game;</span>
+<span class="nc" id="L187">        this.random = random;</span>
+<span class="nc" id="L188">    }</span>
+
+
+    /**
+     * Update the cached variables.
+     *
+     * @param checkImport Check for an import file or not.
+     */
+    private void recache(boolean checkImport) {
+<span class="nc" id="L197">        this.mapOptions = game.getMapGeneratorOptions();</span>
+<span class="nc" id="L198">        this.spec = game.getSpecification();</span>
+<span class="nc bnc" id="L199" title="All 2 branches missed.">        File importFile = (checkImport) ? ((FileOption)this.mapOptions</span>
+<span class="nc" id="L200">            .getOption(MapGeneratorOptions.IMPORT_FILE)).getValue()</span>
+<span class="nc" id="L201">            : null;</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">        this.importGame = (importFile == null) ? null</span>
+<span class="nc" id="L203">            : FreeColServer.readGame(importFile, this.spec, null);</span>
+<span class="nc" id="L204">    }</span>
+
+    /**
+     * Gets the approximate number of land tiles.
+     *
+     * @return The approximate number of land tiles
+     */
+    private int getApproximateLandCount() {
+<span class="nc" id="L212">        return mapOptions.getInteger(MapGeneratorOptions.MAP_WIDTH)</span>
+<span class="nc" id="L213">            * mapOptions.getInteger(MapGeneratorOptions.MAP_HEIGHT)</span>
+<span class="nc" id="L214">            * mapOptions.getInteger(MapGeneratorOptions.LAND_MASS) / 100;</span>
+    }
+
+    /**
+     * Make lost city rumours on the given map.
+     *
+     * The number of rumours depends on the map size.
+     *
+     * @param map The &lt;code&gt;Map&lt;/code&gt; to use.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     */
+    private void makeLostCityRumours(Map map, LogBuilder lb) {
+<span class="nc" id="L226">        final boolean importRumours</span>
+<span class="nc" id="L227">            = mapOptions.getBoolean(MapGeneratorOptions.IMPORT_RUMOURS);</span>
+<span class="nc bnc" id="L228" title="All 4 branches missed.">        if (importGame != null &amp;&amp; importRumours) {</span>
+<span class="nc" id="L229">            int nLCRs = 0;</span>
+<span class="nc" id="L230">            nLCRs = buildImportGame(map, nLCRs);</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">            if (nLCRs &gt; 0) {</span>
+<span class="nc" id="L232">                lb.add(&quot;Imported &quot;, nLCRs, &quot; lost city rumours.\n&quot;);</span>
+<span class="nc" id="L233">                return;</span>
+            }
+            // Otherwise fall through and create them
+        }
+
+<span class="nc" id="L238">        final int rumourNumber</span>
+<span class="nc" id="L239">            = mapOptions.getInteger(MapGeneratorOptions.RUMOUR_NUMBER);</span>
+<span class="nc" id="L240">        int number = getApproximateLandCount() / rumourNumber;</span>
+<span class="nc" id="L241">        int counter = 0;</span>
+
+        // FIXME: Remove temporary fix:
+<span class="nc bnc" id="L244" title="All 2 branches missed.">        if (importGame != null) {</span>
+<span class="nc" id="L245">            number = map.getWidth() * map.getHeight() * 25 / (100 * 35);</span>
+        }
+
+<span class="nc" id="L248">        counter = buildLostCityTiles(map, number, counter);</span>
+<span class="nc" id="L249">        lb.add(&quot;Created &quot;, counter,</span>
+<span class="nc" id="L250">            &quot; lost city rumours of maximum &quot;, number, &quot;.\n&quot;);</span>
+<span class="nc" id="L251">    }</span>
+
+
+	/**
+	 * Builds the import game.
+	 *
+	 * @param map the map
+	 * @param nLCRs the n lc rs
+	 * @return the int
+	 */
+	private int buildImportGame(Map map, int nLCRs) {
+<span class="nc bnc" id="L262" title="All 2 branches missed.">		for (Tile importTile : importGame.getMap().getAllTiles()) {</span>
+<span class="nc" id="L263">		    LostCityRumour rumour = importTile.getLostCityRumour();</span>
+		    // no rumor
+<span class="nc bnc" id="L265" title="All 2 branches missed.">		    if (rumour == null) continue;</span>
+<span class="nc" id="L266">		    int x = importTile.getX();</span>
+<span class="nc" id="L267">		    int y = importTile.getY();</span>
+<span class="nc bnc" id="L268" title="All 2 branches missed.">		    if (map.isValid(x, y)) {</span>
+<span class="nc" id="L269">		        final Tile t = map.getTile(x, y);</span>
+<span class="nc" id="L270">		        rumour.setLocation(t);</span>
+<span class="nc" id="L271">		        t.addLostCityRumour(rumour);</span>
+<span class="nc" id="L272">		        nLCRs++;</span>
+		    }
+		}
+<span class="nc" id="L275">		return nLCRs;</span>
+	}
+
+
+	/**
+	 * Builds the lost city tiles.
+	 *
+	 * @param map the map
+	 * @param number the number
+	 * @param counter the counter
+	 * @return the int
+	 */
+	private int buildLostCityTiles(Map map, int number, int counter) {
+<span class="nc bnc" id="L288" title="All 2 branches missed.">		for (int i = 0; i &lt; number; i++) {</span>
+<span class="nc bnc" id="L289" title="All 2 branches missed.">            for (int tries = 0; tries &lt; 100; tries++) {</span>
+<span class="nc" id="L290">                Tile t = map.getRandomLandTile(random);</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">                if (t.isPolar()) continue; // No polar lost cities</span>
+<span class="nc bnc" id="L292" title="All 4 branches missed.">                if (t.isLand() &amp;&amp; !t.hasLostCityRumour()</span>
+<span class="nc bnc" id="L293" title="All 4 branches missed.">                    &amp;&amp; !t.hasSettlement() &amp;&amp; t.getUnitCount() == 0) {</span>
+<span class="nc" id="L294">                    LostCityRumour r = new LostCityRumour(t.getGame(), t);</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">                    if (r.chooseType(null, random)</span>
+<span class="nc" id="L296">                        == LostCityRumour.RumourType.MOUNDS</span>
+<span class="nc bnc" id="L297" title="All 2 branches missed.">                        &amp;&amp; t.getOwningSettlement() != null) {</span>
+<span class="nc" id="L298">                        r.setType(LostCityRumour.RumourType.MOUNDS);</span>
+                    }
+<span class="nc" id="L300">                    t.addLostCityRumour(r);</span>
+<span class="nc" id="L301">                    counter++;</span>
+<span class="nc" id="L302">                    break;</span>
+                }
+            }
+        }
+<span class="nc" id="L306">		return counter;</span>
+	}
+
+    /**
+     * Import indian settlements.
+     *
+     * @param map the map
+     * @param lb the lb
+     * @return true, if successful
+     */
+    private boolean importIndianSettlements(Map map, LogBuilder lb) {
+<span class="nc" id="L317">        int nSettlements = 0;</span>
+        
+<span class="nc bnc" id="L319" title="All 2 branches missed.">        for (Player player : importGame.getLiveNativePlayers(null)) {</span>
+<span class="nc" id="L320">            Player indian = game.getPlayerByNationId(player.getNationId());</span>
+<span class="nc bnc" id="L321" title="All 2 branches missed.">            if (indian == null) {</span>
+<span class="nc" id="L322">                Nation nation = spec.getNation(player.getNationId());</span>
+<span class="nc bnc" id="L323" title="All 2 branches missed.">                if (nation == null) {</span>
+<span class="nc" id="L324">                    lb.add(&quot;Native nation &quot;, player.getNationId(),</span>
+<span class="nc" id="L325">                        &quot; not found in spec.\n&quot;);</span>
+<span class="nc" id="L326">                    continue;</span>
+                }
+<span class="nc" id="L328">                indian = new ServerPlayer(game, false, nation, null, null);</span>
+<span class="nc" id="L329">                lb.add(&quot;Imported new native nation &quot;, player.getNationId(),</span>
+<span class="nc" id="L330">                    &quot;: &quot;, indian.getId(), &quot;\n&quot;);</span>
+<span class="nc" id="L331">                game.addPlayer(indian);</span>
+<span class="nc" id="L332">            } else {</span>
+<span class="nc" id="L333">                lb.add(&quot;Found native nation &quot;, player.getNationId(),</span>
+<span class="nc" id="L334">                    &quot; for import: &quot;, indian.getId(), &quot;\n&quot;);</span>
+            }
+        }
+<span class="nc" id="L337">        nSettlements = buildNativeTiles(map, nSettlements);</span>
+
+<span class="nc bnc" id="L339" title="All 2 branches missed.">        if (nSettlements &gt; 0) {</span>
+<span class="nc bnc" id="L340" title="All 2 branches missed.">            for (Tile t : importGame.getMap().getAllTiles()) {</span>
+<span class="nc bnc" id="L341" title="All 2 branches missed.">                if (t.getOwner() == null) continue;</span>
+<span class="nc" id="L342">                Player owner = game.getPlayerByNationId(t.getOwner()</span>
+<span class="nc" id="L343">                    .getNationId());</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">                if (owner == null) continue;</span>
+<span class="nc" id="L345">                Tile tile = map.getTile(t.getX(), t.getY());</span>
+<span class="nc bnc" id="L346" title="All 2 branches missed.">                if (tile == null) continue;</span>
+<span class="nc" id="L347">                tile.setOwner(owner);</span>
+<span class="nc bnc" id="L348" title="All 2 branches missed.">                if (tile.getOwningSettlement() != null) {</span>
+<span class="nc" id="L349">                    String name = tile.getOwningSettlement().getName();</span>
+<span class="nc" id="L350">                    Settlement is = game.getSettlementByName(name);</span>
+<span class="nc" id="L351">                    tile.setOwningSettlement(is);</span>
+                }
+            }
+        }
+<span class="nc" id="L355">        lb.add(&quot;Imported &quot;, nSettlements, &quot; native settlements.\n&quot;);</span>
+<span class="nc bnc" id="L356" title="All 2 branches missed.">        return nSettlements &gt; 0;</span>
+    }
+
+
+	/**
+	 * Builds the native tiles.
+	 *
+	 * @param map the map
+	 * @param nSettlements the n settlements
+	 * @return the int
+	 */
+	private int buildNativeTiles(Map map, int nSettlements) {
+<span class="nc bnc" id="L368" title="All 2 branches missed.">		for (Tile tile : importGame.getMap().getAllTiles()) {</span>
+<span class="nc" id="L369">            IndianSettlement is = tile.getIndianSettlement();</span>
+<span class="nc bnc" id="L370" title="All 2 branches missed.">            if (is == null) continue;</span>
+<span class="nc" id="L371">            Player indian = game.getPlayerByNationId(is.getOwner().getNationId());</span>
+<span class="nc" id="L372">            ServerIndianSettlement settlement</span>
+<span class="nc" id="L373">                = new ServerIndianSettlement(game, indian, is.getName(),</span>
+<span class="nc" id="L374">                    map.getTile(tile.getX(), tile.getY()), is.isCapital(),</span>
+<span class="nc" id="L375">                    is.getLearnableSkill(), null);</span>
+<span class="nc" id="L376">            settlement.placeSettlement(false);</span>
+<span class="nc bnc" id="L377" title="All 2 branches missed.">            for (Tile t : is.getOwnedTiles()) {</span>
+<span class="nc" id="L378">                map.getTile(t.getX(), t.getY())</span>
+<span class="nc" id="L379">                    .changeOwnership(indian, settlement);</span>
+            }
+                
+<span class="nc" id="L382">            List&lt;Unit&gt; units = is.getUnitList();</span>
+<span class="nc bnc" id="L383" title="All 2 branches missed.">            if (units.isEmpty()) {</span>
+<span class="nc" id="L384">                settlement.addUnits(random);</span>
+<span class="nc" id="L385">            } else {</span>
+<span class="nc bnc" id="L386" title="All 2 branches missed.">                for (Unit unit : units) {</span>
+<span class="nc" id="L387">                    UnitType t = spec.getUnitType(unit.getType().getId());</span>
+<span class="nc bnc" id="L388" title="All 2 branches missed.">                    if (t != null) {</span>
+<span class="nc" id="L389">                        Unit u = new ServerUnit(game, settlement, indian, t);</span>
+<span class="nc" id="L390">                        settlement.add(u);</span>
+<span class="nc" id="L391">                        settlement.addOwnedUnit(u);</span>
+                    }
+                }
+            }
+            
+<span class="nc" id="L396">            List&lt;Goods&gt; goods = is.getCompactGoods();</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">            if (goods.isEmpty()) {</span>
+<span class="nc" id="L398">                settlement.addRandomGoods(random);</span>
+<span class="nc" id="L399">            } else {</span>
+<span class="nc bnc" id="L400" title="All 2 branches missed.">                for (Goods g : goods) {</span>
+<span class="nc" id="L401">                    GoodsType t = spec.getGoodsType(g.getType().getId());</span>
+<span class="nc bnc" id="L402" title="All 2 branches missed.">                    if (t != null) {</span>
+<span class="nc" id="L403">                        settlement.addGoods(t, g.getAmount());</span>
+                    }
+                }
+            }
+<span class="nc" id="L407">            settlement.setWantedGoods(is.getWantedGoods());</span>
+<span class="nc" id="L408">            indian.addSettlement(settlement);</span>
+<span class="nc" id="L409">            nSettlements++;</span>
+        }
+<span class="nc" id="L411">		return nSettlements;</span>
+	}
+
+    /**
+     * Make the native settlements, at least a capital for every
+     * nation and random numbers of other settlements.
+     *
+     * @param map The &lt;code&gt;Map&lt;/code&gt; to place the indian settlements on.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     */
+    private void makeNativeSettlements(final Map map, LogBuilder lb) {
+<span class="nc" id="L422">        final boolean importSettlements</span>
+<span class="nc" id="L423">            = mapOptions.getBoolean(MapGeneratorOptions.IMPORT_SETTLEMENTS);</span>
+<span class="nc bnc" id="L424" title="All 4 branches missed.">        if (importSettlements &amp;&amp; importGame != null) {</span>
+<span class="nc bnc" id="L425" title="All 2 branches missed.">            if (importIndianSettlements(map, lb)){</span>
+<span class="nc" id="L426">            	return;</span>
+            }
+            // Fall through and create them
+        }
+        
+<span class="nc" id="L431">        final Game game = map.getGame();</span>
+<span class="nc" id="L432">        float shares = 0f;</span>
+<span class="nc" id="L433">        List&lt;IndianSettlement&gt; settlements = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L434">        List&lt;Player&gt; indians = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L435">        HashMap&lt;String, Territory&gt; territoryMap = new HashMap&lt;&gt;();</span>
+
+<span class="nc" id="L437">        shares = getLiveNativePlayers(map, lb, game, shares, indians,</span>
+<span class="nc" id="L438">				territoryMap);</span>
+<span class="nc bnc" id="L439" title="All 2 branches missed.">        if (indians.isEmpty()) return;</span>
+
+        // Examine all the non-polar settleable tiles in a random
+        // order picking out as many as possible suitable tiles for
+        // native settlements such that can be guaranteed at least one
+        // layer of surrounding tiles to own.
+<span class="nc" id="L445">        List&lt;Tile&gt; allTiles = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L446" title="All 2 branches missed.">        for (Tile t : map.getAllTiles()) allTiles.add(t);</span>
+<span class="nc" id="L447">        randomShuffle(logger, &quot;All tile shuffle&quot;, allTiles, random);</span>
+<span class="nc" id="L448">        final int minDistance</span>
+<span class="nc" id="L449">            = spec.getRangeOption(GameOptions.SETTLEMENT_NUMBER).getValue();</span>
+<span class="nc" id="L450">        List&lt;Tile&gt; settlementTiles = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L451" title="All 2 branches missed.">        for (Tile tile : allTiles) {</span>
+<span class="nc bnc" id="L452" title="All 2 branches missed.">            if (!tile.isPolar()</span>
+<span class="nc bnc" id="L453" title="All 2 branches missed.">                &amp;&amp; suitableForNativeSettlement(tile)</span>
+<span class="nc bnc" id="L454" title="All 4 branches missed.">                &amp;&amp; none(settlementTiles, t -&gt; t.getDistanceTo(tile) &lt; minDistance))</span>
+<span class="nc" id="L455">                settlementTiles.add(tile);</span>
+        }
+<span class="nc" id="L457">        randomShuffle(logger, &quot;Settlement tiles&quot;, settlementTiles, random);</span>
+
+        // Check number of settlements.
+<span class="nc" id="L460">        int settlementsToPlace = settlementTiles.size();</span>
+<span class="nc" id="L461">        float share = settlementsToPlace / shares;</span>
+<span class="nc bnc" id="L462" title="All 2 branches missed.">        if (settlementTiles.size() &lt; indians.size()) {</span>
+            // FIXME: something drastic to boost the settlement number
+<span class="nc" id="L464">            lb.add(&quot;There are only &quot;, settlementTiles.size(),</span>
+<span class="nc" id="L465">                &quot; settlement sites.\n&quot;,</span>
+<span class="nc" id="L466">                &quot; This is smaller than &quot;, indians.size(),</span>
+<span class="nc" id="L467">                &quot; the number of tribes.\n&quot;);</span>
+        }
+
+        // Find the capitals
+<span class="nc" id="L471">        List&lt;Territory&gt; territories</span>
+<span class="nc" id="L472">            = new ArrayList&lt;&gt;(territoryMap.values());</span>
+<span class="nc" id="L473">        int settlementsPlaced = findCapitals(map, lb, settlements,</span>
+<span class="nc" id="L474">				settlementTiles, share, territories);</span>
+
+        // Sort tiles from the edges of the map inward
+<span class="nc" id="L477">        Collections.sort(settlementTiles, Tile.edgeDistanceComparator);</span>
+
+        // Now place other settlements
+<span class="nc" id="L480">        settlementsPlaced = placeOtherSettlements(map, lb, settlements,</span>
+<span class="nc" id="L481">				settlementTiles, territories, settlementsPlaced);</span>
+
+        // Grow some more tiles.
+        // FIXME: move the magic numbers below to the spec
+        // Also collect the skills provided
+<span class="nc" id="L486">        HashMap&lt;UnitType, List&lt;IndianSettlement&gt;&gt; skills = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L487">        randomShuffle(logger, &quot;Settlements&quot;, settlements, random);</span>
+<span class="nc" id="L488">        generateIndianSettelmentTiles(settlements, skills);</span>
+
+        // Require that there be experts for all the new world goods types.
+        // Collect the list of needed experts
+<span class="nc" id="L492">        List&lt;UnitType&gt; expertsNeeded = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L493" title="All 2 branches missed.">        for (GoodsType goodsType : spec.getNewWorldGoodsTypeList()) {</span>
+<span class="nc" id="L494">            UnitType expert = spec.getExpertForProducing(goodsType);</span>
+<span class="nc bnc" id="L495" title="All 2 branches missed.">            if (!skills.containsKey(expert)) expertsNeeded.add(expert);</span>
+        }
+        // Extract just the settlement lists.
+<span class="nc" id="L498">        List&lt;List&lt;IndianSettlement&gt;&gt; isList = new ArrayList&lt;&gt;(skills.values());</span>
+        // For each missing skill...
+<span class="nc" id="L500">        checkMissingSkill(lb, expertsNeeded, isList);</span>
+<span class="nc" id="L501">        lb.add(&quot;Settlement skills:&quot;);</span>
+<span class="nc bnc" id="L502" title="All 2 branches missed.">        for (List&lt;IndianSettlement&gt; iss : isList) {</span>
+<span class="nc bnc" id="L503" title="All 2 branches missed.">            if (iss.isEmpty()) {</span>
+<span class="nc" id="L504">                lb.add(&quot;  0 x &lt;none&gt;&quot;);</span>
+<span class="nc" id="L505">            } else {</span>
+<span class="nc" id="L506">                lb.add(&quot;  &quot;, iss.size(),</span>
+<span class="nc" id="L507">                    &quot; x &quot;, iss.get(0).getLearnableSkill().getSuffix());</span>
+            }
+        }
+<span class="nc" id="L510">        lb.add(&quot;\nCreated &quot;, settlementsPlaced,</span>
+<span class="nc" id="L511">            &quot; Indian settlements of maximum &quot;, settlementsToPlace, &quot;.\n&quot;);</span>
+<span class="nc" id="L512">    }</span>
+
+
+	/**
+	 * Gets the live native players.
+	 *
+	 * @param map the map
+	 * @param lb the lb
+	 * @param game the game
+	 * @param shares the shares
+	 * @param indians the indians
+	 * @param territoryMap the territory map
+	 * @return the live native players
+	 */
+	private float getLiveNativePlayers(final Map map, LogBuilder lb,
+			final Game game, float shares, List&lt;Player&gt; indians,
+			HashMap&lt;String, Territory&gt; territoryMap) {
+<span class="nc bnc" id="L529" title="All 2 branches missed.">		for (Player player : game.getLiveNativePlayers(null)) {</span>
+<span class="nc bnc" id="L530" title="All 4 branches missed.">            switch (player.getNationType().getNumberOfSettlements()) {</span>
+            case HIGH:
+<span class="nc" id="L532">                shares += 4;</span>
+<span class="nc" id="L533">                break;</span>
+            case AVERAGE:
+<span class="nc" id="L535">                shares += 3;</span>
+<span class="nc" id="L536">                break;</span>
+            case LOW:
+<span class="nc" id="L538">                shares += 2;</span>
+                break;
+            }
+<span class="nc" id="L541">            indians.add(player);</span>
+<span class="nc" id="L542">            List&lt;String&gt; regionKeys</span>
+<span class="nc" id="L543">                = ((IndianNationType)player.getNationType()).getRegionNames();</span>
+<span class="nc" id="L544">            Territory territory = null;</span>
+<span class="nc bnc" id="L545" title="All 4 branches missed.">            if (regionKeys == null || regionKeys.isEmpty()) {</span>
+<span class="nc" id="L546">                territory = new Territory(player, map.getRandomLandTile(random));</span>
+<span class="nc" id="L547">                territoryMap.put(player.getId(), territory);</span>
+<span class="nc" id="L548">            } else {</span>
+<span class="nc bnc" id="L549" title="All 2 branches missed.">                for (String key : regionKeys) {</span>
+<span class="nc bnc" id="L550" title="All 2 branches missed.">                    if (territoryMap.get(key) == null) {</span>
+<span class="nc" id="L551">                        ServerRegion region = (ServerRegion)map.getRegionByKey(key);</span>
+<span class="nc bnc" id="L552" title="All 2 branches missed.">                        if (region == null) {</span>
+<span class="nc" id="L553">                            territory = new Territory(player, map.getRandomLandTile(random));</span>
+<span class="nc" id="L554">                        } else {</span>
+<span class="nc" id="L555">                            territory = new Territory(player, region);</span>
+                        }
+<span class="nc" id="L557">                        territoryMap.put(key, territory);</span>
+<span class="nc" id="L558">                        lb.add(&quot;Allocated region &quot;, key,</span>
+<span class="nc" id="L559">                            &quot; for &quot;, player, &quot;.\n&quot;);</span>
+<span class="nc" id="L560">                        break;</span>
+                    }
+                }
+<span class="nc bnc" id="L563" title="All 2 branches missed.">                if (territory == null) {</span>
+<span class="nc" id="L564">                    lb.add(&quot;Failed to allocate preferred region &quot;,</span>
+<span class="nc" id="L565">                        regionKeys.get(0), &quot; for &quot;, player.getNation(), &quot;\n&quot;);</span>
+<span class="nc bnc" id="L566" title="All 2 branches missed.">                    outer: for (String key : regionKeys) {</span>
+<span class="nc" id="L567">                        Territory otherTerritory = territoryMap.get(key);</span>
+<span class="nc bnc" id="L568" title="All 2 branches missed.">                        for (String otherKey : ((IndianNationType) otherTerritory.player.getNationType())</span>
+<span class="nc" id="L569">                                 .getRegionNames()) {</span>
+<span class="nc bnc" id="L570" title="All 2 branches missed.">                            if (territoryMap.get(otherKey) == null) {</span>
+<span class="nc" id="L571">                                ServerRegion foundRegion = otherTerritory.region;</span>
+<span class="nc" id="L572">                                otherTerritory.region = (ServerRegion)map.getRegionByKey(otherKey);</span>
+<span class="nc" id="L573">                                territoryMap.put(otherKey, otherTerritory);</span>
+<span class="nc" id="L574">                                territory = new Territory(player, foundRegion);</span>
+<span class="nc" id="L575">                                territoryMap.put(key, territory);</span>
+<span class="nc" id="L576">                                break outer;</span>
+                            }
+                        }
+                    }
+<span class="nc bnc" id="L580" title="All 2 branches missed.">                    if (territory == null) {</span>
+<span class="nc" id="L581">                        lb.add(&quot;Unable to find free region for &quot;,</span>
+<span class="nc" id="L582">                            player.getName(), &quot;\n&quot;);</span>
+<span class="nc" id="L583">                        territory = new Territory(player, map.getRandomLandTile(random));</span>
+<span class="nc" id="L584">                        territoryMap.put(player.getId(), territory);</span>
+                    }
+                }
+            }
+        }
+<span class="nc" id="L589">		return shares;</span>
+	}
+
+
+	/**
+	 * Find capitals.
+	 *
+	 * @param map the map
+	 * @param lb the lb
+	 * @param settlements the settlements
+	 * @param settlementTiles the settlement tiles
+	 * @param share the share
+	 * @param territories the territories
+	 * @return the int
+	 */
+	private int findCapitals(final Map map, LogBuilder lb,
+			List&lt;IndianSettlement&gt; settlements, List&lt;Tile&gt; settlementTiles,
+			float share, List&lt;Territory&gt; territories) {
+<span class="nc" id="L607">		int settlementsPlaced = 0;</span>
+<span class="nc bnc" id="L608" title="All 2 branches missed.">        for (Territory territory : territories) {</span>
+<span class="nc bnc" id="L609" title="All 4 branches missed.">            switch (territory.player.getNationType().getNumberOfSettlements()) {</span>
+            case HIGH:
+<span class="nc" id="L611">                territory.numberOfSettlements = Math.round(4 * share);</span>
+<span class="nc" id="L612">                break;</span>
+            case AVERAGE:
+<span class="nc" id="L614">                territory.numberOfSettlements = Math.round(3 * share);</span>
+<span class="nc" id="L615">                break;</span>
+            case LOW:
+<span class="nc" id="L617">                territory.numberOfSettlements = Math.round(2 * share);</span>
+                break;
+<span class="nc" id="L619">            }</span>
+<span class="nc" id="L620">            int radius = territory.player.getNationType().getCapitalType()</span>
+<span class="nc" id="L621">                .getClaimableRadius();</span>
+<span class="nc" id="L622">            IndianSettlement is = placeCapital(map, territory, radius,</span>
+<span class="nc" id="L623">                new ArrayList&lt;&gt;(settlementTiles), lb);</span>
+<span class="nc bnc" id="L624" title="All 2 branches missed.">            if (is != null) {</span>
+<span class="nc" id="L625">                settlements.add(is);</span>
+<span class="nc" id="L626">                settlementsPlaced++;</span>
+<span class="nc" id="L627">                settlementTiles.remove(is.getTile());</span>
+            }
+        }
+<span class="nc" id="L630">		return settlementsPlaced;</span>
+	}
+
+
+	/**
+	 * Check missing skill.
+	 *
+	 * @param lb the lb
+	 * @param expertsNeeded the experts needed
+	 * @param isList the is list
+	 */
+	private void checkMissingSkill(LogBuilder lb, List&lt;UnitType&gt; expertsNeeded,
+			List&lt;List&lt;IndianSettlement&gt;&gt; isList) {
+<span class="nc bnc" id="L643" title="All 2 branches missed.">		while (!expertsNeeded.isEmpty()) {</span>
+<span class="nc" id="L644">            UnitType neededSkill = expertsNeeded.remove(0);</span>
+<span class="nc" id="L645">            Collections.sort(isList, descendingListLengthComparator);</span>
+<span class="nc" id="L646">            List&lt;IndianSettlement&gt; extras = isList.remove(0);</span>
+<span class="nc" id="L647">            UnitType extraSkill = extras.get(0).getLearnableSkill();</span>
+<span class="nc" id="L648">            List&lt;RandomChoice&lt;IndianSettlement&gt;&gt; choices = new ArrayList&lt;&gt;();</span>
+            // ...look at the settlements with the most common skill
+            // with a bit of favoritism to capitals as the needed skill
+            // is so rare,...
+<span class="nc bnc" id="L652" title="All 2 branches missed.">            for (IndianSettlement is : extras) {</span>
+<span class="nc" id="L653">                IndianNationType nation</span>
+<span class="nc" id="L654">                    = (IndianNationType) is.getOwner().getNationType();</span>
+<span class="nc bnc" id="L655" title="All 2 branches missed.">                int cm = (is.isCapital()) ? 2 : 1;</span>
+<span class="nc" id="L656">                RandomChoice&lt;IndianSettlement&gt; rc = null;</span>
+<span class="nc bnc" id="L657" title="All 2 branches missed.">                for (RandomChoice&lt;UnitType&gt; c : nation.generateSkillsForTile(is.getTile())) {</span>
+<span class="nc bnc" id="L658" title="All 2 branches missed.">                    if (c.getObject() == neededSkill) {</span>
+<span class="nc" id="L659">                        rc = new RandomChoice&lt;&gt;(is, c.getProbability() * cm);</span>
+<span class="nc" id="L660">                        break;</span>
+                    }
+                }
+<span class="nc bnc" id="L663" title="All 2 branches missed.">                choices.add((rc != null) ? rc</span>
+<span class="nc" id="L664">                            : new RandomChoice&lt;&gt;(is, 1));</span>
+            }
+<span class="nc bnc" id="L666" title="All 2 branches missed.">            if (!choices.isEmpty()) {</span>
+                // ...and pick one that could do the missing job.
+<span class="nc" id="L668">                IndianSettlement chose = RandomChoice</span>
+<span class="nc" id="L669">                    .getWeightedRandom(logger, &quot;expert&quot;, choices, random);</span>
+<span class="nc" id="L670">                lb.add(&quot;At &quot;, chose.getName(),</span>
+<span class="nc" id="L671">                    &quot; replaced &quot;, extraSkill,</span>
+<span class="nc" id="L672">                    &quot; (one of &quot;, extras.size(), &quot;)&quot;,</span>
+<span class="nc" id="L673">                    &quot; by missing &quot;, neededSkill, &quot;\n&quot;);</span>
+<span class="nc" id="L674">                chose.setLearnableSkill(neededSkill);</span>
+<span class="nc" id="L675">                extras.remove(chose);</span>
+<span class="nc" id="L676">                isList.add(0, extras); // Try to stay well sorted</span>
+<span class="nc" id="L677">                List&lt;IndianSettlement&gt; neededList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L678">                neededList.add(chose);</span>
+<span class="nc" id="L679">                isList.add(neededList);</span>
+<span class="nc" id="L680">            } else { // `can not happen'</span>
+<span class="nc" id="L681">                lb.add(&quot;Game is missing skill: &quot;, neededSkill, &quot;\n&quot;);</span>
+            }
+        }
+<span class="nc" id="L684">	}</span>
+
+
+	/**
+	 * Generate indian settelment tiles.
+	 *
+	 * @param settlements the settlements
+	 * @param skills the skills
+	 */
+	private void generateIndianSettelmentTiles(
+			List&lt;IndianSettlement&gt; settlements,
+			HashMap&lt;UnitType, List&lt;IndianSettlement&gt;&gt; skills) {
+<span class="nc bnc" id="L696" title="All 2 branches missed.">		for (IndianSettlement is : settlements) {</span>
+<span class="nc" id="L697">            List&lt;Tile&gt; tiles = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L698" title="All 2 branches missed.">            for (Tile tile : is.getOwnedTiles()) {</span>
+<span class="nc bnc" id="L699" title="All 2 branches missed.">                for (Tile t : tile.getSurroundingTiles(1)) {</span>
+<span class="nc bnc" id="L700" title="All 2 branches missed.">                    if (t.getOwningSettlement() == null) {</span>
+<span class="nc" id="L701">                        tiles.add(tile);</span>
+<span class="nc" id="L702">                        break;</span>
+                    }
+                }
+            }
+<span class="nc" id="L706">            randomShuffle(logger, &quot;Settlement tiles&quot;, tiles, random);</span>
+<span class="nc" id="L707">            int minGrow = is.getType().getMinimumGrowth();</span>
+<span class="nc" id="L708">            int maxGrow = is.getType().getMaximumGrowth();</span>
+<span class="nc bnc" id="L709" title="All 2 branches missed.">            if (maxGrow &gt; minGrow) {</span>
+<span class="nc bnc" id="L710" title="All 2 branches missed.">                for (int i = randomInt(logger, &quot;Gdiff&quot;, random,</span>
+<span class="nc" id="L711">                                       maxGrow - minGrow) + minGrow;</span>
+<span class="nc" id="L712">                     i &gt; 0; i--) {</span>
+<span class="nc" id="L713">                    Tile tile = findFreeNeighbouringTile(is, tiles);</span>
+<span class="nc bnc" id="L714" title="All 2 branches missed.">                    if (tile == null) break;</span>
+<span class="nc" id="L715">                    tile.changeOwnership(is.getOwner(), is);</span>
+<span class="nc" id="L716">                    tiles.add(tile);</span>
+                }
+            }
+
+            // Collect settlements by skill
+<span class="nc" id="L721">            collectSettlementBySkill(skills, is);</span>
+        }
+<span class="nc" id="L723">	}</span>
+
+
+	/**
+	 * Collect settlement by skill.
+	 *
+	 * @param skills the skills
+	 * @param is the is
+	 */
+	private void collectSettlementBySkill(
+			HashMap&lt;UnitType, List&lt;IndianSettlement&gt;&gt; skills,
+			IndianSettlement is) {
+<span class="nc" id="L735">		UnitType skill = is.getLearnableSkill();</span>
+<span class="nc" id="L736">		List&lt;IndianSettlement&gt; isList = skills.get(skill);</span>
+<span class="nc bnc" id="L737" title="All 2 branches missed.">		if (isList == null) {</span>
+<span class="nc" id="L738">		    isList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L739">		    isList.add(is);</span>
+<span class="nc" id="L740">		    skills.put(skill, isList);</span>
+<span class="nc" id="L741">		} else {</span>
+<span class="nc" id="L742">		    isList.add(is);</span>
+		}
+<span class="nc" id="L744">	}</span>
+
+
+	/**
+	 * Place other settlements.
+	 *
+	 * @param map the map
+	 * @param lb the lb
+	 * @param settlements the settlements
+	 * @param settlementTiles the settlement tiles
+	 * @param territories the territories
+	 * @param settlementsPlaced the settlements placed
+	 * @return the int
+	 */
+	private int placeOtherSettlements(final Map map, LogBuilder lb,
+			List&lt;IndianSettlement&gt; settlements, List&lt;Tile&gt; settlementTiles,
+			List&lt;Territory&gt; territories, int settlementsPlaced) {
+<span class="nc bnc" id="L761" title="All 4 branches missed.">		while (!settlementTiles.isEmpty() &amp;&amp; !territories.isEmpty()) {</span>
+<span class="nc" id="L762">            Tile tile = settlementTiles.remove(0);</span>
+<span class="nc bnc" id="L763" title="All 2 branches missed.">            if (tile.getOwner() != null) continue; // No close overlap</span>
+
+<span class="nc" id="L765">            Territory territory = getClosestTerritory(map, tile, territories);</span>
+<span class="nc" id="L766">            int radius = territory.player.getNationType().getSettlementType(false)</span>
+<span class="nc" id="L767">                .getClaimableRadius();</span>
+            // Insist that the settlement can not be linear
+<span class="nc" id="L769">            if (territory.player.getClaimableTiles(tile, radius).size()</span>
+<span class="nc bnc" id="L770" title="All 2 branches missed.">                &gt; 2 * radius + 1) {</span>
+<span class="nc bnc" id="L771" title="All 2 branches missed.">                String name = (territory.region == null) ? &quot;default region&quot;</span>
+<span class="nc" id="L772">                    : territory.region.toString();</span>
+<span class="nc" id="L773">                lb.add(&quot;Placing a &quot;, territory.player,</span>
+<span class="nc" id="L774">                    &quot; camp in region: &quot;, name,</span>
+<span class="nc" id="L775">                    &quot; at tile: &quot;, tile, &quot;\n&quot;);</span>
+<span class="nc" id="L776">                settlements.add(placeIndianSettlement(territory.player,</span>
+<span class="nc" id="L777">                                                      false, tile, map, lb));</span>
+<span class="nc" id="L778">                settlementsPlaced++;</span>
+<span class="nc" id="L779">                territory.numberOfSettlements--;</span>
+<span class="nc bnc" id="L780" title="All 2 branches missed.">                if (territory.numberOfSettlements &lt;= 0) {</span>
+<span class="nc" id="L781">                    territories.remove(territory);</span>
+                }
+
+            }
+        }
+<span class="nc" id="L786">		return settlementsPlaced;</span>
+	}
+
+    /**
+     * Is a tile suitable for a native settlement?
+     * Require the tile be settleable, and at least half its neighbours
+     * also be settleable.
+     *
+     * FIXME: degrade the second test to usability, but wait until the
+     * natives-use-water situation is sorted.
+     *
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; to examine.
+     * @return True if this tile is suitable.
+     */
+    private boolean suitableForNativeSettlement(Tile tile) {
+<span class="nc bnc" id="L801" title="All 2 branches missed.">        if (!tile.getType().canSettle()) return false;</span>
+<span class="nc" id="L802">        int good = 0, n = 0;</span>
+<span class="nc bnc" id="L803" title="All 2 branches missed.">        for (Tile t : tile.getSurroundingTiles(1)) {</span>
+<span class="nc bnc" id="L804" title="All 2 branches missed.">            if (t.getType().canSettle()) good++;</span>
+<span class="nc" id="L805">            n++;</span>
+        }
+<span class="nc bnc" id="L807" title="All 2 branches missed.">        return good &gt;= n / 2;</span>
+    }
+
+    /**
+     * Find free neighbouring tile.
+     *
+     * @param is the is
+     * @param tiles the tiles
+     * @return the tile
+     */
+    private Tile findFreeNeighbouringTile(IndianSettlement is,
+                                          List&lt;Tile&gt; tiles) {
+<span class="nc bnc" id="L819" title="All 2 branches missed.">        for (Tile tile : tiles) {</span>
+<span class="nc bnc" id="L820" title="All 2 branches missed.">            for (Direction d : Direction.getRandomDirections(&quot;freeTile&quot;,</span>
+<span class="nc" id="L821">                    logger, random)) {</span>
+<span class="nc" id="L822">                Tile t = tile.getNeighbourOrNull(d);</span>
+<span class="nc bnc" id="L823" title="All 2 branches missed.">                if ((t != null)</span>
+<span class="nc bnc" id="L824" title="All 2 branches missed.">                    &amp;&amp; (t.getOwningSettlement() == null)</span>
+<span class="nc bnc" id="L825" title="All 2 branches missed.">                    &amp;&amp; (is.getOwner().canClaimForSettlement(t))) return t;</span>
+            }
+        }
+<span class="nc" id="L828">        return null;</span>
+    }
+
+    /**
+     * Gets the closest territory.
+     *
+     * @param map the map
+     * @param tile the tile
+     * @param territories the territories
+     * @return the closest territory
+     */
+    private Territory getClosestTerritory(Map map, Tile tile,
+                                          List&lt;Territory&gt; territories) {
+<span class="nc" id="L841">        Territory result = null;</span>
+<span class="nc" id="L842">        int minimumDistance = Integer.MAX_VALUE;</span>
+<span class="nc bnc" id="L843" title="All 2 branches missed.">        for (Territory territory : territories) {</span>
+<span class="nc" id="L844">            int distance = map.getDistance(tile, territory.getCenterTile(map));</span>
+<span class="nc bnc" id="L845" title="All 2 branches missed.">            if (distance &lt; minimumDistance) {</span>
+<span class="nc" id="L846">                minimumDistance = distance;</span>
+<span class="nc" id="L847">                result = territory;</span>
+            }
+        }
+<span class="nc" id="L850">        return result;</span>
+    }
+
+    /**
+     * Place a native capital in a territory.
+     *
+     * @param map The &lt;code&gt;Map&lt;/code&gt; to place the settlement in.
+     * @param territory The &lt;code&gt;Territory&lt;/code&gt; within the map.
+     * @param radius The settlement radius.
+     * @param tiles A list of &lt;code&gt;Tile&lt;/code&gt;s to select from.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @return The &lt;code&gt;IndianSettlement&lt;/code&gt; placed, or null if
+     *     none placed.
+     */
+    private IndianSettlement placeCapital(final Map map, Territory territory,
+                                          int radius, List&lt;Tile&gt; tiles,
+                                          LogBuilder lb) {
+<span class="nc" id="L867">        final Tile center = territory.getCenterTile(map);</span>
+<span class="nc" id="L868">        Collections.sort(tiles, Comparator.comparingInt(t -&gt;</span>
+<span class="nc" id="L869">                t.getDistanceTo(center)));</span>
+<span class="nc bnc" id="L870" title="All 2 branches missed.">        for (Tile t : tiles) {</span>
+            // Choose this tile if it is free and half the expected tile
+            // claim can succeed (preventing capitals on small islands).
+<span class="nc" id="L873">            if (territory.player.getClaimableTiles(t, radius).size()</span>
+<span class="nc bnc" id="L874" title="All 2 branches missed.">                &gt;= (2 * radius + 1) * (2 * radius + 1) / 2) {</span>
+<span class="nc bnc" id="L875" title="All 2 branches missed.">                String name = (territory.region == null) ? &quot;default region&quot;</span>
+<span class="nc" id="L876">                    : territory.region.toString();</span>
+<span class="nc" id="L877">                lb.add(&quot;Placing the &quot;, territory.player,</span>
+<span class="nc" id="L878">                    &quot; capital in region: &quot;, name, &quot; at tile: &quot;, t, &quot;\n&quot;);</span>
+<span class="nc" id="L879">                IndianSettlement is = placeIndianSettlement(territory.player,</span>
+<span class="nc" id="L880">                    true, t, map, lb);</span>
+<span class="nc" id="L881">                territory.numberOfSettlements--;</span>
+<span class="nc" id="L882">                territory.tile = t;</span>
+<span class="nc" id="L883">                return is;</span>
+            }
+        }
+<span class="nc" id="L886">        return null;</span>
+    }
+
+    /**
+     * Builds a &lt;code&gt;IndianSettlement&lt;/code&gt; at the given position.
+     *
+     * @param player The player owning the new settlement.
+     * @param capital &lt;code&gt;true&lt;/code&gt; if the settlement should be a
+     *      {@link IndianSettlement#isCapital() capital}.
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; to place the settlement.
+     * @param map The map that should get a new settlement.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @return The &lt;code&gt;IndianSettlement&lt;/code&gt; just being placed
+     *      on the map.
+     */
+    private IndianSettlement placeIndianSettlement(Player player,
+        boolean capital, Tile tile, Map map, LogBuilder lb) {
+<span class="nc bnc" id="L903" title="All 2 branches missed.">        String name = (capital) ? player.getCapitalName(random)</span>
+<span class="nc" id="L904">            : player.getSettlementName(random);</span>
+<span class="nc" id="L905">        UnitType skill</span>
+<span class="nc" id="L906">            = generateSkillForLocation(map, tile, player.getNationType());</span>
+<span class="nc" id="L907">        ServerIndianSettlement settlement</span>
+<span class="nc" id="L908">            = new ServerIndianSettlement(map.getGame(), player, name, tile,</span>
+<span class="nc" id="L909">                                         capital, skill, null);</span>
+<span class="nc" id="L910">        player.addSettlement(settlement);</span>
+<span class="nc" id="L911">        lb.add(&quot;Generated skill for &quot;, settlement.getName(),</span>
+<span class="nc" id="L912">            &quot;: &quot;, settlement.getLearnableSkill().getSuffix(), &quot;\n&quot;);</span>
+
+<span class="nc" id="L914">        settlement.placeSettlement(true);</span>
+<span class="nc" id="L915">        settlement.addRandomGoods(random);</span>
+<span class="nc" id="L916">        settlement.addUnits(random);</span>
+
+<span class="nc" id="L918">        return settlement;</span>
+    }
+
+    /**
+     * Generates a skill that could be taught from a settlement on the
+     * given tile.
+     *
+     * @param map The &lt;code&gt;Map&lt;/code&gt;.
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; where the settlement will be located.
+     * @param nationType The &lt;code&gt;NationType&lt;/code&gt; to generate a skill for.
+     * @return A skill that can be taught to Europeans.
+     */
+    private UnitType generateSkillForLocation(Map map, Tile tile,
+                                              NationType nationType) {
+<span class="nc" id="L932">        List&lt;RandomChoice&lt;UnitType&gt;&gt; skills</span>
+<span class="nc" id="L933">            = ((IndianNationType)nationType).getSkills();</span>
+<span class="nc" id="L934">        java.util.Map&lt;GoodsType, Integer&gt; scale</span>
+<span class="nc" id="L935">            = toMap(skills,</span>
+<span class="nc" id="L936">                    rc -&gt; rc.getObject().getExpertProduction(),</span>
+<span class="nc" id="L937">                    rc -&gt; 1);</span>
+
+<span class="nc bnc" id="L939" title="All 2 branches missed.">        for (Tile t: tile.getSurroundingTiles(1)) {</span>
+<span class="nc bnc" id="L940" title="All 2 branches missed.">            for (Entry&lt;GoodsType, Integer&gt; entry : scale.entrySet()) {</span>
+<span class="nc" id="L941">                GoodsType goodsType = entry.getKey();</span>
+<span class="nc" id="L942">                scale.put(goodsType, entry.getValue()</span>
+<span class="nc" id="L943">                          + t.getPotentialProduction(goodsType, null));</span>
+            }
+        }
+
+<span class="nc" id="L947">        UnitType skill = RandomChoice.getWeightedRandom(null, null,</span>
+<span class="nc" id="L948">            toList(map(skills, rc -&gt; {</span>
+<span class="nc" id="L949">                        UnitType unitType = rc.getObject();</span>
+<span class="nc" id="L950">                        return new RandomChoice&lt;&gt;(unitType, rc.getProbability()</span>
+<span class="nc" id="L951">                            * scale.get(unitType.getExpertProduction()));</span>
+                    })),
+<span class="nc" id="L953">            random);</span>
+<span class="nc" id="L954">        final Specification spec = map.getSpecification();</span>
+<span class="nc bnc" id="L955" title="All 2 branches missed.">        return (skill != null) ? skill</span>
+<span class="nc" id="L956">            : getRandomMember(logger, &quot;Scout&quot;,</span>
+<span class="nc" id="L957">                spec.getUnitTypesWithAbility(Ability.EXPERT_SCOUT), random);</span>
+    }
+
+    /**
+     * Create two ships, one with a colonist, for each player, and
+     * select suitable starting positions.
+     *
+     * @param map The &lt;code&gt;Map&lt;/code&gt; to place the european units on.
+     * @param players The players to create &lt;code&gt;Settlement&lt;/code&gt;s
+     *      and starting locations for. That is; both indian and
+     *      european players.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     */
+    private void createEuropeanUnits(Map map, List&lt;Player&gt; players,
+                                     LogBuilder lb) {
+<span class="nc" id="L972">        final int width = map.getWidth();</span>
+<span class="nc" id="L973">        final int height = map.getHeight();</span>
+<span class="nc" id="L974">        final int poleDistance = (int)(MIN_DISTANCE_FROM_POLE*height/2);</span>
+
+<span class="nc" id="L976">        List&lt;Player&gt; europeanPlayers = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L977" title="All 2 branches missed.">        for (Player player : players) {</span>
+<span class="nc bnc" id="L978" title="All 2 branches missed.">            if (player.isREF()) {</span>
+                // eastern edge of the map
+<span class="nc" id="L980">                int x = width - 2;</span>
+                // random latitude, not too close to the pole
+<span class="nc" id="L982">                int y = randomInt(logger, &quot;Pole&quot;, random,</span>
+<span class="nc" id="L983">                                  height - 2*poleDistance) + poleDistance;</span>
+<span class="nc" id="L984">                player.setEntryLocation(map.getTile(x, y));</span>
+<span class="nc" id="L985">                continue;</span>
+            }
+<span class="nc bnc" id="L987" title="All 2 branches missed.">            if (player.isEuropean()) europeanPlayers.add(player);</span>
+        }
+
+<span class="nc" id="L990">        List&lt;Position&gt; positions = generateStartingPositions(map, europeanPlayers);</span>
+<span class="nc" id="L991">        List&lt;Tile&gt; startingTiles = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L992">        List&lt;Unit&gt; carriers = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L993">        List&lt;Unit&gt; passengers = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L995">        populateEuropeanPlayers(map, lb, europeanPlayers, positions,</span>
+<span class="nc" id="L996">				startingTiles, carriers, passengers);</span>
+<span class="nc" id="L997">    }</span>
+
+
+	/**
+	 * Populate european players.
+	 *
+	 * @param map the map
+	 * @param lb the lb
+	 * @param europeanPlayers the european players
+	 * @param positions the positions
+	 * @param startingTiles the starting tiles
+	 * @param carriers the carriers
+	 * @param passengers the passengers
+	 */
+	private void populateEuropeanPlayers(Map map, LogBuilder lb,
+			List&lt;Player&gt; europeanPlayers, List&lt;Position&gt; positions,
+			List&lt;Tile&gt; startingTiles, List&lt;Unit&gt; carriers, List&lt;Unit&gt; passengers) {
+<span class="nc bnc" id="L1014" title="All 2 branches missed.">		for (int index = 0; index &lt; europeanPlayers.size(); index++) {</span>
+<span class="nc" id="L1015">            Player player = europeanPlayers.get(index);</span>
+<span class="nc" id="L1016">            Position position = positions.get(index);</span>
+<span class="nc" id="L1017">            lb.add(&quot;Generating units for player &quot;, player, &quot;.\n&quot;);</span>
+
+<span class="nc" id="L1019">            carriers.clear();</span>
+<span class="nc" id="L1020">            passengers.clear();</span>
+<span class="nc" id="L1021">            List&lt;AbstractUnit&gt; unitList = ((EuropeanNationType) player.getNationType())</span>
+<span class="nc" id="L1022">                .getStartingUnits();</span>
+<span class="nc" id="L1023">            buildAbstractUnitList(carriers, passengers, player, unitList);</span>
+
+<span class="nc" id="L1025">            boolean startAtSea = true;</span>
+<span class="nc bnc" id="L1026" title="All 2 branches missed.">            if (carriers.isEmpty()) {</span>
+<span class="nc" id="L1027">                lb.add(&quot;No carriers defined for player &quot;, player, &quot;.\n&quot;);</span>
+<span class="nc" id="L1028">                startAtSea = false;</span>
+            }
+
+<span class="nc" id="L1031">            Tile startTile = fillEuropeanPlayerTiles(map, lb, startingTiles,</span>
+<span class="nc" id="L1032">					player, position, startAtSea);</span>
+
+<span class="nc" id="L1034">            player.setEntryLocation(startTile);</span>
+
+<span class="nc bnc" id="L1036" title="All 2 branches missed.">            if (startAtSea) {</span>
+<span class="nc bnc" id="L1037" title="All 2 branches missed.">                for (Unit carrier : carriers) {</span>
+<span class="nc" id="L1038">                    carrier.setLocation(startTile);</span>
+<span class="nc" id="L1039">                    ((ServerPlayer)player).exploreForUnit(carrier);</span>
+                }
+<span class="nc bnc" id="L1041" title="All 2 branches missed.">                passengers: for (Unit unit : passengers) {</span>
+<span class="nc bnc" id="L1042" title="All 2 branches missed.">                    for (Unit carrier : carriers) {</span>
+<span class="nc bnc" id="L1043" title="All 2 branches missed.">                        if (carrier.canAdd(unit)) {</span>
+<span class="nc" id="L1044">                            unit.setLocation(carrier);</span>
+<span class="nc" id="L1045">                            continue passengers;</span>
+                        }
+                    }
+                    // no space left on carriers
+<span class="nc" id="L1049">                    unit.setLocation(player.getEurope());</span>
+                }
+<span class="nc" id="L1051">            } else {</span>
+<span class="nc bnc" id="L1052" title="All 2 branches missed.">                for (Unit unit : passengers) {</span>
+<span class="nc" id="L1053">                    unit.setLocation(startTile);</span>
+<span class="nc" id="L1054">                    ((ServerPlayer)player).exploreForUnit(unit);</span>
+                }
+            }
+
+<span class="nc bnc" id="L1058" title="All 2 branches missed.">            if (FreeColDebugger.isInDebugMode(FreeColDebugger.DebugMode.INIT)) {</span>
+<span class="nc" id="L1059">                createDebugUnits(map, player, startTile, lb);</span>
+<span class="nc" id="L1060">                IntegerOption op = spec.getIntegerOption(GameOptions.STARTING_MONEY);</span>
+<span class="nc bnc" id="L1061" title="All 2 branches missed.">                if (op != null) op.setValue(10000);</span>
+            }
+        }
+<span class="nc" id="L1064">	}</span>
+
+
+	/**
+	 * Fill european player tiles.
+	 *
+	 * @param map the map
+	 * @param lb the lb
+	 * @param startingTiles the starting tiles
+	 * @param player the player
+	 * @param position the position
+	 * @param startAtSea the start at sea
+	 * @return the tile
+	 */
+	private Tile fillEuropeanPlayerTiles(Map map, LogBuilder lb,
+			List&lt;Tile&gt; startingTiles, Player player, Position position,
+			boolean startAtSea) {
+<span class="nc" id="L1081">		Tile startTile = null;</span>
+<span class="nc" id="L1082">		int x = position.getX();</span>
+<span class="nc" id="L1083">		int y = position.getY();</span>
+<span class="nc bnc" id="L1084" title="All 2 branches missed.">		for (int i = 0; i &lt; 2 * map.getHeight(); i++) {</span>
+<span class="nc bnc" id="L1085" title="All 2 branches missed.">		    int offset = (i % 2 == 0) ? i / 2 : -(1 + i / 2);</span>
+<span class="nc" id="L1086">		    int row = y + offset;</span>
+<span class="nc bnc" id="L1087" title="All 4 branches missed.">		    if (row &lt; 0 || row &gt;= map.getHeight()) continue;</span>
+<span class="nc" id="L1088">		    startTile = findTileFor(map, row, x, startAtSea, lb);</span>
+<span class="nc bnc" id="L1089" title="All 2 branches missed.">		    if (startTile != null) {</span>
+<span class="nc bnc" id="L1090" title="All 2 branches missed.">		        if (startingTiles.contains(startTile)) {</span>
+<span class="nc" id="L1091">		            startTile = null;</span>
+<span class="nc" id="L1092">		        } else {</span>
+<span class="nc" id="L1093">		            startingTiles.add(startTile);</span>
+<span class="nc" id="L1094">		            break;</span>
+		        }
+		    }
+		}
+<span class="nc bnc" id="L1098" title="All 2 branches missed.">		if (startTile == null) {</span>
+<span class="nc" id="L1099">		    LogBuilder lb2 = new LogBuilder(64);</span>
+<span class="nc" id="L1100">		    lb2.add(&quot;Failed to find start tile &quot;,</span>
+<span class="nc bnc" id="L1101" title="All 2 branches missed.">		        ((startAtSea) ? &quot;at sea&quot; : &quot;on land&quot;),</span>
+<span class="nc" id="L1102">		        &quot; for player &quot;, player,</span>
+<span class="nc" id="L1103">		        &quot; from (&quot;, x, &quot;,&quot;, y, &quot;) avoiding:&quot;);</span>
+<span class="nc bnc" id="L1104" title="All 2 branches missed.">		    for (Tile t : startingTiles) lb2.add(&quot; &quot;, t);</span>
+<span class="nc" id="L1105">		    lb2.add(&quot; with map: &quot;);</span>
+<span class="nc bnc" id="L1106" title="All 2 branches missed.">		    for (int xx = 0; xx &lt; map.getWidth(); xx++) {</span>
+<span class="nc" id="L1107">		        lb2.add(&quot; &quot;, map.getTile(xx, y));</span>
+		    }
+<span class="nc" id="L1109">		    throw new RuntimeException(lb2.toString());</span>
+		}
+<span class="nc" id="L1111">		return startTile;</span>
+	}
+
+
+	/**
+	 * Builds the abstract unit list.
+	 *
+	 * @param carriers the carriers
+	 * @param passengers the passengers
+	 * @param player the player
+	 * @param unitList the unit list
+	 */
+	private void buildAbstractUnitList(List&lt;Unit&gt; carriers,
+			List&lt;Unit&gt; passengers, Player player, List&lt;AbstractUnit&gt; unitList) {
+<span class="nc bnc" id="L1125" title="All 2 branches missed.">		for (AbstractUnit startingUnit : unitList) {</span>
+<span class="nc" id="L1126">		    UnitType type = startingUnit.getType(spec);</span>
+<span class="nc" id="L1127">		    Role role = startingUnit.getRole(spec);</span>
+<span class="nc" id="L1128">		    Unit newUnit = new ServerUnit(game, null, player, type, role);</span>
+<span class="nc" id="L1129">		    newUnit.setName(player.getNameForUnit(type, random));</span>
+<span class="nc bnc" id="L1130" title="All 2 branches missed.">		    if (newUnit.isNaval()) {</span>
+<span class="nc bnc" id="L1131" title="All 2 branches missed.">		        if (newUnit.canCarryUnits()) {</span>
+<span class="nc" id="L1132">		            newUnit.setState(Unit.UnitState.ACTIVE);</span>
+<span class="nc" id="L1133">		            carriers.add(newUnit);</span>
+		        }
+<span class="nc" id="L1135">		    } else {</span>
+<span class="nc" id="L1136">		        newUnit.setState(Unit.UnitState.SENTRY);</span>
+<span class="nc" id="L1137">		        passengers.add(newUnit);</span>
+		    }
+
+		}
+<span class="nc" id="L1141">	}</span>
+
+    /**
+     * Find tile for.
+     *
+     * @param map the map
+     * @param row the row
+     * @param start the start
+     * @param startAtSea the start at sea
+     * @param lb the lb
+     * @return the tile
+     */
+    private Tile findTileFor(Map map, int row, int start, boolean startAtSea,
+                             LogBuilder lb) {
+<span class="nc" id="L1155">        Tile tile = null;</span>
+<span class="nc" id="L1156">        Tile seas = null;</span>
+<span class="nc bnc" id="L1157" title="All 2 branches missed.">        int offset = (start == 0) ? 1 : -1;</span>
+<span class="nc bnc" id="L1158" title="All 4 branches missed.">        for (int x = start; 0 &lt;= x &amp;&amp; x &lt; map.getWidth(); x += offset) {</span>
+<span class="nc" id="L1159">            tile = map.getTile(x, row);</span>
+<span class="nc bnc" id="L1160" title="All 2 branches missed.">            if (tile.isDirectlyHighSeasConnected()) {</span>
+<span class="nc" id="L1161">                seas = tile;</span>
+<span class="nc bnc" id="L1162" title="All 2 branches missed.">            } else if (tile.isLand()) {</span>
+<span class="nc bnc" id="L1163" title="All 2 branches missed.">                return (startAtSea) ? seas : tile;</span>
+            } 
+        }
+<span class="nc" id="L1166">        lb.add(&quot;No land in row &quot;, row, &quot;.\n&quot;);</span>
+<span class="nc" id="L1167">        return null;</span>
+    }
+
+    /**
+     * Creates the debug units.
+     *
+     * @param map the map
+     * @param player the player
+     * @param startTile the start tile
+     * @param lb the lb
+     */
+    private void createDebugUnits(Map map, Player player, Tile startTile,
+                                  LogBuilder lb) {
+        // In debug mode give each player a few more units and a colony.
+<span class="nc" id="L1181">        UnitType unitType = spec.getUnitType(&quot;model.unit.galleon&quot;);</span>
+<span class="nc" id="L1182">        Unit unit4 = new ServerUnit(game, startTile, player, unitType);</span>
+<span class="nc" id="L1183">        unitType = spec.getUnitType(&quot;model.unit.privateer&quot;);</span>
+<span class="nc" id="L1184">        Unit privateer = new ServerUnit(game, startTile, player, unitType);</span>
+<span class="nc" id="L1185">        ((ServerPlayer)player).exploreForUnit(privateer);</span>
+<span class="nc" id="L1186">        unitType = spec.getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="nc" id="L1187">        Unit unit5 = new ServerUnit(game, unit4, player, unitType);</span>
+<span class="nc" id="L1188">        unitType = spec.getUnitType(&quot;model.unit.veteranSoldier&quot;);</span>
+<span class="nc" id="L1189">        Unit unit6 = new ServerUnit(game, unit4, player, unitType);</span>
+<span class="nc" id="L1190">        unitType = spec.getUnitType(&quot;model.unit.jesuitMissionary&quot;);</span>
+<span class="nc" id="L1191">        Unit unit7 = new ServerUnit(game, unit4, player, unitType);</span>
+
+<span class="nc" id="L1193">        Tile colonyTile = null;</span>
+<span class="nc" id="L1194">        colonyTile = buildDebugTiles(map, player, startTile, colonyTile);</span>
+
+<span class="nc bnc" id="L1196" title="All 2 branches missed.">        if (colonyTile == null) {</span>
+<span class="nc" id="L1197">            lb.add(&quot;Could not find a debug colony site.\n&quot;);</span>
+<span class="nc" id="L1198">            return;</span>
+        }
+<span class="nc bnc" id="L1200" title="All 2 branches missed.">        colonyTile.setType(find(spec.getTileTypeList(), t -&gt; !t.isWater()));</span>
+<span class="nc" id="L1201">        unitType = spec.getUnitType(&quot;model.unit.expertFarmer&quot;);</span>
+<span class="nc" id="L1202">        Unit buildColonyUnit = new ServerUnit(game, colonyTile,</span>
+<span class="nc" id="L1203">                                              player, unitType);</span>
+<span class="nc" id="L1204">        String colonyName = Messages.message(player.getNationLabel())</span>
+<span class="nc" id="L1205">            + &quot; &quot; + Messages.message(&quot;Colony&quot;);</span>
+<span class="nc" id="L1206">        Colony colony = new ServerColony(game, player, colonyName, colonyTile);</span>
+<span class="nc" id="L1207">        player.addSettlement(colony);</span>
+<span class="nc" id="L1208">        colony.placeSettlement(true);</span>
+<span class="nc" id="L1209">        buildDebugSurroundTiles(player, colonyTile, colony);</span>
+<span class="nc" id="L1210">        buildColonyUnit.setLocation(colony);</span>
+<span class="nc bnc" id="L1211" title="All 2 branches missed.">        if (buildColonyUnit.getLocation() instanceof ColonyTile) {</span>
+<span class="nc" id="L1212">            Tile ct = ((ColonyTile) buildColonyUnit.getLocation()).getWorkTile();</span>
+<span class="nc" id="L1213">            buildColonyTiles(map, ct);</span>
+        }
+<span class="nc" id="L1215">        BuildingType schoolType = spec.getBuildingType(&quot;model.building.schoolhouse&quot;);</span>
+<span class="nc" id="L1216">        Building schoolhouse = new ServerBuilding(game, colony, schoolType);</span>
+<span class="nc" id="L1217">        colony.addBuilding(schoolhouse);</span>
+
+<span class="nc" id="L1219">        unitType = spec.getUnitType(&quot;model.unit.elderStatesman&quot;);</span>
+<span class="nc" id="L1220">        Unit statesman = new ServerUnit(game, colonyTile, player, unitType);</span>
+<span class="nc" id="L1221">        statesman.setLocation(colony.getWorkLocationFor(statesman,</span>
+<span class="nc" id="L1222">                statesman.getType().getExpertProduction()));</span>
+
+<span class="nc" id="L1224">        unitType = spec.getUnitType(&quot;model.unit.expertLumberJack&quot;);</span>
+<span class="nc" id="L1225">        Unit lumberjack = new ServerUnit(game, colony, player, unitType);</span>
+<span class="nc bnc" id="L1226" title="All 2 branches missed.">        if (lumberjack.getLocation() instanceof ColonyTile) {</span>
+<span class="nc" id="L1227">            Tile lt = ((ColonyTile) lumberjack.getLocation()).getWorkTile();</span>
+<span class="nc bnc" id="L1228" title="All 2 branches missed.">            for (TileType t : spec.getTileTypeList()) {</span>
+<span class="nc bnc" id="L1229" title="All 2 branches missed.">                if (t.isForested()) {</span>
+<span class="nc" id="L1230">                    lt.setType(t);</span>
+<span class="nc" id="L1231">                    break;</span>
+                }
+            }
+<span class="nc" id="L1234">            lumberjack.changeWorkType(lumberjack.getType()</span>
+<span class="nc" id="L1235">                .getExpertProduction());</span>
+        }
+
+<span class="nc" id="L1238">        unitType = spec.getUnitType(&quot;model.unit.masterCarpenter&quot;);</span>
+<span class="nc" id="L1239">        Unit carpenter = new ServerUnit(game, colony, player, unitType);</span>
+
+<span class="nc" id="L1241">        unitType = spec.getUnitType(&quot;model.unit.seasonedScout&quot;);</span>
+<span class="nc" id="L1242">        Unit scout = new ServerUnit(game, colonyTile, player, unitType);</span>
+<span class="nc" id="L1243">        ((ServerPlayer)player).exploreForUnit(scout);</span>
+
+<span class="nc" id="L1245">        unitType = spec.getUnitType(&quot;model.unit.veteranSoldier&quot;);</span>
+<span class="nc" id="L1246">        Unit unit8 = new ServerUnit(game, colonyTile, player, unitType);</span>
+<span class="nc" id="L1247">        Unit unit9 = new ServerUnit(game, colonyTile, player, unitType);</span>
+<span class="nc" id="L1248">        unitType = spec.getUnitType(&quot;model.unit.artillery&quot;);</span>
+<span class="nc" id="L1249">        Unit unit10 = new ServerUnit(game, colonyTile, player, unitType);</span>
+<span class="nc" id="L1250">        Unit unit11 = new ServerUnit(game, colonyTile, player, unitType);</span>
+<span class="nc" id="L1251">        Unit unit12 = new ServerUnit(game, colonyTile, player, unitType);</span>
+<span class="nc" id="L1252">        unitType = spec.getUnitType(&quot;model.unit.treasureTrain&quot;);</span>
+<span class="nc" id="L1253">        Unit unit13 = new ServerUnit(game, colonyTile, player, unitType);</span>
+<span class="nc" id="L1254">        unit13.setTreasureAmount(10000);</span>
+<span class="nc" id="L1255">        unitType = spec.getUnitType(&quot;model.unit.wagonTrain&quot;);</span>
+<span class="nc" id="L1256">        Unit unit14 = new ServerUnit(game, colonyTile, player, unitType);</span>
+<span class="nc" id="L1257">        GoodsType cigarsType = spec.getGoodsType(&quot;model.goods.cigars&quot;);</span>
+<span class="nc" id="L1258">        Goods cigards = new Goods(game, unit14, cigarsType, 5);</span>
+<span class="nc" id="L1259">        unit14.add(cigards);</span>
+<span class="nc" id="L1260">        unitType = spec.getUnitType(&quot;model.unit.jesuitMissionary&quot;);</span>
+<span class="nc" id="L1261">        Unit unit15 = new ServerUnit(game, colonyTile, player, unitType);</span>
+<span class="nc" id="L1262">        Unit unit16 = new ServerUnit(game, colonyTile, player, unitType);</span>
+
+<span class="nc" id="L1264">        ((ServerPlayer)player).exploreForSettlement(colony);</span>
+<span class="nc" id="L1265">    }</span>
+
+
+	/**
+	 * Builds the colony tiles.
+	 *
+	 * @param map the map
+	 * @param ct the ct
+	 */
+	private void buildColonyTiles(Map map, Tile ct) {
+<span class="nc bnc" id="L1275" title="All 2 branches missed.">		for (TileType t : spec.getTileTypeList()) {</span>
+<span class="nc bnc" id="L1276" title="All 2 branches missed.">		    if (!t.isWater()) {</span>
+<span class="nc" id="L1277">		        ct.setType(t);</span>
+<span class="nc" id="L1278">		        TileImprovementType plowType = map.getSpecification()</span>
+<span class="nc" id="L1279">		            .getTileImprovementType(&quot;model.improvement.plow&quot;);</span>
+<span class="nc" id="L1280">		        TileImprovement plow = new TileImprovement(game, ct, plowType);</span>
+<span class="nc" id="L1281">		        plow.setTurnsToComplete(0);</span>
+<span class="nc" id="L1282">		        ct.add(plow);</span>
+<span class="nc" id="L1283">		        break;</span>
+		    }
+		}
+<span class="nc" id="L1286">	}</span>
+
+
+	/**
+	 * Builds the debug surround tiles.
+	 *
+	 * @param player the player
+	 * @param colonyTile the colony tile
+	 * @param colony the colony
+	 */
+	private void buildDebugSurroundTiles(Player player, Tile colonyTile,
+			Colony colony) {
+<span class="nc bnc" id="L1298" title="All 2 branches missed.">		for (Tile tile : colonyTile.getSurroundingTiles(1)) {</span>
+<span class="nc bnc" id="L1299" title="All 2 branches missed.">            if (!tile.hasSettlement()</span>
+<span class="nc bnc" id="L1300" title="All 2 branches missed.">                &amp;&amp; (tile.getOwner() == null</span>
+<span class="nc bnc" id="L1301" title="All 2 branches missed.">                    || !tile.getOwner().isEuropean())) {</span>
+<span class="nc" id="L1302">                tile.changeOwnership(player, colony);</span>
+<span class="nc bnc" id="L1303" title="All 2 branches missed.">                if (tile.hasLostCityRumour()) {</span>
+<span class="nc" id="L1304">                    tile.removeLostCityRumour();</span>
+                }
+            }
+        }
+<span class="nc" id="L1308">	}</span>
+
+
+	/**
+	 * Builds the debug tiles.
+	 *
+	 * @param map the map
+	 * @param player the player
+	 * @param startTile the start tile
+	 * @param colonyTile the colony tile
+	 * @return the tile
+	 */
+	private Tile buildDebugTiles(Map map, Player player, Tile startTile,
+			Tile colonyTile) {
+<span class="nc bnc" id="L1322" title="All 2 branches missed.">		for (Tile tempTile : map.getCircleTiles(startTile, true, </span>
+<span class="nc" id="L1323">                                                FreeColObject.INFINITY)) {</span>
+<span class="nc bnc" id="L1324" title="All 2 branches missed.">            if (tempTile.isPolar()) continue; // No initial polar colonies</span>
+<span class="nc bnc" id="L1325" title="All 2 branches missed.">            if (player.canClaimToFoundSettlement(tempTile)) {</span>
+<span class="nc" id="L1326">                colonyTile = tempTile;</span>
+<span class="nc" id="L1327">                break;</span>
+            }
+        }
+<span class="nc" id="L1330">		return colonyTile;</span>
+	}
+
+    /**
+     * Generate starting positions.
+     *
+     * @param map the map
+     * @param players the players
+     * @return the list
+     */
+    private List&lt;Position&gt; generateStartingPositions(Map map,
+                                                     List&lt;Player&gt; players) {
+<span class="nc" id="L1342">        int number = players.size();</span>
+<span class="nc" id="L1343">        List&lt;Position&gt; positions = new ArrayList&lt;&gt;(number);</span>
+<span class="nc bnc" id="L1344" title="All 2 branches missed.">        if (number &gt; 0) {</span>
+<span class="nc" id="L1345">            int west = 0;</span>
+<span class="nc" id="L1346">            int east = map.getWidth() - 1;</span>
+<span class="nc bnc" id="L1347" title="All 4 branches missed.">            switch (spec.getInteger(GameOptions.STARTING_POSITIONS)) {</span>
+            case GameOptions.STARTING_POSITIONS_CLASSIC:
+<span class="nc" id="L1349">                int distance = map.getHeight() / number;</span>
+<span class="nc" id="L1350">                int row = distance/2;</span>
+<span class="nc bnc" id="L1351" title="All 2 branches missed.">                for (int index = 0; index &lt; number; index++) {</span>
+<span class="nc" id="L1352">                    positions.add(new Position(east, row));</span>
+<span class="nc" id="L1353">                    row += distance;</span>
+                }
+<span class="nc" id="L1355">                randomShuffle(logger, &quot;Classic starting positions&quot;,</span>
+<span class="nc" id="L1356">                              positions, random);</span>
+<span class="nc" id="L1357">                break;</span>
+            case GameOptions.STARTING_POSITIONS_RANDOM:
+<span class="nc" id="L1359">                distance = 2 * map.getHeight() / number;</span>
+<span class="nc" id="L1360">                row = distance/2;</span>
+<span class="nc bnc" id="L1361" title="All 2 branches missed.">                for (int index = 0; index &lt; number; index++) {</span>
+<span class="nc bnc" id="L1362" title="All 2 branches missed.">                    if (index % 2 == 0) {</span>
+<span class="nc" id="L1363">                        positions.add(new Position(east, row));</span>
+<span class="nc" id="L1364">                    } else {</span>
+<span class="nc" id="L1365">                        positions.add(new Position(west, row));</span>
+<span class="nc" id="L1366">                        row += distance;</span>
+                    }
+                }
+<span class="nc" id="L1369">                randomShuffle(logger, &quot;Random starting positions&quot;,</span>
+<span class="nc" id="L1370">                              positions, random);</span>
+<span class="nc" id="L1371">                break;</span>
+            case GameOptions.STARTING_POSITIONS_HISTORICAL:
+<span class="nc bnc" id="L1373" title="All 2 branches missed.">                for (Player player : players) {</span>
+<span class="nc" id="L1374">                    Nation nation = player.getNation();</span>
+<span class="nc bnc" id="L1375" title="All 2 branches missed.">                    positions.add(new Position(nation.startsOnEastCoast() ? east : west,</span>
+<span class="nc" id="L1376">                                               map.getRow(nation.getPreferredLatitude())));</span>
+                }
+                break;
+            }
+        }
+<span class="nc" id="L1381">        return positions;</span>
+    }
+
+
+    // Implement MapGenerator
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map createEmptyMap(int width, int height, LogBuilder lb) {
+<span class="nc" id="L1392">        recache(false); // Reload the options and specification</span>
+
+<span class="nc" id="L1394">        return new TerrainGenerator(game, null, random)</span>
+<span class="nc" id="L1395">            .createMap(new LandMap(width, height), lb);</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map createMap(LogBuilder lb) {
+<span class="nc" id="L1403">        recache(true); // Reload the options and specification</span>
+
+        // Create land map.
+<span class="nc bnc" id="L1406" title="All 2 branches missed.">        LandMap landMap = (importGame != null) ? new LandMap(importGame)</span>
+<span class="nc" id="L1407">            : new LandMap(mapOptions, random);</span>
+
+        // Create terrain.
+<span class="nc" id="L1410">        Map map = new TerrainGenerator(game, importGame, random)</span>
+<span class="nc" id="L1411">            .createMap(landMap, lb);</span>
+
+        // Decorate the map.
+<span class="nc" id="L1414">        makeNativeSettlements(map, lb);</span>
+<span class="nc" id="L1415">        makeLostCityRumours(map, lb);</span>
+<span class="nc" id="L1416">        createEuropeanUnits(map, game.getLiveEuropeanPlayers(null), lb);</span>
+<span class="nc" id="L1417">        return map;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

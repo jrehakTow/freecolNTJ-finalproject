@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ModifierTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">ModifierTest.java</span></div><h1>ModifierTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import net.sf.freecol.common.model.Modifier;
+import net.sf.freecol.common.model.Modifier.ModifierType;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L32">public class ModifierTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L34">    private static final UnitType carpenter</span>
+<span class="nc" id="L35">        = spec().getUnitType(&quot;model.unit.masterCarpenter&quot;);</span>
+<span class="nc" id="L36">    private static final UnitType frigate</span>
+<span class="nc" id="L37">        = spec().getUnitType(&quot;model.unit.frigate&quot;);</span>
+
+
+    public void testAdditiveModifier() {
+<span class="nc" id="L41">        Modifier modifier = new Modifier(&quot;test&quot;, 3,</span>
+<span class="nc" id="L42">                                         ModifierType.ADDITIVE);</span>
+<span class="nc" id="L43">        spec().addModifier(modifier);</span>
+
+<span class="nc" id="L45">        assertEquals(4f, modifier.applyTo(1));</span>
+<span class="nc" id="L46">    }</span>
+
+    public void testMultiplicativeModifier() {
+<span class="nc" id="L49">        Modifier modifier = new Modifier(&quot;test&quot;, 1.5f,</span>
+<span class="nc" id="L50">                                         ModifierType.MULTIPLICATIVE);</span>
+<span class="nc" id="L51">        spec().addModifier(modifier);</span>
+
+<span class="nc" id="L53">        assertEquals(1 * 1.5f, modifier.applyTo(1));</span>
+<span class="nc" id="L54">        assertEquals(3 * 1.5f, modifier.applyTo(3));</span>
+<span class="nc" id="L55">    }</span>
+
+    public void testPercentageModifier() {
+<span class="nc" id="L58">        Modifier modifier = new Modifier(&quot;test&quot;, 50,</span>
+<span class="nc" id="L59">                                         ModifierType.PERCENTAGE);</span>
+<span class="nc" id="L60">        spec().addModifier(modifier);</span>
+
+<span class="nc" id="L62">        assertEquals(150f, modifier.applyTo(100));</span>
+<span class="nc" id="L63">        assertEquals(4.5f, modifier.applyTo(3));</span>
+<span class="nc" id="L64">    }</span>
+
+    public void testCombineAdditiveModifiers() {
+<span class="nc" id="L67">        Modifier modifier1 = new Modifier(&quot;test&quot;, 3,</span>
+<span class="nc" id="L68">                                          ModifierType.ADDITIVE);</span>
+<span class="nc" id="L69">        Modifier modifier2 = new Modifier(&quot;test&quot;, 4,</span>
+<span class="nc" id="L70">                                          ModifierType.ADDITIVE);</span>
+<span class="nc" id="L71">        Set&lt;Modifier&gt; modifierSet = new HashSet&lt;Modifier&gt;();</span>
+<span class="nc" id="L72">        modifierSet.add(modifier1);</span>
+<span class="nc" id="L73">        modifierSet.add(modifier2);</span>
+<span class="nc" id="L74">        assertEquals(1 + 3 + 4f,</span>
+<span class="nc" id="L75">            FeatureContainer.applyModifiers(1, null, modifierSet));</span>
+<span class="nc" id="L76">    }</span>
+
+    public void testCombineMultiplicativeModifiers() {
+<span class="nc" id="L79">        Modifier modifier1 = new Modifier(&quot;test&quot;, 3,</span>
+<span class="nc" id="L80">                                          ModifierType.MULTIPLICATIVE);</span>
+<span class="nc" id="L81">        Modifier modifier2 = new Modifier(&quot;test&quot;, 4,</span>
+<span class="nc" id="L82">                                          ModifierType.MULTIPLICATIVE);</span>
+<span class="nc" id="L83">        Set&lt;Modifier&gt; modifierSet = new HashSet&lt;Modifier&gt;();</span>
+<span class="nc" id="L84">        modifierSet.add(modifier1);</span>
+<span class="nc" id="L85">        modifierSet.add(modifier2);</span>
+<span class="nc" id="L86">        assertEquals(2 * 3 * 4f,</span>
+<span class="nc" id="L87">            FeatureContainer.applyModifiers(2, null, modifierSet));</span>
+<span class="nc" id="L88">    }</span>
+
+    public void testCombinePercentageModifiers() {
+<span class="nc" id="L91">        Modifier modifier1 = new Modifier(&quot;test&quot;, 3,</span>
+<span class="nc" id="L92">                                          ModifierType.PERCENTAGE);</span>
+<span class="nc" id="L93">        Modifier modifier2 = new Modifier(&quot;test&quot;, 4,</span>
+<span class="nc" id="L94">                                          ModifierType.PERCENTAGE);</span>
+<span class="nc" id="L95">        Set&lt;Modifier&gt; modifierSet = new HashSet&lt;Modifier&gt;();</span>
+<span class="nc" id="L96">        modifierSet.add(modifier1);</span>
+<span class="nc" id="L97">        modifierSet.add(modifier2);</span>
+<span class="nc" id="L98">        assertEquals(100 * (100 + 3)/100f * (100 + 4)/100f,</span>
+<span class="nc" id="L99">            FeatureContainer.applyModifiers(100, null, modifierSet));</span>
+<span class="nc" id="L100">    }</span>
+
+    public void testCombinedModifier() {
+<span class="nc" id="L103">        Modifier modifier1 = new Modifier(&quot;test&quot;, 3,</span>
+<span class="nc" id="L104">                                          ModifierType.ADDITIVE);</span>
+<span class="nc" id="L105">        Modifier modifier2 = new Modifier(&quot;test&quot;, 1.5f,</span>
+<span class="nc" id="L106">                                          ModifierType.MULTIPLICATIVE);</span>
+<span class="nc" id="L107">        Modifier modifier3 = new Modifier(&quot;test&quot;, 50,</span>
+<span class="nc" id="L108">                                          ModifierType.PERCENTAGE);</span>
+
+<span class="nc" id="L110">        Set&lt;Modifier&gt; modifierSet = new HashSet&lt;Modifier&gt;();</span>
+<span class="nc" id="L111">        modifierSet.add(modifier1);</span>
+<span class="nc" id="L112">        modifierSet.add(modifier2);</span>
+<span class="nc" id="L113">        assertEquals((1 + 3) * 1.5f,</span>
+<span class="nc" id="L114">            FeatureContainer.applyModifiers(1, null, modifierSet));</span>
+
+<span class="nc" id="L116">        modifierSet.add(modifier3);</span>
+<span class="nc" id="L117">        assertEquals(((1 + 3) * 1.5f) * 1.5f,</span>
+<span class="nc" id="L118">            FeatureContainer.applyModifiers(1, null, modifierSet));</span>
+
+<span class="nc" id="L120">        modifierSet.remove(modifier1);</span>
+<span class="nc" id="L121">        assertEquals(10 * 1.5f * 1.5f,</span>
+<span class="nc" id="L122">            FeatureContainer.applyModifiers(10, null, modifierSet));</span>
+<span class="nc" id="L123">    }</span>
+
+    public void testScope() {
+<span class="nc" id="L126">        Modifier modifier1 = new Modifier(&quot;test&quot;, 3,</span>
+<span class="nc" id="L127">                                          ModifierType.ADDITIVE);</span>
+<span class="nc" id="L128">        Modifier modifier2 = new Modifier(&quot;test&quot;, 1.5f,</span>
+<span class="nc" id="L129">                                          ModifierType.MULTIPLICATIVE);</span>
+<span class="nc" id="L130">        Modifier modifier3 = new Modifier(&quot;test&quot;, 30,</span>
+<span class="nc" id="L131">                                          ModifierType.PERCENTAGE);</span>
+
+<span class="nc" id="L133">        FeatureContainer featureContainer = new FeatureContainer();</span>
+<span class="nc" id="L134">        featureContainer.addModifier(modifier1);</span>
+<span class="nc" id="L135">        featureContainer.addModifier(modifier2);</span>
+<span class="nc" id="L136">        featureContainer.addModifier(modifier3);</span>
+
+        // applies to frigate
+<span class="nc" id="L139">        Scope scope1 = new Scope();</span>
+<span class="nc" id="L140">        scope1.setType(&quot;model.unit.frigate&quot;);</span>
+        // applies to carpenter
+<span class="nc" id="L142">        Scope scope2 = new Scope();</span>
+<span class="nc" id="L143">        scope2.setAbilityId(Ability.NAVAL_UNIT);</span>
+<span class="nc" id="L144">        scope2.setAbilityValue(false);</span>
+        // applies to frigate
+<span class="nc" id="L146">        Scope scope3 = new Scope();</span>
+<span class="nc" id="L147">        scope3.setMethodName(&quot;getLineOfSight&quot;);</span>
+<span class="nc" id="L148">        scope3.setMethodValue(&quot;2&quot;);</span>
+
+<span class="nc" id="L150">        List&lt;Scope&gt; scopes = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L151">        scopes.add(scope1);</span>
+<span class="nc" id="L152">        modifier1.setScopes(scopes);</span>
+<span class="nc" id="L153">        assertTrue(modifier1.appliesTo(frigate));</span>
+<span class="nc" id="L154">        assertFalse(modifier1.appliesTo(carpenter));</span>
+
+<span class="nc" id="L156">        Set&lt;Modifier&gt; result</span>
+<span class="nc" id="L157">            = featureContainer.getModifiers(&quot;test&quot;, frigate, null);</span>
+<span class="nc" id="L158">        assertEquals(3, result.size());</span>
+<span class="nc" id="L159">        assertEquals(((1 + 3) * 1.5f) + ((1 + 3) * 1.5f) * 30 / 100,</span>
+<span class="nc" id="L160">            FeatureContainer.applyModifiers(1, null, result));</span>
+
+<span class="nc" id="L162">        result = featureContainer.getModifiers(&quot;test&quot;, carpenter, null);</span>
+<span class="nc" id="L163">        assertEquals(2, result.size());</span>
+<span class="nc" id="L164">        assertEquals(1.5f + (1.5f * 30) / 100,</span>
+<span class="nc" id="L165">            FeatureContainer.applyModifiers(1, null, result));</span>
+
+<span class="nc" id="L167">        List&lt;Scope&gt; scopes2 = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L168">        scopes2.add(scope2);</span>
+<span class="nc" id="L169">        scopes2.add(scope3);</span>
+<span class="nc" id="L170">        modifier2.setScopes(scopes2);</span>
+<span class="nc" id="L171">        assertTrue(modifier2.appliesTo(frigate));</span>
+<span class="nc" id="L172">        assertTrue(modifier2.appliesTo(carpenter));</span>
+
+<span class="nc" id="L174">        result = featureContainer.getModifiers(&quot;test&quot;, frigate, null);</span>
+<span class="nc" id="L175">        assertEquals(3, result.size());</span>
+<span class="nc" id="L176">        assertEquals(((1 + 3) * 1.5f) + ((1 + 3) * 1.5f) * 30 / 100,</span>
+<span class="nc" id="L177">            FeatureContainer.applyModifiers(1, null, result));</span>
+
+<span class="nc" id="L179">        result = featureContainer.getModifiers(&quot;test&quot;, carpenter, null);</span>
+<span class="nc" id="L180">        assertEquals(2, result.size());</span>
+
+<span class="nc" id="L182">        assertEquals(1.5f + (1.5f * 30) / 100,</span>
+<span class="nc" id="L183">            FeatureContainer.applyModifiers(1, null, result));</span>
+<span class="nc" id="L184">    }</span>
+
+    public void testTimeLimits() {
+<span class="nc" id="L187">        Modifier modifier1 = new Modifier(&quot;test&quot;, 1,</span>
+<span class="nc" id="L188">                                          ModifierType.ADDITIVE);</span>
+<span class="nc" id="L189">        Modifier modifier2 = new Modifier(&quot;test&quot;, 2,</span>
+<span class="nc" id="L190">                                          ModifierType.ADDITIVE);</span>
+
+<span class="nc" id="L192">        modifier1.setFirstTurn(new Turn(10));</span>
+<span class="nc" id="L193">        modifier1.setLastTurn(new Turn(30));</span>
+<span class="nc" id="L194">        modifier2.setFirstTurn(new Turn(20));</span>
+<span class="nc" id="L195">        modifier2.setLastTurn(new Turn(40));</span>
+
+<span class="nc" id="L197">        assertTrue(modifier1.hasTimeLimit());</span>
+<span class="nc" id="L198">        assertTrue(modifier2.hasTimeLimit());</span>
+
+<span class="nc" id="L200">        assertFalse(modifier1.appliesTo(frigate, new Turn(5)));</span>
+<span class="nc" id="L201">        assertFalse(modifier1.appliesTo(frigate, new Turn(35)));</span>
+<span class="nc" id="L202">        assertFalse(modifier1.isOutOfDate(new Turn(25)));</span>
+<span class="nc" id="L203">        assertTrue(modifier1.appliesTo(frigate, new Turn(25)));</span>
+
+<span class="nc" id="L205">        assertFalse(modifier2.appliesTo(frigate, new Turn(5)));</span>
+<span class="nc" id="L206">        assertFalse(modifier2.appliesTo(frigate, new Turn(5)));</span>
+<span class="nc" id="L207">        assertFalse(modifier2.isOutOfDate(new Turn(25)));</span>
+<span class="nc" id="L208">        assertTrue(modifier2.appliesTo(frigate, new Turn(25)));</span>
+
+<span class="nc" id="L210">        FeatureContainer featureContainer = new FeatureContainer();</span>
+<span class="nc" id="L211">        featureContainer.addModifier(modifier1);</span>
+<span class="nc" id="L212">        featureContainer.addModifier(modifier2);</span>
+<span class="nc" id="L213">        Set&lt;Modifier&gt; modifierSet = featureContainer.getModifiers(&quot;test&quot;,</span>
+<span class="nc" id="L214">            frigate, new Turn(15));</span>
+<span class="nc" id="L215">        assertEquals(1, modifierSet.size());</span>
+<span class="nc" id="L216">        assertEquals(modifier1, modifierSet.iterator().next());</span>
+<span class="nc" id="L217">        modifierSet = featureContainer.getModifiers(&quot;test&quot;,</span>
+<span class="nc" id="L218">            frigate, new Turn(35));</span>
+<span class="nc" id="L219">        assertEquals(1, modifierSet.size());</span>
+<span class="nc" id="L220">        assertEquals(modifier2, modifierSet.iterator().next());</span>
+<span class="nc" id="L221">    }</span>
+
+    public void testIncrements() {
+<span class="nc" id="L224">        Modifier modifier1 = new Modifier(&quot;test&quot;, 1,</span>
+<span class="nc" id="L225">                                          ModifierType.ADDITIVE);</span>
+<span class="nc" id="L226">        Modifier modifier2 = new Modifier(&quot;test&quot;, 2,</span>
+<span class="nc" id="L227">                                          ModifierType.ADDITIVE);</span>
+
+<span class="nc" id="L229">        modifier1.setIncrement(ModifierType.ADDITIVE, 1,</span>
+<span class="nc" id="L230">                               new Turn(10), new Turn(15));</span>
+<span class="nc" id="L231">        assertFalse(modifier1.appliesTo(frigate, new Turn(9)));</span>
+<span class="nc" id="L232">        assertTrue(modifier1.appliesTo(frigate, new Turn(10)));</span>
+<span class="nc" id="L233">        assertTrue(modifier1.hasIncrement());</span>
+
+<span class="nc" id="L235">        FeatureContainer featureContainer = new FeatureContainer();</span>
+<span class="nc" id="L236">        featureContainer.addModifier(modifier1);</span>
+<span class="nc" id="L237">        featureContainer.addModifier(modifier2);</span>
+        Turn turn;
+
+        // only modifier2
+<span class="nc" id="L241">        assertEquals(3f, featureContainer.applyModifiers(1, new Turn(9),</span>
+<span class="nc" id="L242">                                                         &quot;test&quot;, frigate));</span>
+        // both modifiers
+<span class="nc" id="L244">        assertEquals(4f, featureContainer.applyModifiers(1, new Turn(10),</span>
+<span class="nc" id="L245">                                                         &quot;test&quot;, frigate));</span>
+<span class="nc" id="L246">        assertEquals(5f, featureContainer.applyModifiers(1, new Turn(11),</span>
+<span class="nc" id="L247">                                                         &quot;test&quot;, frigate));</span>
+<span class="nc" id="L248">        assertEquals(9f, featureContainer.applyModifiers(1, new Turn(15),</span>
+<span class="nc" id="L249">                                                         &quot;test&quot;, frigate));</span>
+        // only modifier2
+<span class="nc" id="L251">        assertEquals(3f, featureContainer.applyModifiers(1, new Turn(16),</span>
+<span class="nc" id="L252">                                                         &quot;test&quot;, frigate));</span>
+<span class="nc" id="L253">    }</span>
+
+    public void testHashEquals() {
+<span class="nc" id="L256">        Scope scope1 = new Scope();</span>
+<span class="nc" id="L257">        scope1.setType(&quot;model.unit.frigate&quot;);</span>
+<span class="nc" id="L258">        scope1.setAbilityId(&quot;whatever&quot;);</span>
+
+<span class="nc" id="L260">        Scope scope2 = new Scope();</span>
+<span class="nc" id="L261">        scope2.setType(&quot;model.unit.frigate&quot;);</span>
+<span class="nc" id="L262">        scope2.setAbilityId(&quot;whatever&quot;);</span>
+
+<span class="nc" id="L264">        Scope scope3 = new Scope();</span>
+<span class="nc" id="L265">        scope3.setType(&quot;model.unit.frigate&quot;);</span>
+<span class="nc" id="L266">        scope3.setAbilityId(&quot;whatever&quot;);</span>
+<span class="nc" id="L267">        scope3.setAbilityValue(false);</span>
+
+<span class="nc" id="L269">        assertEquals(scope1, scope1);</span>
+<span class="nc" id="L270">        assertEquals(scope1.hashCode(), scope1.hashCode());</span>
+<span class="nc" id="L271">        assertEquals(scope1, scope2);</span>
+<span class="nc" id="L272">        assertEquals(scope1.hashCode(), scope2.hashCode());</span>
+<span class="nc" id="L273">        assertFalse(scope1.equals(scope3));</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">        assertFalse(scope1.hashCode() == scope3.hashCode());</span>
+
+<span class="nc" id="L276">        Modifier modifier1 = new Modifier(&quot;test&quot;, 3,</span>
+<span class="nc" id="L277">                                          ModifierType.ADDITIVE);</span>
+<span class="nc" id="L278">        Modifier modifier2 = new Modifier(&quot;test&quot;, 3,</span>
+<span class="nc" id="L279">                                          ModifierType.ADDITIVE);</span>
+<span class="nc" id="L280">        Modifier modifier3 = new Modifier(&quot;test&quot;, 2,</span>
+<span class="nc" id="L281">                                          ModifierType.ADDITIVE);</span>
+
+<span class="nc" id="L283">        assertEquals(modifier1, modifier1);</span>
+<span class="nc" id="L284">        assertEquals(modifier1.hashCode(), modifier1.hashCode());</span>
+<span class="nc" id="L285">        assertEquals(modifier1, modifier2);</span>
+<span class="nc" id="L286">        assertEquals(modifier1.hashCode(), modifier2.hashCode());</span>
+<span class="nc" id="L287">        assertFalse(modifier1.equals(modifier3));</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">        assertFalse(modifier1.hashCode() == modifier3.hashCode());</span>
+
+<span class="nc" id="L290">        List&lt;Scope&gt; scopeList1 = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L291">        scopeList1.add(scope1);</span>
+<span class="nc" id="L292">        scopeList1.add(scope3);</span>
+<span class="nc" id="L293">        List&lt;Scope&gt; scopeList2 = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L294">        scopeList2.add(scope3);</span>
+<span class="nc" id="L295">        scopeList2.add(scope1);</span>
+<span class="nc" id="L296">        List&lt;Scope&gt; scopeList3 = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L297">        scopeList3.add(scope1);</span>
+<span class="nc" id="L298">        scopeList3.add(scope2);</span>
+
+<span class="nc" id="L300">        modifier1.setScopes(scopeList1);</span>
+<span class="nc" id="L301">        modifier2.setScopes(scopeList1);</span>
+
+<span class="nc" id="L303">        assertEquals(modifier1, modifier1);</span>
+<span class="nc" id="L304">        assertEquals(modifier1.hashCode(), modifier1.hashCode());</span>
+<span class="nc" id="L305">        assertEquals(modifier1, modifier2);</span>
+<span class="nc" id="L306">        assertEquals(modifier1.hashCode(), modifier2.hashCode());</span>
+<span class="nc" id="L307">        assertFalse(modifier1.equals(modifier3));</span>
+<span class="nc bnc" id="L308" title="All 2 branches missed.">        assertFalse(modifier1.hashCode() == modifier3.hashCode());</span>
+
+<span class="nc" id="L310">        modifier2.setScopes(scopeList2);</span>
+
+<span class="nc" id="L312">        assertEquals(modifier2, modifier2);</span>
+<span class="nc" id="L313">        assertEquals(modifier2.hashCode(), modifier2.hashCode());</span>
+<span class="nc" id="L314">        assertEquals(modifier1, modifier2);</span>
+<span class="nc" id="L315">        assertEquals(modifier1.hashCode(), modifier2.hashCode());</span>
+<span class="nc" id="L316">        assertFalse(modifier2.equals(modifier3));</span>
+<span class="nc bnc" id="L317" title="All 2 branches missed.">        assertFalse(modifier2.hashCode() == modifier3.hashCode());</span>
+
+<span class="nc" id="L319">        modifier2.setScopes(scopeList3);</span>
+
+<span class="nc" id="L321">        assertEquals(modifier2, modifier2);</span>
+<span class="nc" id="L322">        assertEquals(modifier2.hashCode(), modifier2.hashCode());</span>
+<span class="nc" id="L323">        assertFalse(modifier1.equals(modifier2));</span>
+<span class="nc bnc" id="L324" title="All 2 branches missed.">        assertFalse(modifier1.hashCode() == modifier2.hashCode());</span>
+<span class="nc" id="L325">        assertFalse(modifier2.equals(modifier3));</span>
+<span class="nc bnc" id="L326" title="All 2 branches missed.">        assertFalse(modifier2.hashCode() == modifier3.hashCode());</span>
+<span class="nc" id="L327">    }</span>
+
+    /**
+     * The presence of a single Modifier with an unknown value
+     * produces an unknown result.
+     */
+    public void testModifierUnknown() {
+<span class="nc" id="L334">        Modifier modifier1 = new Modifier(&quot;test&quot;, 3,</span>
+<span class="nc" id="L335">                                          ModifierType.ADDITIVE);</span>
+<span class="nc" id="L336">        Modifier modifier2 = new Modifier(&quot;test&quot;, Modifier.UNKNOWN,</span>
+<span class="nc" id="L337">                                          ModifierType.MULTIPLICATIVE);</span>
+<span class="nc" id="L338">        Modifier modifier3 = new Modifier(&quot;test&quot;, 30,</span>
+<span class="nc" id="L339">                                          ModifierType.PERCENTAGE);</span>
+
+<span class="nc" id="L341">        FeatureContainer featureContainer = new FeatureContainer();</span>
+<span class="nc" id="L342">        featureContainer.addModifier(modifier1);</span>
+<span class="nc" id="L343">        featureContainer.addModifier(modifier2);</span>
+<span class="nc" id="L344">        featureContainer.addModifier(modifier3);</span>
+
+<span class="nc" id="L346">        assertEquals(Modifier.UNKNOWN,</span>
+<span class="nc" id="L347">            featureContainer.applyModifiers(1, new Turn(15), &quot;test&quot;, null));</span>
+<span class="nc" id="L348">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

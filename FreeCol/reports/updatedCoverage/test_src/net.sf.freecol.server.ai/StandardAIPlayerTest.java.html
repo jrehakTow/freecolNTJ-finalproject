@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>StandardAIPlayerTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai</a> &gt; <span class="el_source">StandardAIPlayerTest.java</span></div><h1>StandardAIPlayerTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai;
+
+import net.sf.freecol.common.model.AbstractGoods;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.Role;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.util.LogBuilder;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L33">public class StandardAIPlayerTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L35">    private static final GoodsType horsesType</span>
+<span class="nc" id="L36">        = spec().getGoodsType(&quot;model.goods.horses&quot;);</span>
+<span class="nc" id="L37">    private static final GoodsType musketsType</span>
+<span class="nc" id="L38">        = spec().getGoodsType(&quot;model.goods.muskets&quot;);</span>
+
+<span class="nc" id="L40">    private static final Role nativeDragoonRole</span>
+<span class="nc" id="L41">        = spec().getRole(&quot;model.role.nativeDragoon&quot;);</span>
+
+<span class="nc" id="L43">    private int horsesReqPerUnit = 0, musketsReqPerUnit = 0;</span>
+
+<span class="nc" id="L45">    private LogBuilder lb = new LogBuilder(0); // dummy</span>
+
+
+    @Override
+    public void tearDown() throws Exception {
+<span class="nc" id="L50">        ServerTestHelper.stopServerGame();</span>
+<span class="nc" id="L51">        super.tearDown();</span>
+<span class="nc" id="L52">    }</span>
+
+    private void setupNativeDragoons() {
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        for (AbstractGoods ag : nativeDragoonRole.getRequiredGoods()) {</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">            if (ag.getType() == horsesType) {</span>
+<span class="nc" id="L57">                horsesReqPerUnit = ag.getAmount();</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">            } else if (ag.getType() == musketsType) {</span>
+<span class="nc" id="L59">                musketsReqPerUnit = ag.getAmount();</span>
+            }
+        }
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        assertFalse(horsesReqPerUnit == 0);</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        assertFalse(musketsReqPerUnit == 0);</span>
+<span class="nc" id="L64">    }</span>
+
+    public void testEquipBraves() {
+<span class="nc" id="L67">        Game game = ServerTestHelper.startServerGame(getTestMap());</span>
+<span class="nc" id="L68">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+
+<span class="nc" id="L70">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="nc" id="L71">            = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="nc" id="L72">        IndianSettlement camp = builder.initialBravesInCamp(3).build();</span>
+<span class="nc" id="L73">        NativeAIPlayer player = (NativeAIPlayer) aiMain.getAIPlayer(camp.getOwner());</span>
+<span class="nc" id="L74">        game.setCurrentPlayer(camp.getOwner());</span>
+
+<span class="nc" id="L76">        setupNativeDragoons();</span>
+<span class="nc" id="L77">        int bravesToEquip = camp.getUnitCount();</span>
+<span class="nc" id="L78">        int totalHorsesReq = bravesToEquip * horsesReqPerUnit;</span>
+<span class="nc" id="L79">        int totalMusketsReq = bravesToEquip * musketsReqPerUnit;</span>
+<span class="nc" id="L80">        int totalHorsesAvail = totalHorsesReq*2;</span>
+<span class="nc" id="L81">        int totalMusketsAvail = totalMusketsReq*2;</span>
+
+        // Verify initial conditions
+<span class="nc" id="L84">        assertEquals(&quot;No horses should exist in camp&quot;, 0,</span>
+<span class="nc" id="L85">            camp.getGoodsCount(horsesType));</span>
+<span class="nc" id="L86">        assertEquals(&quot;No muskets should exist in camp&quot;, 0,</span>
+<span class="nc" id="L87">            camp.getGoodsCount(musketsType));</span>
+
+<span class="nc bnc" id="L89" title="All 2 branches missed.">        for (Unit unit : camp.getUnitList()) {</span>
+<span class="nc" id="L90">            assertFalse(&quot;Indian should not have mounted braves&quot;,</span>
+<span class="nc" id="L91">                unit.isMounted());</span>
+<span class="nc" id="L92">            assertFalse(&quot;Indian should not have armed braves&quot;,</span>
+<span class="nc" id="L93">                unit.isArmed());</span>
+        }
+
+        // Setup
+<span class="nc" id="L97">        camp.addGoods(horsesType, totalHorsesAvail);</span>
+<span class="nc" id="L98">        camp.addGoods(musketsType, totalMusketsAvail);</span>
+
+<span class="nc" id="L100">        assertEquals(&quot;Wrong initial number of horses in Indian camp&quot;,</span>
+<span class="nc" id="L101">            totalHorsesAvail, camp.getGoodsCount(horsesType));</span>
+<span class="nc" id="L102">        assertEquals(&quot;Wrong initial number of muskets in Indian camp&quot;,</span>
+<span class="nc" id="L103">            totalMusketsAvail, camp.getGoodsCount(musketsType));</span>
+
+<span class="nc" id="L105">        player.equipBraves(camp, lb);</span>
+
+        // Verify results
+<span class="nc" id="L108">        int mounted = 0;</span>
+<span class="nc" id="L109">        int armed = 0;</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        for (Unit unit : camp.getUnitList()) {</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">            if (unit.isMounted()) mounted++;</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">            if (unit.isArmed()) armed++;</span>
+        }
+<span class="nc" id="L114">        assertEquals(&quot;Wrong number of units armed&quot;, bravesToEquip, armed);</span>
+<span class="nc" id="L115">        assertEquals(&quot;Wrong number of units mounted&quot;, bravesToEquip, mounted);</span>
+<span class="nc" id="L116">        assertEquals(&quot;Wrong final number of muskets in Indian camp&quot;,</span>
+<span class="nc" id="L117">            totalMusketsReq, camp.getGoodsCount(musketsType));</span>
+<span class="nc" id="L118">        assertEquals(&quot;Wrong final number of horses in Indian camp&quot;,</span>
+<span class="nc" id="L119">            totalHorsesReq, camp.getGoodsCount(horsesType));</span>
+<span class="nc" id="L120">    }</span>
+
+    public void testEquipBravesNotEnoughReqGoods() {
+<span class="nc" id="L123">        Game game = ServerTestHelper.startServerGame(getTestMap());</span>
+<span class="nc" id="L124">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+
+<span class="nc" id="L126">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="nc" id="L127">            = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="nc" id="L128">        IndianSettlement camp = builder.initialBravesInCamp(3).build();</span>
+<span class="nc" id="L129">        NativeAIPlayer player = (NativeAIPlayer) aiMain.getAIPlayer(camp.getOwner());</span>
+<span class="nc" id="L130">        game.setCurrentPlayer(camp.getOwner());</span>
+
+<span class="nc" id="L132">        setupNativeDragoons();</span>
+<span class="nc" id="L133">        int bravesToEquip = camp.getUnitCount() - 1;</span>
+<span class="nc" id="L134">        int totalHorsesAvail = bravesToEquip * horsesReqPerUnit</span>
+<span class="nc" id="L135">            + horsesType.getBreedingNumber();</span>
+<span class="nc" id="L136">        int totalMusketsAvail = bravesToEquip * musketsReqPerUnit;</span>
+
+        // Verify initial conditions
+<span class="nc" id="L139">        assertEquals(&quot;No horses should exist in camp&quot;, 0,</span>
+<span class="nc" id="L140">            camp.getGoodsCount(horsesType));</span>
+<span class="nc" id="L141">        assertEquals(&quot;No muskets should exist in camp&quot;, 0,</span>
+<span class="nc" id="L142">            camp.getGoodsCount(musketsType));</span>
+
+<span class="nc bnc" id="L144" title="All 2 branches missed.">        for (Unit unit : camp.getUnitList()) {</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">            if (unit.isMounted()) {</span>
+<span class="nc" id="L146">                fail(&quot;Indian should not have mounted braves&quot;);</span>
+            }
+<span class="nc bnc" id="L148" title="All 2 branches missed.">            if (unit.isArmed()) {</span>
+<span class="nc" id="L149">                fail(&quot;Indian should not have armed braves&quot;);</span>
+            }
+        }
+
+        // Setup
+<span class="nc" id="L154">        camp.addGoods(horsesType, totalHorsesAvail);</span>
+<span class="nc" id="L155">        camp.addGoods(musketsType, totalMusketsAvail);</span>
+
+<span class="nc" id="L157">        assertEquals(&quot;Wrong initial number of horses in Indian camp&quot;,</span>
+<span class="nc" id="L158">            totalHorsesAvail, camp.getGoodsCount(horsesType));</span>
+<span class="nc" id="L159">        assertEquals(&quot;Wrong initial number of muskets in Indian camp&quot;,</span>
+<span class="nc" id="L160">            totalMusketsAvail, camp.getGoodsCount(musketsType));</span>
+
+<span class="nc" id="L162">        player.equipBraves(camp, lb);</span>
+
+        // Verify results
+<span class="nc" id="L165">        int mounted = 0;</span>
+<span class="nc" id="L166">        int armed = 0;</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">        for (Unit unit : camp.getUnitList()) {</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">            if (unit.isMounted()) mounted++;</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">            if (unit.isArmed()) armed++;</span>
+        }
+<span class="nc" id="L171">        assertEquals(&quot;Wrong number of units armed&quot;, bravesToEquip, armed);</span>
+<span class="nc" id="L172">        assertEquals(&quot;Wrong number of units mounted&quot;, bravesToEquip, mounted);</span>
+<span class="nc" id="L173">        assertEquals(&quot;Wrong final number of muskets in Indian camp&quot;,</span>
+<span class="nc" id="L174">            0, camp.getGoodsCount(musketsType));</span>
+<span class="nc" id="L175">        assertEquals(&quot;Wrong final number of horses in Indian camp&quot;,</span>
+<span class="nc" id="L176">            horsesType.getBreedingNumber(), camp.getGoodsCount(horsesType));</span>
+<span class="nc" id="L177">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

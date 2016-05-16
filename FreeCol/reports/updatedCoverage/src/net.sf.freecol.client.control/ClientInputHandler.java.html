@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ClientInputHandler.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.control</a> &gt; <span class="el_source">ClientInputHandler.java</span></div><h1>ClientInputHandler.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.control;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import net.sf.freecol.client.FreeColClient;
+import net.sf.freecol.client.control.FreeColClientHolder;
+import net.sf.freecol.client.gui.GUI;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.networking.Connection;
+import net.sf.freecol.common.networking.MessageHandler;
+import net.sf.freecol.common.networking.NetworkRequestHandler;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * Provides common methods for input handlers on the client side.
+ */
+public abstract class ClientInputHandler extends FreeColClientHolder
+    implements MessageHandler {
+
+<span class="nc" id="L45">    private static final Logger logger = Logger.getLogger(ClientInputHandler.class.getName());</span>
+
+    /**
+     * The handler map provides named handlers for network
+     * requests.  Each handler deals with a given request type.
+     */
+<span class="nc" id="L51">    private final Map&lt;String, NetworkRequestHandler&gt; handlerMap</span>
+<span class="nc" id="L52">        = Collections.synchronizedMap(new HashMap&lt;String, NetworkRequestHandler&gt;());</span>
+
+
+    /**
+     * The constructor to use.
+     *
+     * @param freeColClient The &lt;code&gt;FreeColClient&lt;/code&gt; for the game.
+     */
+    public ClientInputHandler(FreeColClient freeColClient) {
+<span class="nc" id="L61">        super(freeColClient);</span>
+
+<span class="nc" id="L63">        register(Connection.DISCONNECT_TAG,</span>
+<span class="nc" id="L64">            (Connection c, Element e) -&gt; disconnect(e));</span>
+<span class="nc" id="L65">    }</span>
+
+
+   /**
+     * Register a network request handler.
+     * 
+     * @param name The handler name.
+     * @param handler The &lt;code&gt;NetworkRequestHandler&lt;/code&gt; to register.
+     */
+    protected final void register(String name, NetworkRequestHandler handler) {
+<span class="nc" id="L75">        this.handlerMap.put(name, handler);</span>
+<span class="nc" id="L76">    }</span>
+
+    /**
+     * Unregister a network request handler.
+     * 
+     * @param name The handler name.
+     * @param handler The &lt;code&gt;NetworkRequestHandler&lt;/code&gt; to unregister.
+     * @return True if the supplied handler was actually removed.
+     */
+    protected final boolean unregister(String name, NetworkRequestHandler handler) {
+<span class="nc" id="L86">        return this.handlerMap.remove(name, handler);</span>
+    }
+
+
+    // Useful handlers
+
+    /**
+     * Handle a &quot;disconnect&quot;-message.
+     *
+     * @param element The element (root element in a DOM-parsed XML
+     *     tree) that holds all the information.
+     * @return Null.
+     */
+    protected Element disconnect(Element element) {
+        // Updating the GUI should always be done in the EDT:
+<span class="nc" id="L101">        javax.swing.SwingUtilities.invokeLater(() -&gt; {</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">                if (getGUI().containsInGameComponents()) {</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">                    if (getFreeColServer() == null) {</span>
+<span class="nc" id="L104">                        getGUI().returnToTitle();</span>
+<span class="nc" id="L105">                    } else {</span>
+<span class="nc" id="L106">                        getGUI().removeInGameComponents();</span>
+                    }
+                }
+<span class="nc" id="L109">            });</span>
+
+<span class="nc" id="L111">        return null;</span>
+    }
+
+
+    // Implement MessageHandler
+
+    /**
+     * {@inheritDoc}
+     */
+    public Element handle(Connection connection, Element element) {
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (element == null) return null;</span>
+<span class="nc" id="L122">        final String tag = element.getTagName();</span>
+<span class="nc" id="L123">        NetworkRequestHandler handler = handlerMap.get(tag);</span>
+<span class="nc" id="L124">        Element reply = null;</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">        if (handler == null) {</span>
+<span class="nc" id="L126">            logger.warning(&quot;Client ignore: &quot; + tag);</span>
+<span class="nc" id="L127">        } else {</span>
+            try {
+<span class="nc" id="L129">                reply = handler.handle(connection, element);</span>
+<span class="nc" id="L130">                logger.log(Level.FINEST, &quot;Client ok: &quot; + tag</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">                    + &quot; to &quot; + ((reply == null) ? &quot;null&quot; : reply.getTagName()));</span>
+<span class="nc" id="L132">            } catch (Exception ex) {</span>
+<span class="nc" id="L133">                logger.log(Level.WARNING, &quot;Client fail: &quot; + tag, ex);</span>
+<span class="nc" id="L134">                connection.reconnect();</span>
+            }
+        }
+<span class="nc" id="L137">        return reply;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

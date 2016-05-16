@@ -1,0 +1,925 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ServerColony.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.model</a> &gt; <span class="el_source">ServerColony.java</span></div><h1>ServerColony.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.model;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.logging.Logger;
+
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.AbstractGoods;
+import net.sf.freecol.common.model.BuildQueue;
+import net.sf.freecol.common.model.BuildableType;
+import net.sf.freecol.common.model.Building;
+import net.sf.freecol.common.model.BuildingType;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.ColonyTile;
+import net.sf.freecol.common.model.ExportData;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Goods;
+import net.sf.freecol.common.model.GoodsContainer;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.Market;
+import net.sf.freecol.common.model.ModelMessage;
+import net.sf.freecol.common.model.ModelMessage.MessageType;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.ProductionInfo;
+import net.sf.freecol.common.model.Role;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.model.StringTemplate;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TypeCountMap;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.model.UnitTypeChange.ChangeType;
+import net.sf.freecol.common.model.WorkLocation;
+import net.sf.freecol.common.util.LogBuilder;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+import static net.sf.freecol.common.util.RandomUtils.*;
+import net.sf.freecol.server.control.ChangeSet;
+import net.sf.freecol.server.control.ChangeSet.See;
+import net.sf.freecol.server.model.ServerPlayer;
+
+
+/**
+ * The server version of a colony.
+ */
+public class ServerColony extends Colony implements ServerModelObject {
+
+<span class="nc" id="L69">    private static final Logger logger = Logger.getLogger(ServerColony.class.getName());</span>
+
+
+    /**
+     * Trivial constructor required for all ServerModelObjects.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; in which this object belongs.
+     * @param id The object identifier.
+     */
+    public ServerColony(Game game, String id) {
+<span class="nc" id="L79">        super(game, id);</span>
+<span class="nc" id="L80">    }</span>
+
+    /**
+     * Creates a new ServerColony.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; in which this object belongs.
+     * @param owner The &lt;code&gt;Player&lt;/code&gt; owning this &lt;code&gt;Colony&lt;/code&gt;.
+     * @param name The name of the new &lt;code&gt;Colony&lt;/code&gt;.
+     * @param tile The location of the &lt;code&gt;Colony&lt;/code&gt;.
+     */
+    public ServerColony(Game game, Player owner, String name, Tile tile) {
+<span class="nc" id="L91">        super(game, owner, name, tile);</span>
+<span class="nc" id="L92">        Specification spec = getSpecification();</span>
+
+<span class="nc" id="L94">        setGoodsContainer(new GoodsContainer(game, this));</span>
+<span class="nc" id="L95">        sonsOfLiberty = 0;</span>
+<span class="nc" id="L96">        oldSonsOfLiberty = 0;</span>
+<span class="nc" id="L97">        established = game.getTurn();</span>
+
+<span class="nc" id="L99">        ColonyTile colonyTile = new ServerColonyTile(game, this, tile);</span>
+<span class="nc" id="L100">        colonyTiles.add(colonyTile);</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        for (Tile t : tile.getSurroundingTiles(getRadius())) {</span>
+<span class="nc" id="L102">            colonyTiles.add(new ServerColonyTile(game, this, t));</span>
+        }
+
+        Building building;
+<span class="nc" id="L106">        List&lt;BuildingType&gt; buildingTypes = spec.getBuildingTypeList();</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        for (BuildingType buildingType : buildingTypes) {</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">            if (buildingType.isAutomaticBuild()</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">                || isAutomaticBuild(buildingType)) {</span>
+<span class="nc" id="L110">                building = new ServerBuilding(getGame(), this, buildingType);</span>
+<span class="nc" id="L111">                addBuilding(building);</span>
+            }
+        }
+        // Set up default production queues.  Do this after calling
+        // addBuilding because that will check build queue integrity,
+        // and these might fail the population check.
+        // FIXME: express this in the spec somehow.
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        if (isLandLocked()) {</span>
+<span class="nc" id="L119">            buildQueue.add(spec.getBuildingType(&quot;model.building.warehouse&quot;));</span>
+<span class="nc" id="L120">        } else {</span>
+<span class="nc" id="L121">            buildQueue.add(spec.getBuildingType(&quot;model.building.docks&quot;));</span>
+<span class="nc" id="L122">            addPortAbility();</span>
+        }
+<span class="nc bnc" id="L124" title="All 2 branches missed.">        for (UnitType unitType : spec.getUnitTypesWithAbility(Ability.BORN_IN_COLONY)) {</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">            if (unitType.needsGoodsToBuild()) {</span>
+<span class="nc" id="L126">                populationQueue.add(unitType);</span>
+            }
+        }
+<span class="nc" id="L129">    }</span>
+
+    /**
+     * New turn for this colony.
+     * Try to find out if the colony is going to survive (last colonist does
+     * not starve) before generating lots of production-related messages.
+     *
+     * @param random A &lt;code&gt;Random&lt;/code&gt; number source.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @param cs A &lt;code&gt;ChangeSet&lt;/code&gt; to update.
+     */
+    @Override
+    public void csNewTurn(Random random, LogBuilder lb, ChangeSet cs) {
+<span class="nc" id="L142">        lb.add(&quot;COLONY &quot;, this);</span>
+<span class="nc" id="L143">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L144">        final ServerPlayer owner = (ServerPlayer) getOwner();</span>
+<span class="nc" id="L145">        BuildQueue&lt;?&gt;[] queues = new BuildQueue&lt;?&gt;[] { buildQueue,</span>
+<span class="nc" id="L146">                 populationQueue };</span>
+<span class="nc" id="L147">        final Tile tile = getTile();</span>
+
+        // The AI is prone to removing all units from a colony.
+        // Clean up such cases, to avoid other players seeing the
+        // nonsensical 0-unit colony.
+<span class="nc bnc" id="L152" title="All 2 branches missed.">        if (getUnitCount() &lt;= 0) {</span>
+<span class="nc" id="L153">            lb.add(&quot; 0-unit DISPOSING, &quot;);</span>
+<span class="nc" id="L154">            owner.csDisposeSettlement(this, cs);</span>
+<span class="nc" id="L155">            return;</span>
+        }
+
+<span class="nc" id="L158">        boolean tileDirty = false;</span>
+<span class="nc" id="L159">        boolean newUnitBorn = false;</span>
+<span class="nc" id="L160">        GoodsContainer container = getGoodsContainer();</span>
+<span class="nc" id="L161">        container.saveState();</span>
+
+        // Check for learning by experience
+<span class="nc bnc" id="L164" title="All 2 branches missed.">        for (WorkLocation workLocation : getCurrentWorkLocations()) {</span>
+<span class="nc" id="L165">            ((ServerModelObject)workLocation).csNewTurn(random, lb, cs);</span>
+<span class="nc" id="L166">            ProductionInfo productionInfo = getProductionInfo(workLocation);</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">            if (productionInfo == null) continue;</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">            if (!workLocation.isEmpty()) {</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">                for (AbstractGoods goods : productionInfo.getProduction()) {</span>
+<span class="nc" id="L170">                    UnitType expert = spec.getExpertForProducing(goods.getType());</span>
+<span class="nc" id="L171">                    int experience = goods.getAmount() / workLocation.getUnitCount();</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">                    for (Unit unit : workLocation.getUnitList()) {</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">                        if (goods.getType() == unit.getExperienceType()</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">                            &amp;&amp; unit.getType().canBeUpgraded(expert, ChangeType.EXPERIENCE)) {</span>
+<span class="nc" id="L175">                            unit.setExperience(unit.getExperience() + experience);</span>
+<span class="nc" id="L176">                            cs.addPartial(See.only(owner), unit, &quot;experience&quot;);</span>
+                        }
+                    }
+                }
+            }
+<span class="nc bnc" id="L181" title="All 2 branches missed.">            if (workLocation instanceof ServerBuilding) {</span>
+                // FIXME: generalize to other WorkLocations?
+<span class="nc" id="L183">                ((ServerBuilding)workLocation).csCheckMissingInput(productionInfo, cs);</span>
+            }
+        }
+
+        // Check the build queues and build new stuff.  If a queue
+        // does a build add it to the built list, so that we can
+        // remove the item built from it *after* applying the
+        // production changes.
+<span class="nc" id="L191">        List&lt;BuildQueue&lt;? extends BuildableType&gt;&gt; built = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">        for (BuildQueue&lt;?&gt; queue : queues) {</span>
+<span class="nc" id="L193">            ProductionInfo info = getProductionInfo(queue);</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">            if (info == null) continue;</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">            if (info.getConsumption().isEmpty()) {</span>
+<span class="nc" id="L196">                BuildableType build = queue.getCurrentlyBuilding();</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">                if (build != null) {</span>
+<span class="nc" id="L198">                    AbstractGoods needed = new AbstractGoods();</span>
+<span class="nc" id="L199">                    int complete = getTurnsToComplete(build, needed);</span>
+                    // Warn if about to fail, or if no useful progress
+                    // towards completion is possible.
+<span class="nc bnc" id="L202" title="All 4 branches missed.">                    if (complete == -2 || complete == -1) {</span>
+<span class="nc" id="L203">                        cs.addMessage(See.only(owner),</span>
+<span class="nc" id="L204">                            new ModelMessage(MessageType.MISSING_GOODS,</span>
+<span class="nc" id="L205">                                             &quot;model.colony.buildableNeedsGoods&quot;,</span>
+<span class="nc" id="L206">                                             this, build)</span>
+<span class="nc" id="L207">                                .addName(&quot;%colony%&quot;, getName())</span>
+<span class="nc" id="L208">                                .addNamed(&quot;%buildable%&quot;, build)</span>
+<span class="nc" id="L209">                                .addAmount(&quot;%amount%&quot;, needed.getAmount())</span>
+<span class="nc" id="L210">                                .addNamed(&quot;%goodsType%&quot;, needed.getType()));</span>
+                    }
+                }
+<span class="nc" id="L213">            } else {</span>
+                // Ready to build something.  FIXME: OO!
+<span class="nc" id="L215">                BuildableType buildable = csNextBuildable(queue, cs);</span>
+<span class="nc bnc" id="L216" title="All 2 branches missed.">                if (buildable == null) {</span>
+                     // It was invalid, ignore.
+<span class="nc bnc" id="L218" title="All 2 branches missed.">                } else if (buildable instanceof UnitType) {</span>
+<span class="nc" id="L219">                    Unit newUnit = csBuildUnit(queue, random, cs);</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">                    if (newUnit.hasAbility(Ability.BORN_IN_COLONY)) {</span>
+<span class="nc" id="L221">                        newUnitBorn = true;</span>
+                    }
+<span class="nc" id="L223">                    built.add(queue);</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">                } else if (buildable instanceof BuildingType) {</span>
+<span class="nc" id="L225">                    int unitCount = getUnitCount();</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">                    if (csBuildBuilding(queue, cs)) {</span>
+<span class="nc" id="L227">                        built.add(queue);</span>
+                        // Visible change if building changed the
+                        // stockade level or ejected units.
+<span class="nc bnc" id="L230" title="All 2 branches missed.">                        tileDirty = ((BuildingType)buildable).isDefenceType()</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">                            || unitCount != getUnitCount();</span>
+                    }
+<span class="nc" id="L233">                } else {</span>
+<span class="nc" id="L234">                    throw new IllegalStateException(&quot;Bogus buildable: &quot;</span>
+<span class="nc" id="L235">                                                    + buildable);</span>
+                }
+            }
+        }
+
+        // Apply the accumulated production changes.
+        // Beware that if you try to build something requiring hammers
+        // and tools, as soon as one is updated in the colony the
+        // current production cache is invalidated, and the
+        // recalculated one will see the build as incomplete due to
+        // missing the goods just updated.
+        // Hence the need for a copy of the current production map.
+<span class="nc" id="L247">        TypeCountMap&lt;GoodsType&gt; productionMap = getProductionMap();</span>
+<span class="nc bnc" id="L248" title="All 2 branches missed.">        for (GoodsType goodsType : productionMap.keySet()) {</span>
+<span class="nc" id="L249">            int net = productionMap.getCount(goodsType);</span>
+<span class="nc" id="L250">            int stored = getGoodsCount(goodsType);</span>
+<span class="nc bnc" id="L251" title="All 2 branches missed.">            if (net + stored &lt;= 0) {</span>
+<span class="nc" id="L252">                removeGoods(goodsType, stored);</span>
+<span class="nc" id="L253">            } else {</span>
+<span class="nc" id="L254">                addGoods(goodsType, net);</span>
+            }
+
+            // Handle the food situation
+<span class="nc bnc" id="L258" title="All 2 branches missed.">            if (goodsType == spec.getPrimaryFoodType()) {</span>
+                // Check for famine when total primary food goes negative.
+<span class="nc bnc" id="L260" title="All 2 branches missed.">                if (net + stored &lt; 0) {</span>
+<span class="nc bnc" id="L261" title="All 2 branches missed.">                    if (getUnitCount() &gt; 1) {</span>
+<span class="nc" id="L262">                        Unit victim = getRandomMember(logger, &quot;Starver&quot;,</span>
+<span class="nc" id="L263">                                                      getUnitList(), random);</span>
+<span class="nc" id="L264">                        cs.addRemove(See.only(owner), null,</span>
+<span class="nc" id="L265">                                     victim);//-vis: safe, all within colony</span>
+<span class="nc" id="L266">                        victim.dispose();</span>
+<span class="nc" id="L267">                        cs.addMessage(See.only(owner),</span>
+<span class="nc" id="L268">                            new ModelMessage(MessageType.UNIT_LOST,</span>
+<span class="nc" id="L269">                                             &quot;model.colony.colonistStarved&quot;,</span>
+<span class="nc" id="L270">                                             this)</span>
+<span class="nc" id="L271">                                .addName(&quot;%colony%&quot;, getName()));</span>
+<span class="nc" id="L272">                    } else { // Its dead, Jim.</span>
+<span class="nc" id="L273">                        cs.addMessage(See.only(owner),</span>
+<span class="nc" id="L274">                            new ModelMessage(MessageType.UNIT_LOST,</span>
+<span class="nc" id="L275">                                             &quot;model.colony.colonyStarved&quot;,</span>
+<span class="nc" id="L276">                                             this)</span>
+<span class="nc" id="L277">                                .addName(&quot;%colony%&quot;, getName()));</span>
+<span class="nc" id="L278">                        owner.csDisposeSettlement(this, cs);</span>
+<span class="nc" id="L279">                        return;</span>
+                    }
+<span class="nc bnc" id="L281" title="All 2 branches missed.">                } else if (net &lt; 0) {</span>
+<span class="nc" id="L282">                    int turns = stored / -net;</span>
+<span class="nc bnc" id="L283" title="All 4 branches missed.">                    if (turns &lt;= Colony.FAMINE_TURNS &amp;&amp; !newUnitBorn) {</span>
+<span class="nc" id="L284">                        cs.addMessage(See.only(owner),</span>
+<span class="nc" id="L285">                            new ModelMessage(MessageType.WARNING,</span>
+<span class="nc" id="L286">                                             &quot;model.colony.famineFeared&quot;,</span>
+<span class="nc" id="L287">                                             this)</span>
+<span class="nc" id="L288">                                .addName(&quot;%colony%&quot;, getName())</span>
+<span class="nc" id="L289">                                .addAmount(&quot;%number%&quot;, turns));</span>
+<span class="nc" id="L290">                        lb.add(&quot; famine in &quot;, turns,</span>
+<span class="nc" id="L291">                               &quot; food=&quot;, stored, &quot; production=&quot;, net);</span>
+                    }
+                }
+            }
+        }
+<span class="nc" id="L296">        invalidateCache();</span>
+
+        // Now that the goods have been updated it is safe to remove the
+        // built item from its build queue.
+<span class="nc bnc" id="L300" title="All 2 branches missed.">        if (!built.isEmpty()) {</span>
+<span class="nc bnc" id="L301" title="All 2 branches missed.">            for (BuildQueue&lt;? extends BuildableType&gt; queue : built) {</span>
+<span class="nc bnc" id="L302" title="All 3 branches missed.">                switch (queue.getCompletionAction()) {</span>
+                case SHUFFLE:
+<span class="nc bnc" id="L304" title="All 2 branches missed.">                    if (queue.size() &gt; 1) {</span>
+<span class="nc" id="L305">                        randomShuffle(logger, &quot;Build queue&quot;,</span>
+<span class="nc" id="L306">                                      queue.getValues(), random);</span>
+                    }
+<span class="nc" id="L308">                    break;</span>
+                case REMOVE_EXCEPT_LAST:
+<span class="nc bnc" id="L310" title="All 2 branches missed.">                    if (queue.size() == 1</span>
+<span class="nc bnc" id="L311" title="All 2 branches missed.">                        &amp;&amp; queue.getCurrentlyBuilding() instanceof UnitType) {</span>
+                        // Repeat last unit
+<span class="nc" id="L313">                        break;</span>
+                    }
+                    // Fall through
+                case REMOVE:
+                default:
+<span class="nc" id="L318">                    queue.remove(0);</span>
+                    break;
+                }
+<span class="nc" id="L321">                csNextBuildable(queue, cs);</span>
+            }
+<span class="nc" id="L323">            tileDirty = true;</span>
+        }
+
+        // Export goods if custom house is built.
+        // Do not flush price changes yet, as any price change may change
+        // yet again in csYearlyGoodsAdjust.
+<span class="nc" id="L329">        exportGoods(lb, cs, owner, container);</span>
+
+        // Throw away goods there is no room for, and warn about
+        // levels that will be exceeded next turn
+<span class="nc" id="L333">        throwGoods(cs, spec, owner, newUnitBorn, container);</span>
+
+        // Check for free buildings
+<span class="nc bnc" id="L336" title="All 2 branches missed.">        for (BuildingType buildingType : spec.getBuildingTypeList()) {</span>
+<span class="nc bnc" id="L337" title="All 2 branches missed.">            if (isAutomaticBuild(buildingType)) {</span>
+<span class="nc" id="L338">                buildBuilding(new ServerBuilding(getGame(), this,</span>
+<span class="nc" id="L339">                                                 buildingType));//-til</span>
+            }
+        }
+<span class="nc" id="L342">        checkBuildQueueIntegrity(true);</span>
+
+        // If a build queue is empty, check that we are not producing
+        // any goods types useful for BuildableTypes, except if that
+        // type is the input to some other form of production.  (Note:
+        // isBuildingMaterial is also true for goods used to produce
+        // role-equipment, hence neededForBuildableType).  Such
+        // production probably means we forgot to reset the build
+        // queue.  Thus, if hammers are being produced it is worth
+        // warning about, but not if producing tools.
+<span class="nc bnc" id="L352" title="All 2 branches missed.">        for (BuildQueue&lt;?&gt; queue : queues) {</span>
+<span class="nc bnc" id="L353" title="All 2 branches missed.">            if (queue.isEmpty()) {</span>
+<span class="nc bnc" id="L354" title="All 2 branches missed.">                for (GoodsType g : spec.getGoodsTypeList()) {</span>
+<span class="nc bnc" id="L355" title="All 2 branches missed.">                    if (g.isBuildingMaterial()</span>
+<span class="nc bnc" id="L356" title="All 2 branches missed.">                        &amp;&amp; !g.isRawMaterial()</span>
+<span class="nc bnc" id="L357" title="All 2 branches missed.">                        &amp;&amp; !g.isBreedable()</span>
+<span class="nc bnc" id="L358" title="All 2 branches missed.">                        &amp;&amp; getAdjustedNetProductionOf(g) &gt; 0</span>
+<span class="nc bnc" id="L359" title="All 2 branches missed.">                        &amp;&amp; neededForBuildableType(g)) {</span>
+<span class="nc" id="L360">                        cs.addMessage(See.only(owner),</span>
+<span class="nc" id="L361">                            new ModelMessage(MessageType.BUILDING_COMPLETED,</span>
+<span class="nc" id="L362">                                             &quot;model.colony.notBuildingAnything&quot;,</span>
+<span class="nc" id="L363">                                             this)</span>
+<span class="nc" id="L364">                                .addName(&quot;%colony%&quot;, getName()));</span>
+<span class="nc" id="L365">                        break;</span>
+                    }
+                }
+            }
+        }
+
+        // Update SoL.
+<span class="nc" id="L372">        updateSoL();</span>
+<span class="nc bnc" id="L373" title="All 2 branches missed.">        if (sonsOfLiberty / 10 != oldSonsOfLiberty / 10) {</span>
+<span class="nc" id="L374">            cs.addMessage(See.only(owner),</span>
+<span class="nc" id="L375">                new ModelMessage(MessageType.SONS_OF_LIBERTY,</span>
+<span class="nc bnc" id="L376" title="All 2 branches missed.">                                 ((sonsOfLiberty &gt; oldSonsOfLiberty)</span>
+<span class="nc" id="L377">                                     ? &quot;model.colony.soLIncrease&quot;</span>
+<span class="nc" id="L378">                                     : &quot;model.colony.soLDecrease&quot;),</span>
+<span class="nc" id="L379">                                 this, spec.getGoodsType(&quot;model.goods.bells&quot;))</span>
+<span class="nc" id="L380">                    .addAmount(&quot;%oldSoL%&quot;, oldSonsOfLiberty)</span>
+<span class="nc" id="L381">                    .addAmount(&quot;%newSoL%&quot;, sonsOfLiberty)</span>
+<span class="nc" id="L382">                    .addName(&quot;%colony%&quot;, getName()));</span>
+
+<span class="nc" id="L384">            ModelMessage govMgtMessage = checkForGovMgtChangeMessage();</span>
+<span class="nc bnc" id="L385" title="All 2 branches missed.">            if (govMgtMessage != null) {</span>
+<span class="nc" id="L386">                cs.addMessage(See.only(owner), govMgtMessage);</span>
+            }
+        }
+<span class="nc" id="L389">        updateProductionBonus();</span>
+        // We have to wait for the production bonus to stabilize
+        // before checking for completion of training.  This is a rare
+        // case so it is not worth reordering the work location calls
+        // to csNewTurn.
+<span class="nc bnc" id="L394" title="All 2 branches missed.">        for (WorkLocation workLocation : getCurrentWorkLocations()) {</span>
+<span class="nc bnc" id="L395" title="All 2 branches missed.">            if (workLocation.canTeach()) {</span>
+<span class="nc" id="L396">                ServerBuilding building = (ServerBuilding)workLocation;</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">                for (Unit teacher : building.getUnitList()) {</span>
+<span class="nc" id="L398">                    building.csCheckTeach(teacher, cs);</span>
+                }
+            }
+        }
+
+        // Try to update minimally.
+<span class="nc bnc" id="L404" title="All 2 branches missed.">        if (tileDirty) {</span>
+<span class="nc" id="L405">            cs.add(See.perhaps(), tile);</span>
+<span class="nc" id="L406">        } else {</span>
+<span class="nc" id="L407">            cs.add(See.only(owner), this);</span>
+        }
+<span class="nc" id="L409">        lb.add(&quot;, &quot;);</span>
+<span class="nc" id="L410">    }</span>
+
+	/**
+	 * Throw Goods there is no room for, and warn about levels that will be exceeded next turn
+	 * @param cs
+	 * @param spec
+	 * @param owner
+	 * @param newUnitBorn
+	 * @param container
+	 */
+	private void throwGoods(ChangeSet cs, final Specification spec,
+			final ServerPlayer owner, boolean newUnitBorn,
+			GoodsContainer container) {
+<span class="nc" id="L423">		int limit = getWarehouseCapacity();</span>
+<span class="nc" id="L424">        int adjustment = limit / GoodsContainer.CARGO_SIZE;</span>
+<span class="nc bnc" id="L425" title="All 2 branches missed.">        for (Goods goods : getCompactGoods()) {</span>
+<span class="nc" id="L426">            GoodsType type = goods.getType();</span>
+<span class="nc bnc" id="L427" title="All 2 branches missed.">            if (!type.isStorable()) continue;</span>
+<span class="nc" id="L428">            ExportData exportData = getExportData(type);</span>
+<span class="nc" id="L429">            int low = exportData.getLowLevel() * adjustment;</span>
+<span class="nc" id="L430">            int high = exportData.getHighLevel() * adjustment;</span>
+<span class="nc" id="L431">            int amount = goods.getAmount();</span>
+<span class="nc" id="L432">            int oldAmount = container.getOldGoodsCount(type);</span>
+
+<span class="nc bnc" id="L434" title="All 4 branches missed.">            if (amount &lt; low &amp;&amp; oldAmount &gt;= low</span>
+<span class="nc bnc" id="L435" title="All 4 branches missed.">                &amp;&amp; !(type == spec.getPrimaryFoodType() &amp;&amp; newUnitBorn)) {</span>
+<span class="nc" id="L436">                cs.addMessage(See.only(owner),</span>
+<span class="nc" id="L437">                    new ModelMessage(MessageType.WAREHOUSE_CAPACITY,</span>
+<span class="nc" id="L438">                                     &quot;model.colony.warehouseEmpty&quot;,</span>
+<span class="nc" id="L439">                                     this, type)</span>
+<span class="nc" id="L440">                        .addNamed(&quot;%goods%&quot;, type)</span>
+<span class="nc" id="L441">                        .addAmount(&quot;%level%&quot;, low)</span>
+<span class="nc" id="L442">                        .addName(&quot;%colony%&quot;, getName()));</span>
+<span class="nc" id="L443">                continue;</span>
+            }
+<span class="nc bnc" id="L445" title="All 2 branches missed.">            if (type.limitIgnored()) continue;</span>
+
+<span class="nc" id="L447">            String messageId = null;</span>
+<span class="nc" id="L448">            int waste = 0;</span>
+<span class="nc bnc" id="L449" title="All 2 branches missed.">            if (amount &gt; limit) {</span>
+                // limit has been exceeded
+<span class="nc" id="L451">                waste = amount - limit;</span>
+<span class="nc" id="L452">                container.removeGoods(type, waste);</span>
+<span class="nc" id="L453">                messageId = &quot;model.colony.warehouseWaste&quot;;</span>
+<span class="nc bnc" id="L454" title="All 4 branches missed.">            } else if (amount == limit &amp;&amp; oldAmount &lt; limit) {</span>
+                // limit has been reached during this turn
+<span class="nc" id="L456">                messageId = &quot;model.colony.warehouseOverfull&quot;;</span>
+<span class="nc bnc" id="L457" title="All 4 branches missed.">            } else if (amount &gt; high &amp;&amp; oldAmount &lt;= high) {</span>
+                // high-water-mark has been reached this turn
+<span class="nc" id="L459">                messageId = &quot;model.colony.warehouseFull&quot;;</span>
+            }
+<span class="nc bnc" id="L461" title="All 2 branches missed.">            if (messageId != null) {</span>
+<span class="nc" id="L462">                cs.addMessage(See.only(owner),</span>
+<span class="nc" id="L463">                    new ModelMessage(MessageType.WAREHOUSE_CAPACITY,</span>
+<span class="nc" id="L464">                                     messageId, this, type)</span>
+<span class="nc" id="L465">                        .addNamed(&quot;%goods%&quot;, type)</span>
+<span class="nc" id="L466">                        .addAmount(&quot;%waste%&quot;, waste)</span>
+<span class="nc" id="L467">                        .addAmount(&quot;%level%&quot;, high)</span>
+<span class="nc" id="L468">                        .addName(&quot;%colony%&quot;, getName()));</span>
+            }
+
+            // No problem this turn, but what about the next?
+<span class="nc bnc" id="L472" title="All 2 branches missed.">            if (!(exportData.getExported()</span>
+<span class="nc bnc" id="L473" title="All 2 branches missed.">                  &amp;&amp; hasAbility(Ability.EXPORT)</span>
+<span class="nc bnc" id="L474" title="All 2 branches missed.">                  &amp;&amp; owner.canTrade(type, Market.Access.CUSTOM_HOUSE))</span>
+<span class="nc bnc" id="L475" title="All 2 branches missed.">                &amp;&amp; amount &lt;= limit) {</span>
+<span class="nc" id="L476">                int loss = amount + getNetProductionOf(type) - limit;</span>
+<span class="nc bnc" id="L477" title="All 2 branches missed.">                if (loss &gt; 0) {</span>
+<span class="nc" id="L478">                    cs.addMessage(See.only(owner),</span>
+<span class="nc" id="L479">                        new ModelMessage(MessageType.WAREHOUSE_CAPACITY,</span>
+<span class="nc" id="L480">                                         &quot;model.colony.warehouseSoonFull&quot;,</span>
+<span class="nc" id="L481">                                         this, type)</span>
+<span class="nc" id="L482">                            .addNamed(&quot;%goods%&quot;, goods)</span>
+<span class="nc" id="L483">                            .addName(&quot;%colony%&quot;, getName())</span>
+<span class="nc" id="L484">                            .addAmount(&quot;%amount%&quot;, loss));</span>
+                }
+            }
+        }
+<span class="nc" id="L488">	}</span>
+
+	/**
+	 * Export goods if custom house is built.
+	 * @param lb
+	 * @param cs
+	 * @param owner
+	 * @param container
+	 */
+	private void exportGoods(LogBuilder lb, ChangeSet cs,
+			final ServerPlayer owner, GoodsContainer container) {
+<span class="nc bnc" id="L499" title="All 2 branches missed.">		if (hasAbility(Ability.EXPORT)) {</span>
+<span class="nc" id="L500">            LogBuilder lb2 = new LogBuilder(64);</span>
+<span class="nc" id="L501">            lb2.add(&quot; &quot;);</span>
+<span class="nc" id="L502">            lb2.mark();</span>
+<span class="nc bnc" id="L503" title="All 2 branches missed.">            for (Goods goods : getCompactGoods()) {</span>
+<span class="nc" id="L504">                GoodsType type = goods.getType();</span>
+<span class="nc" id="L505">                ExportData data = getExportData(type);</span>
+<span class="nc bnc" id="L506" title="All 2 branches missed.">                if (!data.getExported()</span>
+<span class="nc bnc" id="L507" title="All 2 branches missed.">                    || !owner.canTrade(goods.getType(), Market.Access.CUSTOM_HOUSE)) continue;</span>
+<span class="nc" id="L508">                int amount = goods.getAmount() - data.getExportLevel();</span>
+<span class="nc bnc" id="L509" title="All 2 branches missed.">                if (amount &lt;= 0) continue;</span>
+<span class="nc" id="L510">                int oldGold = owner.getGold();</span>
+<span class="nc" id="L511">                int marketAmount = owner.sell(container, type, amount);</span>
+<span class="nc bnc" id="L512" title="All 2 branches missed.">                if (marketAmount &gt; 0) {</span>
+<span class="nc" id="L513">                    owner.addExtraTrade(new AbstractGoods(type, marketAmount));</span>
+                }
+<span class="nc" id="L515">                StringTemplate st = StringTemplate.template(&quot;model.colony.customs.saleData&quot;)</span>
+<span class="nc" id="L516">                    .addAmount(&quot;%amount%&quot;, amount)</span>
+<span class="nc" id="L517">                    .addNamed(&quot;%goods%&quot;, type)</span>
+<span class="nc" id="L518">                    .addAmount(&quot;%gold%&quot;, (owner.getGold() - oldGold));</span>
+<span class="nc" id="L519">                lb2.add(Messages.message(st), &quot;, &quot;);</span>
+            }
+<span class="nc bnc" id="L521" title="All 2 branches missed.">            if (lb2.grew()) {</span>
+<span class="nc" id="L522">                lb2.shrink(&quot;, &quot;);</span>
+<span class="nc" id="L523">                cs.addMessage(See.only(owner),</span>
+<span class="nc" id="L524">                    new ModelMessage(MessageType.GOODS_MOVEMENT,</span>
+<span class="nc" id="L525">                                     &quot;model.colony.customs.sale&quot;, this)</span>
+<span class="nc" id="L526">                        .addName(&quot;%colony%&quot;, getName())</span>
+<span class="nc" id="L527">                        .addName(&quot;%data%&quot;, lb2.toString()));</span>
+<span class="nc" id="L528">                cs.addPartial(See.only(owner), owner, &quot;gold&quot;);</span>
+<span class="nc" id="L529">                lb.add(lb2.toString());</span>
+            }
+        }
+<span class="nc" id="L532">	}</span>
+
+    /**
+     * Is a goods type needed for a buildable that this colony could
+     * be building.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to check.
+     * @return True if the goods could be used to build something.
+     */
+    private boolean neededForBuildableType(GoodsType goodsType) {
+<span class="nc" id="L542">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L543">        List&lt;BuildableType&gt; buildables = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L544">        buildables.addAll(spec.getBuildingTypeList());</span>
+<span class="nc" id="L545">        buildables.addAll(spec.getUnitTypesWithoutAbility(Ability.PERSON));</span>
+<span class="nc bnc" id="L546" title="All 2 branches missed.">        return any(buildables, bt -&gt; canBuild(bt)</span>
+<span class="nc bnc" id="L547" title="All 2 branches missed.">            &amp;&amp; AbstractGoods.containsType(goodsType, bt.getRequiredGoods()));</span>
+    }
+
+    /**
+     * Build a unit from a build queue.
+     *
+     * @param buildQueue The &lt;code&gt;BuildQueue&lt;/code&gt; to find the unit in.
+     * @param random A pseudo-random number source.
+     * @param cs A &lt;code&gt;ChangeSet&lt;/code&gt; to update.
+     * @return The unit that was built.
+     */
+    private Unit csBuildUnit(BuildQueue&lt;? extends BuildableType&gt; buildQueue,
+                             Random random, ChangeSet cs) {
+<span class="nc" id="L560">        UnitType type = (UnitType)buildQueue.getCurrentlyBuilding();</span>
+<span class="nc" id="L561">        Unit unit = new ServerUnit(getGame(), getTile(), owner,</span>
+<span class="nc" id="L562">                                   type);//-vis: safe, within colony</span>
+<span class="nc bnc" id="L563" title="All 2 branches missed.">        if (unit.hasAbility(Ability.BORN_IN_COLONY)) {</span>
+<span class="nc" id="L564">            cs.addMessage(See.only((ServerPlayer) owner),</span>
+<span class="nc" id="L565">                          new ModelMessage(MessageType.UNIT_ADDED,</span>
+<span class="nc" id="L566">                                           &quot;model.colony.newColonist&quot;,</span>
+<span class="nc" id="L567">                                           this, unit)</span>
+<span class="nc" id="L568">                              .addName(&quot;%colony%&quot;, getName()));</span>
+<span class="nc" id="L569">        } else {</span>
+<span class="nc" id="L570">            unit.setName(owner.getNameForUnit(type, random));</span>
+<span class="nc" id="L571">            cs.addMessage(See.only((ServerPlayer) owner),</span>
+<span class="nc" id="L572">                          new ModelMessage(MessageType.UNIT_ADDED,</span>
+<span class="nc" id="L573">                                           &quot;model.colony.unitReady&quot;,</span>
+<span class="nc" id="L574">                                           this, unit)</span>
+<span class="nc" id="L575">                              .addName(&quot;%colony%&quot;, getName())</span>
+<span class="nc" id="L576">                              .addStringTemplate(&quot;%unit%&quot;, unit.getLabel()));</span>
+        }
+
+<span class="nc" id="L579">        logger.info(&quot;New unit in &quot; + getName() + &quot;: &quot; + type.getSuffix());</span>
+<span class="nc" id="L580">        return unit;</span>
+    }
+
+    /**
+     * Eject units to any available work location.
+     *
+     * Called on building type changes, see below and
+     * @see ServerPlayer#csDamageBuilding
+     *
+     * -til: Might change the visible colony size.
+     *
+     * @param workLocation The &lt;code&gt;WorkLocation&lt;/code&gt; to eject from.
+     * @param units A list of &lt;code&gt;Unit&lt;/code&gt;s to eject.
+     * @return True if units were ejected.
+     */
+    public boolean ejectUnits(WorkLocation workLocation, List&lt;Unit&gt; units) {
+<span class="nc bnc" id="L596" title="All 4 branches missed.">        if (units == null || units.isEmpty()) return false;</span>
+<span class="nc bnc" id="L597" title="All 2 branches missed.">        unit: for (Unit u : units) {</span>
+<span class="nc bnc" id="L598" title="All 2 branches missed.">            for (WorkLocation wl : getAvailableWorkLocations()) {</span>
+<span class="nc bnc" id="L599" title="All 4 branches missed.">                if (wl == workLocation || !wl.canAdd(u)) continue;</span>
+<span class="nc" id="L600">                u.setLocation(wl);//-vis: safe/colony</span>
+<span class="nc" id="L601">                continue unit;</span>
+            }
+<span class="nc" id="L603">            u.setLocation(getTile());//-vis: safe/colony</span>
+        }
+<span class="nc bnc" id="L605" title="All 2 branches missed.">        if (getOwner().isAI()) {</span>
+<span class="nc" id="L606">            firePropertyChange(REARRANGE_WORKERS, true, false);</span>
+        }
+<span class="nc" id="L608">        return true;</span>
+    }
+
+    /**
+     * Builds a building from a build queue.
+     *
+     * @param buildQueue The &lt;code&gt;BuildQueue&lt;/code&gt; to build from.
+     * @param cs A &lt;code&gt;ChangeSet&lt;/code&gt; to update.
+     * @return True if the build succeeded.
+     */
+    private boolean csBuildBuilding(BuildQueue&lt;? extends BuildableType&gt; buildQueue,
+                                    ChangeSet cs) {
+<span class="nc" id="L620">        BuildingType type = (BuildingType) buildQueue.getCurrentlyBuilding();</span>
+<span class="nc" id="L621">        Tile copied = getTile().getTileToCache();</span>
+<span class="nc" id="L622">        BuildingType from = type.getUpgradesFrom();</span>
+        boolean success;
+<span class="nc bnc" id="L624" title="All 2 branches missed.">        if (from == null) {</span>
+<span class="nc" id="L625">            success = buildBuilding(new ServerBuilding(getGame(), this, type));//-til</span>
+<span class="nc" id="L626">        } else {</span>
+<span class="nc" id="L627">            Building building = getBuilding(from);</span>
+<span class="nc" id="L628">            List&lt;Unit&gt; eject = building.upgrade();//-til</span>
+<span class="nc bnc" id="L629" title="All 2 branches missed.">            success = eject != null;</span>
+<span class="nc bnc" id="L630" title="All 2 branches missed.">            if (success) {</span>
+<span class="nc" id="L631">                ejectUnits(building, eject);//-til</span>
+<span class="nc bnc" id="L632" title="All 2 branches missed.">                if (!eject.isEmpty()) getTile().cacheUnseen(copied);//+til</span>
+<span class="nc" id="L633">            } else {</span>
+<span class="nc" id="L634">                cs.addMessage(See.only((ServerPlayer)owner),</span>
+<span class="nc" id="L635">                              getUnbuildableMessage(type));</span>
+            }
+        }
+<span class="nc bnc" id="L638" title="All 2 branches missed.">        if (success) {</span>
+<span class="nc" id="L639">            cs.addMessage(See.only((ServerPlayer) owner),</span>
+<span class="nc" id="L640">                new ModelMessage(MessageType.BUILDING_COMPLETED,</span>
+<span class="nc" id="L641">                                 &quot;model.colony.buildingReady&quot;, this)</span>
+<span class="nc" id="L642">                    .addName(&quot;%colony%&quot;, getName())</span>
+<span class="nc" id="L643">                    .addNamed(&quot;%building%&quot;, type));</span>
+<span class="nc bnc" id="L644" title="All 2 branches missed.">            if (owner.isAI()) {</span>
+<span class="nc" id="L645">                firePropertyChange(REARRANGE_WORKERS, true, false);</span>
+            }
+<span class="nc" id="L647">            logger.info(&quot;New building in &quot; + getName()</span>
+<span class="nc" id="L648">                + &quot;: &quot; + type.getSuffix());</span>
+        }
+<span class="nc" id="L650">        return success;</span>
+    }
+
+    /**
+     * Removes a buildable from a build queue, and updates the queue so that
+     * a valid buildable is now being built if possible.
+     *
+     * @param queue The &lt;code&gt;BuildQueue&lt;/code&gt; to update.
+     * @param cs A &lt;code&gt;ChangeSet&lt;/code&gt; to update.
+     * @return The next buildable that can be built, or null if nothing.
+     */
+    private BuildableType csNextBuildable(BuildQueue&lt;? extends BuildableType&gt; queue,
+                                          ChangeSet cs) {
+<span class="nc" id="L663">        Specification spec = getSpecification();</span>
+<span class="nc" id="L664">        ServerPlayer owner = (ServerPlayer) getOwner();</span>
+        BuildableType buildable;
+<span class="nc" id="L666">        boolean invalidate = false;</span>
+
+<span class="nc bnc" id="L668" title="All 2 branches missed.">        while ((buildable = queue.getCurrentlyBuilding()) != null) {</span>
+<span class="nc bnc" id="L669" title="All 5 branches missed.">            switch (getNoBuildReason(buildable, null)) {</span>
+            case LIMIT_EXCEEDED:
+                // Expected when a player builds its last available wagon
+                // and there is nothing else in the build queue.
+<span class="nc" id="L673">                break;</span>
+            case NONE:
+<span class="nc" id="L675">                return buildable;</span>
+            case NOT_BUILDING:
+<span class="nc" id="L677">                doNOT_BUILDING(cs, spec, owner);</span>
+<span class="nc" id="L678">                return null;</span>
+                
+            case POPULATION_TOO_SMALL:
+<span class="nc" id="L681">                doPOPULATION_TOO_SMALL(cs, owner, buildable);</span>
+<span class="nc" id="L682">                break;</span>
+            default: // Are there other warnings to send?
+<span class="nc" id="L684">                logger.warning(&quot;Unexpected build failure at &quot; + getName()</span>
+<span class="nc" id="L685">                    + &quot; for &quot; + buildable</span>
+<span class="nc" id="L686">                    + &quot;: &quot; + getNoBuildReason(buildable, null));</span>
+<span class="nc" id="L687">                cs.addMessage(See.only(owner),</span>
+<span class="nc" id="L688">                              getUnbuildableMessage(buildable));</span>
+                break;
+            }
+<span class="nc" id="L691">            queue.remove(0);</span>
+<span class="nc" id="L692">            invalidate = true;</span>
+        }
+<span class="nc bnc" id="L694" title="All 2 branches missed.">        if (invalidate) invalidateCache();</span>
+<span class="nc" id="L695">        return null;</span>
+    }
+
+	/**
+	 * response to POPULATION_TOO_SMALL
+	 * @param cs
+	 * @param owner
+	 * @param buildable
+	 */
+	private void doPOPULATION_TOO_SMALL(ChangeSet cs, ServerPlayer owner,
+			BuildableType buildable) {
+<span class="nc" id="L706">		cs.addMessage(See.only(owner),</span>
+<span class="nc" id="L707">		    new ModelMessage(MessageType.WARNING,</span>
+<span class="nc" id="L708">		                     &quot;model.colony.buildNeedPop&quot;,</span>
+<span class="nc" id="L709">		                     this)</span>
+<span class="nc" id="L710">		        .addName(&quot;%colony%&quot;, getName())</span>
+<span class="nc" id="L711">		        .addNamed(&quot;%building%&quot;, buildable));</span>
+<span class="nc" id="L712">	}</span>
+
+	/**
+	 * Response to NOT_BUILDING
+	 * @param cs
+	 * @param spec
+	 * @param owner
+	 */
+	private void doNOT_BUILDING(ChangeSet cs, Specification spec,
+			ServerPlayer owner) {
+<span class="nc bnc" id="L722" title="All 2 branches missed.">		for (GoodsType goodsType : spec.getGoodsTypeList()) {</span>
+<span class="nc bnc" id="L723" title="All 2 branches missed.">		    if (goodsType.isBuildingMaterial()</span>
+<span class="nc bnc" id="L724" title="All 2 branches missed.">		        &amp;&amp; !goodsType.isStorable()</span>
+<span class="nc bnc" id="L725" title="All 2 branches missed.">		        &amp;&amp; getTotalProductionOf(goodsType) &gt; 0) {</span>
+		        // Production is idle
+<span class="nc" id="L727">		        cs.addMessage(See.only(owner),</span>
+<span class="nc" id="L728">		            new ModelMessage(MessageType.WARNING,</span>
+<span class="nc" id="L729">		                             &quot;model.colony.cannotBuild&quot;,</span>
+<span class="nc" id="L730">		                             this)</span>
+<span class="nc" id="L731">		                .addName(&quot;%colony%&quot;, getName()));</span>
+		    }
+		}
+<span class="nc" id="L734">	}</span>
+
+    /**
+     * Evict the users from a tile used by this colony, due to military
+     * action from another unit.
+     *
+     * @param enemyUnit The &lt;code&gt;Unit&lt;/code&gt; that has moved in.
+     * @param cs A &lt;code&gt;ChangeSet&lt;/code&gt; to update.
+     */
+    public void csEvictUsers(Unit enemyUnit, ChangeSet cs) {
+<span class="nc" id="L744">        ServerPlayer serverPlayer = (ServerPlayer)getOwner();</span>
+<span class="nc" id="L745">        Tile tile = enemyUnit.getTile();</span>
+<span class="nc" id="L746">        ServerColonyTile ct = (ServerColonyTile)getColonyTile(tile);</span>
+<span class="nc bnc" id="L747" title="All 2 branches missed.">        if (ct == null) return;</span>
+<span class="nc" id="L748">        Tile colonyTile = ct.getColony().getTile();</span>
+<span class="nc" id="L749">        Tile copied = colonyTile.getTileToCache();</span>
+<span class="nc bnc" id="L750" title="All 2 branches missed.">        if (!ejectUnits(ct, ct.getUnitList())) return;//-til</span>
+<span class="nc" id="L751">        colonyTile.cacheUnseen(copied);//+til</span>
+<span class="nc" id="L752">        cs.addMessage(See.only(serverPlayer),</span>
+<span class="nc" id="L753">            new ModelMessage(MessageType.WARNING,</span>
+<span class="nc" id="L754">                             &quot;model.colony.workersEvicted&quot;,</span>
+<span class="nc" id="L755">                             this, this)</span>
+<span class="nc" id="L756">                .addName(&quot;%colony%&quot;, getName())</span>
+<span class="nc" id="L757">                .addStringTemplate(&quot;%location%&quot;, tile.getLocationLabel())</span>
+<span class="nc" id="L758">                .addStringTemplate(&quot;%enemyUnit%&quot;, enemyUnit.getLabel()));</span>
+<span class="nc" id="L759">        cs.add(See.only(serverPlayer), ct);</span>
+<span class="nc" id="L760">        cs.add(See.perhaps(), getTile()); // Colony size might have changed</span>
+<span class="nc" id="L761">    }</span>
+
+    /**
+     * Change the owner of this colony.
+     *
+     * -vis: Owner and new owner
+     *
+     * @param newOwner The new owning &lt;code&gt;ServerPlayer&lt;/code&gt;.
+     * @param cs A &lt;code&gt;ChangeSet&lt;/code&gt; to update.
+     * @return A set of newly explored &lt;code&gt;Tile&lt;/code&gt;s as a result of the
+     *     ownership change.
+     */
+    public Set&lt;Tile&gt; csChangeOwner(ServerPlayer newOwner, ChangeSet cs) {
+<span class="nc" id="L774">        final ServerPlayer owner = (ServerPlayer)getOwner();</span>
+
+<span class="nc bnc" id="L776" title="All 2 branches missed.">        for (Tile t : getOwnedTiles()) t.cacheUnseen(newOwner);//+til</span>
+
+<span class="nc" id="L778">        changeOwner(newOwner);//-vis(both),-til</span>
+
+<span class="nc bnc" id="L780" title="All 2 branches missed.">        ChangeType change = (newOwner.isUndead()) ? ChangeType.UNDEAD</span>
+<span class="nc" id="L781">            : ChangeType.CAPTURE;</span>
+<span class="nc" id="L782">        List&lt;Unit&gt; units = getUnitList();</span>
+<span class="nc" id="L783">        units.addAll(getTile().getUnitList());</span>
+<span class="nc bnc" id="L784" title="All 2 branches missed.">        for (Unit u : units) {//-vis(both)</span>
+<span class="nc" id="L785">            owner.csChangeOwner(u, newOwner, change, null, cs);</span>
+        }
+<span class="nc" id="L787">        cs.addRemoves(See.only(owner), this, units);</span>
+
+        // Disable all exports
+<span class="nc bnc" id="L790" title="All 2 branches missed.">        for (ExportData exportDatum : exportData.values()) {</span>
+<span class="nc" id="L791">            exportDatum.setExported(false);</span>
+        }
+
+        // Clear the build queue
+<span class="nc" id="L795">        buildQueue.clear();</span>
+
+        // Add free buildings from new owner
+<span class="nc bnc" id="L798" title="All 2 branches missed.">        for (BuildingType bt : newOwner.getFreeBuildingTypes()) {</span>
+<span class="nc" id="L799">            csFreeBuilding(bt, cs);</span>
+        }
+
+        // Changing the owner might alter bonuses applied by founding fathers:
+<span class="nc" id="L803">        updateSoL();</span>
+<span class="nc" id="L804">        updateProductionBonus();</span>
+<span class="nc" id="L805">        return newOwner.exploreForSettlement(this);</span>
+    }
+
+    /**
+     * Add a free building to this colony.
+     *
+     * Triggered by election of laSalle and colony capture by a player
+     * with laSalle.
+     *
+     * @param type The &lt;code&gt;BuildingType&lt;/code&gt; to add.
+     * @param cs A &lt;code&gt;ChangeSet&lt;/code&gt; to update.
+     */
+    public void csFreeBuilding(BuildingType type, ChangeSet cs) {
+<span class="nc bnc" id="L818" title="All 2 branches missed.">        if (canBuild(type)) {</span>
+<span class="nc" id="L819">            final ServerPlayer owner = (ServerPlayer)getOwner();</span>
+<span class="nc" id="L820">            buildBuilding(new ServerBuilding(getGame(), this, type));//-til</span>
+<span class="nc" id="L821">            checkBuildQueueIntegrity(true);</span>
+<span class="nc" id="L822">            cs.add(See.only(owner), this);</span>
+<span class="nc bnc" id="L823" title="All 2 branches missed.">            if (owner.isAI()) {</span>
+<span class="nc" id="L824">                firePropertyChange(Colony.REARRANGE_WORKERS, true, false);</span>
+            }
+        }
+<span class="nc" id="L827">    }</span>
+
+    /**
+     * Build a new building in this colony.
+     *
+     * @param building The &lt;code&gt;Building&lt;/code&gt; to build.
+     * @return True if the building was built.
+     */
+    public boolean buildBuilding(Building building) {
+<span class="nc bnc" id="L836" title="All 2 branches missed.">        Tile copied = (building.getType().isDefenceType())</span>
+<span class="nc" id="L837">            ? getTile().getTileToCache() : null;</span>
+<span class="nc bnc" id="L838" title="All 2 branches missed.">        if (!addBuilding(building)) return false;</span>
+<span class="nc" id="L839">        getTile().cacheUnseen(copied);</span>
+<span class="nc" id="L840">        invalidateCache();</span>
+<span class="nc" id="L841">        return true;</span>
+    }
+
+    /**
+     * Equip a unit for a specific role.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; to equip.
+     * @param role The &lt;code&gt;Role&lt;/code&gt; to equip for.
+     * @param roleCount The role count.
+     * @param random A pseudo-random number source.
+     * @param cs A &lt;code&gt;ChangeSet&lt;/code&gt; to update.
+     * @return True if the equipping succeeds.
+     */
+    public boolean csEquipForRole(Unit unit, Role role, int roleCount,
+                                  Random random, ChangeSet cs) {
+<span class="nc" id="L856">        boolean ret = equipForRole(unit, role, roleCount);</span>
+
+<span class="nc bnc" id="L858" title="All 2 branches missed.">        if (ret) {</span>
+<span class="nc bnc" id="L859" title="All 2 branches missed.">            if (unit.isOnCarrier()) unit.setMovesLeft(0);</span>
+<span class="nc" id="L860">            Tile tile = getTile();</span>
+<span class="nc" id="L861">            tile.cacheUnseen();//+til</span>
+<span class="nc" id="L862">            unit.setLocation(tile);</span>
+<span class="nc" id="L863">            cs.add(See.perhaps(), tile);</span>
+        }
+<span class="nc" id="L865">        return ret;</span>
+    }
+
+    /**
+     * Add a new convert to this colony.
+     *
+     * @param brave The convert &lt;code&gt;Unit&lt;/code&gt;.
+     * @param cs A &lt;code&gt;ChangeSet&lt;/code&gt; to update.
+     */
+    public void csAddConvert(Unit brave, ChangeSet cs) {
+<span class="nc bnc" id="L875" title="All 2 branches missed.">        if (brave == null) return;</span>
+<span class="nc" id="L876">        ServerPlayer newOwner = (ServerPlayer)getOwner();</span>
+<span class="nc" id="L877">        ServerPlayer oldOwner = (ServerPlayer)brave.getOwner();</span>
+<span class="nc" id="L878">        if (oldOwner.csChangeOwner(brave, newOwner, ChangeType.CONVERSION, </span>
+<span class="nc bnc" id="L879" title="All 2 branches missed.">                                   getTile(), cs)) { //-vis(other)</span>
+<span class="nc" id="L880">            brave.changeRole(getSpecification().getDefaultRole(), 0);</span>
+<span class="nc" id="L881">            brave.setMovesLeft(0);</span>
+<span class="nc" id="L882">            brave.setState(Unit.UnitState.ACTIVE);</span>
+<span class="nc" id="L883">            cs.addDisappear(newOwner, tile, brave);</span>
+<span class="nc" id="L884">            cs.add(See.only(newOwner), getTile());</span>
+<span class="nc" id="L885">            StringTemplate nation = oldOwner.getNationLabel();</span>
+<span class="nc" id="L886">            cs.addMessage(See.only(newOwner),</span>
+<span class="nc" id="L887">                new ModelMessage(MessageType.UNIT_ADDED,</span>
+<span class="nc" id="L888">                                &quot;model.colony.newConvert&quot;, brave)</span>
+<span class="nc" id="L889">                    .addStringTemplate(&quot;%nation%&quot;, nation)</span>
+<span class="nc" id="L890">                    .addName(&quot;%colony%&quot;, getName()));</span>
+<span class="nc" id="L891">            newOwner.invalidateCanSeeTiles();//+vis(other)</span>
+<span class="nc" id="L892">            logger.fine(&quot;Convert at &quot; + getName() + &quot; for &quot; + getName());</span>
+        }
+<span class="nc" id="L894">    }</span>
+
+    /**
+     * Destroy an existing building in this colony.
+     *
+     * @param building The &lt;code&gt;Building&lt;/code&gt; to destroy.
+     * @return True if the building was destroyed.
+     */
+    public boolean destroyBuilding(Building building) {
+<span class="nc bnc" id="L903" title="All 2 branches missed.">        Tile copied = (building.getType().isDefenceType())</span>
+<span class="nc" id="L904">            ? getTile().getTileToCache() : null;</span>
+<span class="nc bnc" id="L905" title="All 2 branches missed.">        if (!removeBuilding(building)) return false;</span>
+<span class="nc" id="L906">        getTile().cacheUnseen(copied);</span>
+<span class="nc" id="L907">        invalidateCache();</span>
+<span class="nc" id="L908">        checkBuildQueueIntegrity(true);</span>
+<span class="nc" id="L909">        return true;</span>
+    }
+
+
+    // Serialization
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;serverColony&quot;
+     */
+    @Override
+    public String getServerXMLElementTagName() {
+<span class="nc" id="L922">        return &quot;serverColony&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

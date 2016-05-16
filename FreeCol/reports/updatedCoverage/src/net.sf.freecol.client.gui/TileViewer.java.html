@@ -1,0 +1,789 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>TileViewer.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.gui</a> &gt; <span class="el_source">TileViewer.java</span></div><h1>TileViewer.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.gui;
+
+import java.awt.AlphaComposite;
+import java.awt.Color;
+import java.awt.Composite;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.geom.GeneralPath;
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Logger;
+
+import net.sf.freecol.client.ClientOptions;
+import net.sf.freecol.client.FreeColClient;
+import net.sf.freecol.client.control.FreeColClientHolder;
+import net.sf.freecol.common.debug.DebugUtils;
+import net.sf.freecol.common.debug.FreeColDebugger;
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.ColonyTile;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.GameOptions;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.LostCityRumour;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Resource;
+import net.sf.freecol.common.model.Settlement;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TileImprovement;
+import net.sf.freecol.common.model.TileItem;
+import net.sf.freecol.common.model.TileType;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.resources.ResourceManager;
+import net.sf.freecol.common.util.Utils;
+
+import static net.sf.freecol.common.util.StringUtils.*;
+
+
+/**
+ * TileViewer is a private helper class of MapViewer and SwingGUI.
+ * 
+ * This class is responsible for drawing map tiles
+ * for MapViewer and some GUI-panels.
+ */
+public final class TileViewer extends FreeColClientHolder {
+
+<span class="nc" id="L71">    private static final Logger logger = Logger.getLogger(TileViewer.class.getName());</span>
+
+
+    private static class SortableImage implements Comparable&lt;SortableImage&gt; {
+
+        public final BufferedImage image;
+        public final int index;
+
+<span class="nc" id="L79">        public SortableImage(BufferedImage image, int index) {</span>
+<span class="nc" id="L80">            this.image = image;</span>
+<span class="nc" id="L81">            this.index = index;</span>
+<span class="nc" id="L82">        }</span>
+
+        // Implement Comparable&lt;SortableImage&gt;
+
+        @Override
+        public int compareTo(SortableImage other) {
+<span class="nc" id="L88">            return other.index - this.index;</span>
+        }
+
+        // Override Object
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean equals(Object other) {
+<span class="nc bnc" id="L98" title="All 2 branches missed.">            if (other instanceof SortableImage) {</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">                return this.compareTo((SortableImage)other) == 0;</span>
+            }
+<span class="nc" id="L101">            return super.equals(other);</span>
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public int hashCode() {
+<span class="nc" id="L109">            int hash = super.hashCode();</span>
+<span class="nc" id="L110">            hash = 37 * hash + Utils.hashCode(image);</span>
+<span class="nc" id="L111">            return 37 * hash + index;</span>
+        }
+    }
+
+    private ImageLibrary lib;
+
+    private RoadPainter rp;
+
+    // Helper variables for displaying.
+    private int tileHeight, tileWidth, halfHeight, halfWidth;
+
+    // The height offset to paint at (in pixels).
+    static final int STATE_OFFSET_X = 25,
+<span class="nc" id="L124">                     STATE_OFFSET_Y = 10;</span>
+
+<span class="nc" id="L126">    private final GeneralPath fog = new GeneralPath();</span>
+
+
+    /**
+     * The constructor to use.
+     *
+     * @param freeColClient The &lt;code&gt;FreeColClient&lt;/code&gt; for the game.
+     */
+    public TileViewer(FreeColClient freeColClient) {
+<span class="nc" id="L135">        super(freeColClient);</span>
+
+<span class="nc" id="L137">        setImageLibraryAndUpdateData(new ImageLibrary());</span>
+<span class="nc" id="L138">    }</span>
+
+
+    /**
+     * Gets the contained &lt;code&gt;ImageLibrary&lt;/code&gt;.
+     * 
+     * @return The image library;
+     */
+    ImageLibrary getImageLibrary() {
+<span class="nc" id="L147">        return lib;</span>
+    }
+
+    /**
+     * Returns the scaled terrain-image for a terrain type (and position 0, 0).
+     *
+     * @param type The type of the terrain-image to return.
+     * @param size The maximum size of the terrain image to return.
+     * @return The terrain-image
+     */
+    static BufferedImage createTileImageWithOverlayAndForest(
+            TileType type, Dimension size) {
+<span class="nc" id="L159">        Dimension size2 = new Dimension(</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">            (size.width &gt; 0) ? size.width</span>
+<span class="nc" id="L161">                             : (2*ImageLibrary.TILE_SIZE.width*size.height +</span>
+<span class="nc" id="L162">                                   (ImageLibrary.TILE_OVERLAY_SIZE.height+1)) /</span>
+<span class="nc" id="L163">                               (2*ImageLibrary.TILE_OVERLAY_SIZE.height),</span>
+<span class="nc" id="L164">            -1);</span>
+<span class="nc" id="L165">        BufferedImage terrainImage = ImageLibrary.getTerrainImage(</span>
+<span class="nc" id="L166">            type, 0, 0, size2);</span>
+<span class="nc" id="L167">        BufferedImage overlayImage = ImageLibrary.getOverlayImage(</span>
+<span class="nc" id="L168">            type, type.getId(), size2);</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        BufferedImage forestImage = type.isForested()</span>
+<span class="nc" id="L170">            ? ImageLibrary.getForestImage(type, size2)</span>
+<span class="nc" id="L171">            : null;</span>
+<span class="nc bnc" id="L172" title="All 4 branches missed.">        if (overlayImage == null &amp;&amp; forestImage == null) {</span>
+<span class="nc" id="L173">            return terrainImage;</span>
+        } else {
+<span class="nc" id="L175">            int width = terrainImage.getWidth();</span>
+<span class="nc" id="L176">            int height = terrainImage.getHeight();</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">            if (overlayImage != null) {</span>
+<span class="nc" id="L178">                height = Math.max(height, overlayImage.getHeight());</span>
+            }
+<span class="nc bnc" id="L180" title="All 2 branches missed.">            if (forestImage != null) {</span>
+<span class="nc" id="L181">                height = Math.max(height, forestImage.getHeight());</span>
+            }
+<span class="nc" id="L183">            BufferedImage compositeImage = new BufferedImage(width, height,</span>
+<span class="nc" id="L184">                BufferedImage.TYPE_INT_ARGB);</span>
+<span class="nc" id="L185">            Graphics2D g = compositeImage.createGraphics();</span>
+<span class="nc" id="L186">            g.drawImage(terrainImage, 0, height - terrainImage.getHeight(), null);</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">            if (overlayImage != null) {</span>
+<span class="nc" id="L188">                g.drawImage(overlayImage, 0, height - overlayImage.getHeight(), null);</span>
+            }
+<span class="nc bnc" id="L190" title="All 2 branches missed.">            if (forestImage != null) {</span>
+<span class="nc" id="L191">                g.drawImage(forestImage, 0, height - forestImage.getHeight(), null);</span>
+            }
+<span class="nc" id="L193">            g.dispose();</span>
+<span class="nc" id="L194">            return compositeImage;</span>
+        }
+    }
+
+    /**
+     * Create a &lt;code&gt;BufferedImage&lt;/code&gt; and draw a &lt;code&gt;Tile&lt;/code&gt; on it.
+     * Draws the terrain and improvements.
+     *
+     * @param tile The Tile to draw.
+     * @return The image.
+     */
+    BufferedImage createTileImageWithBeachBorderAndItems(Tile tile) {
+<span class="nc bnc" id="L206" title="All 2 branches missed.">        if (!tile.isExplored())</span>
+<span class="nc" id="L207">            return lib.getTerrainImage(null, tile.getX(), tile.getY());</span>
+<span class="nc" id="L208">        final TileType tileType = tile.getType();</span>
+<span class="nc" id="L209">        Dimension terrainTileSize = lib.tileSize;</span>
+<span class="nc" id="L210">        BufferedImage overlayImage = lib.getOverlayImage(tile);</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">        final int compoundHeight = (overlayImage != null)</span>
+<span class="nc" id="L212">            ? overlayImage.getHeight()</span>
+<span class="nc bnc" id="L213" title="All 2 branches missed.">            : tileType.isForested()</span>
+<span class="nc" id="L214">                ? lib.tileForestSize.height</span>
+<span class="nc" id="L215">                : terrainTileSize.height;</span>
+<span class="nc" id="L216">        BufferedImage image = new BufferedImage(</span>
+<span class="nc" id="L217">            terrainTileSize.width, compoundHeight, BufferedImage.TYPE_INT_ARGB);</span>
+<span class="nc" id="L218">        Graphics2D g = image.createGraphics();</span>
+<span class="nc" id="L219">        g.translate(0, compoundHeight - terrainTileSize.height);</span>
+<span class="nc" id="L220">        displayTileWithBeachAndBorder(g, tile);</span>
+<span class="nc" id="L221">        displayTileItems(g, tile, overlayImage);</span>
+<span class="nc" id="L222">        g.dispose();</span>
+<span class="nc" id="L223">        return image;</span>
+    }
+
+    /**
+     * Create a &lt;code&gt;BufferedImage&lt;/code&gt; and draw a &lt;code&gt;Tile&lt;/code&gt; on it.
+     *
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; to draw.
+     * @return The image.
+     */
+    BufferedImage createTileImage(Tile tile) {
+<span class="nc" id="L233">        final TileType tileType = tile.getType();</span>
+<span class="nc" id="L234">        Dimension terrainTileSize = lib.tileSize;</span>
+<span class="nc" id="L235">        BufferedImage overlayImage = lib.getOverlayImage(tile);</span>
+<span class="nc bnc" id="L236" title="All 2 branches missed.">        final int compoundHeight = (overlayImage != null)</span>
+<span class="nc" id="L237">            ? overlayImage.getHeight()</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">            : tileType.isForested()</span>
+<span class="nc" id="L239">                ? lib.tileForestSize.height</span>
+<span class="nc" id="L240">                : terrainTileSize.height;</span>
+<span class="nc" id="L241">        BufferedImage image = new BufferedImage(</span>
+<span class="nc" id="L242">            terrainTileSize.width, compoundHeight, BufferedImage.TYPE_INT_ARGB);</span>
+<span class="nc" id="L243">        Graphics2D g = image.createGraphics();</span>
+<span class="nc" id="L244">        g.translate(0, compoundHeight - terrainTileSize.height);</span>
+<span class="nc" id="L245">        displayTile(g, tile, overlayImage);</span>
+<span class="nc" id="L246">        g.dispose();</span>
+<span class="nc" id="L247">        return image;</span>
+    }
+
+    /**
+     * Create a &lt;code&gt;BufferedImage&lt;/code&gt; and draw a &lt;code&gt;Tile&lt;/code&gt; on it.
+     * The visualization of the &lt;code&gt;Tile&lt;/code&gt; also includes information
+     * from the corresponding &lt;code&gt;ColonyTile&lt;/code&gt; of the given
+     * &lt;code&gt;Colony&lt;/code&gt;.
+     *
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; to draw.
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; to create the visualization
+     *      of the &lt;code&gt;Tile&lt;/code&gt; for. This object is also used to
+     *      get the &lt;code&gt;ColonyTile&lt;/code&gt; for the given &lt;code&gt;Tile&lt;/code&gt;.
+     * @return The image.
+     */
+    BufferedImage createColonyTileImage(Tile tile, Colony colony) {
+<span class="nc" id="L263">        final TileType tileType = tile.getType();</span>
+<span class="nc" id="L264">        Dimension terrainTileSize = lib.tileSize;</span>
+<span class="nc" id="L265">        BufferedImage overlayImage = lib.getOverlayImage(tile);</span>
+<span class="nc bnc" id="L266" title="All 2 branches missed.">        final int compoundHeight = (overlayImage != null)</span>
+<span class="nc" id="L267">            ? overlayImage.getHeight()</span>
+<span class="nc bnc" id="L268" title="All 2 branches missed.">            : tileType.isForested()</span>
+<span class="nc" id="L269">                ? lib.tileForestSize.height</span>
+<span class="nc" id="L270">                : terrainTileSize.height;</span>
+<span class="nc" id="L271">        BufferedImage image = new BufferedImage(</span>
+<span class="nc" id="L272">            terrainTileSize.width, compoundHeight, BufferedImage.TYPE_INT_ARGB);</span>
+<span class="nc" id="L273">        Graphics2D g = image.createGraphics();</span>
+<span class="nc" id="L274">        g.translate(0, compoundHeight - terrainTileSize.height);</span>
+<span class="nc" id="L275">        displayColonyTile(g, tile, colony, overlayImage);</span>
+<span class="nc" id="L276">        g.dispose();</span>
+<span class="nc" id="L277">        return image;</span>
+    }
+
+    /**
+     * Displays the 3x3 tiles for the TilesPanel in ColonyPanel.
+     * 
+     * @param g The &lt;code&gt;Graphics2D&lt;/code&gt; object on which to draw
+     *      the &lt;code&gt;Tile&lt;/code&gt;.
+     * @param tiles The array containing the &lt;code&gt;Tile&lt;/code&gt; objects to draw.
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; to create the visualization
+     *      of the &lt;code&gt;Tile&lt;/code&gt; objects for.
+     */
+    void displayColonyTiles(Graphics2D g, Tile[][] tiles, Colony colony) {
+<span class="nc" id="L290">        Set&lt;String&gt; overlayCache = ImageLibrary.createOverlayCache();</span>
+<span class="nc" id="L291">        Dimension tileSize = lib.tileSize;</span>
+<span class="nc bnc" id="L292" title="All 2 branches missed.">        for (int x = 0; x &lt; 3; x++) {</span>
+<span class="nc bnc" id="L293" title="All 2 branches missed.">            for (int y = 0; y &lt; 3; y++) {</span>
+<span class="nc bnc" id="L294" title="All 2 branches missed.">                if (tiles[x][y] != null) {</span>
+<span class="nc" id="L295">                    int xx = (((2 - x) + y) * tileSize.width) / 2;</span>
+<span class="nc" id="L296">                    int yy = ((x + y) * tileSize.height) / 2;</span>
+<span class="nc" id="L297">                    g.translate(xx, yy);</span>
+<span class="nc" id="L298">                    BufferedImage overlayImage = lib.getOverlayImage(</span>
+<span class="nc" id="L299">                        tiles[x][y], overlayCache);</span>
+<span class="nc" id="L300">                    displayColonyTile(g, tiles[x][y], colony, overlayImage);</span>
+<span class="nc" id="L301">                    g.translate(-xx, -yy);</span>
+                }
+            }
+        }
+<span class="nc" id="L305">    }</span>
+
+    /**
+     * Displays the given colony tile.
+     * The visualization of the &lt;code&gt;Tile&lt;/code&gt; also includes information
+     * from the corresponding &lt;code&gt;ColonyTile&lt;/code&gt; from the given
+     * &lt;code&gt;Colony&lt;/code&gt;.
+     *
+     * @param g The &lt;code&gt;Graphics2D&lt;/code&gt; on which to draw.
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; to draw.
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; to create the visualization
+     *      of the &lt;code&gt;Tile&lt;/code&gt; for. This object is also used to
+     *      get the &lt;code&gt;ColonyTile&lt;/code&gt; for the given &lt;code&gt;Tile&lt;/code&gt;.
+     * @param overlayImage The BufferedImage of the tile overlay.
+     */
+    private void displayColonyTile(Graphics2D g, Tile tile, Colony colony,
+                                  BufferedImage overlayImage) {
+<span class="nc" id="L322">        displayTile(g, tile, overlayImage);</span>
+
+<span class="nc" id="L324">        ColonyTile colonyTile = colony.getColonyTile(tile);</span>
+<span class="nc bnc" id="L325" title="All 2 branches missed.">        switch (colonyTile.getNoWorkReason()) {</span>
+        case NONE: case COLONY_CENTER: case CLAIM_REQUIRED:
+<span class="nc" id="L327">            break;</span>
+        default:
+<span class="nc" id="L329">            g.drawImage(lib.getMiscImage(ImageLibrary.TILE_TAKEN),</span>
+<span class="nc" id="L330">                        0, 0, null);</span>
+        }
+<span class="nc" id="L332">        int price = colony.getOwner().getLandPrice(tile);</span>
+<span class="nc bnc" id="L333" title="All 4 branches missed.">        if (price &gt; 0 &amp;&amp; !tile.hasSettlement()) {</span>
+<span class="nc" id="L334">            BufferedImage image = lib.getMiscImage(</span>
+<span class="nc" id="L335">                ImageLibrary.TILE_OWNED_BY_INDIANS);</span>
+<span class="nc" id="L336">            displayCenteredImage(g, image);</span>
+        }
+
+<span class="nc" id="L339">        Unit unit = colonyTile.getOccupyingUnit();</span>
+<span class="nc bnc" id="L340" title="All 2 branches missed.">        if (unit != null) {</span>
+<span class="nc" id="L341">            BufferedImage image = lib.getSmallerUnitImage(unit);</span>
+<span class="nc" id="L342">            g.drawImage(image,</span>
+<span class="nc" id="L343">                        tileWidth/4 - image.getWidth() / 2,</span>
+<span class="nc" id="L344">                        halfHeight - image.getHeight() / 2, null);</span>
+            // Draw an occupation and nation indicator.
+<span class="nc" id="L346">            Player owner = getMyPlayer();</span>
+<span class="nc" id="L347">            String text = Messages.message(unit.getOccupationLabel(owner, false));</span>
+<span class="nc" id="L348">            g.drawImage(lib.getOccupationIndicatorChip(g, unit, text),</span>
+<span class="nc" id="L349">                        (int)(STATE_OFFSET_X * lib.getScaleFactor()),</span>
+<span class="nc" id="L350">                        0, null);</span>
+        }
+<span class="nc" id="L352">    }</span>
+
+    /**
+     * Displays the given &lt;code&gt;Tile&lt;/code&gt;.
+     *
+     * @param g The Graphics2D on which to draw the &lt;code&gt;Tile&lt;/code&gt;.
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; to draw.
+     * @param overlayImage The BufferedImage for the tile overlay.
+     */
+    private void displayTile(Graphics2D g, Tile tile, BufferedImage overlayImage) {
+<span class="nc" id="L362">        displayTileWithBeachAndBorder(g, tile);</span>
+<span class="nc bnc" id="L363" title="All 2 branches missed.">        if (tile.isExplored()) {</span>
+<span class="nc" id="L364">            displayTileItems(g, tile, overlayImage);</span>
+<span class="nc" id="L365">            displaySettlementWithChipsOrPopulationNumber(g, tile, false);</span>
+<span class="nc" id="L366">            displayFogOfWar(g, tile);</span>
+<span class="nc" id="L367">            displayOptionalTileText(g, tile);</span>
+        }
+<span class="nc" id="L369">    }</span>
+
+    /**
+     * Sets the ImageLibrary and calculates various items that depend
+     * on tile size.
+     *
+     * @param lib an &lt;code&gt;ImageLibrary&lt;/code&gt; value
+     */
+    void setImageLibraryAndUpdateData(ImageLibrary lib) {
+<span class="nc" id="L378">        this.lib = lib;</span>
+        // ATTENTION: we assume that all base tiles have the same size
+<span class="nc" id="L380">        Dimension tileSize = lib.tileSize;</span>
+<span class="nc" id="L381">        rp = new RoadPainter(tileSize);</span>
+<span class="nc" id="L382">        tileHeight = tileSize.height;</span>
+<span class="nc" id="L383">        tileWidth = tileSize.width;</span>
+<span class="nc" id="L384">        halfHeight = tileHeight/2;</span>
+<span class="nc" id="L385">        halfWidth = tileWidth/2;</span>
+
+<span class="nc" id="L387">        fog.reset();</span>
+<span class="nc" id="L388">        fog.moveTo(halfWidth, 0);</span>
+<span class="nc" id="L389">        fog.lineTo(tileWidth, halfHeight);</span>
+<span class="nc" id="L390">        fog.lineTo(halfWidth, tileHeight);</span>
+<span class="nc" id="L391">        fog.lineTo(0, halfHeight);</span>
+<span class="nc" id="L392">        fog.closePath();</span>
+<span class="nc" id="L393">    }</span>
+
+    /**
+     * Centers the given Image on the tile.
+     *
+     * @param g a &lt;code&gt;Graphics2D&lt;/code&gt;
+     * @param image the BufferedImage
+     */
+    void displayCenteredImage(Graphics2D g, BufferedImage image) {
+<span class="nc" id="L402">        g.drawImage(image,</span>
+<span class="nc" id="L403">                    (tileWidth - image.getWidth())/2,</span>
+<span class="nc" id="L404">                    (tileHeight - image.getHeight())/2,</span>
+<span class="nc" id="L405">                    null);</span>
+<span class="nc" id="L406">    }</span>
+
+    /**
+     * Centers the given Image on the tile, ensuring it is not drawing
+     * over tiles south of it.
+     *
+     * @param g a &lt;code&gt;Graphics2D&lt;/code&gt;
+     * @param image the BufferedImage
+     */
+    void displayLargeCenteredImage(Graphics2D g, BufferedImage image) {
+<span class="nc" id="L416">        int y = tileHeight - image.getHeight();</span>
+<span class="nc bnc" id="L417" title="All 2 branches missed.">        if(y &gt; 0)</span>
+<span class="nc" id="L418">            y /= 2;</span>
+<span class="nc" id="L419">        g.drawImage(image, (tileWidth - image.getWidth())/2, y, null);</span>
+<span class="nc" id="L420">    }</span>
+
+    /**
+     * Displays the given Tile onto the given Graphics2D object at the
+     * location specified by the coordinates. Only base terrain will be drawn.
+     *
+     * @param g The Graphics2D object on which to draw the Tile.
+     * @param tile The Tile to draw.
+     */
+    void displayTileWithBeachAndBorder(Graphics2D g, Tile tile) {
+<span class="nc bnc" id="L430" title="All 2 branches missed.">        if (tile != null) {</span>
+<span class="nc" id="L431">            TileType tileType = tile.getType();</span>
+<span class="nc" id="L432">            int x = tile.getX();</span>
+<span class="nc" id="L433">            int y = tile.getY();</span>
+            // ATTENTION: we assume that all base tiles have the same size
+<span class="nc" id="L435">            g.drawImage(lib.getTerrainImage(tileType, x, y),</span>
+<span class="nc" id="L436">                        0, 0, null);</span>
+<span class="nc bnc" id="L437" title="All 2 branches missed.">            if (tile.isExplored()) {</span>
+<span class="nc bnc" id="L438" title="All 4 branches missed.">                if (!tile.isLand() &amp;&amp; tile.getStyle() &gt; 0) {</span>
+<span class="nc" id="L439">                    int edgeStyle = tile.getStyle() &gt;&gt; 4;</span>
+<span class="nc bnc" id="L440" title="All 2 branches missed.">                    if (edgeStyle &gt; 0) {</span>
+<span class="nc" id="L441">                        g.drawImage(lib.getBeachEdgeImage(edgeStyle, x, y),</span>
+<span class="nc" id="L442">                                    0, 0, null);</span>
+                    }
+<span class="nc" id="L444">                    int cornerStyle = tile.getStyle() &amp; 15;</span>
+<span class="nc bnc" id="L445" title="All 2 branches missed.">                    if (cornerStyle &gt; 0) {</span>
+<span class="nc" id="L446">                        g.drawImage(lib.getBeachCornerImage(cornerStyle, x, y),</span>
+<span class="nc" id="L447">                                    0, 0, null);</span>
+                    }
+                }
+
+<span class="nc" id="L451">                List&lt;SortableImage&gt; imageBorders = new ArrayList&lt;&gt;(8);</span>
+                SortableImage si;
+<span class="nc bnc" id="L453" title="All 2 branches missed.">                for (Direction direction : Direction.values()) {</span>
+<span class="nc" id="L454">                    Tile borderingTile = tile.getNeighbourOrNull(direction);</span>
+<span class="nc bnc" id="L455" title="All 4 branches missed.">                    if (borderingTile != null &amp;&amp; borderingTile.isExplored()) {</span>
+<span class="nc" id="L456">                        TileType borderingTileType = borderingTile.getType();</span>
+<span class="nc bnc" id="L457" title="All 2 branches missed.">                        if (borderingTileType != tileType) {</span>
+<span class="nc bnc" id="L458" title="All 4 branches missed.">                            if (!tile.isLand() &amp;&amp; borderingTile.isLand()) {</span>
+                                // If there is a Coast image (eg. beach) defined, use it, otherwise skip
+                                // Draw the grass from the neighboring tile, spilling over on the side of this tile
+<span class="nc" id="L461">                                si = new SortableImage(</span>
+<span class="nc" id="L462">                                    lib.getBorderImage(borderingTileType, direction, x, y),</span>
+<span class="nc" id="L463">                                    borderingTileType.getIndex());</span>
+<span class="nc" id="L464">                                imageBorders.add(si);</span>
+<span class="nc" id="L465">                                TileImprovement river = borderingTile.getRiver();</span>
+<span class="nc bnc" id="L466" title="All 4 branches missed.">                                if (river != null &amp;&amp; river.isConnectedTo(direction.getReverseDirection())) {</span>
+<span class="nc" id="L467">                                    si = new SortableImage(</span>
+<span class="nc" id="L468">                                        lib.getRiverMouthImage(direction,</span>
+<span class="nc" id="L469">                                            borderingTile.getRiver().getMagnitude(), x, y),</span>
+<span class="nc" id="L470">                                        -1);</span>
+<span class="nc" id="L471">                                    imageBorders.add(si);</span>
+                                }
+<span class="nc bnc" id="L473" title="All 4 branches missed.">                            } else if (!tile.isLand() || borderingTile.isLand()) {</span>
+<span class="nc bnc" id="L474" title="All 2 branches missed.">                                if (borderingTileType.getIndex() &lt; tileType.getIndex() &amp;&amp;</span>
+<span class="nc bnc" id="L475" title="All 2 branches missed.">                                        !lib.getTerrainImage(tileType, 0, 0).equals(lib.getTerrainImage(borderingTileType, 0, 0))) {</span>
+                                    // Draw land terrain with bordering land type, or ocean/high seas limit,
+                                    // if the tiles do not share same graphics (ocean &amp; great river)
+<span class="nc" id="L478">                                    si = new SortableImage(</span>
+<span class="nc" id="L479">                                            lib.getBorderImage(borderingTileType, direction, x, y),</span>
+<span class="nc" id="L480">                                            borderingTileType.getIndex());</span>
+<span class="nc" id="L481">                                    imageBorders.add(si);</span>
+                                }
+                            }
+                        }
+                    }
+                }
+<span class="nc" id="L487">                Collections.sort(imageBorders);</span>
+<span class="nc bnc" id="L488" title="All 2 branches missed.">                for (SortableImage sorted : imageBorders) {</span>
+<span class="nc" id="L489">                    g.drawImage(sorted.image, 0, 0, null);</span>
+                }
+            }
+        }
+<span class="nc" id="L493">    }</span>
+
+    void displayUnknownTileBorder(Graphics2D g, Tile tile) {
+<span class="nc bnc" id="L496" title="All 2 branches missed.">        for (Direction direction : Direction.values()) {</span>
+<span class="nc" id="L497">            Tile borderingTile = tile.getNeighbourOrNull(direction);</span>
+<span class="nc bnc" id="L498" title="All 4 branches missed.">            if (borderingTile != null &amp;&amp; !borderingTile.isExplored()) {</span>
+<span class="nc" id="L499">                g.drawImage(lib.getBorderImage(</span>
+<span class="nc" id="L500">                        null, direction, tile.getX(), tile.getY()),</span>
+<span class="nc" id="L501">                    0, 0, null);</span>
+            }
+        }
+<span class="nc" id="L504">    }</span>
+
+    /**
+     * Displays the given Tile onto the given Graphics2D object at the
+     * location specified by the coordinates.  Fog of war will be
+     * drawn.
+     *
+     * @param g The &lt;code&gt;Graphics2D&lt;/code&gt; object on which to draw
+     *     the &lt;code&gt;Tile&lt;/code&gt;.
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; to draw.
+     */
+    void displayFogOfWar(Graphics2D g, Tile tile) {
+<span class="nc bnc" id="L516" title="All 2 branches missed.">        if (getGame() != null</span>
+<span class="nc bnc" id="L517" title="All 2 branches missed.">            &amp;&amp; getSpecification().getBoolean(GameOptions.FOG_OF_WAR)</span>
+<span class="nc bnc" id="L518" title="All 2 branches missed.">            &amp;&amp; getMyPlayer() != null</span>
+<span class="nc bnc" id="L519" title="All 2 branches missed.">            &amp;&amp; !getMyPlayer().canSee(tile)) {</span>
+<span class="nc" id="L520">            g.setColor(Color.BLACK);</span>
+<span class="nc" id="L521">            Composite oldComposite = g.getComposite();</span>
+<span class="nc" id="L522">            g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,</span>
+<span class="nc" id="L523">                                                      0.2f));</span>
+<span class="nc" id="L524">            g.fill(fog);</span>
+<span class="nc" id="L525">            g.setComposite(oldComposite);</span>
+        }
+<span class="nc" id="L527">    }</span>
+
+    /**
+     * Displays the Tile text for a Tile.
+     * Shows tile names, coordinates and colony values.
+     *
+     * @param g The Graphics2D object on which the text gets drawn.
+     * @param tile The Tile to draw the text on.
+     */
+    void displayOptionalTileText(Graphics2D g, Tile tile) {
+<span class="nc" id="L537">        String text = null;</span>
+<span class="nc" id="L538">        int op = getClientOptions().getInteger(ClientOptions.DISPLAY_TILE_TEXT);</span>
+<span class="nc bnc" id="L539" title="All 5 branches missed.">        switch (op) {</span>
+        case ClientOptions.DISPLAY_TILE_TEXT_NAMES:
+<span class="nc" id="L541">            text = Messages.getName(tile);</span>
+<span class="nc" id="L542">            break;</span>
+        case ClientOptions.DISPLAY_TILE_TEXT_OWNERS:
+<span class="nc bnc" id="L544" title="All 2 branches missed.">            if (tile.getOwner() != null) {</span>
+<span class="nc" id="L545">                text = Messages.message(tile.getOwner().getNationLabel());</span>
+            }
+<span class="nc" id="L547">            break;</span>
+        case ClientOptions.DISPLAY_TILE_TEXT_REGIONS:
+<span class="nc bnc" id="L549" title="All 2 branches missed.">            if (tile.getRegion() != null) {</span>
+<span class="nc bnc" id="L550" title="All 2 branches missed.">                if (FreeColDebugger.isInDebugMode(FreeColDebugger.DebugMode.MENUS)</span>
+<span class="nc bnc" id="L551" title="All 2 branches missed.">                    &amp;&amp; tile.getRegion().getName() == null) {</span>
+<span class="nc" id="L552">                    text = tile.getRegion().getSuffix();</span>
+<span class="nc" id="L553">                } else {</span>
+<span class="nc" id="L554">                    text = Messages.message(tile.getRegion().getLabel());</span>
+                }
+            }
+<span class="nc" id="L557">            break;</span>
+        case ClientOptions.DISPLAY_TILE_TEXT_EMPTY:
+<span class="nc" id="L559">            break;</span>
+        default:
+<span class="nc" id="L561">            logger.warning(&quot;displayTileText option &quot; + op + &quot; out of range&quot;);</span>
+            break;
+        }
+
+<span class="nc" id="L565">        g.setColor(Color.BLACK);</span>
+<span class="nc" id="L566">        g.setFont(FontLibrary.createFont(FontLibrary.FontType.NORMAL,</span>
+<span class="nc" id="L567">            FontLibrary.FontSize.TINY, lib.getScaleFactor()));</span>
+<span class="nc bnc" id="L568" title="All 2 branches missed.">        if (text != null) {</span>
+<span class="nc" id="L569">            int b = getBreakingPoint(text);</span>
+<span class="nc bnc" id="L570" title="All 2 branches missed.">            if (b == -1) {</span>
+<span class="nc" id="L571">                g.drawString(text,</span>
+<span class="nc" id="L572">                    (tileWidth - g.getFontMetrics().stringWidth(text)) / 2,</span>
+<span class="nc" id="L573">                    (tileHeight - g.getFontMetrics().getAscent()) / 2);</span>
+<span class="nc" id="L574">            } else {</span>
+<span class="nc" id="L575">                g.drawString(text.substring(0, b),</span>
+<span class="nc" id="L576">                    (tileWidth - g.getFontMetrics().stringWidth(text.substring(0, b)))/2,</span>
+<span class="nc" id="L577">                    halfHeight - (g.getFontMetrics().getAscent()*2)/3);</span>
+<span class="nc" id="L578">                g.drawString(text.substring(b+1),</span>
+<span class="nc" id="L579">                    (tileWidth - g.getFontMetrics().stringWidth(text.substring(b+1)))/2,</span>
+<span class="nc" id="L580">                    halfHeight + (g.getFontMetrics().getAscent()*2)/3);</span>
+            }
+        }
+
+<span class="nc bnc" id="L584" title="All 2 branches missed.">        if (FreeColDebugger.debugDisplayCoordinates()) {</span>
+<span class="nc" id="L585">            String posString = tile.getX() + &quot;, &quot; + tile.getY();</span>
+<span class="nc bnc" id="L586" title="All 2 branches missed.">            if (tile.getHighSeasCount() &gt;= 0) {</span>
+<span class="nc" id="L587">                posString += &quot;/&quot; + Integer.toString(tile.getHighSeasCount());</span>
+            }
+<span class="nc" id="L589">            g.drawString(posString,</span>
+<span class="nc" id="L590">                (tileWidth - g.getFontMetrics().stringWidth(posString)) / 2,</span>
+<span class="nc" id="L591">                (tileHeight - g.getFontMetrics().getAscent()) / 2);</span>
+        }
+<span class="nc" id="L593">        String value = DebugUtils.getColonyValue(tile);</span>
+<span class="nc bnc" id="L594" title="All 2 branches missed.">        if (value != null) {</span>
+<span class="nc" id="L595">            g.drawString(value,</span>
+<span class="nc" id="L596">                (tileWidth - g.getFontMetrics().stringWidth(value)) / 2,</span>
+<span class="nc" id="L597">                (tileHeight - g.getFontMetrics().getAscent()) / 2);</span>
+        }
+<span class="nc" id="L599">    }</span>
+
+    /**
+     * Displays the given Tile onto the given Graphics2D object at the
+     * location specified by the coordinates. Settlements and Lost
+     * City Rumours will be shown.
+     *
+     * @param g The Graphics2D object on which to draw the Tile.
+     * @param tile The Tile to draw.
+     * @param withNumber Whether to display the number of units present.
+     */
+    void displaySettlementWithChipsOrPopulationNumber(
+            Graphics2D g, Tile tile, boolean withNumber) {
+<span class="nc" id="L612">        final Player player = getMyPlayer();</span>
+<span class="nc" id="L613">        final Settlement settlement = tile.getSettlement();</span>
+
+<span class="nc bnc" id="L615" title="All 2 branches missed.">        if (settlement != null) {</span>
+<span class="nc bnc" id="L616" title="All 2 branches missed.">            if (settlement instanceof Colony) {</span>
+<span class="nc" id="L617">                Colony colony = (Colony)settlement;</span>
+
+                // Draw image of colony in center of the tile.
+<span class="nc" id="L620">                BufferedImage colonyImage = lib.getSettlementImage(settlement);</span>
+<span class="nc" id="L621">                displayLargeCenteredImage(g, colonyImage);</span>
+
+<span class="nc bnc" id="L623" title="All 2 branches missed.">                if (withNumber) {</span>
+<span class="nc" id="L624">                    String populationString = Integer.toString(</span>
+<span class="nc" id="L625">                        colony.getDisplayUnitCount());</span>
+<span class="nc" id="L626">                    int bonus = colony.getProductionBonus();</span>
+<span class="nc" id="L627">                    Color theColor = ResourceManager.getColor(</span>
+<span class="nc" id="L628">                        &quot;color.map.productionBonus.&quot; + bonus);</span>
+                    // if government admits even more units, use
+                    // italic and bigger number icon
+<span class="nc bnc" id="L631" title="All 2 branches missed.">                    Font font = (colony.getPreferredSizeChange() &gt; 0)</span>
+<span class="nc" id="L632">                        ? FontLibrary.createFont(FontLibrary.FontType.SIMPLE,</span>
+<span class="nc" id="L633">                            FontLibrary.FontSize.SMALLER, Font.BOLD | Font.ITALIC,</span>
+<span class="nc" id="L634">                            lib.getScaleFactor())</span>
+<span class="nc" id="L635">                        : FontLibrary.createFont(FontLibrary.FontType.SIMPLE,</span>
+<span class="nc" id="L636">                            FontLibrary.FontSize.TINY, Font.BOLD,</span>
+<span class="nc" id="L637">                            lib.getScaleFactor());</span>
+<span class="nc" id="L638">                    BufferedImage stringImage = lib.getStringImage(g,</span>
+<span class="nc" id="L639">                        populationString, theColor, font);</span>
+<span class="nc" id="L640">                    displayCenteredImage(g, stringImage);</span>
+                }
+
+<span class="nc bnc" id="L643" title="All 2 branches missed.">            } else if (settlement instanceof IndianSettlement) {</span>
+<span class="nc" id="L644">                IndianSettlement is = (IndianSettlement)settlement;</span>
+<span class="nc" id="L645">                BufferedImage settlementImage = lib.getSettlementImage(settlement);</span>
+
+                // Draw image of indian settlement in center of the tile.
+<span class="nc" id="L648">                displayCenteredImage(g, settlementImage);</span>
+
+                BufferedImage chip;
+<span class="nc" id="L651">                float xOffset = STATE_OFFSET_X * lib.getScaleFactor();</span>
+<span class="nc" id="L652">                float yOffset = STATE_OFFSET_Y * lib.getScaleFactor();</span>
+<span class="nc" id="L653">                final int colonyLabels = getClientOptions()</span>
+<span class="nc" id="L654">                    .getInteger(ClientOptions.COLONY_LABELS);</span>
+<span class="nc bnc" id="L655" title="All 2 branches missed.">                if (colonyLabels != ClientOptions.COLONY_LABELS_MODERN) {</span>
+                    // Draw the settlement chip
+<span class="nc" id="L657">                    chip = lib.getIndianSettlementChip(g, is);</span>
+<span class="nc" id="L658">                    g.drawImage(chip, (int)xOffset, (int)yOffset, null);</span>
+<span class="nc" id="L659">                    xOffset += chip.getWidth() + 2;</span>
+
+                    // Draw the mission chip if needed.
+<span class="nc" id="L662">                    Unit missionary = is.getMissionary();</span>
+<span class="nc bnc" id="L663" title="All 2 branches missed.">                    if (missionary != null) {</span>
+<span class="nc" id="L664">                        boolean expert</span>
+<span class="nc" id="L665">                            = missionary.hasAbility(Ability.EXPERT_MISSIONARY);</span>
+<span class="nc" id="L666">                        g.drawImage(lib.getMissionChip(g, missionary.getOwner(),</span>
+<span class="nc" id="L667">                                                       expert),</span>
+<span class="nc" id="L668">                                    (int)xOffset, (int)yOffset, null);</span>
+<span class="nc" id="L669">                        xOffset += chip.getWidth() + 2;</span>
+                    }
+                }
+
+                // Draw the alarm chip if needed.
+<span class="nc bnc" id="L674" title="All 2 branches missed.">                if ((chip = lib.getAlarmChip(g, is, player)) != null) {</span>
+<span class="nc" id="L675">                    g.drawImage(chip, (int)xOffset, (int)yOffset, null);</span>
+                }
+<span class="nc" id="L677">            } else {</span>
+<span class="nc" id="L678">                logger.warning(&quot;Bogus settlement: &quot; + settlement);</span>
+            }
+        }
+<span class="nc" id="L681">    }</span>
+
+    /**
+     * Displays the given tile's items onto the given Graphics2D object.
+     * Additions and improvements to Tile will be drawn.
+     * Only works for explored tiles.
+     *
+     * @param g The Graphics2D object on which to draw the Tile.
+     * @param tile The Tile to draw.
+     * @param overlayImage The BufferedImage for the tile overlay.
+     */
+    void displayTileItems(Graphics2D g, Tile tile, BufferedImage overlayImage) {
+        // ATTENTION: we assume that only overlays and forests
+        // might be taller than a tile.
+
+        // layer additions and improvements according to zIndex
+<span class="nc" id="L697">        List&lt;TileItem&gt; tileItems = tile.getCompleteItems();</span>
+<span class="nc" id="L698">        int startIndex = 0;</span>
+<span class="nc bnc" id="L699" title="All 2 branches missed.">        for (int index = startIndex; index &lt; tileItems.size(); index++) {</span>
+<span class="nc bnc" id="L700" title="All 2 branches missed.">            if (tileItems.get(index).getZIndex() &lt; Tile.OVERLAY_ZINDEX) {</span>
+<span class="nc" id="L701">                displayTileItem(g, tile, tileItems.get(index));</span>
+<span class="nc" id="L702">                startIndex = index + 1;</span>
+<span class="nc" id="L703">            } else {</span>
+<span class="nc" id="L704">                startIndex = index;</span>
+<span class="nc" id="L705">                break;</span>
+            }
+        }
+        // Tile Overlays (eg. hills and mountains)
+<span class="nc bnc" id="L709" title="All 2 branches missed.">        if (overlayImage != null) {</span>
+<span class="nc" id="L710">            g.drawImage(overlayImage,</span>
+<span class="nc" id="L711">                0, (tileHeight - overlayImage.getHeight()), null);</span>
+        }
+<span class="nc bnc" id="L713" title="All 2 branches missed.">        for (int index = startIndex; index &lt; tileItems.size(); index++) {</span>
+<span class="nc bnc" id="L714" title="All 2 branches missed.">            if (tileItems.get(index).getZIndex() &lt; Tile.FOREST_ZINDEX) {</span>
+<span class="nc" id="L715">                displayTileItem(g, tile, tileItems.get(index));</span>
+<span class="nc" id="L716">                startIndex = index + 1;</span>
+<span class="nc" id="L717">            } else {</span>
+<span class="nc" id="L718">                startIndex = index;</span>
+<span class="nc" id="L719">                break;</span>
+            }
+        }
+        // Forest
+<span class="nc bnc" id="L723" title="All 2 branches missed.">        if (tile.isForested()) {</span>
+<span class="nc" id="L724">            BufferedImage forestImage = lib.getForestImage(</span>
+<span class="nc" id="L725">                tile.getType(), tile.getRiverStyle());</span>
+<span class="nc" id="L726">            g.drawImage(forestImage,</span>
+<span class="nc" id="L727">                0, (tileHeight - forestImage.getHeight()), null);</span>
+        }
+
+        // draw all remaining items
+<span class="nc bnc" id="L731" title="All 2 branches missed.">        for (TileItem ti : tileItems.subList(startIndex, tileItems.size())) {</span>
+<span class="nc" id="L732">            displayTileItem(g, tile, ti);</span>
+        }
+<span class="nc" id="L734">    }</span>
+
+    /**
+     * Draws the given TileItem on the given Tile.
+     *
+     * @param g The &lt;code&gt;Graphics&lt;/code&gt; to draw to.
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; to draw from.
+     * @param item The &lt;code&gt;TileItem&lt;/code&gt; to draw.
+     */
+    private void displayTileItem(Graphics2D g, Tile tile, TileItem item) {
+<span class="nc bnc" id="L744" title="All 2 branches missed.">        if (item instanceof TileImprovement) {</span>
+<span class="nc" id="L745">            displayTileImprovement(g, tile, (TileImprovement)item);</span>
+<span class="nc bnc" id="L746" title="All 2 branches missed.">        } else if (item instanceof LostCityRumour) {</span>
+<span class="nc" id="L747">            displayLostCityRumour(g);</span>
+<span class="nc" id="L748">        } else {</span>
+<span class="nc" id="L749">            displayResourceTileItem(g, (Resource) item);</span>
+        }
+<span class="nc" id="L751">    }</span>
+
+    private void displayResourceTileItem(Graphics2D g, Resource item) {
+<span class="nc" id="L754">        BufferedImage bonusImage = lib.getMiscImage(</span>
+<span class="nc" id="L755">            &quot;image.tileitem.&quot; + item.getType().getId());</span>
+<span class="nc" id="L756">        displayCenteredImage(g, bonusImage);</span>
+<span class="nc" id="L757">    }</span>
+
+    private void displayLostCityRumour(Graphics2D g) {
+<span class="nc" id="L760">        displayCenteredImage(g,</span>
+<span class="nc" id="L761">            lib.getMiscImage(ImageLibrary.LOST_CITY_RUMOUR));</span>
+<span class="nc" id="L762">    }</span>
+
+    private void displayTileImprovement(Graphics2D g,
+                                        Tile tile, TileImprovement  ti) {
+<span class="nc bnc" id="L766" title="All 2 branches missed.">        if (ti.isComplete()) {</span>
+<span class="nc bnc" id="L767" title="All 2 branches missed.">            if (ti.isRoad()) {</span>
+<span class="nc" id="L768">                rp.displayRoad(g, tile);</span>
+<span class="nc bnc" id="L769" title="All 2 branches missed.">            } else if (ti.isRiver()</span>
+<span class="nc bnc" id="L770" title="All 2 branches missed.">                    &amp;&amp; ti.getMagnitude() &lt; TileImprovement.FJORD_RIVER) {</span>
+                // @compat 0.10.5
+                // America_large had some bogus rivers in 0.10.5
+<span class="nc bnc" id="L773" title="All 2 branches missed.">                if (ti.getStyle() != null)</span>
+                // end @compat 0.10.5
+<span class="nc" id="L775">                    g.drawImage(lib.getRiverImage(ti.getStyle()), 0, 0, null);</span>
+<span class="nc" id="L776">            } else {</span>
+<span class="nc" id="L777">                String key = &quot;image.tile.&quot; + ti.getType().getId();</span>
+<span class="nc bnc" id="L778" title="All 2 branches missed.">                if (ResourceManager.hasImageResource(key)) {</span>
+                    // Has its own Overlay Image in Misc, use it
+<span class="nc" id="L780">                    BufferedImage overlay = ResourceManager.getImage(key,</span>
+<span class="nc" id="L781">                        lib.tileSize);</span>
+<span class="nc" id="L782">                    g.drawImage(overlay, 0, 0, null);</span>
+                }
+            }
+        }
+<span class="nc" id="L786">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

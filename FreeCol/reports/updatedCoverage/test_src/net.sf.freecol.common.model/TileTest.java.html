@@ -1,0 +1,780 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>TileTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">TileTest.java</span></div><h1>TileTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.List;
+
+import net.sf.freecol.util.test.FreeColTestCase;
+import net.sf.freecol.util.test.FreeColTestUtils;
+
+
+<span class="nc" id="L28">public class TileTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L30">    private static final BuildingType townHallType</span>
+<span class="nc" id="L31">        = spec().getBuildingType(&quot;model.building.townHall&quot;);</span>
+
+<span class="nc" id="L33">    private static final GoodsType cotton</span>
+<span class="nc" id="L34">        = spec().getGoodsType(&quot;model.goods.cotton&quot;);</span>
+<span class="nc" id="L35">    private static final GoodsType fish</span>
+<span class="nc" id="L36">        = spec().getGoodsType(&quot;model.goods.fish&quot;);</span>
+<span class="nc" id="L37">    private static final GoodsType food</span>
+<span class="nc" id="L38">        = spec().getPrimaryFoodType();</span>
+<span class="nc" id="L39">    private static final GoodsType furs</span>
+<span class="nc" id="L40">        = spec().getGoodsType(&quot;model.goods.furs&quot;);</span>
+<span class="nc" id="L41">    private static final GoodsType grain</span>
+<span class="nc" id="L42">        = spec().getGoodsType(&quot;model.goods.grain&quot;);</span>
+<span class="nc" id="L43">    private static final GoodsType lumber</span>
+<span class="nc" id="L44">        = spec().getGoodsType(&quot;model.goods.lumber&quot;);</span>
+<span class="nc" id="L45">    private static final GoodsType ore</span>
+<span class="nc" id="L46">        = spec().getGoodsType(&quot;model.goods.ore&quot;);</span>
+<span class="nc" id="L47">    private static final GoodsType silver</span>
+<span class="nc" id="L48">        = spec().getGoodsType(&quot;model.goods.silver&quot;);</span>
+<span class="nc" id="L49">    private static final GoodsType sugar</span>
+<span class="nc" id="L50">        = spec().getGoodsType(&quot;model.goods.sugar&quot;);</span>
+<span class="nc" id="L51">    private static final GoodsType tobacco</span>
+<span class="nc" id="L52">        = spec().getGoodsType(&quot;model.goods.tobacco&quot;);</span>
+
+<span class="nc" id="L54">    private static final ResourceType grainResource</span>
+<span class="nc" id="L55">        = spec().getResourceType(&quot;model.resource.grain&quot;);</span>
+<span class="nc" id="L56">    private static final ResourceType lumberResource</span>
+<span class="nc" id="L57">        = spec().getResourceType(&quot;model.resource.lumber&quot;);</span>
+<span class="nc" id="L58">    private static final ResourceType mineralsResource</span>
+<span class="nc" id="L59">        = spec().getResourceType(&quot;model.resource.minerals&quot;);</span>
+<span class="nc" id="L60">    private static final ResourceType silverResource</span>
+<span class="nc" id="L61">        = spec().getResourceType(&quot;model.resource.silver&quot;);</span>
+<span class="nc" id="L62">    private static final ResourceType sugarResource</span>
+<span class="nc" id="L63">        = spec().getResourceType(&quot;model.resource.sugar&quot;);</span>
+
+<span class="nc" id="L65">    private static final TileImprovementType clearForest</span>
+<span class="nc" id="L66">        = spec().getTileImprovementType(&quot;model.improvement.clearForest&quot;);</span>
+<span class="nc" id="L67">    private static final TileImprovementType fishBonusLand</span>
+<span class="nc" id="L68">        = spec().getTileImprovementType(&quot;model.improvement.fishBonusLand&quot;);</span>
+<span class="nc" id="L69">    private static final TileImprovementType fishBonusRiver</span>
+<span class="nc" id="L70">        = spec().getTileImprovementType(&quot;model.improvement.fishBonusRiver&quot;);</span>
+<span class="nc" id="L71">    private static final TileImprovementType plow</span>
+<span class="nc" id="L72">        = spec().getTileImprovementType(&quot;model.improvement.plow&quot;);</span>
+<span class="nc" id="L73">    private static final TileImprovementType river</span>
+<span class="nc" id="L74">        = spec().getTileImprovementType(&quot;model.improvement.river&quot;);</span>
+<span class="nc" id="L75">    private static final TileImprovementType road</span>
+<span class="nc" id="L76">        = spec().getTileImprovementType(&quot;model.improvement.road&quot;);</span>
+
+<span class="nc" id="L78">    private static final TileType arctic</span>
+<span class="nc" id="L79">        = spec().getTileType(&quot;model.tile.arctic&quot;);</span>
+<span class="nc" id="L80">    private static final TileType coniferForest</span>
+<span class="nc" id="L81">        = spec().getTileType(&quot;model.tile.coniferForest&quot;);</span>
+<span class="nc" id="L82">    private static final TileType desert</span>
+<span class="nc" id="L83">        = spec().getTileType(&quot;model.tile.desert&quot;);</span>
+<span class="nc" id="L84">    private static final TileType desertForest</span>
+<span class="nc" id="L85">        = spec().getTileType(&quot;model.tile.scrubForest&quot;);</span>
+<span class="nc" id="L86">    private static final TileType grassland</span>
+<span class="nc" id="L87">        = spec().getTileType(&quot;model.tile.grassland&quot;);</span>
+<span class="nc" id="L88">    private static final TileType highSeas</span>
+<span class="nc" id="L89">        = spec().getTileType(&quot;model.tile.highSeas&quot;);</span>
+<span class="nc" id="L90">    private static final TileType hills</span>
+<span class="nc" id="L91">        = spec().getTileType(&quot;model.tile.hills&quot;);</span>
+<span class="nc" id="L92">    private static final TileType marsh</span>
+<span class="nc" id="L93">        = spec().getTileType(&quot;model.tile.marsh&quot;);</span>
+<span class="nc" id="L94">    private static final TileType marshForest</span>
+<span class="nc" id="L95">        = spec().getTileType(&quot;model.tile.wetlandForest&quot;);</span>
+<span class="nc" id="L96">    private static final TileType mountains</span>
+<span class="nc" id="L97">        = spec().getTileType(&quot;model.tile.mountains&quot;);</span>
+<span class="nc" id="L98">    private static final TileType ocean</span>
+<span class="nc" id="L99">        = spec().getTileType(&quot;model.tile.ocean&quot;);</span>
+<span class="nc" id="L100">    private static final TileType plains</span>
+<span class="nc" id="L101">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+<span class="nc" id="L102">    private static final TileType plainsForest</span>
+<span class="nc" id="L103">        = spec().getTileType(&quot;model.tile.mixedForest&quot;);</span>
+<span class="nc" id="L104">    private static final TileType prairie</span>
+<span class="nc" id="L105">        = spec().getTileType(&quot;model.tile.prairie&quot;);</span>
+<span class="nc" id="L106">    private static final TileType prairieForest</span>
+<span class="nc" id="L107">        = spec().getTileType(&quot;model.tile.broadleafForest&quot;);</span>
+<span class="nc" id="L108">    private static final TileType savannah</span>
+<span class="nc" id="L109">        = spec().getTileType(&quot;model.tile.savannah&quot;);</span>
+<span class="nc" id="L110">    private static final TileType savannahForest</span>
+<span class="nc" id="L111">        = spec().getTileType(&quot;model.tile.tropicalForest&quot;);</span>
+<span class="nc" id="L112">    private static final TileType swamp</span>
+<span class="nc" id="L113">        = spec().getTileType(&quot;model.tile.swamp&quot;);</span>
+<span class="nc" id="L114">    private static final TileType swampForest</span>
+<span class="nc" id="L115">        = spec().getTileType(&quot;model.tile.rainForest&quot;);</span>
+<span class="nc" id="L116">    private static final TileType tundra</span>
+<span class="nc" id="L117">        = spec().getTileType(&quot;model.tile.tundra&quot;);</span>
+<span class="nc" id="L118">    private static final TileType tundraForest</span>
+<span class="nc" id="L119">        = spec().getTileType(&quot;model.tile.borealForest&quot;);</span>
+
+<span class="nc" id="L121">    private static final UnitType colonistType</span>
+<span class="nc" id="L122">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="nc" id="L123">    private static final UnitType expertFarmerType</span>
+<span class="nc" id="L124">        = spec().getUnitType(&quot;model.unit.expertFarmer&quot;);</span>
+<span class="nc" id="L125">    private static final UnitType expertLumberJack</span>
+<span class="nc" id="L126">        = spec().getUnitType(&quot;model.unit.expertLumberJack&quot;);</span>
+
+
+    private class Work {
+        public TileType type;
+        public int plow;
+        public int road;
+
+<span class="nc" id="L134">        public Work(TileType type, int plow, int road) {</span>
+<span class="nc" id="L135">            this.type = type;</span>
+<span class="nc" id="L136">            this.plow = plow;</span>
+<span class="nc" id="L137">            this.road = road;</span>
+<span class="nc" id="L138">        }</span>
+    }
+
+    public void testGetWorkAmount() {
+
+<span class="nc" id="L143">        Game game = getStandardGame();</span>
+
+<span class="nc" id="L145">        assertNotNull( plains );</span>
+<span class="nc" id="L146">        assertNotNull( desert );</span>
+<span class="nc" id="L147">        assertNotNull( grassland );</span>
+<span class="nc" id="L148">        assertNotNull( prairie );</span>
+<span class="nc" id="L149">        assertNotNull( tundra );</span>
+<span class="nc" id="L150">        assertNotNull( savannah );</span>
+<span class="nc" id="L151">        assertNotNull( marsh );</span>
+<span class="nc" id="L152">        assertNotNull( swamp );</span>
+<span class="nc" id="L153">        assertNotNull( arctic );</span>
+
+<span class="nc" id="L155">        assertNotNull( plainsForest );</span>
+<span class="nc" id="L156">        assertNotNull( desertForest );</span>
+<span class="nc" id="L157">        assertNotNull( coniferForest );</span>
+<span class="nc" id="L158">        assertNotNull( prairieForest );</span>
+<span class="nc" id="L159">        assertNotNull( tundraForest );</span>
+<span class="nc" id="L160">        assertNotNull( savannahForest );</span>
+<span class="nc" id="L161">        assertNotNull( marshForest );</span>
+<span class="nc" id="L162">        assertNotNull( swampForest );</span>
+
+
+<span class="nc" id="L165">        assertEquals(2, plow.getAddWorkTurns());</span>
+<span class="nc" id="L166">        assertEquals(0, road.getAddWorkTurns());</span>
+<span class="nc" id="L167">        assertEquals(2, clearForest.getAddWorkTurns());</span>
+
+
+<span class="nc" id="L170">        assertNotNull(plow);</span>
+<span class="nc" id="L171">        assertNotNull(road);</span>
+<span class="nc" id="L172">        assertNotNull(clearForest);</span>
+
+<span class="nc" id="L174">        Work[] cost = new Work[] {</span>
+<span class="nc" id="L175">            new Work(plains, 5, 3),</span>
+<span class="nc" id="L176">            new Work(desert, 5, 3),</span>
+<span class="nc" id="L177">            new Work(grassland, 5, 3),</span>
+<span class="nc" id="L178">            new Work(prairie, 5, 3),</span>
+<span class="nc" id="L179">            new Work(tundra, 6, 4),</span>
+<span class="nc" id="L180">            new Work(savannah, 5, 3),</span>
+<span class="nc" id="L181">            new Work(marsh, 7, 5),</span>
+<span class="nc" id="L182">            new Work(swamp, 9, 7),</span>
+            // FIXME: fix test
+            //new Work(arctic, 6, 4)
+        };
+
+<span class="nc bnc" id="L187" title="All 2 branches missed.">        for (Work entry : cost) {</span>
+<span class="nc" id="L188">            Tile tile = new Tile(game, entry.type, 0, 0);</span>
+<span class="nc" id="L189">            assertTrue(tile.getType().toString(),</span>
+<span class="nc" id="L190">                       tile.isImprovementTypeAllowed(plow));</span>
+<span class="nc" id="L191">            assertTrue(tile.getType().toString(),</span>
+<span class="nc" id="L192">                       tile.isImprovementTypeAllowed(road));</span>
+<span class="nc" id="L193">            assertFalse(tile.getType().toString(),</span>
+<span class="nc" id="L194">                        tile.isImprovementTypeAllowed(clearForest));</span>
+
+<span class="nc" id="L196">            assertEquals(tile.getType().toString(), entry.plow,</span>
+<span class="nc" id="L197">                         tile.getWorkAmount(plow));</span>
+<span class="nc" id="L198">            assertEquals(tile.getType().toString(), entry.road,</span>
+<span class="nc" id="L199">                         tile.getWorkAmount(road));</span>
+        }
+
+        // Now check the forests
+<span class="nc" id="L203">        cost = new Work[] {</span>
+<span class="nc" id="L204">            new Work(tundraForest, 6, 4),</span>
+<span class="nc" id="L205">            new Work(coniferForest, 6, 4),</span>
+<span class="nc" id="L206">            new Work(desertForest, 6, 4),</span>
+<span class="nc" id="L207">            new Work(prairieForest, 6, 4),</span>
+<span class="nc" id="L208">            new Work(savannahForest, 8, 6),</span>
+<span class="nc" id="L209">            new Work(marshForest, 8, 6),</span>
+<span class="nc" id="L210">            new Work(swampForest, 9, 7),</span>
+<span class="nc" id="L211">            new Work(plainsForest, 6, 4)</span>
+        };
+
+<span class="nc bnc" id="L214" title="All 2 branches missed.">        for (Work entry : cost) {</span>
+<span class="nc" id="L215">            Tile tile = new Tile(game, entry.type, 0, 0);</span>
+<span class="nc" id="L216">            assertFalse(tile.getType().toString(),</span>
+<span class="nc" id="L217">                        tile.isImprovementTypeAllowed(plow));</span>
+<span class="nc" id="L218">            assertTrue(tile.getType().toString(),</span>
+<span class="nc" id="L219">                       tile.isImprovementTypeAllowed(road));</span>
+<span class="nc" id="L220">            assertTrue(tile.getType().toString(),</span>
+<span class="nc" id="L221">                       tile.isImprovementTypeAllowed(clearForest));</span>
+
+<span class="nc" id="L223">            assertEquals(tile.getType().toString(), entry.plow,</span>
+<span class="nc" id="L224">                         tile.getWorkAmount(clearForest));</span>
+<span class="nc" id="L225">            assertEquals(tile.getType().toString(), entry.road,</span>
+<span class="nc" id="L226">                         tile.getWorkAmount(road));</span>
+        }
+
+<span class="nc" id="L229">    }</span>
+
+    public void testTileTypeChangeProduction() {
+<span class="nc bnc" id="L232" title="All 2 branches missed.">        for (TileType tileType : spec().getTileTypeList()) {</span>
+<span class="nc bnc" id="L233" title="All 2 branches missed.">            if (tileType.isForested()) {</span>
+<span class="nc" id="L234">                AbstractGoods production = clearForest.getProduction(tileType);</span>
+<span class="nc" id="L235">                assertNotNull(tileType.getId(), production);</span>
+<span class="nc bnc" id="L236" title="All 2 branches missed.">                int amount = (desertForest == tileType) ? 10 : 20;</span>
+<span class="nc" id="L237">                assertEquals(tileType.getId(), amount, production.getAmount());</span>
+            }
+        }
+<span class="nc" id="L240">    }</span>
+
+    public void testPrimarySecondaryGoods() {
+<span class="nc" id="L243">        Game game = getStandardGame();</span>
+<span class="nc" id="L244">        game.setMap(getTestMap(true));</span>
+<span class="nc" id="L245">        Colony colony = getStandardColony();</span>
+<span class="nc" id="L246">        Tile tile = colony.getTile();</span>
+<span class="nc" id="L247">        ColonyTile center = colony.getColonyTile(tile);</span>
+
+<span class="nc" id="L249">        List&lt;AbstractGoods&gt; production = center.getProduction();</span>
+<span class="nc" id="L250">        assertEquals(2, production.size());</span>
+<span class="nc" id="L251">        AbstractGoods primaryProduction = production.get(0);</span>
+<span class="nc" id="L252">        AbstractGoods secondaryProduction = production.get(1);</span>
+<span class="nc" id="L253">        assertEquals(grain, primaryProduction.getType());</span>
+<span class="nc" id="L254">        assertEquals(5, primaryProduction.getAmount());</span>
+<span class="nc" id="L255">        assertEquals(cotton, secondaryProduction.getType());</span>
+<span class="nc" id="L256">        assertEquals(2, secondaryProduction.getAmount());</span>
+
+<span class="nc" id="L258">        TileImprovement ti = new TileImprovement(game, tile, plow);</span>
+<span class="nc" id="L259">        ti.setTurnsToComplete(0);</span>
+<span class="nc" id="L260">        tile.add(ti);</span>
+<span class="nc" id="L261">        colony.invalidateCache();</span>
+
+<span class="nc" id="L263">        production = center.getProduction();</span>
+<span class="nc" id="L264">        assertEquals(2, production.size());</span>
+<span class="nc" id="L265">        primaryProduction = production.get(0);</span>
+<span class="nc" id="L266">        secondaryProduction = production.get(1);</span>
+<span class="nc" id="L267">        assertEquals(grain, primaryProduction.getType());</span>
+<span class="nc" id="L268">        assertEquals(6, primaryProduction.getAmount());</span>
+<span class="nc" id="L269">        assertEquals(cotton, secondaryProduction.getType());</span>
+<span class="nc" id="L270">        assertEquals(2, secondaryProduction.getAmount());</span>
+
+<span class="nc" id="L272">        tile.changeType(plainsForest);</span>
+<span class="nc" id="L273">        colony.invalidateCache();</span>
+
+<span class="nc" id="L275">        production = center.getProduction();</span>
+<span class="nc" id="L276">        assertEquals(2, production.size());</span>
+<span class="nc" id="L277">        primaryProduction = production.get(0);</span>
+<span class="nc" id="L278">        secondaryProduction = production.get(1);</span>
+<span class="nc" id="L279">        assertEquals(grain, primaryProduction.getType());</span>
+<span class="nc" id="L280">        assertEquals(3, primaryProduction.getAmount());</span>
+<span class="nc" id="L281">        assertEquals(furs, secondaryProduction.getType());</span>
+<span class="nc" id="L282">        assertEquals(3, secondaryProduction.getAmount());</span>
+<span class="nc" id="L283">    }</span>
+
+    public void testPotential() {
+<span class="nc" id="L286">        Game game = getStandardGame();</span>
+<span class="nc" id="L287">        Tile tile = new Tile(game, mountains, 0, 0);</span>
+<span class="nc" id="L288">        assertEquals(0, mountains.getPotentialProduction(silver, null));</span>
+<span class="nc" id="L289">        assertEquals(0, tile.getPotentialProduction(food, null));</span>
+<span class="nc" id="L290">        assertEquals(1, mountains.getPotentialProduction(silver, colonistType));</span>
+<span class="nc" id="L291">        assertEquals(1, tile.getPotentialProduction(silver, colonistType));</span>
+<span class="nc" id="L292">        tile.addResource(new Resource(game, tile, silverResource));</span>
+<span class="nc" id="L293">        assertEquals(0, tile.getPotentialProduction(food, colonistType));</span>
+<span class="nc" id="L294">        assertEquals(3, tile.getPotentialProduction(silver, colonistType));</span>
+<span class="nc" id="L295">    }</span>
+
+    public void testMaximumPotential() {
+<span class="nc" id="L298">        Game game = getStandardGame();</span>
+
+<span class="nc" id="L300">        Tile tile1 = new Tile(game, mountains, 0, 0);</span>
+<span class="nc" id="L301">        assertEquals(&quot;Mountain/food&quot;, 0,</span>
+<span class="nc" id="L302">                     tile1.getPotentialProduction(food, colonistType));</span>
+<span class="nc" id="L303">        assertEquals(&quot;Mountain/food max&quot;, 0,</span>
+<span class="nc" id="L304">                     tile1.getMaximumPotential(food, colonistType));</span>
+<span class="nc" id="L305">        assertEquals(&quot;Mountain/silver&quot;, 1,</span>
+<span class="nc" id="L306">                     tile1.getPotentialProduction(silver, colonistType));</span>
+<span class="nc" id="L307">        assertEquals(&quot;Mountain/silver max&quot;, 2,</span>
+<span class="nc" id="L308">                     tile1.getMaximumPotential(silver, colonistType));</span>
+<span class="nc" id="L309">        tile1.addResource(new Resource(game, tile1, silverResource));</span>
+<span class="nc" id="L310">        assertEquals(&quot;Mountain+Resource/food&quot;, 0,</span>
+<span class="nc" id="L311">                     tile1.getPotentialProduction(food, colonistType));</span>
+<span class="nc" id="L312">        assertEquals(&quot;Mountain+Resource/silver&quot;, 3,</span>
+<span class="nc" id="L313">                     tile1.getPotentialProduction(silver, colonistType));</span>
+<span class="nc" id="L314">        assertEquals(&quot;Mountain+Resource/silver max&quot;, 4,</span>
+<span class="nc" id="L315">                     tile1.getMaximumPotential(silver, colonistType));</span>
+
+        // grain-max should equal grain-potential + 1 (ploughing improvement)
+<span class="nc" id="L318">        Tile tile2 = new Tile(game, plains, 0, 1);</span>
+<span class="nc" id="L319">        assertEquals(&quot;Plains/grain&quot;, 5,</span>
+<span class="nc" id="L320">                     tile2.getPotentialProduction(grain, null));</span>
+<span class="nc" id="L321">        assertEquals(&quot;Plains/grain max&quot;, 6,</span>
+<span class="nc" id="L322">                     tile2.getMaximumPotential(grain, null));</span>
+<span class="nc" id="L323">        tile2.addResource(new Resource(game, tile2, grainResource));</span>
+<span class="nc" id="L324">        assertEquals(&quot;Plains+Resource/grain&quot;, 7,</span>
+<span class="nc" id="L325">                     tile2.getPotentialProduction(grain, null));</span>
+<span class="nc" id="L326">        assertEquals(&quot;Plains+Resource/grain max&quot;, 8,</span>
+<span class="nc" id="L327">                     tile2.getMaximumPotential(grain, null));</span>
+<span class="nc" id="L328">        assertEquals(&quot;Plains+Resource/grain/expertFarmer&quot;, 9,</span>
+<span class="nc" id="L329">                     tile2.getPotentialProduction(grain, expertFarmerType));</span>
+<span class="nc" id="L330">        assertEquals(&quot;Plains+Resource/grain/expertFarmer max&quot;, 10,</span>
+<span class="nc" id="L331">                     tile2.getMaximumPotential(grain, expertFarmerType));</span>
+
+<span class="nc" id="L333">        Tile tile3 = new Tile(game, plainsForest, 1, 1);</span>
+<span class="nc" id="L334">        assertEquals(&quot;Forest/grain&quot;, 3,</span>
+<span class="nc" id="L335">                     tile3.getPotentialProduction(grain, null));</span>
+<span class="nc" id="L336">        assertEquals(&quot;Forest/grain max&quot;, 6,</span>
+<span class="nc" id="L337">                     tile3.getMaximumPotential(grain, null));</span>
+<span class="nc" id="L338">    }</span>
+
+    public void testIsTileTypeAllowed() {
+<span class="nc bnc" id="L341" title="All 2 branches missed.">        for (TileType tileType : spec().getTileTypeList()) {</span>
+
+<span class="nc bnc" id="L343" title="All 2 branches missed.">            if (tileType.isWater()) {</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">                if (highSeas.equals(tileType)) {</span>
+<span class="nc" id="L345">                    assertFalse(fishBonusLand.isTileTypeAllowed(tileType));</span>
+<span class="nc" id="L346">                    assertFalse(fishBonusRiver.isTileTypeAllowed(tileType));</span>
+<span class="nc" id="L347">                } else {</span>
+<span class="nc" id="L348">                    assertTrue(fishBonusLand.isTileTypeAllowed(tileType));</span>
+<span class="nc" id="L349">                    assertTrue(fishBonusRiver.isTileTypeAllowed(tileType));</span>
+                }
+<span class="nc" id="L351">                assertFalse(river.isTileTypeAllowed(tileType));</span>
+<span class="nc" id="L352">                assertFalse(road.isTileTypeAllowed(tileType));</span>
+<span class="nc" id="L353">                assertFalse(plow.isTileTypeAllowed(tileType));</span>
+<span class="nc" id="L354">                assertFalse(clearForest.isTileTypeAllowed(tileType));</span>
+<span class="nc" id="L355">            } else {</span>
+<span class="nc bnc" id="L356" title="All 2 branches missed.">                if (tileType.isForested()) {</span>
+<span class="nc" id="L357">                    assertTrue(clearForest.isTileTypeAllowed(tileType));</span>
+<span class="nc" id="L358">                } else {</span>
+<span class="nc" id="L359">                    assertFalse(clearForest.isTileTypeAllowed(tileType));</span>
+                }
+<span class="nc bnc" id="L361" title="All 4 branches missed.">                if (arctic.equals(tileType) || hills.equals(tileType)</span>
+<span class="nc bnc" id="L362" title="All 2 branches missed.">                    || mountains.equals(tileType)) {</span>
+<span class="nc" id="L363">                    assertFalse(river.isTileTypeAllowed(tileType));</span>
+<span class="nc" id="L364">                    assertFalse(plow.isTileTypeAllowed(tileType));</span>
+<span class="nc" id="L365">                } else {</span>
+<span class="nc" id="L366">                    assertTrue(river.isTileTypeAllowed(tileType));</span>
+<span class="nc bnc" id="L367" title="All 2 branches missed.">                    if (tileType.isForested()) {</span>
+<span class="nc" id="L368">                        assertFalse(plow.isTileTypeAllowed(tileType));</span>
+<span class="nc" id="L369">                    } else {</span>
+<span class="nc" id="L370">                        assertTrue(plow.isTileTypeAllowed(tileType));</span>
+                    }
+                }
+
+<span class="nc" id="L374">                assertTrue(road.isTileTypeAllowed(tileType));</span>
+            }
+        }
+<span class="nc" id="L377">    }</span>
+
+
+    public void testImprovements() throws Exception {
+<span class="nc" id="L381">        Game game = getStandardGame();</span>
+<span class="nc" id="L382">        Map map = getTestMap(plains);</span>
+<span class="nc" id="L383">        game.setMap(map);</span>
+<span class="nc" id="L384">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="nc" id="L385">        Tile tile2 = map.getTile(4, 8);</span>
+
+<span class="nc" id="L387">        TileImprovement road1 = tile1.addRoad();</span>
+<span class="nc" id="L388">        assertFalse(road1.isComplete());</span>
+<span class="nc" id="L389">        road1.setTurnsToComplete(0);</span>
+<span class="nc" id="L390">        assertTrue(road1.isComplete());</span>
+<span class="nc" id="L391">        assertTrue(tile1.hasRoad());</span>
+<span class="nc" id="L392">        TileImprovement river1 = tile1.addRiver(1, &quot;0101&quot;);</span>
+<span class="nc" id="L393">        assertTrue(river1.isComplete());</span>
+<span class="nc" id="L394">        assertTrue(tile1.hasRiver());</span>
+
+<span class="nc" id="L396">        TileImprovement road2 = tile2.addRoad();</span>
+<span class="nc" id="L397">        road2.setTurnsToComplete(0);</span>
+<span class="nc" id="L398">        assertTrue(road2.isComplete());</span>
+<span class="nc" id="L399">        TileImprovement river2 = tile2.addRiver(1, &quot;0101&quot;);</span>
+<span class="nc" id="L400">        assertTrue(tile2.hasRoad());</span>
+<span class="nc" id="L401">        assertTrue(tile2.hasRiver());</span>
+
+<span class="nc" id="L403">        tile1.changeType(savannah);</span>
+<span class="nc" id="L404">        assertTrue(tile1.hasRoad());</span>
+<span class="nc" id="L405">        assertTrue(tile1.hasRiver());</span>
+
+<span class="nc" id="L407">        tile2.changeType(hills);</span>
+<span class="nc" id="L408">        assertTrue(tile2.hasRoad());</span>
+<span class="nc" id="L409">        assertFalse(tile2.hasRiver());</span>
+<span class="nc" id="L410">    }</span>
+
+    public void testProductionModifiers() throws Exception {
+<span class="nc" id="L413">        Game game = getGame();</span>
+<span class="nc" id="L414">        game.setMap(getTestMap(true));</span>
+
+<span class="nc" id="L416">        Colony colony = getStandardColony();</span>
+
+<span class="nc" id="L418">        List&lt;ColonyTile&gt; colonyTiles = colony.getColonyTiles();</span>
+<span class="nc" id="L419">        ColonyTile colonyTile1 = null;</span>
+<span class="nc" id="L420">        ColonyTile colonyTile2 = null;</span>
+<span class="nc bnc" id="L421" title="All 2 branches missed.">        for (ColonyTile ct : colonyTiles) {</span>
+<span class="nc bnc" id="L422" title="All 2 branches missed.">            if (!ct.getWorkTile().hasRoad()) {</span>
+<span class="nc bnc" id="L423" title="All 2 branches missed.">                if (colonyTile1 == null) {</span>
+<span class="nc" id="L424">                    colonyTile1 = ct;</span>
+<span class="nc bnc" id="L425" title="All 2 branches missed.">                } else if (colonyTile2 == null) {</span>
+<span class="nc" id="L426">                    colonyTile2 = ct;</span>
+<span class="nc" id="L427">                    break;</span>
+                }
+            }
+        }
+
+<span class="nc" id="L432">        Tile tile1 = colonyTile1.getWorkTile();</span>
+<span class="nc" id="L433">        Tile tile2 = colonyTile2.getWorkTile();</span>
+<span class="nc" id="L434">        assertFalse(tile1.hasRoad());</span>
+<span class="nc" id="L435">        assertFalse(tile2.hasRoad());</span>
+
+<span class="nc" id="L437">        TileImprovement road1 = tile1.addRoad();</span>
+<span class="nc" id="L438">        road1.setTurnsToComplete(0);</span>
+<span class="nc" id="L439">        assertTrue(road1.isComplete());</span>
+<span class="nc" id="L440">        TileImprovement river1 = tile1.addRiver(1, &quot;0101&quot;);</span>
+<span class="nc" id="L441">        assertTrue(tile1.hasRoad());</span>
+<span class="nc" id="L442">        assertTrue(tile1.hasRiver());</span>
+
+<span class="nc" id="L444">        TileImprovement road2 = tile2.addRoad();</span>
+<span class="nc" id="L445">        road2.setTurnsToComplete(0);</span>
+<span class="nc" id="L446">        assertTrue(road2.isComplete());</span>
+<span class="nc" id="L447">        TileImprovement river2 = tile2.addRiver(1, &quot;0101&quot;);</span>
+<span class="nc" id="L448">        assertTrue(tile2.hasRoad());</span>
+<span class="nc" id="L449">        assertTrue(tile2.hasRiver());</span>
+
+<span class="nc" id="L451">        tile1.changeType(savannah);</span>
+<span class="nc" id="L452">        assertTrue(tile1.hasRoad());</span>
+<span class="nc" id="L453">        assertTrue(tile1.hasRiver());</span>
+
+<span class="nc" id="L455">        tile2.changeType(hills);</span>
+<span class="nc" id="L456">        assertTrue(tile2.hasRoad());</span>
+<span class="nc" id="L457">        assertFalse(tile2.hasRiver());</span>
+
+        // Savannah can produce sugar, but not lumber.  Therefore the
+        // river provides a bonus for sugar but not lumber.
+<span class="nc" id="L461">        assertTrue(tile1.canProduce(sugar, null));</span>
+<span class="nc" id="L462">        assertTrue(hasBonusFrom(tile1.getProductionModifiers(sugar, null),</span>
+<span class="nc" id="L463">                                river1.getType()));</span>
+<span class="nc" id="L464">        assertFalse(tile1.canProduce(lumber, null));</span>
+<span class="nc" id="L465">        assertFalse(hasBonusFrom(tile1.getProductionModifiers(lumber, null),</span>
+<span class="nc" id="L466">                                 river1.getType()));</span>
+        // Hills can not produce sugar, but can produce ore.  They do not
+        // get a road bonus for unattended ore production, but do get if
+        // if attended.
+<span class="nc" id="L470">        assertFalse(tile2.canProduce(sugar, null));</span>
+<span class="nc" id="L471">        assertFalse(hasBonusFrom(tile2.getProductionModifiers(sugar, null),</span>
+<span class="nc" id="L472">                                 road2.getType()));</span>
+<span class="nc" id="L473">        assertTrue(tile2.canProduce(ore, null));</span>
+<span class="nc" id="L474">        assertFalse(hasBonusFrom(tile2.getProductionModifiers(ore, null),</span>
+<span class="nc" id="L475">                                 road2.getType()));</span>
+<span class="nc" id="L476">        assertTrue(hasBonusFrom(tile2.getProductionModifiers(ore, colonistType),</span>
+<span class="nc" id="L477">                                road2.getType()));</span>
+
+        // Add a sugar resource, there should now be two sugar bonuses
+        // on tile1.
+<span class="nc" id="L481">        final Turn turn = getGame().getTurn();</span>
+<span class="nc" id="L482">        assertTrue(tile1.canProduce(sugar, null));</span>
+<span class="nc" id="L483">        int oldBase = tile1.getBaseProduction(null, sugar, null);</span>
+<span class="nc" id="L484">        Resource addedSugar = new Resource(game, tile1, sugarResource);</span>
+<span class="nc" id="L485">        tile1.addResource(addedSugar);</span>
+<span class="nc" id="L486">        int newBase = tile1.getBaseProduction(null, sugar, null);</span>
+<span class="nc" id="L487">        assertEquals(oldBase, newBase);</span>
+<span class="nc" id="L488">        assertEquals(</span>
+<span class="nc" id="L489">            (int)FeatureContainer.applyModifiers(newBase, turn,</span>
+<span class="nc" id="L490">                tile1.getProductionModifiers(sugar, null)),</span>
+<span class="nc" id="L491">            (int)FeatureContainer.applyModifiers(oldBase, turn,</span>
+<span class="nc" id="L492">                addedSugar.getProductionModifiers(sugar, null))</span>
+<span class="nc" id="L493">            + (int)FeatureContainer.applyModifiers(0f, turn,</span>
+<span class="nc" id="L494">                river1.getProductionModifiers(sugar, null)));</span>
+<span class="nc" id="L495">        assertTrue(hasBonusFrom(tile1.getProductionModifiers(sugar, null),</span>
+<span class="nc" id="L496">                                river1.getType()));</span>
+<span class="nc" id="L497">        assertTrue(hasBonusFrom(tile1.getProductionModifiers(sugar, null),</span>
+<span class="nc" id="L498">                                sugarResource));</span>
+
+        // Add a minerals resource, and tile2 should now produce silver.
+<span class="nc" id="L501">        assertFalse(tile2.canProduce(silver, null));</span>
+<span class="nc" id="L502">        oldBase = tile2.getBaseProduction(null, silver, null);</span>
+<span class="nc" id="L503">        Resource addedSilver = new Resource(game, tile2, mineralsResource);</span>
+<span class="nc" id="L504">        tile2.addResource(addedSilver);</span>
+<span class="nc" id="L505">        newBase = tile2.getBaseProduction(null, silver, null);</span>
+<span class="nc" id="L506">        assertTrue(tile2.canProduce(silver, null));</span>
+<span class="nc" id="L507">        assertEquals(oldBase, newBase);</span>
+<span class="nc" id="L508">        assertEquals(</span>
+<span class="nc" id="L509">            (int)FeatureContainer.applyModifiers(newBase, turn,</span>
+<span class="nc" id="L510">                tile2.getProductionModifiers(silver, null)),</span>
+<span class="nc" id="L511">            (int)FeatureContainer.applyModifiers(oldBase, turn,</span>
+<span class="nc" id="L512">                addedSilver.getProductionModifiers(silver, null))</span>
+<span class="nc" id="L513">            + (int)FeatureContainer.applyModifiers(0f, turn,</span>
+<span class="nc" id="L514">                road2.getProductionModifiers(silver, null)));</span>
+<span class="nc" id="L515">        assertTrue(tile2.canProduce(silver, null));</span>
+<span class="nc" id="L516">        assertFalse(hasBonusFrom(tile2.getProductionModifiers(silver, null),</span>
+<span class="nc" id="L517">                                 road2.getType()));</span>
+<span class="nc" id="L518">        assertTrue(hasBonusFrom(tile2.getProductionModifiers(silver, colonistType),</span>
+<span class="nc" id="L519">                                road2.getType()));</span>
+<span class="nc" id="L520">        assertTrue(hasBonusFrom(tile2.getProductionModifiers(silver, null),</span>
+<span class="nc" id="L521">                                mineralsResource));</span>
+<span class="nc" id="L522">    }</span>
+
+    private boolean hasBonusFrom(List&lt;Modifier&gt; modifierSet,
+                                 FreeColSpecObjectType source) {
+<span class="nc bnc" id="L526" title="All 2 branches missed.">        for (Modifier modifier : modifierSet) {</span>
+<span class="nc bnc" id="L527" title="All 2 branches missed.">            if (source.equals(modifier.getSource())) {</span>
+<span class="nc" id="L528">                return true;</span>
+            }
+        }
+<span class="nc" id="L531">        return false;</span>
+    }
+
+
+    public void testColonyImprovements() throws Exception {
+<span class="nc" id="L536">        Game game = getStandardGame();</span>
+<span class="nc" id="L537">        Map map = getTestMap(plains);</span>
+<span class="nc" id="L538">        game.setMap(map);</span>
+
+<span class="nc" id="L540">        Colony colony = FreeColTestUtils.getColonyBuilder().build();</span>
+
+<span class="nc" id="L542">        assertTrue(colony.getTile().hasRoad());</span>
+
+<span class="nc" id="L544">        colony.exciseSettlement();</span>
+
+<span class="nc" id="L546">        assertFalse(colony.getTile().hasRoad());</span>
+<span class="nc" id="L547">    }</span>
+
+    /*
+    public void testSortedPotential() {
+        Game game = getStandardGame();
+        Map map = getTestMap(plains);
+        game.setMap(map);
+        Player dutch = game.getPlayer(&quot;model.nation.dutch&quot;);
+        Market market = dutch.getMarket();
+        UnitType sugarPlanter = spec().getUnitType(&quot;model.unit.masterSugarPlanter&quot;);
+        UnitType cottonPlanter = spec().getUnitType(&quot;model.unit.masterCottonPlanter&quot;);
+        UnitType farmer = spec().getUnitType(&quot;model.unit.expertFarmer&quot;);
+        Tile tile1 = map.getTile(5, 8);
+
+        tile1.setType(savannah);
+        assertEquals(3, savannah.getProductionOf(sugar, null));
+        assertEquals(6, savannah.getProductionOf(sugar, sugarPlanter));
+
+        List&lt;AbstractGoods&gt; sortedPotential = tile1.getSortedPotential();
+        // savannah produces more food than sugar
+        assertEquals(grain, sortedPotential.get(0).getType());
+        assertEquals(4, sortedPotential.get(0).getAmount());
+        assertEquals(sugar, sortedPotential.get(1).getType());
+        assertEquals(3, sortedPotential.get(1).getAmount());
+
+        // 3 sugar is more expensive than 4 food
+        assertNotNull(sugarPlanter);
+        assertTrue(tile1.getPotentialProduction(sugar, sugarPlanter) &gt; tile1.getPotentialProduction(sugar, null));
+        sortedPotential = tile1.getSortedPotential(sugarPlanter, dutch);
+        assertEquals(sugar, sortedPotential.get(0).getType());
+        assertEquals(6, sortedPotential.get(0).getAmount());
+
+        sortedPotential = tile1.getSortedPotential(farmer, dutch);
+        assertEquals(grain, sortedPotential.get(0).getType());
+        assertEquals(7, sortedPotential.get(0).getAmount());
+        assertTrue(market.getSalePrice(grain, 7) &gt; market.getSalePrice(sugar, 3));
+
+        tile1.setType(plains);
+
+        // plains produces more food than sugar
+        assertEquals(grain, tile1.getSortedPotential().get(0).getType());
+        assertEquals(grain, tile1.getSortedPotential(farmer, dutch).get(0).getType());
+        assertEquals(cotton, tile1.getSortedPotential(cottonPlanter, dutch).get(0).getType());
+
+        tile1.setType(ocean);
+        sortedPotential = tile1.getSortedPotential();
+        assertEquals(1, sortedPotential.size());
+        assertEquals(fish, sortedPotential.get(0).getType());
+
+        sortedPotential = tile1.getSortedPotential(farmer, null);
+        assertEquals(1, sortedPotential.size());
+        assertEquals(fish, sortedPotential.get(0).getType());
+
+    }
+    */
+
+    public void testConiferForest() {
+<span class="nc" id="L604">        Map map = getTestMap(coniferForest);</span>
+<span class="nc" id="L605">        Game game = getGame();</span>
+<span class="nc" id="L606">        game.setMap(map);</span>
+
+<span class="nc" id="L608">        Colony colony = getStandardColony(1);</span>
+<span class="nc" id="L609">        final Tile tile = colony.getTile();</span>
+<span class="nc" id="L610">        tile.addRiver(1, &quot;1111&quot;); // allow rivers to join</span>
+<span class="nc" id="L611">        final Iterable&lt;Tile&gt; tiles = tile.getSurroundingTiles(1);</span>
+<span class="nc" id="L612">        Tile firstTile = null;</span>
+<span class="nc" id="L613">        int i = 0;</span>
+<span class="nc bnc" id="L614" title="All 2 branches missed.">        for (Tile t : tiles) {</span>
+<span class="nc bnc" id="L615" title="All 2 branches missed.">            if (firstTile == null) firstTile = t;</span>
+<span class="nc bnc" id="L616" title="All 2 branches missed.">            if ((i &amp; 0b0001) == 0b0001) t.addRiver(1, &quot;1111&quot;);// must be first!</span>
+<span class="nc bnc" id="L617" title="All 2 branches missed.">            if ((i &amp; 0b0010) == 0b0010) {</span>
+<span class="nc" id="L618">                TileImprovement road = t.addRoad();</span>
+<span class="nc" id="L619">                road.setTurnsToComplete(0);</span>
+            }
+<span class="nc bnc" id="L621" title="All 2 branches missed.">            if ((i &amp; 0b0100) == 0b0100) t.addResource(new Resource(game, t, lumberResource, 99));</span>
+<span class="nc" id="L622">            i++;</span>
+        }
+<span class="nc" id="L624">        ColonyTile firstColonyTile = colony.getColonyTile(firstTile);</span>
+
+<span class="nc" id="L626">        Unit unit = colony.getUnitList().get(0);</span>
+<span class="nc" id="L627">        assertEquals(colonistType, unit.getType());</span>
+<span class="nc" id="L628">        unit.setLocation(firstColonyTile);</span>
+<span class="nc" id="L629">        unit.changeWorkType(lumber);</span>
+<span class="nc" id="L630">        assertEquals(&quot;Added unit producing lumber&quot;, lumber,</span>
+<span class="nc" id="L631">            unit.getWorkType());</span>
+
+        // production = (BASE + RESOURCE) x EXPERT + RIVER + ROAD
+        //   (+ untested)
+<span class="nc" id="L635">        final int base = 6;</span>
+<span class="nc" id="L636">        final int riverBonus = 2;</span>
+<span class="nc" id="L637">        final int roadBonus = 2;</span>
+<span class="nc" id="L638">        final int resourceBonus = 4;</span>
+<span class="nc" id="L639">        final int expertBonus = 2;</span>
+<span class="nc" id="L640">        assertEquals(&quot;Base lumber production&quot;, base,</span>
+<span class="nc" id="L641">            coniferForest.getBaseProduction(null, lumber, colonistType));</span>
+
+        // Check all tiles with colonist unit
+<span class="nc" id="L644">        i = 0;</span>
+<span class="nc bnc" id="L645" title="All 2 branches missed.">        for (Tile t : tiles) {</span>
+<span class="nc" id="L646">            ColonyTile ct = colony.getColonyTile(t);</span>
+<span class="nc" id="L647">            unit.setLocation(ct);</span>
+<span class="nc" id="L648">            unit.changeWorkType(lumber);</span>
+<span class="nc" id="L649">            int result = base;</span>
+<span class="nc bnc" id="L650" title="All 2 branches missed.">            if (t.hasRiver()) result += riverBonus;</span>
+<span class="nc bnc" id="L651" title="All 2 branches missed.">            if (t.hasRoad()) result += roadBonus;</span>
+<span class="nc bnc" id="L652" title="All 2 branches missed.">            if (t.hasResource()) result += resourceBonus;</span>
+<span class="nc" id="L653">            assertEquals(&quot;FreeColonist lumber production at tile &quot; + i, result,</span>
+<span class="nc" id="L654">                ct.getTotalProductionOf(lumber));</span>
+<span class="nc" id="L655">            i++;</span>
+        }
+
+        // Try again with expert unit
+<span class="nc" id="L659">        assertEquals(&quot;Expert unit&quot;, expertLumberJack,</span>
+<span class="nc" id="L660">            firstColonyTile.getExpertUnitType());</span>
+<span class="nc" id="L661">        unit.setType(expertLumberJack);</span>
+<span class="nc" id="L662">        colony.invalidateCache();</span>
+<span class="nc" id="L663">        i = 0;</span>
+<span class="nc bnc" id="L664" title="All 2 branches missed.">        for (Tile t : tiles) {</span>
+<span class="nc" id="L665">            ColonyTile ct = colony.getColonyTile(t);</span>
+<span class="nc" id="L666">            unit.setLocation(ct);</span>
+<span class="nc" id="L667">            unit.changeWorkType(lumber);</span>
+<span class="nc" id="L668">            int result = base * expertBonus;</span>
+<span class="nc bnc" id="L669" title="All 2 branches missed.">            if (t.hasRiver()) result += riverBonus;</span>
+<span class="nc bnc" id="L670" title="All 2 branches missed.">            if (t.hasRoad()) result += roadBonus;</span>
+<span class="nc bnc" id="L671" title="All 2 branches missed.">            if (t.hasResource()) result += resourceBonus * expertBonus;</span>
+<span class="nc" id="L672">            assertEquals(&quot;Expert lumber production at tile &quot; + i, result,</span>
+<span class="nc" id="L673">                ct.getTotalProductionOf(lumber));</span>
+<span class="nc" id="L674">            i++;</span>
+        }
+<span class="nc" id="L676">    }</span>
+
+    public void testMinerals() {
+<span class="nc" id="L679">        Game game = getGame();</span>
+<span class="nc" id="L680">        Map map = getTestMap(tundra);</span>
+<span class="nc" id="L681">        game.setMap(map);</span>
+
+<span class="nc" id="L683">        Colony colony = getStandardColony();</span>
+<span class="nc" id="L684">        Tile tile = colony.getTile().getNeighbourOrNull(Direction.N);</span>
+<span class="nc" id="L685">        ColonyTile colonyTile = colony.getColonyTile(tile);</span>
+<span class="nc" id="L686">        tile.addResource(new Resource(game, tile, mineralsResource));</span>
+<span class="nc bnc" id="L687" title="All 2 branches missed.">        for (Unit u : colonyTile.getUnitList()) {</span>
+<span class="nc" id="L688">            u.setLocation(colony.getBuilding(townHallType));</span>
+        }
+<span class="nc" id="L690">        assertTrue(colonyTile.isEmpty());</span>
+<span class="nc" id="L691">        assertEquals(colonyTile.getWorkTile().getOwningSettlement(), colony);</span>
+
+<span class="nc" id="L693">        Unit unit = colony.getUnitList().get(0);</span>
+<span class="nc" id="L694">        assertEquals(colonistType, unit.getType());</span>
+<span class="nc" id="L695">        assertTrue(silver.isFarmed());</span>
+<span class="nc" id="L696">        assertEquals(0, tundra.getPotentialProduction(silver, colonistType));</span>
+<span class="nc" id="L697">        assertEquals(1, tile.getPotentialProduction(silver, colonistType));</span>
+<span class="nc" id="L698">        assertEquals(1, tile.getProductionModifiers(silver, colonistType).size());</span>
+<span class="nc" id="L699">        assertEquals(1, colonyTile.getPotentialProduction(silver, unit.getType()));</span>
+<span class="nc" id="L700">        assertTrue(colonyTile.canBeWorked());</span>
+<span class="nc" id="L701">        assertTrue(colonyTile.canAdd(unit));</span>
+<span class="nc" id="L702">        assertEquals(colonyTile, colony.getWorkLocationFor(unit, silver));</span>
+<span class="nc" id="L703">    }</span>
+
+    public void testDefenceModifiers() {
+<span class="nc bnc" id="L706" title="All 2 branches missed.">        for (TileType tileType : spec().getTileTypeList()) {</span>
+<span class="nc bnc" id="L707" title="All 2 branches missed.">            boolean present = tileType.isForested()</span>
+<span class="nc bnc" id="L708" title="All 2 branches missed.">                || &quot;model.tile.hills&quot;.equals(tileType.getId())</span>
+<span class="nc bnc" id="L709" title="All 2 branches missed.">                || &quot;model.tile.marsh&quot;.equals(tileType.getId())</span>
+<span class="nc bnc" id="L710" title="All 2 branches missed.">                || &quot;model.tile.mountains&quot;.equals(tileType.getId())</span>
+<span class="nc bnc" id="L711" title="All 2 branches missed.">                || &quot;model.tile.swamp&quot;.equals(tileType.getId());</span>
+<span class="nc" id="L712">            assertEquals(&quot;Defence for &quot; + tileType.getId(), present,</span>
+<span class="nc bnc" id="L713" title="All 2 branches missed.">                !tileType.getDefenceModifiers().isEmpty());</span>
+        }
+<span class="nc" id="L715">    }</span>
+
+    public void testZIndex() {
+<span class="nc" id="L718">        assertTrue(Tile.OVERLAY_ZINDEX &lt; Tile.FOREST_ZINDEX);</span>
+<span class="nc" id="L719">        assertTrue(Tile.FOREST_ZINDEX &lt; Tile.RESOURCE_ZINDEX);</span>
+<span class="nc" id="L720">        assertTrue(Tile.RESOURCE_ZINDEX &lt; Tile.RUMOUR_ZINDEX);</span>
+<span class="nc bnc" id="L721" title="All 2 branches missed.">        assertTrue(plow.getZIndex() &lt; river.getZIndex());</span>
+<span class="nc bnc" id="L722" title="All 2 branches missed.">        assertTrue(river.getZIndex() &lt; road.getZIndex());</span>
+<span class="nc bnc" id="L723" title="All 2 branches missed.">        assertTrue(Tile.FOREST_ZINDEX &lt; road.getZIndex());</span>
+<span class="nc bnc" id="L724" title="All 2 branches missed.">        assertTrue(road.getZIndex() &lt; Tile.RESOURCE_ZINDEX);</span>
+<span class="nc" id="L725">    }</span>
+
+    public void testCopy() {
+<span class="nc" id="L728">        Game game = getStandardGame();</span>
+<span class="nc" id="L729">        game.setMap(getTestMap(plains));</span>
+<span class="nc" id="L730">        Colony colony = getStandardColony();</span>
+<span class="nc" id="L731">        Tile tile = colony.getTile();</span>
+
+<span class="nc" id="L733">        Tile otherTile = tile.copy(game, tile.getClass());</span>
+<span class="nc" id="L734">        assertNotNull(otherTile);</span>
+<span class="nc bnc" id="L735" title="All 2 branches missed.">        assertFalse(otherTile == tile);</span>
+<span class="nc" id="L736">        assertEquals(tile.getId(), otherTile.getId());</span>
+<span class="nc" id="L737">        assertEquals(tile.getType(), otherTile.getType());</span>
+
+<span class="nc" id="L739">        Colony otherColony = otherTile.getColony();</span>
+<span class="nc" id="L740">        assertEquals(otherTile, otherColony.getTile());</span>
+<span class="nc" id="L741">        assertEquals(otherTile.getOwningSettlement(), otherColony);</span>
+<span class="nc bnc" id="L742" title="All 2 branches missed.">        assertFalse(colony == otherColony);</span>
+<span class="nc" id="L743">        assertEquals(colony.getId(), otherColony.getId());</span>
+
+        // Do not test units, colony owned tiles are not correctly
+        // recognized as belonging to the colony which stops those
+        // work locations from contributing their units.
+<span class="nc" id="L748">    }</span>
+
+    public void testGetBestDisembarkTile() {
+<span class="nc" id="L751">        Game game = getStandardGame();</span>
+<span class="nc" id="L752">        Map map = getCoastTestMap(plains, true);</span>
+<span class="nc" id="L753">        game.setMap(map);</span>
+
+<span class="nc" id="L755">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L756">        Tile settlementTile = map.getTile(9, 2);</span>
+<span class="nc" id="L757">        FreeColTestUtils.getColonyBuilder().player(dutch)</span>
+<span class="nc" id="L758">            .colonyTile(settlementTile).build();</span>
+<span class="nc" id="L759">        Tile tileN = map.getTile(9, 1);</span>
+<span class="nc" id="L760">        assertTrue(tileN.isLand());</span>
+<span class="nc" id="L761">        Tile tileS = map.getTile(9, 3);</span>
+<span class="nc" id="L762">        assertTrue(tileS.isLand());</span>
+<span class="nc" id="L763">        Tile tileE = map.getTile(8, 2);</span>
+<span class="nc" id="L764">        assertTrue(tileE.isLand());</span>
+<span class="nc" id="L765">        tileS.setType(tundraForest);</span>
+<span class="nc" id="L766">        tileE.setType(mountains);</span>
+        
+<span class="nc" id="L768">        List&lt;Tile&gt; tiles = settlementTile.getSafestSurroundingLandTiles(dutch);</span>
+<span class="nc" id="L769">        assertFalse(&quot;Surrounding tiles should be found&quot;, tiles.isEmpty());</span>
+<span class="nc" id="L770">        assertEquals(&quot;Best tile is mountainous&quot;, tileE, tiles.get(0));</span>
+
+<span class="nc" id="L772">        assertEquals(&quot;Best landing tile is forest&quot;, tileS, </span>
+<span class="nc" id="L773">            settlementTile.getBestDisembarkTile(dutch));</span>
+        
+<span class="nc" id="L775">        tileN.setType(hills);</span>
+<span class="nc" id="L776">        assertEquals(&quot;Best landing tile is now hills&quot;, tileN,</span>
+<span class="nc" id="L777">            settlementTile.getBestDisembarkTile(dutch));</span>
+<span class="nc" id="L778">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

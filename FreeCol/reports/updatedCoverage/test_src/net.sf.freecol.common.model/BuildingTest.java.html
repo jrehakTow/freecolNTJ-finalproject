@@ -1,0 +1,975 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>BuildingTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">BuildingTest.java</span></div><h1>BuildingTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.io.StringWriter;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.model.Modifier;
+import net.sf.freecol.common.model.Modifier.ModifierType;
+import net.sf.freecol.common.model.UnitLocation.NoAddReason;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.server.model.ServerBuilding;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L38">public class BuildingTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L40">    private static final BuildingType armoryType</span>
+<span class="nc" id="L41">        = spec().getBuildingType(&quot;model.building.armory&quot;);</span>
+<span class="nc" id="L42">    private static final BuildingType blacksmithType</span>
+<span class="nc" id="L43">        = spec().getBuildingType(&quot;model.building.blacksmithHouse&quot;);</span>
+<span class="nc" id="L44">    private static final BuildingType carpenterHouseType</span>
+<span class="nc" id="L45">        = spec().getBuildingType(&quot;model.building.carpenterHouse&quot;);</span>
+<span class="nc" id="L46">    private static final BuildingType chapelType</span>
+<span class="nc" id="L47">        = spec().getBuildingType(&quot;model.building.chapel&quot;);</span>
+<span class="nc" id="L48">    private static final BuildingType countryType</span>
+<span class="nc" id="L49">        = spec().getBuildingType(&quot;model.building.country&quot;);</span>
+<span class="nc" id="L50">    private static final BuildingType depotType</span>
+<span class="nc" id="L51">        = spec().getBuildingType(&quot;model.building.depot&quot;);</span>
+<span class="nc" id="L52">    private static final BuildingType fortType</span>
+<span class="nc" id="L53">        = spec().getBuildingType(&quot;model.building.fort&quot;);</span>
+<span class="nc" id="L54">    private static final BuildingType fortressType</span>
+<span class="nc" id="L55">        = spec().getBuildingType(&quot;model.building.fortress&quot;);</span>
+<span class="nc" id="L56">    private static final BuildingType newspaperType</span>
+<span class="nc" id="L57">        = spec().getBuildingType(&quot;model.building.newspaper&quot;);</span>
+<span class="nc" id="L58">    private static final BuildingType printingPressType</span>
+<span class="nc" id="L59">        = spec().getBuildingType(&quot;model.building.printingPress&quot;);</span>
+<span class="nc" id="L60">    private static final BuildingType schoolType</span>
+<span class="nc" id="L61">        = spec().getBuildingType(&quot;model.building.schoolhouse&quot;);</span>
+<span class="nc" id="L62">    private static final BuildingType stockadeType</span>
+<span class="nc" id="L63">        = spec().getBuildingType(&quot;model.building.stockade&quot;);</span>
+<span class="nc" id="L64">    private static final BuildingType townHallType</span>
+<span class="nc" id="L65">        = spec().getBuildingType(&quot;model.building.townHall&quot;);</span>
+<span class="nc" id="L66">    private static final BuildingType universityType</span>
+<span class="nc" id="L67">        = spec().getBuildingType(&quot;model.building.university&quot;);</span>
+<span class="nc" id="L68">    private static final BuildingType warehouseType</span>
+<span class="nc" id="L69">        = spec().getBuildingType(&quot;model.building.warehouse&quot;);</span>
+<span class="nc" id="L70">    private static final BuildingType weaverHouseType</span>
+<span class="nc" id="L71">        = spec().getBuildingType(&quot;model.building.weaverHouse&quot;);</span>
+
+<span class="nc" id="L73">    private static final GoodsType bellsType</span>
+<span class="nc" id="L74">        = spec().getGoodsType(&quot;model.goods.bells&quot;);</span>
+<span class="nc" id="L75">    private static final GoodsType clothType</span>
+<span class="nc" id="L76">        = spec().getGoodsType(&quot;model.goods.cloth&quot;);</span>
+<span class="nc" id="L77">    private static final GoodsType cottonType</span>
+<span class="nc" id="L78">        = spec().getGoodsType(&quot;model.goods.cotton&quot;);</span>
+<span class="nc" id="L79">    private static final GoodsType crossesType</span>
+<span class="nc" id="L80">        = spec().getGoodsType(&quot;model.goods.crosses&quot;);</span>
+<span class="nc" id="L81">    private static final GoodsType foodType</span>
+<span class="nc" id="L82">        = spec().getPrimaryFoodType();</span>
+<span class="nc" id="L83">    private static final GoodsType grainType</span>
+<span class="nc" id="L84">        = spec().getGoodsType(&quot;model.goods.grain&quot;);</span>
+<span class="nc" id="L85">    private static final GoodsType hammersType</span>
+<span class="nc" id="L86">        = spec().getGoodsType(&quot;model.goods.hammers&quot;);</span>
+<span class="nc" id="L87">    private static final GoodsType horsesType</span>
+<span class="nc" id="L88">        = spec().getGoodsType(&quot;model.goods.horses&quot;);</span>
+<span class="nc" id="L89">    private static final GoodsType lumberType</span>
+<span class="nc" id="L90">        = spec().getGoodsType(&quot;model.goods.lumber&quot;);</span>
+<span class="nc" id="L91">    private static final GoodsType musketsType</span>
+<span class="nc" id="L92">        = spec().getGoodsType(&quot;model.goods.muskets&quot;);</span>
+<span class="nc" id="L93">    private static final GoodsType oreType</span>
+<span class="nc" id="L94">        = spec().getGoodsType(&quot;model.goods.ore&quot;);</span>
+<span class="nc" id="L95">    private static final GoodsType toolsType</span>
+<span class="nc" id="L96">        = spec().getGoodsType(&quot;model.goods.tools&quot;);</span>
+
+<span class="nc" id="L98">    private static final Role missionaryRole</span>
+<span class="nc" id="L99">        = spec().getRole(&quot;model.role.missionary&quot;);</span>
+
+<span class="nc" id="L101">    private static final TileType plainsType</span>
+<span class="nc" id="L102">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+
+<span class="nc" id="L104">    private static final UnitType elderStatesmanType</span>
+<span class="nc" id="L105">        = spec().getUnitType(&quot;model.unit.elderStatesman&quot;);</span>
+<span class="nc" id="L106">    private static final UnitType expertFarmerType</span>
+<span class="nc" id="L107">        = spec().getUnitType(&quot;model.unit.expertFarmer&quot;);</span>
+<span class="nc" id="L108">    private static final UnitType firebrandPreacherType</span>
+<span class="nc" id="L109">        = spec().getUnitType(&quot;model.unit.firebrandPreacher&quot;);</span>
+<span class="nc" id="L110">    private static final UnitType freeColonistType</span>
+<span class="nc" id="L111">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="nc" id="L112">    private static final UnitType indenturedServantType</span>
+<span class="nc" id="L113">        = spec().getUnitType(&quot;model.unit.indenturedServant&quot;);</span>
+<span class="nc" id="L114">    private static final UnitType indianConvertType</span>
+<span class="nc" id="L115">        = spec().getUnitType(&quot;model.unit.indianConvert&quot;);</span>
+<span class="nc" id="L116">    private static final UnitType masterCarpenterType</span>
+<span class="nc" id="L117">        = spec().getUnitType(&quot;model.unit.masterCarpenter&quot;);</span>
+<span class="nc" id="L118">    private static final UnitType masterDistillerType</span>
+<span class="nc" id="L119">        = spec().getUnitType(&quot;model.unit.masterDistiller&quot;);</span>
+<span class="nc" id="L120">    private static final UnitType pettyCriminalType</span>
+<span class="nc" id="L121">        = spec().getUnitType(&quot;model.unit.pettyCriminal&quot;);</span>
+
+
+    public void testCanBuildNext() {
+<span class="nc" id="L125">        Game game = getGame();</span>
+<span class="nc" id="L126">        game.setMap(getTestMap(true));</span>
+
+<span class="nc" id="L128">        Colony colony = getStandardColony();</span>
+
+        // First check with a building that can be fully built with a
+        // normal colony
+<span class="nc" id="L132">        Building warehouse = new ServerBuilding(getGame(), colony, depotType);</span>
+<span class="nc" id="L133">        colony.addBuilding(warehouse);</span>
+<span class="nc" id="L134">        assertTrue(warehouse.canBuildNext());</span>
+<span class="nc" id="L135">        assertNotNull(warehouse.upgrade());</span>
+<span class="nc" id="L136">        assertTrue(warehouse.canBuildNext());</span>
+<span class="nc" id="L137">        assertNotNull(warehouse.upgrade());</span>
+<span class="nc" id="L138">        assertFalse(warehouse.canBuildNext());</span>
+
+<span class="nc" id="L140">        assertNull(warehouse.upgrade());</span>
+<span class="nc" id="L141">        assertFalse(warehouse.canBuildNext());</span>
+
+        // Check whether population restrictions work
+
+        // Colony smallColony = getStandardColony(1);
+        //
+        // Colony largeColony = getStandardColony(6);
+        // ...
+
+        // Check whether founding fathers work
+
+<span class="nc" id="L152">    }</span>
+
+    public void testStockadeRequiresMinimumPopulation() {
+<span class="nc" id="L155">        Game game = getGame();</span>
+<span class="nc" id="L156">        game.setMap(getTestMap(true));</span>
+<span class="nc" id="L157">        Colony colony = getStandardColony(2);</span>
+<span class="nc" id="L158">        assertEquals(Colony.NoBuildReason.POPULATION_TOO_SMALL,</span>
+<span class="nc" id="L159">                     colony.getNoBuildReason(stockadeType, null));</span>
+
+<span class="nc" id="L161">        Unit colonist = new ServerUnit(game, colony.getTile(), colony.getOwner(), freeColonistType);</span>
+<span class="nc" id="L162">        colonist.setLocation(colony);</span>
+
+<span class="nc" id="L164">        assertEquals(Colony.NoBuildReason.NONE,</span>
+<span class="nc" id="L165">                     colony.getNoBuildReason(stockadeType, null));</span>
+<span class="nc" id="L166">    }</span>
+
+    public void testFortRequiresMinimumPopulation() {
+<span class="nc" id="L169">        Game game = getGame();</span>
+<span class="nc" id="L170">        game.setMap(getTestMap(true));</span>
+<span class="nc" id="L171">        Colony colony = getStandardColony(2);</span>
+<span class="nc" id="L172">        assertEquals(Colony.NoBuildReason.POPULATION_TOO_SMALL,</span>
+<span class="nc" id="L173">                     colony.getNoBuildReason(fortType, null));</span>
+
+<span class="nc" id="L175">        Unit colonist = new ServerUnit(game, colony.getTile(), colony.getOwner(), freeColonistType);</span>
+<span class="nc" id="L176">        colonist.setLocation(colony);</span>
+
+<span class="nc" id="L178">        colony.addBuilding(new ServerBuilding(game, colony, stockadeType));</span>
+<span class="nc" id="L179">        assertEquals(Colony.NoBuildReason.NONE,</span>
+<span class="nc" id="L180">                     colony.getNoBuildReason(fortType, null));</span>
+<span class="nc" id="L181">    }</span>
+
+    public void testFortressRequiresMinimumPopulation() {
+<span class="nc" id="L184">        Game game = getGame();</span>
+<span class="nc" id="L185">        game.setMap(getTestMap(true));</span>
+
+<span class="nc" id="L187">        Colony colony = getStandardColony(7);</span>
+<span class="nc" id="L188">        colony.addBuilding(new ServerBuilding(game, colony, stockadeType));</span>
+<span class="nc" id="L189">        colony.addBuilding(new ServerBuilding(game, colony, fortType));</span>
+<span class="nc" id="L190">        assertEquals(Colony.NoBuildReason.POPULATION_TOO_SMALL,</span>
+<span class="nc" id="L191">                     colony.getNoBuildReason(fortressType, null));</span>
+
+<span class="nc" id="L193">        Unit colonist = new ServerUnit(game, colony.getTile(), colony.getOwner(), freeColonistType);</span>
+<span class="nc" id="L194">        colonist.setLocation(colony);</span>
+
+<span class="nc" id="L196">        assertEquals(8, colony.getUnitCount());</span>
+<span class="nc" id="L197">        assertEquals(Colony.NoBuildReason.NONE,</span>
+<span class="nc" id="L198">                     colony.getNoBuildReason(fortressType, null));</span>
+<span class="nc" id="L199">    }</span>
+
+    public void testInitialColony() {
+<span class="nc" id="L202">        Game game = getGame();</span>
+<span class="nc" id="L203">        game.setMap(getTestMap(true));</span>
+
+<span class="nc" id="L205">        Colony colony = getStandardColony();</span>
+
+<span class="nc" id="L207">        Building warehouse = colony.getBuilding(warehouseType);</span>
+
+        // Is build as depot...
+<span class="nc bnc" id="L210" title="All 2 branches missed.">        assertTrue(warehouse != null);</span>
+
+<span class="nc" id="L212">        assertTrue(warehouse.canBuildNext());</span>
+
+        // Check other building...
+
+        // Check dock -&gt; only possible if not landlocked...
+
+<span class="nc" id="L218">    }</span>
+
+    public void testChurch() {
+<span class="nc" id="L221">        Game game = getGame();</span>
+<span class="nc" id="L222">        game.setMap(getTestMap(true));</span>
+
+        // Make a colony big enough to build a cathedral, and add enough
+        // liberty to zero the production bonus.
+<span class="nc" id="L226">        Colony colony = getStandardColony(10);</span>
+<span class="nc bnc" id="L227" title="All 2 branches missed.">        while (colony.getProductionBonus() &lt; 0) colony.modifyLiberty(100);</span>
+<span class="nc" id="L228">        Unit unit0 = colony.getUnitList().get(0);</span>
+<span class="nc" id="L229">        Unit unit1 = colony.getUnitList().get(1);</span>
+<span class="nc" id="L230">        Unit unit2 = colony.getUnitList().get(2);</span>
+
+<span class="nc" id="L232">        assertFalse(chapelType.hasAbility(Ability.DRESS_MISSIONARY));</span>
+<span class="nc" id="L233">        assertFalse(unit0.hasAbility(Ability.DRESS_MISSIONARY));</span>
+<span class="nc" id="L234">        assertFalse(unit0.roleIsAvailable(missionaryRole));</span>
+
+<span class="nc" id="L236">        Building church = colony.getBuilding(chapelType);</span>
+<span class="nc" id="L237">        assertNotNull(church);</span>
+<span class="nc" id="L238">        assertFalse(colony.hasAbility(Ability.DRESS_MISSIONARY));</span>
+
+<span class="nc" id="L240">        assertEquals(&quot;Chapel base cross production, no unit&quot;, 1,</span>
+<span class="nc" id="L241">            church.getBaseProduction(null, crossesType, null));</span>
+<span class="nc" id="L242">        assertEquals(&quot;Chapel potential cross production, no unit&quot;, 1,</span>
+<span class="nc" id="L243">            church.getPotentialProduction(crossesType, null));</span>
+<span class="nc" id="L244">        assertEquals(&quot;Chapel total cross production, no unit&quot;, 1,</span>
+<span class="nc" id="L245">            church.getTotalProductionOf(crossesType));</span>
+
+<span class="nc" id="L247">        church.upgrade();</span>
+<span class="nc" id="L248">        assertTrue(&quot;model.building.church&quot;.equals(church.getType().getId()));</span>
+<span class="nc" id="L249">        assertTrue(church.getType().hasAbility(Ability.DRESS_MISSIONARY));</span>
+<span class="nc" id="L250">        assertTrue(colony.hasAbility(Ability.DRESS_MISSIONARY));</span>
+<span class="nc" id="L251">        assertTrue(unit0.hasAbility(Ability.DRESS_MISSIONARY));</span>
+<span class="nc" id="L252">        assertTrue(unit0.roleIsAvailable(missionaryRole));</span>
+
+<span class="nc" id="L254">        assertEquals(&quot;Church base cross production, no unit&quot;, 2,</span>
+<span class="nc" id="L255">            church.getBaseProduction(null, crossesType, null));</span>
+<span class="nc" id="L256">        assertEquals(&quot;Church potential cross production, no unit&quot;, 2,</span>
+<span class="nc" id="L257">            church.getPotentialProduction(crossesType, null));</span>
+<span class="nc" id="L258">        assertEquals(&quot;Church cross production, no unit&quot;, 2,</span>
+<span class="nc" id="L259">            church.getTotalProductionOf(crossesType));</span>
+
+<span class="nc" id="L261">        church.setWorkFor(unit0);</span>
+
+<span class="nc" id="L263">        assertEquals(&quot;Church base cross production, free colonist&quot;, 3,</span>
+<span class="nc" id="L264">            church.getBaseProduction(church.getProductionType(), crossesType,</span>
+<span class="nc" id="L265">                                     unit0.getType()));</span>
+<span class="nc" id="L266">        assertEquals(&quot;Church potential cross production, free colonist&quot;, 3,</span>
+<span class="nc" id="L267">            church.getPotentialProduction(crossesType, unit0.getType()));</span>
+<span class="nc" id="L268">        assertEquals(&quot;Church total cross production, free colonist&quot;, 5,</span>
+<span class="nc" id="L269">            church.getTotalProductionOf(crossesType));</span>
+
+<span class="nc" id="L271">        church.setWorkFor(unit1);</span>
+
+<span class="nc" id="L273">        assertEquals(&quot;Church base cross production, 2 x free colonist&quot;, 3,</span>
+<span class="nc" id="L274">            church.getBaseProduction(church.getProductionType(), crossesType,</span>
+<span class="nc" id="L275">                                     unit1.getType()));</span>
+<span class="nc" id="L276">        assertEquals(&quot;Church potential cross production, 2 x free colonist&quot;, 3,</span>
+<span class="nc" id="L277">            church.getPotentialProduction(crossesType, unit1.getType()));</span>
+<span class="nc" id="L278">        assertEquals(&quot;Church total cross production, 2 x free colonist&quot;, 8,</span>
+<span class="nc" id="L279">            church.getTotalProductionOf(crossesType));</span>
+
+<span class="nc" id="L281">        church.setWorkFor(unit2);</span>
+
+<span class="nc" id="L283">        assertEquals(&quot;Church base cross production, 3 x free colonist&quot;, 3,</span>
+<span class="nc" id="L284">            church.getBaseProduction(church.getProductionType(), crossesType,</span>
+<span class="nc" id="L285">                                     unit2.getType()));</span>
+<span class="nc" id="L286">        assertEquals(&quot;Church potential cross production, 3 x free colonist&quot;, 3,</span>
+<span class="nc" id="L287">            church.getPotentialProduction(crossesType, unit2.getType()));</span>
+<span class="nc" id="L288">        assertEquals(&quot;Church total cross production, 3 x free colonist&quot;, 11,</span>
+<span class="nc" id="L289">            church.getTotalProductionOf(crossesType));</span>
+
+<span class="nc" id="L291">        Building smithy = colony.getBuilding(blacksmithType);</span>
+<span class="nc" id="L292">        assertTrue(unit0.setLocation(smithy));</span>
+<span class="nc" id="L293">        assertTrue(unit1.setLocation(smithy));</span>
+<span class="nc" id="L294">        assertTrue(unit2.setLocation(smithy));</span>
+<span class="nc" id="L295">        unit0.setType(firebrandPreacherType);</span>
+<span class="nc" id="L296">        church.setWorkFor(unit0);</span>
+        
+<span class="nc" id="L298">        assertEquals(&quot;Church base cross production, firebrand preacher&quot;, 3,</span>
+<span class="nc" id="L299">            church.getBaseProduction(church.getProductionType(), crossesType,</span>
+<span class="nc" id="L300">                                     unit0.getType()));</span>
+<span class="nc" id="L301">        assertEquals(&quot;Church potential cross production, firebrand preacher&quot;, 6,</span>
+<span class="nc" id="L302">            church.getPotentialProduction(crossesType, unit0.getType()));</span>
+<span class="nc" id="L303">        assertEquals(&quot;Church total cross production, firebrand preacher&quot;, 8,</span>
+<span class="nc" id="L304">            church.getTotalProductionOf(crossesType));</span>
+
+<span class="nc" id="L306">        unit0.setType(freeColonistType);</span>
+<span class="nc" id="L307">        assertTrue(unit0.setLocation(smithy));</span>
+<span class="nc" id="L308">        church.upgrade();</span>
+<span class="nc" id="L309">        assertTrue(&quot;model.building.cathedral&quot;.equals(church.getType().getId()));</span>
+<span class="nc" id="L310">        assertTrue(church.getType().hasAbility(Ability.DRESS_MISSIONARY));</span>
+<span class="nc" id="L311">        assertTrue(colony.hasAbility(Ability.DRESS_MISSIONARY));</span>
+<span class="nc" id="L312">        assertTrue(unit0.hasAbility(Ability.DRESS_MISSIONARY));</span>
+<span class="nc" id="L313">        assertTrue(unit0.roleIsAvailable(missionaryRole));</span>
+
+<span class="nc" id="L315">        assertEquals(&quot;Cathedral base cross production, no unit&quot;, 3,</span>
+<span class="nc" id="L316">            church.getBaseProduction(null, crossesType, null));</span>
+<span class="nc" id="L317">        assertEquals(&quot;Cathedral potential cross production, no unit&quot;, 3,</span>
+<span class="nc" id="L318">            church.getPotentialProduction(crossesType, null));</span>
+<span class="nc" id="L319">        assertEquals(&quot;Cathedral cross production, no colonist&quot;, 3,</span>
+<span class="nc" id="L320">            church.getTotalProductionOf(crossesType));</span>
+
+<span class="nc" id="L322">        church.setWorkFor(unit0);</span>
+
+<span class="nc" id="L324">        assertEquals(&quot;Cathedral base cross production, free colonist&quot;, 6,</span>
+<span class="nc" id="L325">            church.getBaseProduction(church.getProductionType(), crossesType,</span>
+<span class="nc" id="L326">                                     unit0.getType()));</span>
+<span class="nc" id="L327">        assertEquals(&quot;Cathedral potential cross production, free colonist&quot;, 6,</span>
+<span class="nc" id="L328">            church.getPotentialProduction(crossesType, unit0.getType()));</span>
+<span class="nc" id="L329">        assertEquals(&quot;Cathedral total cross production, free colonist&quot;, 9,</span>
+<span class="nc" id="L330">            church.getTotalProductionOf(crossesType));</span>
+
+<span class="nc" id="L332">        church.setWorkFor(unit1);</span>
+
+<span class="nc" id="L334">        assertEquals(&quot;Cathedral base cross production, 2 x free colonist&quot;, 6,</span>
+<span class="nc" id="L335">            church.getBaseProduction(church.getProductionType(), crossesType,</span>
+<span class="nc" id="L336">                                     unit1.getType()));</span>
+<span class="nc" id="L337">        assertEquals(&quot;Cathedral potential cross production, 2 x free colonist&quot;, 6,</span>
+<span class="nc" id="L338">            church.getPotentialProduction(crossesType, unit1.getType()));</span>
+<span class="nc" id="L339">        assertEquals(&quot;Cathedral total cross production, 2 x free colonist&quot;, 15,</span>
+<span class="nc" id="L340">            church.getTotalProductionOf(crossesType));</span>
+
+<span class="nc" id="L342">        church.setWorkFor(unit2);</span>
+
+<span class="nc" id="L344">        assertEquals(&quot;Cathedral base cross production, 3 x free colonist&quot;, 6,</span>
+<span class="nc" id="L345">            church.getBaseProduction(church.getProductionType(), crossesType,</span>
+<span class="nc" id="L346">                                     unit2.getType()));</span>
+<span class="nc" id="L347">        assertEquals(&quot;Cathedral potential cross production, 3 x free colonist&quot;, 6,</span>
+<span class="nc" id="L348">            church.getPotentialProduction(crossesType, unit2.getType()));</span>
+<span class="nc" id="L349">        assertEquals(&quot;Cathedral total cross production, 3 x free colonist&quot;, 21,</span>
+<span class="nc" id="L350">            church.getTotalProductionOf(crossesType));</span>
+
+<span class="nc" id="L352">        unit0.setLocation(smithy);</span>
+<span class="nc" id="L353">        unit1.setLocation(smithy);</span>
+<span class="nc" id="L354">        unit2.setLocation(smithy);</span>
+<span class="nc" id="L355">        unit0.setType(firebrandPreacherType);</span>
+<span class="nc" id="L356">        church.setWorkFor(unit0);</span>
+
+<span class="nc" id="L358">        assertEquals(&quot;Cathedral base cross production, firebrand preacher&quot;, 6,</span>
+<span class="nc" id="L359">            church.getBaseProduction(church.getProductionType(), crossesType,</span>
+<span class="nc" id="L360">                                     unit0.getType()));</span>
+<span class="nc" id="L361">        assertEquals(&quot;Cathedral potential cross production, firebrand preacher&quot;, 12,</span>
+<span class="nc" id="L362">            church.getPotentialProduction(crossesType, unit0.getType()));</span>
+<span class="nc" id="L363">        assertEquals(&quot;Cathedral total cross production, firebrand preacher&quot;, 15,</span>
+<span class="nc" id="L364">            church.getTotalProductionOf(crossesType));</span>
+<span class="nc" id="L365">    }</span>
+
+    public void testCanAddToBuilding() {
+<span class="nc" id="L368">        Game game = getGame();</span>
+<span class="nc" id="L369">        game.setMap(getTestMap(true));</span>
+
+<span class="nc" id="L371">        Colony colony = getStandardColony(6);</span>
+<span class="nc" id="L372">        Tile tile = colony.getTile();</span>
+<span class="nc" id="L373">        List&lt;Unit&gt; units = colony.getUnitList();</span>
+
+        // Standard colony tends to place units in the town hall
+<span class="nc bnc" id="L376" title="All 2 branches missed.">        for (Unit u : units) {</span>
+<span class="nc bnc" id="L377" title="All 2 branches missed.">            if (u.getLocation() instanceof Building) u.setLocation(tile);</span>
+        }
+
+<span class="nc bnc" id="L380" title="All 2 branches missed.">        for (Building building : colony.getBuildings()) {</span>
+            // schoolhouse is special, see testCanAddToSchool
+<span class="nc bnc" id="L382" title="All 2 branches missed.">            if (building.canTeach()) continue;</span>
+
+<span class="nc" id="L384">            int maxUnits = building.getUnitCapacity();</span>
+
+<span class="nc" id="L386">            assertEquals(0, building.getUnitCount());</span>
+
+<span class="nc bnc" id="L388" title="All 2 branches missed.">            for (int index = 0; index &lt; maxUnits; index++) {</span>
+<span class="nc" id="L389">                assertTrue(&quot;unable to add unit &quot; + index</span>
+<span class="nc" id="L390">                    + &quot; to building type &quot; + building.getType(),</span>
+<span class="nc" id="L391">                    building.canAdd(units.get(index)));</span>
+<span class="nc" id="L392">                building.add(units.get(index));</span>
+            }
+<span class="nc" id="L394">            assertFalse(&quot;able to add unit &quot; + maxUnits</span>
+<span class="nc" id="L395">                + &quot; to building type &quot; + building.getType(),</span>
+<span class="nc" id="L396">                building.canAdd(units.get(maxUnits)));</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">            for (int index = 0; index &lt; maxUnits; index++) {</span>
+<span class="nc" id="L398">                building.remove(building.getUnitList().get(0));</span>
+            }
+        }
+<span class="nc" id="L401">    }</span>
+
+
+    /**
+     * WARNING! This test makes implicit assumptions about the
+     * schoolhouse that could be invalidated by the
+     * specification.
+     *
+     * FIXME: make this more generic.
+     */
+    public void testCanAddToSchool() {
+<span class="nc" id="L412">        Game game = getGame();</span>
+<span class="nc" id="L413">        game.setMap(getTestMap(true));</span>
+
+<span class="nc" id="L415">        Colony colony = getStandardColony(10);</span>
+
+<span class="nc" id="L417">        Iterator&lt;Unit&gt; units = colony.getUnitIterator();</span>
+
+<span class="nc" id="L419">        Unit farmer = units.next();</span>
+<span class="nc" id="L420">        farmer.setType(expertFarmerType);</span>
+
+<span class="nc" id="L422">        Unit colonist = units.next();</span>
+<span class="nc" id="L423">        colonist.setType(freeColonistType);</span>
+
+<span class="nc" id="L425">        Unit criminal = units.next();</span>
+<span class="nc" id="L426">        criminal.setType(pettyCriminalType);</span>
+
+<span class="nc" id="L428">        Unit servant = units.next();</span>
+<span class="nc" id="L429">        servant.setType(indenturedServantType);</span>
+
+<span class="nc" id="L431">        Unit indian = units.next();</span>
+<span class="nc" id="L432">        indian.setType(indianConvertType);</span>
+
+<span class="nc" id="L434">        Unit distiller = units.next();</span>
+<span class="nc" id="L435">        distiller.setType(masterDistillerType);</span>
+
+<span class="nc" id="L437">        Unit elder = units.next();</span>
+<span class="nc" id="L438">        elder.setType(elderStatesmanType);</span>
+
+<span class="nc" id="L440">        Unit carpenter = units.next();</span>
+<span class="nc" id="L441">        carpenter.setType(masterCarpenterType);</span>
+
+        // Check school
+<span class="nc" id="L444">        Building school = colony.getBuilding(schoolType);</span>
+<span class="nc bnc" id="L445" title="All 2 branches missed.">        assertTrue(school == null);</span>
+
+        // build school
+<span class="nc" id="L448">        colony.addBuilding(new ServerBuilding(getGame(), colony, schoolType));</span>
+<span class="nc" id="L449">        school = colony.getBuilding(schoolType);</span>
+<span class="nc bnc" id="L450" title="All 2 branches missed.">        assertTrue(school != null);</span>
+
+        // these can never teach
+<span class="nc" id="L453">        assertEquals(NoAddReason.MINIMUM_SKILL, school.getNoAddReason(colonist));</span>
+<span class="nc" id="L454">        assertFalse(&quot;able to add free colonist to Schoolhouse&quot;,</span>
+<span class="nc" id="L455">                    school.canAdd(colonist));</span>
+
+<span class="nc" id="L457">        assertEquals(NoAddReason.MINIMUM_SKILL, school.getNoAddReason(criminal));</span>
+<span class="nc" id="L458">        assertFalse(&quot;able to add petty criminal to Schoolhouse&quot;,</span>
+<span class="nc" id="L459">                    school.canAdd(criminal));</span>
+
+<span class="nc" id="L461">        assertEquals(NoAddReason.MINIMUM_SKILL, school.getNoAddReason(servant));</span>
+<span class="nc" id="L462">        assertFalse(&quot;able to add indentured servant to Schoolhouse&quot;,</span>
+<span class="nc" id="L463">                    school.canAdd(servant));</span>
+
+<span class="nc" id="L465">        assertEquals(NoAddReason.MINIMUM_SKILL, school.getNoAddReason(indian));</span>
+<span class="nc" id="L466">        assertFalse(&quot;able to add indian convert to Schoolhouse&quot;,</span>
+<span class="nc" id="L467">                    school.canAdd(indian));</span>
+
+<span class="nc" id="L469">        assertEquals(NoAddReason.MAXIMUM_SKILL, school.getNoAddReason(elder));</span>
+<span class="nc" id="L470">        assertFalse(&quot;able to add elder statesman to Schoolhouse&quot;,</span>
+<span class="nc" id="L471">                    school.canAdd(elder));</span>
+
+<span class="nc" id="L473">        assertEquals(NoAddReason.MAXIMUM_SKILL, school.getNoAddReason(distiller));</span>
+<span class="nc" id="L474">        assertFalse(&quot;able to add master distiller to Schoolhouse&quot;,</span>
+<span class="nc" id="L475">                    school.canAdd(distiller));</span>
+
+<span class="nc" id="L477">        assertTrue(&quot;unable to add master farmer to Schoolhouse&quot;,</span>
+<span class="nc" id="L478">                   school.canAdd(farmer));</span>
+<span class="nc" id="L479">        farmer.setLocation(school);</span>
+<span class="nc" id="L480">        assertEquals(school, farmer.getLocation());</span>
+
+<span class="nc" id="L482">        assertFalse(&quot;able to add master carpenter to Schoolhouse&quot;,</span>
+<span class="nc" id="L483">                    school.canAdd(carpenter));</span>
+
+<span class="nc" id="L485">        school.upgrade();</span>
+<span class="nc" id="L486">        farmer.setLocation(colony.getTile());</span>
+
+        // these can never teach
+<span class="nc" id="L489">        assertFalse(&quot;able to add free colonist to College&quot;,</span>
+<span class="nc" id="L490">                    school.canAdd(colonist));</span>
+<span class="nc" id="L491">        assertFalse(&quot;able to add petty criminal to College&quot;,</span>
+<span class="nc" id="L492">                    school.canAdd(criminal));</span>
+<span class="nc" id="L493">        assertFalse(&quot;able to add indentured servant to College&quot;,</span>
+<span class="nc" id="L494">                    school.canAdd(servant));</span>
+<span class="nc" id="L495">        assertFalse(&quot;able to add indian convert to College&quot;,</span>
+<span class="nc" id="L496">                    school.canAdd(indian));</span>
+
+<span class="nc" id="L498">        assertFalse(&quot;able to add elder statesman to College&quot;,</span>
+<span class="nc" id="L499">                    school.canAdd(elder));</span>
+<span class="nc" id="L500">        assertTrue(&quot;unable to add master distiller to College&quot;,</span>
+<span class="nc" id="L501">                   school.canAdd(distiller));</span>
+<span class="nc" id="L502">        distiller.setLocation(school);</span>
+<span class="nc" id="L503">        assertTrue(&quot;unable to add master farmer to College&quot;,</span>
+<span class="nc" id="L504">                   school.canAdd(farmer));</span>
+<span class="nc" id="L505">        farmer.setLocation(school);</span>
+<span class="nc" id="L506">        assertFalse(&quot;able to add master carpenter to College&quot;,</span>
+<span class="nc" id="L507">                    school.canAdd(carpenter));</span>
+
+<span class="nc" id="L509">        school.upgrade();</span>
+<span class="nc" id="L510">        assertEquals(school.getType().toString(), universityType,</span>
+<span class="nc" id="L511">                     school.getType());</span>
+<span class="nc" id="L512">        distiller.setLocation(colony.getTile());</span>
+<span class="nc" id="L513">        farmer.setLocation(colony.getTile());</span>
+
+        // these can never teach
+<span class="nc" id="L516">        assertFalse(&quot;able to add free colonist to University&quot;,</span>
+<span class="nc" id="L517">                    school.canAdd(colonist));</span>
+<span class="nc" id="L518">        assertFalse(&quot;able to add petty criminal to University&quot;,</span>
+<span class="nc" id="L519">                    school.canAdd(criminal));</span>
+<span class="nc" id="L520">        assertFalse(&quot;able to add indentured servant to University&quot;,</span>
+<span class="nc" id="L521">                    school.canAdd(servant));</span>
+<span class="nc" id="L522">        assertFalse(&quot;able to add indian convert to University&quot;,</span>
+<span class="nc" id="L523">                    school.canAdd(indian));</span>
+
+<span class="nc" id="L525">        assertTrue(&quot;unable to add elder statesman to University&quot;,</span>
+<span class="nc" id="L526">                   school.canAdd(elder));</span>
+<span class="nc" id="L527">        elder.setLocation(school);</span>
+<span class="nc" id="L528">        assertTrue(&quot;unable to add master distiller to University&quot;,</span>
+<span class="nc" id="L529">                   school.canAdd(distiller));</span>
+<span class="nc" id="L530">        distiller.setLocation(school);</span>
+<span class="nc" id="L531">        assertTrue(&quot;unable to add master farmer to University&quot;,</span>
+<span class="nc" id="L532">                   school.canAdd(farmer));</span>
+<span class="nc" id="L533">        farmer.setLocation(school);</span>
+<span class="nc" id="L534">        assertFalse(&quot;able to add master carpenter to University&quot;,</span>
+<span class="nc" id="L535">                    school.canAdd(carpenter));</span>
+<span class="nc" id="L536">    }</span>
+
+    public void testSerialize() {
+<span class="nc" id="L539">        Game game = getGame();</span>
+<span class="nc" id="L540">        game.setMap(getTestMap(true));</span>
+
+<span class="nc" id="L542">        Colony colony = getStandardColony(6);</span>
+<span class="nc bnc" id="L543" title="All 2 branches missed.">        for (Building building : colony.getBuildings()) {</span>
+            try {
+<span class="nc" id="L545">                StringWriter sw = new StringWriter();</span>
+<span class="nc" id="L546">                FreeColXMLWriter xw = new FreeColXMLWriter(sw,</span>
+<span class="nc" id="L547">                    FreeColXMLWriter.WriteScope.toSave());</span>
+
+<span class="nc" id="L549">                building.toXML(xw);</span>
+
+<span class="nc" id="L551">                xw.close();</span>
+
+<span class="nc" id="L553">            } catch (Exception e) {</span>
+<span class="nc" id="L554">                fail(e.toString());</span>
+            }
+        }
+<span class="nc" id="L557">    }</span>
+
+    public void testStockade() {
+<span class="nc" id="L560">        final Game game = getGame();</span>
+<span class="nc" id="L561">        final Turn turn = game.getTurn();</span>
+<span class="nc" id="L562">        game.setMap(getTestMap(true));</span>
+        Set&lt;Modifier&gt; modifierSet;
+
+<span class="nc" id="L565">        Colony colony = getStandardColony(2);</span>
+<span class="nc" id="L566">        modifierSet = colony.getModifiers(Modifier.DEFENCE);</span>
+<span class="nc" id="L567">        assertEquals(1, modifierSet.size());</span>
+<span class="nc" id="L568">        Modifier modifier = modifierSet.iterator().next();</span>
+<span class="nc" id="L569">        assertEquals(50f, modifier.getValue());</span>
+<span class="nc" id="L570">        assertEquals(ModifierType.PERCENTAGE, modifier.getType());</span>
+
+<span class="nc" id="L572">        modifierSet = stockadeType.getModifiers(Modifier.DEFENCE);</span>
+<span class="nc" id="L573">        assertEquals(1, modifierSet.size());</span>
+<span class="nc" id="L574">        modifier = modifierSet.iterator().next();</span>
+<span class="nc" id="L575">        assertEquals(100f, modifier.getValue());</span>
+<span class="nc" id="L576">        assertEquals(ModifierType.PERCENTAGE, modifier.getType());</span>
+<span class="nc" id="L577">        assertEquals(0f, stockadeType.applyModifiers(0f, turn,</span>
+<span class="nc" id="L578">                Modifier.MINIMUM_COLONY_SIZE));</span>
+
+<span class="nc" id="L580">        modifierSet = fortType.getModifiers(Modifier.DEFENCE);</span>
+<span class="nc" id="L581">        assertEquals(1, modifierSet.size());</span>
+<span class="nc" id="L582">        modifier = modifierSet.iterator().next();</span>
+<span class="nc" id="L583">        assertEquals(150f, modifier.getValue());</span>
+<span class="nc" id="L584">        assertEquals(ModifierType.PERCENTAGE, modifier.getType());</span>
+<span class="nc" id="L585">        assertEquals(0f, stockadeType.applyModifiers(0f, turn,</span>
+<span class="nc" id="L586">                Modifier.MINIMUM_COLONY_SIZE));</span>
+
+<span class="nc" id="L588">        modifierSet = fortressType.getModifiers(Modifier.DEFENCE);</span>
+<span class="nc" id="L589">        assertEquals(1, modifierSet.size());</span>
+<span class="nc" id="L590">        modifier = modifierSet.iterator().next();</span>
+<span class="nc" id="L591">        assertEquals(200f, modifier.getValue());</span>
+<span class="nc" id="L592">        assertEquals(ModifierType.PERCENTAGE, modifier.getType());</span>
+<span class="nc" id="L593">        assertEquals(0f, stockadeType.applyModifiers(0f, turn,</span>
+<span class="nc" id="L594">                Modifier.MINIMUM_COLONY_SIZE));</span>
+<span class="nc" id="L595">    }</span>
+
+    public void testCottonClothProduction() {
+<span class="nc" id="L598">        Game game = getGame();</span>
+<span class="nc" id="L599">        game.setMap(getTestMap(true));</span>
+
+<span class="nc" id="L601">        Colony colony = getStandardColony(2);</span>
+<span class="nc" id="L602">        List&lt;Unit&gt; units = colony.getUnitList();</span>
+<span class="nc" id="L603">        Unit colonist = units.get(0);</span>
+<span class="nc" id="L604">        Unit worker = units.get(1);</span>
+
+<span class="nc" id="L606">        final Building weaver = colony.getBuilding(weaverHouseType);</span>
+
+<span class="nc" id="L608">        assertTrue(colonist.getLocation() instanceof ColonyTile);</span>
+<span class="nc" id="L609">        assertEquals(plainsType, ((ColonyTile)colonist.getLocation()).getWorkTile().getType());</span>
+<span class="nc" id="L610">        assertTrue(worker.getLocation() instanceof ColonyTile);</span>
+<span class="nc" id="L611">        assertEquals(plainsType, ((ColonyTile)worker.getLocation()).getWorkTile().getType());</span>
+
+<span class="nc" id="L613">        assertTrue(weaver.add(worker));</span>
+<span class="nc" id="L614">        assertEquals(worker, weaver.getUnitList().get(0));</span>
+
+<span class="nc" id="L616">        colony.addGoods(cottonType, 2);</span>
+<span class="nc" id="L617">        colony.invalidateCache();</span>
+
+<span class="nc" id="L619">        assertEquals(2, colony.getTotalProductionOf(cottonType));</span>
+<span class="nc" id="L620">        assertEquals(3, weaver.getTotalProductionOf(clothType));</span>
+<span class="nc" id="L621">        assertEquals(3, colony.getTotalProductionOf(clothType));</span>
+<span class="nc" id="L622">        assertEquals(-1, colony.getNetProductionOf(cottonType));</span>
+<span class="nc" id="L623">        assertEquals(3, colony.getNetProductionOf(clothType));</span>
+
+<span class="nc" id="L625">        colonist.changeWorkType(cottonType);</span>
+<span class="nc" id="L626">        colony.invalidateCache();</span>
+
+<span class="nc" id="L628">        assertEquals(4, colony.getTotalProductionOf(cottonType));</span>
+<span class="nc" id="L629">        colony.addGoods(cottonType, 4);</span>
+<span class="nc" id="L630">        assertEquals(3, colony.getTotalProductionOf(clothType));</span>
+<span class="nc" id="L631">        assertEquals(1, colony.getNetProductionOf(cottonType));</span>
+<span class="nc" id="L632">        assertEquals(3, colony.getNetProductionOf(clothType));</span>
+<span class="nc" id="L633">    }</span>
+
+    public void testPasture() {
+<span class="nc" id="L636">        Game game = getGame();</span>
+<span class="nc" id="L637">        game.setMap(getTestMap(true));</span>
+
+<span class="nc" id="L639">        Colony colony = getStandardColony(1);</span>
+<span class="nc" id="L640">        Building country = colony.getBuilding(countryType);</span>
+<span class="nc" id="L641">        assertNotNull(country.getProductionType());</span>
+
+<span class="nc" id="L643">        Unit unit = colony.getFirstUnit();</span>
+<span class="nc" id="L644">        assertEquals(grainType, unit.getWorkType());</span>
+
+        // no horses yet
+<span class="nc" id="L647">        assertEquals(8, colony.getNetProductionOf(foodType));</span>
+<span class="nc" id="L648">        assertEquals(0, country.getTotalProductionOf(horsesType));</span>
+<span class="nc" id="L649">        assertEquals(0, colony.getNetProductionOf(horsesType));</span>
+<span class="nc" id="L650">        assertEquals(0, country.getMaximumProductionOf(horsesType));</span>
+
+<span class="nc" id="L652">        colony.addGoods(horsesType, 50);</span>
+<span class="nc" id="L653">        colony.invalidateCache();</span>
+
+<span class="nc" id="L655">        assertEquals(2, country.getTotalProductionOf(horsesType));</span>
+<span class="nc" id="L656">        assertEquals(2, country.getMaximumProductionOf(horsesType));</span>
+<span class="nc" id="L657">        assertEquals(2, colony.getNetProductionOf(horsesType));</span>
+
+<span class="nc" id="L659">        colony.addGoods(horsesType, 1);</span>
+<span class="nc" id="L660">        colony.invalidateCache();</span>
+
+<span class="nc" id="L662">        assertEquals(4, country.getTotalProductionOf(horsesType));</span>
+<span class="nc" id="L663">        assertEquals(4, country.getMaximumProductionOf(horsesType));</span>
+<span class="nc" id="L664">        assertEquals(4, colony.getNetProductionOf(horsesType));</span>
+
+<span class="nc" id="L666">        country.upgrade();</span>
+<span class="nc" id="L667">        colony.removeGoods(horsesType);</span>
+<span class="nc" id="L668">        colony.addGoods(horsesType, 25);</span>
+<span class="nc" id="L669">        colony.invalidateCache();</span>
+
+<span class="nc" id="L671">        assertEquals(25, colony.getGoodsCount(horsesType));</span>
+<span class="nc" id="L672">        assertEquals(2, country.getTotalProductionOf(horsesType));</span>
+<span class="nc" id="L673">        assertEquals(2, country.getMaximumProductionOf(horsesType));</span>
+<span class="nc" id="L674">        assertEquals(2, colony.getNetProductionOf(horsesType));</span>
+
+<span class="nc" id="L676">        colony.addGoods(horsesType, 1);</span>
+<span class="nc" id="L677">        colony.invalidateCache();</span>
+
+<span class="nc" id="L679">        assertEquals(26, colony.getGoodsCount(horsesType));</span>
+<span class="nc" id="L680">        assertEquals(4, country.getTotalProductionOf(horsesType));</span>
+<span class="nc" id="L681">        assertEquals(4, country.getMaximumProductionOf(horsesType));</span>
+<span class="nc" id="L682">        assertEquals(4, colony.getNetProductionOf(horsesType));</span>
+
+<span class="nc" id="L684">        colony.addGoods(horsesType, 24);</span>
+<span class="nc" id="L685">        colony.invalidateCache();</span>
+
+<span class="nc" id="L687">        assertEquals(50, colony.getGoodsCount(horsesType));</span>
+<span class="nc" id="L688">        assertEquals(4, country.getTotalProductionOf(horsesType));</span>
+<span class="nc" id="L689">        assertEquals(4, country.getMaximumProductionOf(horsesType));</span>
+<span class="nc" id="L690">        assertEquals(4, colony.getNetProductionOf(horsesType));</span>
+
+<span class="nc" id="L692">        colony.addGoods(horsesType, 1);</span>
+<span class="nc" id="L693">        colony.invalidateCache();</span>
+
+<span class="nc" id="L695">        assertEquals(51, colony.getGoodsCount(horsesType));</span>
+        // no more than half the surplus production!
+<span class="nc" id="L697">        assertEquals(4, country.getTotalProductionOf(horsesType));</span>
+<span class="nc" id="L698">        assertEquals(6, country.getMaximumProductionOf(horsesType));</span>
+<span class="nc" id="L699">        assertEquals(&quot;Horse production should equal food surplus.&quot;,</span>
+<span class="nc" id="L700">                     colony.getNetProductionOf(foodType),</span>
+<span class="nc" id="L701">                     colony.getNetProductionOf(horsesType));</span>
+<span class="nc" id="L702">    }</span>
+
+    public void testTownhallProduction() {
+<span class="nc" id="L705">        final Game game = getGame();</span>
+<span class="nc" id="L706">        game.setMap(getTestMap(true));</span>
+<span class="nc" id="L707">        final Turn turn = game.getTurn();</span>
+
+<span class="nc" id="L709">        Colony colony = getStandardColony(6);</span>
+<span class="nc" id="L710">        Player owner = colony.getOwner();</span>
+<span class="nc" id="L711">        Unit colonist = colony.getUnitList().get(0);</span>
+<span class="nc" id="L712">        Unit statesman = colony.getUnitList().get(1);</span>
+<span class="nc" id="L713">        statesman.setType(elderStatesmanType);</span>
+
+<span class="nc" id="L715">        Tile tile = colony.getTile();</span>
+<span class="nc" id="L716">        Building building = colony.getBuilding(townHallType);</span>
+<span class="nc bnc" id="L717" title="All 2 branches missed.">        for (Unit u : building.getUnitList()) u.setLocation(tile);</span>
+
+<span class="nc" id="L719">        Set&lt;Modifier&gt; modifiers = colony.getModifiers(&quot;model.goods.bells&quot;);</span>
+<span class="nc" id="L720">        assertTrue(&quot;No initial modifiers&quot;, modifiers.isEmpty());</span>
+<span class="nc" id="L721">        assertEquals(&quot;Initial bell production&quot;, 1,</span>
+<span class="nc" id="L722">                     building.getTotalProductionOf(bellsType));</span>
+
+<span class="nc" id="L724">        colonist.setLocation(building);</span>
+        // 3 from the colonist
+<span class="nc" id="L726">        assertEquals(&quot;Production(Colonist)&quot;, 3,</span>
+<span class="nc" id="L727">                     building.getUnitProduction(colonist, bellsType));</span>
+        // 3(colonist) + 1(unattended)
+<span class="nc" id="L729">        assertEquals(&quot;Total production(Colonist)&quot;, 4,</span>
+<span class="nc" id="L730">                     building.getTotalProductionOf(bellsType));</span>
+
+        // Add Jefferson.
+<span class="nc" id="L733">        FoundingFather jefferson = spec()</span>
+<span class="nc" id="L734">            .getFoundingFather(&quot;model.foundingFather.thomasJefferson&quot;);</span>
+<span class="nc" id="L735">        modifiers = jefferson.getModifiers(&quot;model.goods.bells&quot;);</span>
+<span class="nc" id="L736">        assertEquals(&quot;Jefferson modifier size&quot;, 1, modifiers.size());</span>
+<span class="nc" id="L737">        Modifier bellsModifier = modifiers.iterator().next();</span>
+<span class="nc" id="L738">        owner.addFather(jefferson);</span>
+
+        // Jefferson is a property of the player...
+<span class="nc" id="L741">        assertTrue(&quot;Jefferson should be present in player&quot;,</span>
+<span class="nc" id="L742">            owner.getModifiers(&quot;model.goods.bells&quot;)</span>
+<span class="nc" id="L743">                .contains(bellsModifier));</span>
+<span class="nc" id="L744">        assertTrue(&quot;Jefferson should be present in player in building scope&quot;,</span>
+<span class="nc" id="L745">            owner.getModifiers(&quot;model.goods.bells&quot;, townHallType, turn)</span>
+<span class="nc" id="L746">                .contains(bellsModifier));</span>
+<span class="nc" id="L747">        assertFalse(&quot;Jefferson should not be present in player in unit scope&quot;,</span>
+<span class="nc" id="L748">            owner.getModifiers(&quot;model.goods.bells&quot;, freeColonistType, turn)</span>
+<span class="nc" id="L749">                .contains(bellsModifier));</span>
+        // ...not the colony,
+<span class="nc" id="L751">        assertFalse(&quot;Jefferson modifier should not be present in colony&quot;,</span>
+<span class="nc" id="L752">            colony.getModifiers(&quot;model.goods.bells&quot;)</span>
+<span class="nc" id="L753">                  .contains(bellsModifier));</span>
+        // ...and the building modifiers do not have it.
+<span class="nc" id="L755">        assertFalse(&quot;Jefferson modifier should not be present in building modifiers&quot;,</span>
+<span class="nc" id="L756">            building.getModifiers(&quot;model.goods.bells&quot;)</span>
+<span class="nc" id="L757">                    .contains(bellsModifier));</span>
+
+        // 3(colonist)
+<span class="nc" id="L760">        assertEquals(&quot;Production(Colonist/Jefferson)&quot;, 3,</span>
+<span class="nc" id="L761">                     building.getUnitProduction(colonist, bellsType));</span>
+        // 3(colonist) + 1 + 50%(Jefferson) = 6
+<span class="nc" id="L763">        assertEquals(&quot;Total production(Colonist/Jefferson)&quot;, 6,</span>
+<span class="nc" id="L764">                     building.getTotalProductionOf(bellsType));</span>
+
+        // Add statesman
+<span class="nc" id="L767">        statesman.setLocation(building);</span>
+        // 3 * 2(expert) = 6
+<span class="nc" id="L769">        assertEquals(&quot;Production(Statesman/Jefferson)&quot;, 6,</span>
+<span class="nc" id="L770">                     building.getUnitProduction(statesman, bellsType));</span>
+        // 3 + 6 + 1 + 50%(Jefferson) = 15
+<span class="nc" id="L772">        assertEquals(&quot;Total production(Colonist/Statesman/Jefferson)&quot;, 15,</span>
+<span class="nc" id="L773">                     building.getTotalProductionOf(bellsType));</span>
+
+        // Improve production
+<span class="nc" id="L776">        setProductionBonus(colony, 2);</span>
+<span class="nc" id="L777">        colony.invalidateCache();</span>
+<span class="nc" id="L778">        assertEquals(&quot;Production(Colonist/Jefferson/2)&quot;, 5,</span>
+<span class="nc" id="L779">                     building.getUnitProduction(colonist, bellsType));</span>
+<span class="nc" id="L780">        assertEquals(&quot;Production(Statesman/Jefferson/2)&quot;, 10,</span>
+<span class="nc" id="L781">                     building.getUnitProduction(statesman, bellsType));</span>
+        // 5 + 10 + 1 + 50%(Jefferson) = 24
+<span class="nc" id="L783">        assertEquals(&quot;Total production(Colonist/Statesman/Jefferson/2)&quot;, 24,</span>
+<span class="nc" id="L784">                     building.getTotalProductionOf(bellsType));</span>
+
+        // Add newspaper
+<span class="nc" id="L787">        Building newspaper = new ServerBuilding(getGame(), colony,</span>
+<span class="nc" id="L788">                                                newspaperType);</span>
+<span class="nc" id="L789">        colony.addBuilding(newspaper);</span>
+<span class="nc" id="L790">        colony.invalidateCache();</span>
+<span class="nc" id="L791">        assertEquals(&quot;Production(Colonist/Jefferson/2/Newspaper)&quot;, 5,</span>
+<span class="nc" id="L792">                     building.getUnitProduction(colonist, bellsType));</span>
+<span class="nc" id="L793">        assertEquals(&quot;Production(Statesman/Jefferson/2/Newspaper)&quot;, 10,</span>
+<span class="nc" id="L794">                     building.getUnitProduction(statesman, bellsType));</span>
+        // 5 + 10 + 1 + 50%(Jefferson) + 100%(Newspaper) = 48
+<span class="nc" id="L796">        assertEquals(&quot;Total production(Colonist/Statesman/Jefferson/2/Newspaper)&quot;, 48,</span>
+<span class="nc" id="L797">                     building.getTotalProductionOf(bellsType));</span>
+<span class="nc" id="L798">    }</span>
+
+    public void testPrintingPressBonus() {
+<span class="nc" id="L801">        Game game = getGame();</span>
+<span class="nc" id="L802">        game.setMap(getTestMap(true));</span>
+
+<span class="nc" id="L804">        Colony colony = getStandardColony(6);</span>
+<span class="nc" id="L805">        Unit unit = colony.getUnitList().get(0);</span>
+<span class="nc" id="L806">        Building building = colony.getBuilding(townHallType);</span>
+<span class="nc" id="L807">        Tile tile = colony.getTile();</span>
+<span class="nc bnc" id="L808" title="All 2 branches missed.">        for (Unit u : building.getUnitList()) u.setLocation(tile);</span>
+
+<span class="nc" id="L810">        int bellProduction = building.getTotalProductionOf(bellsType);</span>
+<span class="nc" id="L811">        int expectBellProd = 1;</span>
+<span class="nc" id="L812">        assertEquals(&quot;Wrong initial bell production&quot;,expectBellProd,bellProduction);</span>
+
+<span class="nc" id="L814">        Building printingPress = new ServerBuilding(getGame(), colony, printingPressType);</span>
+<span class="nc" id="L815">        colony.addBuilding(printingPress);</span>
+
+<span class="nc" id="L817">        bellProduction = building.getTotalProductionOf(bellsType);</span>
+<span class="nc" id="L818">        expectBellProd = 1;</span>
+<span class="nc" id="L819">        assertEquals(&quot;Wrong bell production with printing press&quot;,expectBellProd,bellProduction);</span>
+
+<span class="nc" id="L821">        unit.setLocation(building);</span>
+<span class="nc" id="L822">        bellProduction = building.getTotalProductionOf(bellsType);</span>
+<span class="nc" id="L823">        expectBellProd = 6; // 1 initial plus 3 from the colonist + 2 from printing press</span>
+<span class="nc" id="L824">        assertEquals(&quot;Wrong final bell production&quot;,expectBellProd,bellProduction);</span>
+<span class="nc" id="L825">    }</span>
+
+    public void testNewspaperBonus() {
+<span class="nc" id="L828">        Game game = getGame();</span>
+<span class="nc" id="L829">        game.setMap(getTestMap(true));</span>
+
+<span class="nc" id="L831">        Colony colony = getStandardColony(6);</span>
+<span class="nc" id="L832">        Unit unit = colony.getUnitList().get(0);</span>
+<span class="nc" id="L833">        Building building = colony.getBuilding(townHallType);</span>
+<span class="nc" id="L834">        clearWorkLocation(building);</span>
+
+<span class="nc" id="L836">        int bellProduction = building.getTotalProductionOf(bellsType);</span>
+<span class="nc" id="L837">        int expectBellProd = 1;</span>
+<span class="nc" id="L838">        assertEquals(&quot;Wrong initial bell production&quot;, expectBellProd,</span>
+<span class="nc" id="L839">                     bellProduction);</span>
+
+<span class="nc" id="L841">        Building newspaper = new ServerBuilding(getGame(), colony,</span>
+<span class="nc" id="L842">                                                newspaperType);</span>
+<span class="nc" id="L843">        colony.addBuilding(newspaper);</span>
+<span class="nc" id="L844">        colony.invalidateCache();</span>
+
+<span class="nc" id="L846">        bellProduction = building.getTotalProductionOf(bellsType);</span>
+<span class="nc" id="L847">        expectBellProd = 2;</span>
+<span class="nc" id="L848">        assertEquals(&quot;Wrong bell production with newspaper&quot;, expectBellProd,</span>
+<span class="nc" id="L849">                     bellProduction);</span>
+
+<span class="nc" id="L851">        unit.setLocation(building);</span>
+<span class="nc" id="L852">        bellProduction = building.getTotalProductionOf(bellsType);</span>
+<span class="nc" id="L853">        expectBellProd = 8; // 1 initial plus 3 from the colonist + 4 from newspaper</span>
+<span class="nc" id="L854">        assertEquals(&quot;Wrong final bell production&quot;, expectBellProd,</span>
+<span class="nc" id="L855">                     bellProduction);</span>
+<span class="nc" id="L856">    }</span>
+
+    public void testUnitProduction() {
+<span class="nc" id="L859">        Game game = getGame();</span>
+<span class="nc" id="L860">        game.setMap(getTestMap(true));</span>
+
+<span class="nc" id="L862">        Colony colony = getStandardColony(4);</span>
+<span class="nc" id="L863">        Unit unit = colony.getUnitList().get(0);</span>
+<span class="nc bnc" id="L864" title="All 2 branches missed.">        for (Building building : colony.getBuildings()) {</span>
+<span class="nc" id="L865">            clearWorkLocation(building);</span>
+<span class="nc" id="L866">            unit.setLocation(building);</span>
+<span class="nc bnc" id="L867" title="All 2 branches missed.">            for (AbstractGoods output : building.getOutputs()) {</span>
+<span class="nc" id="L868">                GoodsType outputType = output.getType();</span>
+<span class="nc bnc" id="L869" title="All 2 branches missed.">                for (UnitType type : spec().getUnitTypeList()) {</span>
+<span class="nc bnc" id="L870" title="All 2 branches missed.">                    if (!building.getType().canAdd(type)</span>
+<span class="nc bnc" id="L871" title="All 2 branches missed.">                        || !type.isAvailableTo(colony.getOwner())) continue;</span>
+<span class="nc" id="L872">                    unit.changeType(type);</span>
+<span class="nc bnc" id="L873" title="All 2 branches missed.">                    if (output != null) {</span>
+<span class="nc" id="L874">                        int productivity = building.getUnitProduction(unit, outputType);</span>
+<span class="nc" id="L875">                        int expected = output.getAmount();</span>
+<span class="nc bnc" id="L876" title="All 2 branches missed.">                        if (type == building.getExpertUnitType()) {</span>
+<span class="nc" id="L877">                            expected = 6;</span>
+<span class="nc bnc" id="L878" title="All 2 branches missed.">                        } else if (type == indenturedServantType) {</span>
+<span class="nc" id="L879">                            expected = 2;</span>
+<span class="nc bnc" id="L880" title="All 2 branches missed.">                        } else if (type == indianConvertType) {</span>
+<span class="nc" id="L881">                            expected = 1;</span>
+<span class="nc bnc" id="L882" title="All 2 branches missed.">                        } else if (type == pettyCriminalType) {</span>
+<span class="nc" id="L883">                            expected = 1;</span>
+                        }
+<span class="nc bnc" id="L885" title="All 2 branches missed.">                        if (expected != output.getAmount()) {</span>
+<span class="nc" id="L886">                            assertFalse(&quot;ModifierSet should not be empty!&quot;,</span>
+<span class="nc" id="L887">                                        type.getModifiers(outputType.getId()).isEmpty());</span>
+                        }
+<span class="nc" id="L889">                        assertEquals(&quot;Wrong productivity for &quot; + type</span>
+<span class="nc" id="L890">                            + &quot; in &quot; + building, expected, productivity);</span>
+                    }
+                }
+            }
+        }
+<span class="nc" id="L895">    }</span>
+
+    public void testToolsMusketProduction() {
+<span class="nc" id="L898">        Game game = getGame();</span>
+<span class="nc" id="L899">        game.setMap(getTestMap(true));</span>
+
+<span class="nc" id="L901">        Colony colony = getStandardColony(8);</span>
+<span class="nc" id="L902">        Tile tile = colony.getTile();</span>
+<span class="nc" id="L903">        List&lt;Unit&gt; units = colony.getUnitList();</span>
+<span class="nc" id="L904">        assertEquals(8, units.size());</span>
+
+        // Make sure there are enough goods to get started, and make
+        // sure enough bells and food are being produced.
+        // colony.addGoods(spec().getGoodsType(&quot;model.goods.food&quot;), 100);
+<span class="nc" id="L909">        colony.addGoods(bellsType, Colony.LIBERTY_PER_REBEL * 3);</span>
+<span class="nc" id="L910">        units.get(0).setLocation(tile);</span>
+<span class="nc" id="L911">        units.get(1).setLocation(tile);</span>
+<span class="nc" id="L912">        units.get(2).setLocation(tile);</span>
+<span class="nc" id="L913">        units.get(3).setLocation(tile);</span>
+<span class="nc" id="L914">        assertTrue(colony.getColonyTile(tile.getNeighbourOrNull(Direction.N))</span>
+<span class="nc" id="L915">            .setWorkFor(units.get(4)));</span>
+<span class="nc" id="L916">        assertTrue(colony.getColonyTile(tile.getNeighbourOrNull(Direction.E))</span>
+<span class="nc" id="L917">            .setWorkFor(units.get(5)));</span>
+<span class="nc" id="L918">        assertTrue(colony.getColonyTile(tile.getNeighbourOrNull(Direction.S))</span>
+<span class="nc" id="L919">            .setWorkFor(units.get(6)));</span>
+<span class="nc" id="L920">        assertTrue(colony.getBuilding(townHallType)</span>
+<span class="nc" id="L921">            .setWorkFor(units.get(7)));</span>
+
+<span class="nc" id="L923">        Building smithy = colony.getBuilding(blacksmithType);</span>
+<span class="nc" id="L924">        assertFalse(smithy.setWorkFor(units.get(0)));</span>
+<span class="nc" id="L925">        colony.addGoods(oreType, 50); // Add ore so the smithy becomes viable</span>
+<span class="nc" id="L926">        assertTrue(smithy.setWorkFor(units.get(0)));</span>
+<span class="nc" id="L927">        assertTrue(smithy.setWorkFor(units.get(1)));</span>
+
+<span class="nc" id="L929">        Building armory = new ServerBuilding(game, colony, armoryType);</span>
+<span class="nc" id="L930">        colony.addBuilding(armory);</span>
+<span class="nc" id="L931">        colony.invalidateCache();</span>
+
+<span class="nc" id="L933">        assertTrue(armory.setWorkFor(units.get(2)));</span>
+<span class="nc" id="L934">        assertTrue(armory.setWorkFor(units.get(3)));</span>
+
+<span class="nc" id="L936">        assertEquals(toolsType,   units.get(0).getWorkType());</span>
+<span class="nc" id="L937">        assertEquals(toolsType,   units.get(1).getWorkType());</span>
+<span class="nc" id="L938">        assertEquals(musketsType, units.get(2).getWorkType());</span>
+<span class="nc" id="L939">        assertEquals(musketsType, units.get(3).getWorkType());</span>
+<span class="nc" id="L940">        assertEquals(6, smithy.getTotalProductionOf(toolsType));</span>
+<span class="nc" id="L941">        assertEquals(6, armory.getTotalProductionOf(musketsType));</span>
+
+        // Upgrade the buildings
+<span class="nc" id="L944">        smithy.upgrade();</span>
+<span class="nc" id="L945">        armory.upgrade();</span>
+<span class="nc" id="L946">        colony.invalidateCache();</span>
+
+<span class="nc" id="L948">        assertEquals(toolsType,   units.get(0).getWorkType());</span>
+<span class="nc" id="L949">        assertEquals(toolsType,   units.get(1).getWorkType());</span>
+<span class="nc" id="L950">        assertEquals(musketsType, units.get(2).getWorkType());</span>
+<span class="nc" id="L951">        assertEquals(musketsType, units.get(3).getWorkType());</span>
+<span class="nc" id="L952">        assertEquals(12, smithy.getTotalProductionOf(toolsType));</span>
+<span class="nc" id="L953">        assertEquals(12, armory.getTotalProductionOf(musketsType));</span>
+
+        // Upgrade to factory level
+<span class="nc" id="L956">        colony.getOwner().addFather(spec()</span>
+<span class="nc" id="L957">            .getFoundingFather(&quot;model.foundingFather.adamSmith&quot;));</span>
+<span class="nc" id="L958">        smithy.upgrade();</span>
+<span class="nc" id="L959">        armory.upgrade();</span>
+<span class="nc" id="L960">        colony.invalidateCache();</span>
+
+<span class="nc" id="L962">        assertEquals(toolsType,   units.get(0).getWorkType());</span>
+<span class="nc" id="L963">        assertEquals(toolsType,   units.get(1).getWorkType());</span>
+<span class="nc" id="L964">        assertEquals(musketsType, units.get(2).getWorkType());</span>
+<span class="nc" id="L965">        assertEquals(musketsType, units.get(3).getWorkType());</span>
+<span class="nc" id="L966">        assertEquals(18, smithy.getTotalProductionOf(toolsType));</span>
+        //assertEquals(&quot;According to bug report #3430371, the arsenal does not enjoy &quot;
+        //            + &quot;the usual factory level production bonus of 50%&quot;,
+        //    12, armory.getTotalProductionOf(musketsType));
+        // #3430371 has been reverted until we can work out what arsenal
+        // did that differed from magazine
+<span class="nc" id="L972">        assertEquals(18, armory.getTotalProductionOf(musketsType));</span>
+<span class="nc" id="L973">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

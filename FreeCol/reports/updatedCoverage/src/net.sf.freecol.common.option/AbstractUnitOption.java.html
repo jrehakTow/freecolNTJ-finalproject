@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>AbstractUnitOption.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.option</a> &gt; <span class="el_source">AbstractUnitOption.java</span></div><h1>AbstractUnitOption.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.option;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.model.AbstractUnit;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.model.Role;
+import net.sf.freecol.common.option.UnitTypeOption.TypeSelector;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+
+
+/**
+ * Represents an option where the valid choice is an AbstractUnit.
+ */
+public class AbstractUnitOption extends AbstractOption&lt;AbstractUnit&gt; {
+
+<span class="fc" id="L43">    private static final Logger logger = Logger.getLogger(AbstractUnitOption.class.getName());</span>
+
+<span class="fc" id="L45">    private static final TypeSelector DEFAULT_SELECTOR = TypeSelector.UNITS;</span>
+
+    /** The value of this option. */
+<span class="fc" id="L48">    private AbstractUnit value = null;</span>
+
+    /** An Option to determine the UnitType of the AbstractUnit. */
+<span class="fc" id="L51">    private UnitTypeOption unitType = null;</span>
+
+    /** An Option to determine the Role of the AbstractUnit. */
+<span class="fc" id="L54">    private StringOption role = null;</span>
+
+    /** An Option to determine the number of the AbstractUnit. */
+<span class="fc" id="L57">    private IntegerOption number = null;</span>
+
+
+    /**
+     * Creates a new &lt;code&gt;AbstractUnitOption&lt;/code&gt;.
+     *
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; to refer to.
+     */
+    public AbstractUnitOption(Specification specification) {
+<span class="fc" id="L66">        super(specification);</span>
+<span class="fc" id="L67">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;AbstractUnitOption&lt;/code&gt;.
+     *
+     * @param id The object identifier.
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; to refer to.
+     */
+    public AbstractUnitOption(String id, Specification specification) {
+<span class="fc" id="L76">        super(id, specification);</span>
+<span class="fc" id="L77">    }</span>
+
+
+    private void requireUnitType() {
+<span class="fc" id="L81">        this.unitType = new UnitTypeOption(getId() + &quot;.unitType&quot;,</span>
+<span class="fc" id="L82">                                           getSpecification());</span>
+<span class="fc" id="L83">    }</span>
+
+    private void requireRole() {
+<span class="fc" id="L86">        this.role = new StringOption(getId() + &quot;.role&quot;,</span>
+<span class="fc" id="L87">                                     getSpecification());</span>
+<span class="fc" id="L88">    }</span>
+
+    private void requireNumber() {
+<span class="fc" id="L91">        this.number = new IntegerOption(getId() + &quot;.number&quot;,</span>
+<span class="fc" id="L92">                                        getSpecification());</span>
+<span class="fc" id="L93">    }</span>
+
+    /**
+     * Get the unit type option.
+     *
+     * @return The &lt;code&gt;UnitTypeOption&lt;/code&gt; containing the unit type.
+     */
+    public final UnitTypeOption getUnitType() {
+<span class="nc" id="L101">        return unitType;</span>
+    }
+
+    /**
+     * Get the role option.
+     *
+     * @return The &lt;code&gt;StringOption&lt;/code&gt; containing the role.
+     */
+    public final StringOption getRole() {
+<span class="nc" id="L110">        return role;</span>
+    }
+
+    /**
+     * Get the number option.
+     *
+     * @return The &lt;code&gt;IntegerOption&lt;/code&gt; containing the number.
+     */
+    public final IntegerOption getNumber() {
+<span class="nc" id="L119">        return number;</span>
+    }
+
+
+    // Interface Option
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public AbstractUnitOption clone() {
+<span class="nc" id="L130">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L131">        AbstractUnitOption result = new AbstractUnitOption(getId(), spec);</span>
+<span class="nc" id="L132">        result.setValues(this);</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        if (value != null) {</span>
+<span class="nc" id="L134">            AbstractUnit au = new AbstractUnit(value.getType(spec),</span>
+<span class="nc" id="L135">                value.getRoleId(), value.getNumber());</span>
+<span class="nc" id="L136">            result.setValue(au);</span>
+        }
+<span class="nc bnc" id="L138" title="All 2 branches missed.">        if (unitType != null) result.unitType = unitType;</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        if (role != null) result.role = role;</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        if (number != null) result.number = number;</span>
+<span class="nc" id="L141">        return result;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public AbstractUnit getValue() {
+<span class="fc" id="L149">        return value;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setValue(AbstractUnit value) {
+<span class="fc" id="L157">        final Specification spec = getSpecification();</span>
+<span class="fc" id="L158">        final AbstractUnit oldValue = this.value;</span>
+<span class="fc" id="L159">        this.value = value;</span>
+<span class="pc bpc" id="L160" title="1 of 2 branches missed.">        if (value == null) {</span>
+<span class="nc" id="L161">            this.unitType = null;</span>
+<span class="nc" id="L162">            this.role = null;</span>
+<span class="nc" id="L163">            this.number = null;</span>
+<span class="nc" id="L164">        } else {</span>
+<span class="fc" id="L165">            requireUnitType();</span>
+<span class="fc" id="L166">            this.unitType.setValue(value.getType(spec));</span>
+<span class="fc" id="L167">            requireRole();</span>
+<span class="fc" id="L168">            this.role.setValue(value.getRoleId());</span>
+<span class="fc" id="L169">            requireNumber();</span>
+<span class="fc" id="L170">            this.number.setValue(value.getNumber());</span>
+        }
+
+<span class="pc bpc" id="L173" title="7 of 8 branches missed.">        if (isDefined &amp;&amp; (((value == null) != (oldValue == null))</span>
+<span class="nc bnc" id="L174" title="All 4 branches missed.">                || (value != null &amp;&amp; !value.equals(oldValue)))) {</span>
+<span class="nc" id="L175">            firePropertyChange(VALUE_TAG, oldValue, value);</span>
+        }
+<span class="fc" id="L177">        isDefined = true;</span>
+<span class="fc" id="L178">    }</span>
+
+
+    // Override AbstractOption
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isNullValueOK() {
+<span class="fc" id="L188">        return true;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void generateChoices() {
+<span class="nc" id="L196">        unitType.generateChoices();</span>
+<span class="nc" id="L197">        role.setChoices(toList(map(getSpecification().getRoles(), Role::getId)));</span>
+<span class="nc" id="L198">    }</span>
+
+
+    // Serialization
+
+    private static final String NUMBER_TAG = &quot;number&quot;;
+    private static final String ROLE_TAG = &quot;role&quot;;
+<span class="fc" id="L205">    private static final String UNIT_TYPE_TAG = &quot;unitType&quot;;</span>
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeChildren(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L213">        super.writeChildren(xw);</span>
+
+<span class="nc" id="L215">        number.toXML(xw, NUMBER_TAG);</span>
+
+<span class="nc" id="L217">        role.toXML(xw, ROLE_TAG);</span>
+
+<span class="nc" id="L219">        unitType.toXML(xw, UNIT_TYPE_TAG);</span>
+<span class="nc" id="L220">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readChildren(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L227">        super.readChildren(xr);</span>
+
+<span class="fc" id="L229">        AbstractUnit au = null;</span>
+<span class="pc bpc" id="L230" title="3 of 6 branches missed.">        if (unitType != null &amp;&amp; role != null &amp;&amp; number != null) {</span>
+<span class="fc" id="L231">            au = new AbstractUnit(unitType.getValue(),</span>
+<span class="fc" id="L232">                                  role.getValue(),</span>
+<span class="fc" id="L233">                                  number.getValue());</span>
+        }
+<span class="fc" id="L235">        setValue(au);</span>
+<span class="fc" id="L236">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readChild(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L243">        final Specification spec = getSpecification();</span>
+<span class="fc" id="L244">        final String tag = xr.getLocalName();</span>
+
+<span class="pc bpc" id="L246" title="5 of 12 branches missed.">        if (null != tag) switch (tag) {</span>
+            case NUMBER_TAG:
+<span class="fc" id="L248">                requireNumber();</span>
+<span class="fc" id="L249">                number.readFromXML(xr);</span>
+<span class="fc" id="L250">                break;</span>
+            case ROLE_TAG:
+<span class="fc" id="L252">                requireRole();</span>
+<span class="fc" id="L253">                role.readFromXML(xr);</span>
+<span class="fc" id="L254">                break;</span>
+            case UNIT_TYPE_TAG:
+<span class="fc" id="L256">                requireUnitType();</span>
+<span class="fc" id="L257">                unitType.readFromXML(xr);</span>
+<span class="fc" id="L258">                break;</span>
+            default:
+<span class="nc" id="L260">                super.readChild(xr);</span>
+                break;
+        }
+<span class="fc" id="L263">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L270">        StringBuilder sb = new StringBuilder(16);</span>
+<span class="nc" id="L271">        sb.append(&quot;[&quot;).append(getId())</span>
+<span class="nc" id="L272">            .append(&quot; &quot;).append(value).append(&quot;]&quot;);</span>
+<span class="nc" id="L273">        return sb.toString();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="nc" id="L280">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;unitOption&quot;.
+     */
+    public static String getTagName() {
+<span class="fc" id="L288">        return &quot;unitOption&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

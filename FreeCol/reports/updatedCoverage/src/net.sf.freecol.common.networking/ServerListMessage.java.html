@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ServerListMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">ServerListMessage.java</span></div><h1>ServerListMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import net.sf.freecol.common.ServerInfo;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+import net.sf.freecol.metaserver.MetaItem;
+import net.sf.freecol.metaserver.MetaRegister;
+import net.sf.freecol.server.FreeColServer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent when to get a list of servers.
+ */
+public class ServerListMessage extends DOMMessage {
+
+    public static final String TAG = &quot;serverList&quot;;
+    private static final String ADDRESS_TAG = &quot;address&quot;;
+    private static final String CURRENTLY_PLAYING_TAG = &quot;currentlyPlaying&quot;;
+    private static final String GAME_STATE_TAG = &quot;gameState&quot;;
+    private static final String IS_GAME_STARTED_TAG = &quot;isGameStarted&quot;;
+    private static final String NAME_TAG = &quot;name&quot;;
+    private static final String PORT_TAG = &quot;port&quot;;
+    private static final String SLOTS_AVAILABLE_TAG = &quot;slotsAvailable&quot;;
+    private static final String VERSION_TAG = &quot;version&quot;;
+
+    /** The list of information about the available servers. */
+<span class="nc" id="L52">    private List&lt;ServerInfo&gt; servers = new ArrayList&lt;&gt;();</span>
+
+
+    /**
+     * Create a new &lt;code&gt;ServerListMessage&lt;/code&gt;.  Used to generate
+     * a request for servers.
+     */
+    public ServerListMessage() {
+<span class="nc" id="L60">        super(getTagName());</span>
+<span class="nc" id="L61">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;ServerListMessage&lt;/code&gt; from a
+     * &lt;code&gt;MetaRegister&lt;/code&gt;.  Used to generate the reply.
+     *
+     * @param mr The &lt;code&gt;MetaRegister&lt;/code&gt; to query for servers.
+     */
+    public ServerListMessage(MetaRegister mr) {
+<span class="nc" id="L70">        super(getTagName());</span>
+
+<span class="nc" id="L72">        this.servers.clear();</span>
+<span class="nc" id="L73">        this.servers.addAll(mr.getServers());</span>
+<span class="nc" id="L74">    }</span>
+        
+    /**
+     * Create a new &lt;code&gt;ServerListMessage&lt;/code&gt; from a
+     * supplied element.  Used to read the reply.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public ServerListMessage(Game game, Element element) {
+<span class="nc" id="L84">        super(getTagName());</span>
+
+<span class="nc" id="L86">        this.servers.clear();</span>
+<span class="nc" id="L87">        this.servers.addAll(mapChildren(element,</span>
+<span class="nc" id="L88">                                        ServerListMessage::elementToServer));</span>
+<span class="nc" id="L89">    }</span>
+
+
+    /**
+     * Convert an element to a server.
+     *
+     * @param e The &lt;code&gt;Element&lt;/code&gt; to examine.
+     * @return A new &lt;code&gt;MetaItem&lt;/code&gt; describing a server.
+     */     
+    private static MetaItem elementToServer(Element e) {
+<span class="nc" id="L99">        MetaItem mi = new MetaItem();</span>
+<span class="nc" id="L100">        mi.update(getStringAttribute(e, NAME_TAG),</span>
+<span class="nc" id="L101">            getStringAttribute(e, ADDRESS_TAG),</span>
+<span class="nc" id="L102">            getIntegerAttribute(e, PORT_TAG, -1),</span>
+<span class="nc" id="L103">            getIntegerAttribute(e, SLOTS_AVAILABLE_TAG, -1),</span>
+<span class="nc" id="L104">            getIntegerAttribute(e, CURRENTLY_PLAYING_TAG, -1),</span>
+<span class="nc" id="L105">            getBooleanAttribute(e, IS_GAME_STARTED_TAG, false),</span>
+<span class="nc" id="L106">            getStringAttribute(e, VERSION_TAG),</span>
+<span class="nc" id="L107">            getIntegerAttribute(e, GAME_STATE_TAG, -1));</span>
+<span class="nc" id="L108">        return mi;</span>
+    }
+
+    /**
+     * Convert a ServerInfo record to a message.
+     *
+     * @param si The &lt;code&gt;ServerInfo&lt;/code&gt; to convert.
+     * @return A new &lt;code&gt;DOMMessage&lt;/code&gt;.
+     */
+    private static DOMMessage serverInfoToMessage(ServerInfo si) {
+<span class="nc" id="L118">        return new DOMMessage(si.getTagName(),</span>
+<span class="nc" id="L119">            NAME_TAG, si.getName(),</span>
+<span class="nc" id="L120">            ADDRESS_TAG, si.getAddress(),</span>
+<span class="nc" id="L121">            PORT_TAG, Integer.toString(si.getPort()),</span>
+<span class="nc" id="L122">            SLOTS_AVAILABLE_TAG, Integer.toString(si.getSlotsAvailable()),</span>
+<span class="nc" id="L123">            CURRENTLY_PLAYING_TAG, Integer.toString(si.getCurrentlyPlaying()),</span>
+<span class="nc" id="L124">            IS_GAME_STARTED_TAG, Boolean.toString(si.getIsGameStarted()),</span>
+<span class="nc" id="L125">            VERSION_TAG, si.getVersion(),</span>
+<span class="nc" id="L126">            GAME_STATE_TAG, Integer.toString(si.getGameState()));</span>
+    }
+
+
+    // Public interface
+
+    /**
+     * Get the server information.
+     *
+     * @return The list of &lt;code&gt;ServerInfo&lt;/code&gt;.
+     */
+    public List&lt;ServerInfo&gt; getServers() {
+<span class="nc" id="L138">        return this.servers;</span>
+    }
+
+    /**
+     * Add information about a server.
+     *
+     * @param &lt;T&gt; The &lt;code&gt;ServerInfo&lt;/code&gt; type to add.
+     * @param si The &lt;code&gt;ServerInfo&lt;/code&gt; to add.
+     */
+    public &lt;T extends ServerInfo&gt; void addServer(T si) {
+<span class="nc" id="L148">        this.servers.add(si);</span>
+<span class="nc" id="L149">    }</span>
+
+    
+    /**
+     * Handle a &quot;serverList&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; handling the message.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; the message applies to.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message was received on.
+     * @return Null.
+     */
+    public Element handle(FreeColServer server, Player player,
+                          Connection connection) {
+        // Not needed, serverList messages are handled trivially in
+        // metaregister.NetworkHandler.
+<span class="nc" id="L164">        return null;</span>
+    }
+
+    /**
+     * Convert this ServerListMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="nc" id="L174">        return new DOMMessage(getTagName())</span>
+<span class="nc" id="L175">            .addMessages(toList(map(this.servers,</span>
+<span class="nc" id="L176">                                    ServerListMessage::serverInfoToMessage)))</span>
+<span class="nc" id="L177">            .toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;serverList&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L186">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

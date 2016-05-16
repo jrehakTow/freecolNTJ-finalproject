@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>FreeColSpecObjectType.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">FreeColSpecObjectType.java</span></div><h1>FreeColSpecObjectType.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+
+
+/**
+ * The base class for all types defined by the specification. It can
+ * be instantiated in order to provide a source for modifiers and
+ * abilities that are provided by the code rather than defined in the
+ * specification, such as the &quot;artillery in the open&quot; penalty.
+ *
+ * A FreeColSpecObjectType does not always need a reference to the
+ * specification. However, if it has attributes or children that are
+ * themselves FreeColSpecObjectTypes, then the specification must be
+ * set before the type is de-serialized, otherwise the identifiers can
+ * not be resolved.
+ *
+ * FreeColSpecObjectTypes can be abstract. Abstract types can be used
+ * to derive other types, but can not be instantiated.  They will be
+ * removed from the Specification after it has loaded completely.
+ */
+public abstract class FreeColSpecObjectType extends FreeColSpecObject
+    implements Named {
+
+    /** Whether the type is abstract, or can be instantiated. */
+    private boolean abstractType;
+
+    /**
+     * The features of this game object type.  Feature containers are
+     * created on demand.
+     */
+<span class="fc" id="L56">    private FeatureContainer featureContainer = null;</span>
+
+    // Do not serialize below.
+
+    /**
+     * The index imposes a total ordering consistent with equals on
+     * each class extending FreeColSpecObjectType, but this ordering
+     * is nothing but the order in which the objects of the respective
+     * class were defined.  It is guaranteed to remain stable only for
+     * a particular revision of a particular specification.
+     */
+<span class="fc" id="L67">    private int index = -1;</span>
+    
+
+    /**
+     * Deliberately empty constructor.
+     */
+    protected FreeColSpecObjectType() {
+<span class="fc" id="L74">        super(null);</span>
+<span class="fc" id="L75">    }</span>
+
+    /**
+     * Create a simple FreeColSpecObjectType without a specification.
+     *
+     * @param id The object identifier.
+     */
+    public FreeColSpecObjectType(String id) {
+<span class="fc" id="L83">        this(id, null);</span>
+<span class="fc" id="L84">    }</span>
+
+    /**
+     * Create a FreeColSpecObjectType with a given specification but
+     * no object identifier.
+     *
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; to refer to.
+     */
+    public FreeColSpecObjectType(Specification specification) {
+<span class="fc" id="L93">        this(null, specification);</span>
+<span class="fc" id="L94">    }</span>
+
+    /**
+     * Create a FreeColSpecObjectType with a given identifier and
+     * specification.
+     *
+     * @param id The object identifier.
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; to refer to.
+     */
+    public FreeColSpecObjectType(String id, Specification specification) {
+<span class="fc" id="L104">        super(specification);</span>
+
+<span class="fc" id="L106">        setId(id);</span>
+<span class="fc" id="L107">    }</span>
+
+
+    /**
+     * Gets the index of this FreeColSpecObjectType.
+     *
+     * The index imposes a total ordering consistent with equals on
+     * each class extending FreeColSpecObjectType, but this ordering
+     * is nothing but the order in which the objects of the respective
+     * class were defined.  It is guaranteed to remain stable only for
+     * a particular revision of a particular specification.
+     *
+     * @return The game object index.
+     */
+    protected int getIndex() {
+<span class="nc" id="L122">        return this.index;</span>
+    }
+
+    /**
+     * Sets the index of this FreeColSpecObjectType.
+     *
+     * @param index The new index value.
+     */
+    protected final void setIndex(final int index) {
+<span class="fc" id="L131">        this.index = index;</span>
+<span class="fc" id="L132">    }</span>
+
+    /**
+     * Gets a string suitable for looking up the description of
+     * this object in {@link net.sf.freecol.common.i18n.Messages}.
+     *
+     * @return A description key.
+     */
+    public final String getDescriptionKey() {
+<span class="nc" id="L141">        return Messages.descriptionKey(getId());</span>
+    }
+
+    /**
+     * Is this an abstract type?
+     *
+     * @return True if this is an abstract game object type.
+     */
+    public final boolean isAbstractType() {
+<span class="fc" id="L150">        return this.abstractType;</span>
+    }
+
+
+    // Interface Named
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public final String getNameKey() {
+<span class="nc" id="L161">        return Messages.nameKey(getId());</span>
+    }
+
+
+    // Override FreeColObject
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public final FeatureContainer getFeatureContainer() {
+<span class="fc bfc" id="L172" title="All 2 branches covered.">        if (this.featureContainer == null) {</span>
+<span class="fc" id="L173">            this.featureContainer = new FeatureContainer();</span>
+        }
+<span class="fc" id="L175">        return this.featureContainer;</span>
+    }
+
+
+    // Serialization
+
+    // We do not serialize index, so no INDEX_TAG.
+    // We do not need to write the abstractType attribute, as once
+    // the spec is read, all cases of abstractType==true are removed.
+    private static final String ABSTRACT_TAG = &quot;abstract&quot;;
+    // Denotes deletion of a child element.
+    protected static final String DELETE_TAG = &quot;delete&quot;;
+    // Denotes that this type extends another.
+    public static final String EXTENDS_TAG = &quot;extends&quot;;
+    // Denotes preservation of attributes and children.
+    public static final String PRESERVE_TAG = &quot;preserve&quot;;
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeChildren(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L198">        super.writeChildren(xw);</span>
+
+<span class="nc bnc" id="L200" title="All 2 branches missed.">        for (Ability ability : toSortedList(getAbilities())) {</span>
+<span class="nc" id="L201">            ability.toXML(xw);</span>
+        }
+
+<span class="nc bnc" id="L204" title="All 2 branches missed.">        for (Modifier modifier : getSortedModifiers()) {</span>
+<span class="nc" id="L205">            modifier.toXML(xw);</span>
+        }
+<span class="nc" id="L207">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L214">        super.readAttributes(xr);</span>
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">        if (getId() == null) throw new XMLStreamException(&quot;Null id&quot;);</span>
+
+<span class="fc" id="L217">        this.abstractType = xr.getAttribute(ABSTRACT_TAG, false);</span>
+<span class="fc" id="L218">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChildren(FreeColXMLReader xr) throws XMLStreamException {
+        // Clear containers.
+<span class="fc bfc" id="L226" title="All 2 branches covered.">        if (xr.shouldClearContainers()) {</span>
+<span class="fc bfc" id="L227" title="All 2 branches covered.">            if (this.featureContainer != null) this.featureContainer.clear();</span>
+        }
+
+<span class="fc" id="L230">        super.readChildren(xr);</span>
+<span class="fc" id="L231">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChild(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L238">        final Specification spec = getSpecification();</span>
+<span class="fc" id="L239">        final String tag = xr.getLocalName();</span>
+
+<span class="fc bfc" id="L241" title="All 2 branches covered.">        if (Ability.getTagName().equals(tag)) {</span>
+<span class="pc bpc" id="L242" title="1 of 2 branches missed.">            if (xr.getAttribute(DELETE_TAG, false)) {</span>
+<span class="nc" id="L243">                removeAbilities(xr.readId());</span>
+<span class="nc" id="L244">                xr.closeTag(Ability.getTagName());</span>
+
+<span class="nc" id="L246">            } else {</span>
+<span class="fc" id="L247">                Ability ability = new Ability(xr, spec); // Closes the element</span>
+<span class="pc bpc" id="L248" title="1 of 2 branches missed.">                if (ability.getSource() == null) ability.setSource(this);</span>
+<span class="fc" id="L249">                addAbility(ability);</span>
+<span class="fc" id="L250">                spec.addAbility(ability);</span>
+            }
+
+<span class="pc bpc" id="L253" title="1 of 2 branches missed.">        } else if (Modifier.getTagName().equals(tag)) {</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">            if (xr.getAttribute(DELETE_TAG, false)) {</span>
+<span class="fc" id="L255">                removeModifiers(xr.readId());</span>
+<span class="fc" id="L256">                xr.closeTag(Modifier.getTagName());</span>
+
+<span class="fc" id="L258">            } else {</span>
+<span class="fc" id="L259">                Modifier modifier = new Modifier(xr, spec);// Closes the element</span>
+<span class="pc bpc" id="L260" title="1 of 2 branches missed.">                if (modifier.getSource() == null) modifier.setSource(this);</span>
+<span class="fc" id="L261">                addModifier(modifier);</span>
+<span class="fc" id="L262">                spec.addModifier(modifier);</span>
+            }
+
+<span class="fc" id="L265">        } else {</span>
+<span class="nc" id="L266">            super.readChild(xr);</span>
+        }
+<span class="fc" id="L268">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L275">        return getId();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

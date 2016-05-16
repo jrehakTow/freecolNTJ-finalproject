@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>RoleTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">RoleTest.java</span></div><h1>RoleTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import net.sf.freecol.common.model.AbstractGoods;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L31">public class RoleTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L33">    private static final GoodsType horses</span>
+<span class="nc" id="L34">        = spec().getGoodsType(&quot;model.goods.horses&quot;);</span>
+<span class="nc" id="L35">    private static final GoodsType muskets</span>
+<span class="nc" id="L36">        = spec().getGoodsType(&quot;model.goods.muskets&quot;);</span>
+<span class="nc" id="L37">    private static final GoodsType tools</span>
+<span class="nc" id="L38">        = spec().getGoodsType(&quot;model.goods.tools&quot;);</span>
+
+<span class="nc" id="L40">    private static final Role none</span>
+<span class="nc" id="L41">        = spec().getDefaultRole();</span>
+<span class="nc" id="L42">    private static final Role scout</span>
+<span class="nc" id="L43">        = spec().getRole(&quot;model.role.scout&quot;);</span>
+<span class="nc" id="L44">    private static final Role soldier</span>
+<span class="nc" id="L45">        = spec().getRole(&quot;model.role.soldier&quot;);</span>
+<span class="nc" id="L46">    private static final Role dragoon</span>
+<span class="nc" id="L47">        = spec().getRole(&quot;model.role.dragoon&quot;);</span>
+<span class="nc" id="L48">    private static final Role pioneer</span>
+<span class="nc" id="L49">        = spec().getRole(&quot;model.role.pioneer&quot;);</span>
+<span class="nc" id="L50">    private static final Role mission</span>
+<span class="nc" id="L51">        = spec().getRole(&quot;model.role.missionary&quot;);</span>
+<span class="nc" id="L52">    private static final Role infantry</span>
+<span class="nc" id="L53">        = spec().getRole(&quot;model.role.infantry&quot;);</span>
+<span class="nc" id="L54">    private static final Role cavalry</span>
+<span class="nc" id="L55">        = spec().getRole(&quot;model.role.cavalry&quot;);</span>
+<span class="nc" id="L56">    private static final Role armedBrave</span>
+<span class="nc" id="L57">        = spec().getRole(&quot;model.role.armedBrave&quot;);</span>
+<span class="nc" id="L58">    private static final Role mountedBrave</span>
+<span class="nc" id="L59">        = spec().getRole(&quot;model.role.mountedBrave&quot;);</span>
+<span class="nc" id="L60">    private static final Role nativeDragoon</span>
+<span class="nc" id="L61">        = spec().getRole(&quot;model.role.nativeDragoon&quot;);</span>
+
+<span class="nc" id="L63">    private static final UnitType braveType</span>
+<span class="nc" id="L64">        = spec().getUnitType(&quot;model.unit.brave&quot;);</span>
+<span class="nc" id="L65">    private static final UnitType colonistType</span>
+<span class="nc" id="L66">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="nc" id="L67">    private static final UnitType kingsRegularType</span>
+<span class="nc" id="L68">        = spec().getUnitType(&quot;model.unit.kingsRegular&quot;);</span>
+
+
+    public void testRoleComparator() {
+<span class="nc" id="L72">        List&lt;Role&gt; roles = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L73">        roles.add(soldier);</span>
+<span class="nc" id="L74">        roles.add(dragoon);</span>
+<span class="nc" id="L75">        roles.add(mission);</span>
+<span class="nc" id="L76">        Collections.sort(roles);</span>
+<span class="nc" id="L77">        assertEquals(dragoon, roles.get(0));</span>
+<span class="nc" id="L78">        assertEquals(soldier, roles.get(1));</span>
+<span class="nc" id="L79">        assertEquals(mission, roles.get(2));</span>
+
+<span class="nc" id="L81">        assertEquals(0,  Role.militaryComparator.compare(soldier, soldier));</span>
+<span class="nc" id="L82">        assertEquals(0,  Role.militaryComparator.compare(dragoon, dragoon));</span>
+<span class="nc" id="L83">        assertEquals(0,  Role.militaryComparator.compare(mission, mission));</span>
+<span class="nc" id="L84">        assertEquals(-1, Role.militaryComparator.compare(dragoon, soldier));</span>
+<span class="nc" id="L85">        assertEquals(1,  Role.militaryComparator.compare(soldier, dragoon));</span>
+<span class="nc" id="L86">        assertEquals(1,  Role.militaryComparator.compare(mission, soldier));</span>
+<span class="nc" id="L87">        assertEquals(-1, Role.militaryComparator.compare(dragoon, mission));</span>
+<span class="nc" id="L88">    }</span>
+
+    public void testCompatibleRoles() {
+<span class="nc" id="L91">        assertFalse(soldier.isCompatibleWith(none));</span>
+<span class="nc" id="L92">        assertFalse(soldier.isCompatibleWith(pioneer));</span>
+<span class="nc" id="L93">        assertFalse(soldier.isCompatibleWith(mission));</span>
+<span class="nc" id="L94">        assertTrue(soldier.isCompatibleWith(soldier));</span>
+<span class="nc" id="L95">        assertFalse(soldier.isCompatibleWith(scout));</span>
+<span class="nc" id="L96">        assertTrue(soldier.isCompatibleWith(dragoon));</span>
+
+<span class="nc" id="L98">        assertFalse(mission.isCompatibleWith(none));</span>
+<span class="nc" id="L99">        assertFalse(mission.isCompatibleWith(pioneer));</span>
+<span class="nc" id="L100">        assertTrue(mission.isCompatibleWith(mission));</span>
+<span class="nc" id="L101">        assertFalse(mission.isCompatibleWith(soldier));</span>
+<span class="nc" id="L102">        assertFalse(mission.isCompatibleWith(scout));</span>
+<span class="nc" id="L103">        assertFalse(mission.isCompatibleWith(dragoon));</span>
+<span class="nc" id="L104">    }</span>
+
+    public void testGoodsDifference() {
+<span class="nc" id="L107">        assertTrue(Role.getGoodsDifference(null, 1, none, 1).isEmpty());</span>
+<span class="nc" id="L108">        assertTrue(Role.getGoodsDifference(none, 1, none, 1).isEmpty());</span>
+<span class="nc" id="L109">        assertTrue(Role.getGoodsDifference(none, 1, mission, 1).isEmpty());</span>
+<span class="nc" id="L110">        assertTrue(Role.getGoodsDifference(mission, 1, none, 1).isEmpty());</span>
+
+<span class="nc" id="L112">        List&lt;AbstractGoods&gt; goods</span>
+<span class="nc" id="L113">            = Role.getGoodsDifference(none, 1, soldier, 1);</span>
+<span class="nc" id="L114">        checkGoods(&quot;-&gt;soldier&quot;, goods,</span>
+<span class="nc" id="L115">            new AbstractGoods(muskets, 50));</span>
+
+<span class="nc" id="L117">        goods = Role.getGoodsDifference(soldier, 1, dragoon, 1);</span>
+<span class="nc" id="L118">        checkGoods(&quot;soldier-&gt;dragoon&quot;, goods,</span>
+<span class="nc" id="L119">            new AbstractGoods(horses, 50));</span>
+
+<span class="nc" id="L121">        goods = Role.getGoodsDifference(mission, 1, dragoon, 1);</span>
+<span class="nc" id="L122">        checkGoods(&quot;missionary-&gt;dragoon&quot;, goods,</span>
+<span class="nc" id="L123">            new AbstractGoods(horses, 50),</span>
+<span class="nc" id="L124">            new AbstractGoods(muskets, 50));</span>
+
+<span class="nc" id="L126">        goods = Role.getGoodsDifference(soldier, 1, none, 1);</span>
+<span class="nc" id="L127">        checkGoods(&quot;soldier-&gt;&quot;, goods,</span>
+<span class="nc" id="L128">            new AbstractGoods(muskets, -50));</span>
+
+<span class="nc" id="L130">        goods = Role.getGoodsDifference(nativeDragoon, 1, armedBrave, 1);</span>
+<span class="nc" id="L131">        checkGoods(&quot;nativeDragoon-&gt;armedBrave&quot;, goods,</span>
+<span class="nc" id="L132">            new AbstractGoods(horses, -25));</span>
+
+<span class="nc" id="L134">        goods = Role.getGoodsDifference(soldier, 1, pioneer, 4);</span>
+<span class="nc" id="L135">        checkGoods(&quot;soldier-&gt;pioneer(4)&quot;, goods,</span>
+<span class="nc" id="L136">            new AbstractGoods(muskets, -50),</span>
+<span class="nc" id="L137">            new AbstractGoods(tools, 80));</span>
+<span class="nc" id="L138">    }</span>
+
+    public void testMilitaryRoles() {
+<span class="nc" id="L141">        final Game game = getStandardGame();</span>
+<span class="nc" id="L142">        final List&lt;Role&gt; military = spec().getMilitaryRoles();</span>
+
+<span class="nc" id="L144">        List&lt;Role&gt; expectedRoles = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L145">        expectedRoles.add(dragoon);</span>
+<span class="nc" id="L146">        expectedRoles.add(soldier);</span>
+<span class="nc" id="L147">        expectedRoles.add(scout);</span>
+<span class="nc" id="L148">        List&lt;Role&gt; colonialRoles</span>
+<span class="nc" id="L149">            = Role.getAvailableRoles(game.getPlayerByNationId(&quot;model.nation.dutch&quot;),</span>
+<span class="nc" id="L150">                                     colonistType, military);</span>
+<span class="nc" id="L151">        assertTrue(expectedRoles.equals(colonialRoles));</span>
+
+<span class="nc" id="L153">        expectedRoles.clear();</span>
+<span class="nc" id="L154">        expectedRoles.add(cavalry);</span>
+<span class="nc" id="L155">        expectedRoles.add(infantry);</span>
+<span class="nc" id="L156">        List&lt;Role&gt; royalRoles</span>
+<span class="nc" id="L157">            = Role.getAvailableRoles(game.getPlayerByNationId(&quot;model.nation.dutchREF&quot;),</span>
+<span class="nc" id="L158">                                     kingsRegularType, military);</span>
+<span class="nc" id="L159">        assertTrue(expectedRoles.equals(royalRoles));</span>
+
+<span class="nc" id="L161">        expectedRoles.clear();</span>
+<span class="nc" id="L162">        expectedRoles.add(nativeDragoon);</span>
+<span class="nc" id="L163">        expectedRoles.add(armedBrave);</span>
+<span class="nc" id="L164">        expectedRoles.add(mountedBrave);</span>
+<span class="nc" id="L165">        List&lt;Role&gt; nativeRoles</span>
+<span class="nc" id="L166">            = Role.getAvailableRoles(game.getPlayerByNationId(&quot;model.nation.inca&quot;),</span>
+<span class="nc" id="L167">                                     braveType, military);</span>
+<span class="nc" id="L168">        assertTrue(expectedRoles.equals(nativeRoles));</span>
+<span class="nc" id="L169">    }</span>
+
+    public void testGetRoleWithAbility() {
+        Role r;
+
+<span class="nc" id="L174">        r = spec().getRoleWithAbility(Ability.IMPROVE_TERRAIN, null);</span>
+<span class="nc" id="L175">        assertNotNull(r);</span>
+<span class="nc" id="L176">        assertEquals(&quot;model.role.pioneer&quot;, r.getId());</span>
+
+<span class="nc" id="L178">        r = spec().getRoleWithAbility(Ability.SPEAK_WITH_CHIEF, null);</span>
+<span class="nc" id="L179">        assertNotNull(r);</span>
+<span class="nc" id="L180">        assertEquals(&quot;model.role.scout&quot;, r.getId());</span>
+
+<span class="nc" id="L182">        r = spec().getRoleWithAbility(Ability.INCITE_NATIVES, null);</span>
+<span class="nc" id="L183">        assertNotNull(r);</span>
+<span class="nc" id="L184">        assertEquals(&quot;model.role.missionary&quot;, r.getId());</span>
+
+<span class="nc" id="L186">        r = spec().getRoleWithAbility(Ability.INCITE_NATIVES, null);</span>
+<span class="nc" id="L187">        assertNotNull(r);</span>
+<span class="nc" id="L188">        assertEquals(&quot;model.role.missionary&quot;, r.getId());</span>
+<span class="nc" id="L189">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>EmbarkMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">EmbarkMessage.java</span></div><h1>EmbarkMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Location;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.model.ServerUnit;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent when embarking.
+ */
+public class EmbarkMessage extends DOMMessage {
+
+    public static final String TAG = &quot;embark&quot;;
+    private static final String CARRIER_TAG = &quot;carrier&quot;;
+    private static final String DIRECTION_TAG = &quot;direction&quot;;
+    private static final String UNIT_TAG = &quot;unit&quot;;
+
+    /** The identifier of the unit embarking. */
+    private final String unitId;
+
+    /** The identifier of the carrier to embark onto. */
+    private final String carrierId;
+
+    /** An optional direction for the unit to move to find the carrier. */
+    private final String directionString;
+
+
+    /**
+     * Create a new &lt;code&gt;EmbarkMessage&lt;/code&gt; with the
+     * supplied unit, carrier and optional direction.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; to embark.
+     * @param carrier The carrier &lt;code&gt;Unit&lt;/code&gt; to embark on.
+     * @param direction An option direction to embark in.
+     */
+    public EmbarkMessage(Unit unit, Unit carrier, Direction direction) {
+<span class="nc" id="L64">        super(getTagName());</span>
+
+<span class="nc" id="L66">        this.unitId = unit.getId();</span>
+<span class="nc" id="L67">        this.carrierId = carrier.getId();</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        this.directionString = (direction == null) ? null</span>
+<span class="nc" id="L69">            : String.valueOf(direction);</span>
+<span class="nc" id="L70">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;EmbarkMessage&lt;/code&gt; from a
+     * supplied element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public EmbarkMessage(Game game, Element element) {
+<span class="nc" id="L80">        super(getTagName());</span>
+
+<span class="nc" id="L82">        this.unitId = getStringAttribute(element, UNIT_TAG);</span>
+<span class="nc" id="L83">        this.carrierId = getStringAttribute(element, CARRIER_TAG);</span>
+<span class="nc" id="L84">        this.directionString = getStringAttribute(element, DIRECTION_TAG);</span>
+<span class="nc" id="L85">    }</span>
+
+
+    /**
+     * Handle a &quot;embark&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; handling the message.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; the message applies to.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message was received on.
+     * @return An update containing the embarked unit, or an error
+     *     &lt;code&gt;Element&lt;/code&gt; on failure.
+     */
+    public Element handle(FreeColServer server, Player player,
+                          Connection connection) {
+<span class="nc" id="L99">        final ServerPlayer serverPlayer = server.getPlayer(connection);</span>
+
+        ServerUnit unit;
+        try {
+<span class="nc" id="L103">            unit = player.getOurFreeColGameObject(this.unitId, ServerUnit.class);</span>
+<span class="nc" id="L104">        } catch (Exception e) {</span>
+<span class="nc" id="L105">            return serverPlayer.clientError(e.getMessage())</span>
+<span class="nc" id="L106">                .build(serverPlayer);</span>
+        }
+
+        Unit carrier;
+        try {
+<span class="nc" id="L111">            carrier = player.getOurFreeColGameObject(this.carrierId, Unit.class);</span>
+<span class="nc" id="L112">        } catch (Exception e) {</span>
+<span class="nc" id="L113">            return serverPlayer.clientError(e.getMessage())</span>
+<span class="nc" id="L114">                .build(serverPlayer);</span>
+        }
+
+<span class="nc" id="L117">        Location sourceLocation = unit.getLocation();</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        if (this.directionString == null) {</span>
+            // Locations must be the same, or the source is also a
+            // carrier in the same location as the carrier, or they
+            // must be on the same tile.
+<span class="nc bnc" id="L122" title="All 2 branches missed.">            if (!carrier.isAtLocation(sourceLocation)) {</span>
+<span class="nc" id="L123">                return serverPlayer.clientError(&quot;Unit &quot; + this.unitId</span>
+<span class="nc" id="L124">                    + &quot; at &quot; + sourceLocation.getId()</span>
+<span class="nc" id="L125">                    + &quot; and carrier &quot; + this.carrierId</span>
+<span class="nc" id="L126">                    + &quot; at &quot; + carrier.getLocation().getId()</span>
+<span class="nc" id="L127">                    + &quot; are not co-located.&quot;)</span>
+<span class="nc" id="L128">                    .build(serverPlayer);</span>
+            }
+        } else {
+            // Units have to be on the map and have moves left if a
+            // move is involved.
+<span class="nc bnc" id="L133" title="All 2 branches missed.">            if (unit.getMovesLeft() &lt;= 0) {</span>
+<span class="nc" id="L134">                return serverPlayer.clientError(&quot;Unit has no moves left: &quot;</span>
+<span class="nc" id="L135">                    + this.unitId)</span>
+<span class="nc" id="L136">                    .build(serverPlayer);</span>
+            }
+
+<span class="nc" id="L139">            Tile destinationTile = null;</span>
+            try {
+<span class="nc" id="L141">                destinationTile = unit.getNeighbourTile(this.directionString);</span>
+<span class="nc" id="L142">            } catch (Exception e) {</span>
+<span class="nc" id="L143">                return serverPlayer.clientError(e.getMessage())</span>
+<span class="nc" id="L144">                    .build(serverPlayer);</span>
+            }
+<span class="nc bnc" id="L146" title="All 2 branches missed.">            if (carrier.getTile() != destinationTile) {</span>
+<span class="nc" id="L147">                return serverPlayer.clientError(&quot;Carrier: &quot; + this.carrierId</span>
+<span class="nc" id="L148">                    + &quot; is not at destination tile: &quot; + destinationTile)</span>
+<span class="nc" id="L149">                    .build(serverPlayer);</span>
+            }
+        }
+
+        // Proceed to embark
+<span class="nc" id="L154">        return server.getInGameController()</span>
+<span class="nc" id="L155">            .embarkUnit(serverPlayer, unit, carrier)</span>
+<span class="nc" id="L156">            .build(serverPlayer);</span>
+    }
+
+    /**
+     * Convert this EmbarkMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="nc" id="L166">        return new DOMMessage(getTagName(),</span>
+<span class="nc" id="L167">            UNIT_TAG, this.unitId,</span>
+<span class="nc" id="L168">            CARRIER_TAG, this.carrierId,</span>
+<span class="nc" id="L169">            DIRECTION_TAG, this.directionString).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;embark&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L178">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

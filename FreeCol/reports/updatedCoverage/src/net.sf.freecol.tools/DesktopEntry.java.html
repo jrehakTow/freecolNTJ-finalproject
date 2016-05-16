@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>DesktopEntry.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.tools</a> &gt; <span class="el_source">DesktopEntry.java</span></div><h1>DesktopEntry.java</h1><pre class="source lang-java linenums"><span class="fc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.tools;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.FilenameFilter;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
+// TODO: Auto-generated Javadoc
+/**
+ * Generate a desktop entry file.
+ */
+<span class="fc" id="L34">public class DesktopEntry {</span>
+
+	/** The Constant SOURCE_DIRECTORY. */
+<span class="fc" id="L37">	private static final File SOURCE_DIRECTORY = new File(&quot;data&quot;, &quot;strings&quot;);</span>
+
+	/** The Constant GENERIC_NAME. */
+	private static final String GENERIC_NAME = &quot;freecol.desktopEntry.GenericName&quot;;
+
+	/** The Constant COMMENT. */
+<span class="fc" id="L43">	private static final String COMMENT = &quot;freecol.desktopEntry.Comment&quot;;</span>
+
+	/**
+	 * Pass the desktop entry file to create as first argument.
+	 *
+	 * @param args
+	 *            The program arguments.
+	 * @exception FileNotFoundException
+	 *                if the source file is absent.
+	 * @exception IOException
+	 *                when various IO fails.
+	 */
+	public static void main(String[] args) throws FileNotFoundException, IOException {
+
+<span class="fc" id="L57">		try (FileWriter result = new FileWriter(new File(args[0]))) {</span>
+<span class="fc" id="L58">			result.append(&quot;[Desktop Entry]\n&quot;);</span>
+<span class="fc" id="L59">			result.append(&quot;Version=1.0\n&quot;);</span>
+<span class="fc" id="L60">			result.append(&quot;Type=Application\n&quot;);</span>
+<span class="fc" id="L61">			result.append(&quot;Name=FreeCol\n&quot;);</span>
+<span class="fc" id="L62">			result.append(&quot;Exec=freecol\n&quot;);</span>
+<span class="fc" id="L63">			result.append(&quot;Icon=data/freecol.png\n&quot;);</span>
+<span class="fc" id="L64">			result.append(&quot;Categories=Game;StrategyGame;\n&quot;);</span>
+
+<span class="fc" id="L66">			String[] sourceFiles = SOURCE_DIRECTORY.list(new FilenameFilter() {</span>
+				@Override
+				public boolean accept(File dir, String name) {
+<span class="pc bpc" id="L69" title="1 of 4 branches missed.">					return name.startsWith(&quot;FreeColMessages&quot;) &amp;&amp; name.endsWith(&quot;.properties&quot;);</span>
+				}
+			});
+
+<span class="fc bfc" id="L73" title="All 2 branches covered.">			for (String name : sourceFiles) {</span>
+
+<span class="fc" id="L75">				System.out.println(&quot;Processing source file: &quot; + name);</span>
+
+<span class="fc" id="L77">				String languageCode = null;</span>
+<span class="fc" id="L78">				languageCode = checkStartName(name, languageCode);</span>
+
+<span class="fc" id="L80">				boolean foundGenericName = false;</span>
+<span class="fc" id="L81">				boolean foundComment = false;</span>
+<span class="fc" id="L82">				File sourceFile = new File(SOURCE_DIRECTORY, name);</span>
+<span class="fc" id="L83">				FileReader fileReader = new FileReader(sourceFile);</span>
+<span class="fc" id="L84">				BufferedReader bufferedReader = new BufferedReader(fileReader);</span>
+<span class="fc" id="L85">				String line = bufferedReader.readLine();</span>
+<span class="fc" id="L86">				readLines(result, languageCode, foundGenericName, foundComment, bufferedReader, line);</span>
+			}
+
+<span class="fc" id="L89">			result.flush();</span>
+<span class="pc bpc" id="L90" title="7 of 8 branches missed.">		}</span>
+
+<span class="fc" id="L92">	}</span>
+
+	/**
+	 * Read lines.
+	 *
+	 * @param result
+	 *            the result
+	 * @param languageCode
+	 *            the language code
+	 * @param foundGenericName
+	 *            the found generic name
+	 * @param foundComment
+	 *            the found comment
+	 * @param bufferedReader
+	 *            the buffered reader
+	 * @param line
+	 *            the line
+	 * @throws IOException
+	 *             Signals that an I/O exception has occurred.
+	 */
+	private static void readLines(FileWriter result, String languageCode, boolean foundGenericName,
+			boolean foundComment, BufferedReader bufferedReader, String line) throws IOException {
+<span class="fc bfc" id="L114" title="All 2 branches covered.">		while (line != null) {</span>
+<span class="fc" id="L115">			int index = line.indexOf('=');</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">			if (index &gt;= 0) {</span>
+<span class="fc" id="L117">				String key = line.substring(0, index).trim();</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">				if (null != key) {</span>
+<span class="pc bpc" id="L119" title="2 of 7 branches missed.">					switch (key) {</span>
+					case GENERIC_NAME:
+<span class="fc" id="L121">						result.append(&quot;GenericName&quot;);</span>
+<span class="fc" id="L122">						foundGenericName = true;</span>
+<span class="fc" id="L123">						break;</span>
+					case COMMENT:
+<span class="fc" id="L125">						result.append(&quot;Comment&quot;);</span>
+<span class="fc" id="L126">						foundComment = true;</span>
+<span class="fc" id="L127">						break;</span>
+					default:
+<span class="fc" id="L129">						line = bufferedReader.readLine();</span>
+<span class="fc" id="L130">						continue;</span>
+					}
+				}
+<span class="fc" id="L133">				appendCode(result, languageCode, line, index);</span>
+<span class="pc bpc" id="L134" title="1 of 4 branches missed.">				if (foundGenericName &amp;&amp; foundComment) {</span>
+<span class="fc" id="L135">					break;</span>
+				}
+			}
+<span class="fc" id="L138">			line = bufferedReader.readLine();</span>
+		}
+<span class="fc" id="L140">	}</span>
+
+	/**
+	 * Append code.
+	 *
+	 * @param result
+	 *            the result
+	 * @param languageCode
+	 *            the language code
+	 * @param line
+	 *            the line
+	 * @param index
+	 *            the index
+	 * @throws IOException
+	 *             Signals that an I/O exception has occurred.
+	 */
+	private static void appendCode(FileWriter result, String languageCode, String line, int index) throws IOException {
+<span class="fc bfc" id="L157" title="All 2 branches covered.">		if (languageCode != null) {</span>
+<span class="fc" id="L158">			result.append(&quot;[&quot; + languageCode + &quot;]&quot;);</span>
+		}
+<span class="fc" id="L160">		result.append(&quot;=&quot;);</span>
+<span class="fc" id="L161">		result.append(line.substring(index + 1).trim());</span>
+<span class="fc" id="L162">		result.append(&quot;\n&quot;);</span>
+<span class="fc" id="L163">	}</span>
+
+	/**
+	 * Check start name.
+	 *
+	 * @param name
+	 *            the name
+	 * @param languageCode
+	 *            the language code
+	 * @return the string
+	 */
+	private static String checkStartName(String name, String languageCode) {
+<span class="fc bfc" id="L175" title="All 2 branches covered.">		if (name.startsWith(&quot;FreeColMessages_&quot;)) {</span>
+<span class="fc" id="L176">			int index = name.indexOf('.', 16);</span>
+<span class="fc" id="L177">			languageCode = name.substring(16, index).replace('-', '@');</span>
+		}
+<span class="fc" id="L179">		return languageCode;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

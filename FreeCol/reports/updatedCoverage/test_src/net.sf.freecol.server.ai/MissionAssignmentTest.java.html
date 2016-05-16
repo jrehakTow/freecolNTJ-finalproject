@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>MissionAssignmentTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai</a> &gt; <span class="el_source">MissionAssignmentTest.java</span></div><h1>MissionAssignmentTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai;
+
+import java.util.Iterator;
+
+import net.sf.freecol.common.model.BuildingType;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Stance;
+import net.sf.freecol.common.model.Tension;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TileType;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.util.LogBuilder;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.server.ai.mission.DefendSettlementMission;
+import net.sf.freecol.server.ai.mission.UnitSeekAndDestroyMission;
+import net.sf.freecol.server.ai.mission.UnitWanderHostileMission;
+import net.sf.freecol.server.control.InGameController;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+import net.sf.freecol.util.test.FreeColTestUtils;
+
+
+<span class="nc" id="L49">public class MissionAssignmentTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L51">    private static final BuildingType stockadeType</span>
+<span class="nc" id="L52">        = spec().getBuildingType(&quot;model.building.stockade&quot;);</span>
+
+<span class="nc" id="L54">    private static final TileType plainsType</span>
+<span class="nc" id="L55">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+
+<span class="nc" id="L57">    private static final UnitType colonistType</span>
+<span class="nc" id="L58">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="nc" id="L59">    private static final UnitType veteranType</span>
+<span class="nc" id="L60">        = spec().getUnitType(&quot;model.unit.veteranSoldier&quot;);</span>
+<span class="nc" id="L61">    private static final UnitType braveType</span>
+<span class="nc" id="L62">        = spec().getUnitType(&quot;model.unit.brave&quot;);</span>
+<span class="nc" id="L63">    private static final UnitType artilleryType</span>
+<span class="nc" id="L64">        = spec().getUnitType(&quot;model.unit.artillery&quot;);</span>
+<span class="nc" id="L65">    private static final UnitType galleonType</span>
+<span class="nc" id="L66">        = spec().getUnitType(&quot;model.unit.galleon&quot;);</span>
+
+<span class="nc" id="L68">    final int MISSION_IMPOSSIBLE = Integer.MIN_VALUE;</span>
+
+<span class="nc" id="L70">    private LogBuilder lb = new LogBuilder(0); // dummy</span>
+
+
+    @Override
+    public void tearDown() throws Exception {
+<span class="nc" id="L75">        ServerTestHelper.stopServerGame();</span>
+<span class="nc" id="L76">        super.tearDown();</span>
+<span class="nc" id="L77">    }</span>
+
+
+    public void testImpossibleConditionsForTargetSelection() {
+<span class="nc" id="L81">        Game game = ServerTestHelper.startServerGame(getCoastTestMap(plainsType));</span>
+<span class="nc" id="L82">        Map map = game.getMap();</span>
+<span class="nc" id="L83">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+
+        // Create attacking player and units
+<span class="nc" id="L86">        ServerPlayer dutch = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+
+<span class="nc" id="L88">        Tile tile1 = map.getTile(2, 2);</span>
+<span class="nc" id="L89">        Tile tile2 = map.getTile(2, 1);</span>
+<span class="nc" id="L90">        Unit soldier = new ServerUnit(game, tile1, dutch, veteranType);</span>
+<span class="nc" id="L91">        Unit friendlyColonist = new ServerUnit(game, tile2, dutch, colonistType);</span>
+
+<span class="nc" id="L93">        AIUnit aiUnit = aiMain.getAIUnit(soldier);</span>
+<span class="nc" id="L94">        assertNotNull(aiUnit);</span>
+
+        // Create defending player and unit
+<span class="nc" id="L97">        ServerPlayer french = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+
+<span class="nc" id="L99">        Tile tile3 = map.getTile(1, 2);</span>
+<span class="nc" id="L100">        Unit enemyColonist = new ServerUnit(game, tile3, french, colonistType);</span>
+
+<span class="nc" id="L102">        Tile tile4 = map.getTile(12, 12); // in the water</span>
+<span class="nc" id="L103">        assertFalse(&quot;Tle should be water&quot;,tile4.isLand());</span>
+
+<span class="nc" id="L105">        Unit enemyGalleon = new ServerUnit(game, tile4, french, galleonType);</span>
+        //Make tests
+
+<span class="nc" id="L108">        assertNotNull(&quot;Cannot attack own unit&quot;,</span>
+<span class="nc" id="L109">            UnitSeekAndDestroyMission.invalidReason(aiUnit, friendlyColonist));</span>
+<span class="nc" id="L110">        assertNotNull(&quot;Players are not at war&quot;,</span>
+<span class="nc" id="L111">            UnitSeekAndDestroyMission.invalidReason(aiUnit, enemyColonist));</span>
+
+<span class="nc" id="L113">        dutch.setStance(french, Stance.WAR);</span>
+<span class="nc" id="L114">        french.setStance(dutch, Stance.WAR);</span>
+
+<span class="nc" id="L116">        assertEquals(&quot;Unit should be able to attack land unit&quot;, null,</span>
+<span class="nc" id="L117">            UnitSeekAndDestroyMission.invalidReason(aiUnit, enemyColonist));</span>
+<span class="nc" id="L118">        assertNotNull(&quot;Land unit cannot attack naval unit&quot;,</span>
+<span class="nc" id="L119">            UnitSeekAndDestroyMission.invalidReason(aiUnit, enemyGalleon));</span>
+<span class="nc" id="L120">    }</span>
+
+    public void testIsTargetValidForSeekAndDestroy() {
+<span class="nc" id="L123">        Game game = ServerTestHelper.startServerGame(getTestMap());</span>
+<span class="nc" id="L124">        Map map = game.getMap();</span>
+<span class="nc" id="L125">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+
+        // Create player and unit
+<span class="nc" id="L128">        ServerPlayer incaPlayer = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.inca&quot;);</span>
+<span class="nc" id="L129">        NativeAIPlayer aiInca = (NativeAIPlayer)aiMain.getAIPlayer(incaPlayer);</span>
+<span class="nc" id="L130">        ServerPlayer dutchPlayer = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+
+<span class="nc" id="L132">        Tile dutchUnitTile = map.getTile(9, 9);</span>
+<span class="nc" id="L133">        Tile braveUnitTile = map.getTile(9, 8);;</span>
+
+<span class="nc" id="L135">        Unit brave = new ServerUnit(game, braveUnitTile, incaPlayer, braveType);</span>
+<span class="nc" id="L136">        Unit soldier = new ServerUnit(game, dutchUnitTile, dutchPlayer, veteranType);</span>
+
+<span class="nc" id="L138">        Player.makeContact(incaPlayer, dutchPlayer);</span>
+
+<span class="nc" id="L140">        assertFalse(&quot;Target should NOT be valid for UnitSeekAndDestroyMission&quot;, aiInca.isTargetValidForSeekAndDestroy(brave, soldier.getTile()));</span>
+
+<span class="nc" id="L142">        incaPlayer.setTension(dutchPlayer, new Tension(Tension.Level.HATEFUL.getLimit()));</span>
+<span class="nc" id="L143">        assertTrue(&quot;Target should be valid for UnitSeekAndDestroyMission&quot;, aiInca.isTargetValidForSeekAndDestroy(brave, soldier.getTile()));</span>
+
+<span class="nc" id="L145">        incaPlayer.setStance(dutchPlayer, Stance.WAR);</span>
+<span class="nc" id="L146">        dutchPlayer.setStance(incaPlayer, Stance.WAR);</span>
+<span class="nc" id="L147">        assertTrue(&quot;Target should be valid for UnitSeekAndDestroyMission&quot;, aiInca.isTargetValidForSeekAndDestroy(brave, soldier.getTile()));</span>
+<span class="nc" id="L148">    }</span>
+
+    public void testAssignDefendSettlementMission() {
+<span class="nc" id="L151">        Game game = ServerTestHelper.startServerGame(getTestMap());</span>
+<span class="nc" id="L152">        Map map = game.getMap();</span>
+<span class="nc" id="L153">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+
+        // Create player and unit
+<span class="nc" id="L156">        ServerPlayer dutch = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+
+<span class="nc" id="L158">        Tile tile1 = map.getTile(2, 2);</span>
+<span class="nc" id="L159">        Unit soldier = new ServerUnit(game, tile1, dutch, veteranType);</span>
+
+<span class="nc" id="L161">        AIUnit aiUnit = aiMain.getAIUnit(soldier);</span>
+<span class="nc" id="L162">        assertNotNull(aiUnit);</span>
+
+        // Add nearby colony in need of defense
+<span class="nc" id="L165">        Tile colonyTile = map.getTile(2, 3);</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">        assertTrue(colonyTile != null);</span>
+<span class="nc" id="L167">        colonyTile.setExplored(dutch, true);</span>
+<span class="nc" id="L168">        Colony colony = FreeColTestUtils.getColonyBuilder().player(dutch).colonyTile(colonyTile).build();</span>
+
+<span class="nc bnc" id="L170" title="All 2 branches missed.">        assertTrue(colonyTile.getSettlement() == colony);</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">        assertTrue(colony.getOwner() == dutch);</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">        assertTrue(colony.getUnitCount() == 1);</span>
+<span class="nc" id="L173">        aiUnit.setMission(null);</span>
+<span class="nc" id="L174">        assertEquals(&quot;DefendSettlementMission should be possible&quot;, null,</span>
+<span class="nc" id="L175">            DefendSettlementMission.invalidReason(aiUnit));</span>
+<span class="nc" id="L176">        assertEquals(&quot;DefendSettlementMission should work with colony&quot;, null,</span>
+<span class="nc" id="L177">            DefendSettlementMission.invalidReason(aiUnit, colony));</span>
+<span class="nc" id="L178">    }</span>
+
+    public void testSecureIndianSettlementMission() {
+<span class="nc" id="L181">        Game game = ServerTestHelper.startServerGame(getTestMap());</span>
+<span class="nc" id="L182">        Map map = game.getMap();</span>
+<span class="nc" id="L183">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+
+        // Create player and unit
+<span class="nc" id="L186">        ServerPlayer inca = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.inca&quot;);</span>
+<span class="nc" id="L187">        NativeAIPlayer aiInca = (NativeAIPlayer)aiMain.getAIPlayer(inca);</span>
+<span class="nc" id="L188">        ServerPlayer dutch = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+
+<span class="nc" id="L190">        Tile settlementTile = map.getTile(9, 9);</span>
+<span class="nc" id="L191">        Tile adjacentTile = settlementTile.getNeighbourOrNull(Direction.N);</span>
+<span class="nc" id="L192">        assertTrue(&quot;Settlement tile should be land&quot;,</span>
+<span class="nc" id="L193">            settlementTile.isLand());</span>
+<span class="nc" id="L194">        assertTrue(&quot;Adjacent tile should be land&quot;,</span>
+<span class="nc bnc" id="L195" title="All 4 branches missed.">            adjacentTile != null &amp;&amp; adjacentTile.isLand());</span>
+<span class="nc" id="L196">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="nc" id="L197">            = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="nc" id="L198">        IndianSettlement camp = builder.player(inca)</span>
+<span class="nc" id="L199">            .settlementTile(settlementTile).initialBravesInCamp(8).build();</span>
+<span class="nc" id="L200">        assertEquals(&quot;One camp&quot;, 1, inca.getSettlements().size());</span>
+
+        // Put one brave outside the camp, but in the settlement tile,
+        // so that he may defend the settlement
+<span class="nc" id="L204">        Unit braveOutside = new ServerUnit(game, settlementTile, inca, </span>
+<span class="nc" id="L205">                                           braveType);</span>
+<span class="nc" id="L206">        braveOutside.setHomeIndianSettlement(camp);</span>
+
+        // Setup enemy units
+<span class="nc" id="L209">        int enemyUnits = camp.getUnitCount() + 1;</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">        for (int i = 0; i &lt; enemyUnits; i++) {</span>
+<span class="nc" id="L211">            new ServerUnit(game, adjacentTile, dutch, veteranType);</span>
+        }
+
+<span class="nc" id="L214">        Iterator&lt;Unit&gt; campUnitIter = camp.getOwnedUnitsIterator();</span>
+<span class="nc bnc" id="L215" title="All 2 branches missed.">        while(campUnitIter.hasNext()){</span>
+<span class="nc" id="L216">            Unit brave = campUnitIter.next();</span>
+<span class="nc" id="L217">            assertNotNull(&quot;Got null while getting the camps units&quot;, brave);</span>
+<span class="nc" id="L218">            AIUnit aiUnit = aiMain.getAIUnit(brave);</span>
+<span class="nc" id="L219">            assertNotNull(&quot;Couldnt get the ai object for the brave&quot;, aiUnit);</span>
+<span class="nc" id="L220">            new UnitWanderHostileMission(aiMain, aiUnit);</span>
+<span class="nc" id="L221">            assertTrue(&quot;Should be UnitWanderHostileMission&quot;, </span>
+<span class="nc" id="L222">                aiUnit.hasMission(UnitWanderHostileMission.class));</span>
+<span class="nc" id="L223">            assertEquals(&quot;Unit should be candidate for seek+destroy&quot;, null,</span>
+<span class="nc" id="L224">                UnitSeekAndDestroyMission.invalidReason(aiUnit));</span>
+<span class="nc" id="L225">            assertEquals(&quot;Unit should be candidate for defend&quot;, null,</span>
+<span class="nc" id="L226">                DefendSettlementMission.invalidReason(aiUnit));</span>
+        }
+
+<span class="nc" id="L229">        inca.setStance(dutch, Stance.WAR);</span>
+<span class="nc" id="L230">        inca.setTension(dutch, new Tension(Tension.Level.HATEFUL.getLimit()));</span>
+<span class="nc" id="L231">        camp.setAlarm(dutch, inca.getTension(dutch));</span>
+<span class="nc" id="L232">        assertTrue(&quot;Indian player should be at war with dutch&quot;,</span>
+<span class="nc bnc" id="L233" title="All 2 branches missed.">                   inca.getStance(dutch) == Stance.WAR);</span>
+<span class="nc" id="L234">        assertEquals(&quot;Wrong Indian player tension towards dutch&quot;,</span>
+<span class="nc" id="L235">                     Tension.Level.HATEFUL.getLimit(),</span>
+<span class="nc" id="L236">                     inca.getTension(dutch).getValue());</span>
+<span class="nc" id="L237">        aiInca.secureIndianSettlement(camp, lb);</span>
+
+        // Verify if a unit was assigned a UnitSeekAndDestroyMission
+<span class="nc" id="L240">        boolean isSeekAndDestroyMission = false;</span>
+<span class="nc bnc" id="L241" title="All 2 branches missed.">        for (Unit brave : inca.getUnits()) {</span>
+<span class="nc" id="L242">            AIUnit aiUnit = aiMain.getAIUnit(brave);</span>
+<span class="nc" id="L243">            assertNotNull(&quot;Couldnt get aiUnit for players brave&quot;, aiUnit);</span>
+<span class="nc" id="L244">            assertNotNull(&quot;Unit missing mission&quot;, aiUnit.getMission());</span>
+<span class="nc" id="L245">            isSeekAndDestroyMission = aiUnit.hasMission(UnitSeekAndDestroyMission.class);</span>
+<span class="nc bnc" id="L246" title="All 2 branches missed.">            if (isSeekAndDestroyMission) break;</span>
+        }
+<span class="nc" id="L248">        assertTrue(&quot;A brave should have a UnitSeekAndDestroyMission&quot;,</span>
+<span class="nc" id="L249">                   isSeekAndDestroyMission);</span>
+<span class="nc" id="L250">    }</span>
+
+    /**
+     * When searching for threats to a settlement, the indian player
+     * should ignore naval threats, as he does not have naval power
+     */
+    public void testSecureIndianSettlementMissionIgnoreNavalThreat() {
+<span class="nc" id="L257">        Game game = ServerTestHelper.startServerGame(getCoastTestMap(plainsType));</span>
+<span class="nc" id="L258">        Map map = game.getMap();</span>
+<span class="nc" id="L259">        AIMain aiMain = ServerTestHelper.getServer().getAIMain();</span>
+<span class="nc" id="L260">        InGameController igc = ServerTestHelper.getInGameController();</span>
+
+        // Create player and unit
+<span class="nc" id="L263">        ServerPlayer inca = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.inca&quot;);</span>
+<span class="nc" id="L264">        NativeAIPlayer aiInca = (NativeAIPlayer)aiMain.getAIPlayer(inca);</span>
+<span class="nc" id="L265">        ServerPlayer dutch = (ServerPlayer) game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+
+<span class="nc" id="L267">        Tile settlementTile = map.getTile(9, 9);</span>
+<span class="nc" id="L268">        Tile seaTile = map.getTile(10, 9);</span>
+<span class="nc" id="L269">        assertTrue(&quot;Settlement tile should be land&quot;, settlementTile.isLand());</span>
+<span class="nc" id="L270">        assertFalse(&quot;Galleon tile should be ocean&quot;, seaTile.isLand());</span>
+<span class="nc" id="L271">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="nc" id="L272">            = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="nc" id="L273">        IndianSettlement camp = builder.player(inca)</span>
+<span class="nc" id="L274">            .settlementTile(settlementTile).initialBravesInCamp(10).build();</span>
+<span class="nc" id="L275">        ServerUnit galleon = new ServerUnit(game, seaTile, dutch, galleonType);</span>
+<span class="nc" id="L276">        int unitsInGalleon = 6;</span>
+<span class="nc bnc" id="L277" title="All 2 branches missed.">        for (int i = 0; i &lt; unitsInGalleon; i++) {</span>
+<span class="nc" id="L278">            ServerUnit artillery = new ServerUnit(game, settlementTile, dutch,</span>
+<span class="nc" id="L279">                artilleryType);</span>
+<span class="nc" id="L280">            igc.embarkUnit(dutch, artillery, galleon);</span>
+        }
+<span class="nc" id="L282">        assertEquals(&quot;Wrong number of units onboard galleon&quot;, unitsInGalleon,</span>
+<span class="nc" id="L283">            galleon.getUnitCount());</span>
+<span class="nc" id="L284">        assertEquals(&quot;Galleon should be full&quot;, 0, galleon.getSpaceLeft());</span>
+
+<span class="nc bnc" id="L286" title="All 2 branches missed.">        for (Unit brave : camp.getUnitList()) {</span>
+<span class="nc" id="L287">            AIUnit aiUnit = aiMain.getAIUnit(brave);</span>
+<span class="nc" id="L288">            assertNotNull(aiUnit);</span>
+<span class="nc" id="L289">            new UnitWanderHostileMission(aiMain, aiUnit);</span>
+
+<span class="nc" id="L291">            assertTrue(&quot;No enemy units present&quot;,</span>
+<span class="nc" id="L292">                aiUnit.hasMission(UnitWanderHostileMission.class));</span>
+        }
+
+<span class="nc" id="L295">        inca.setStance(dutch, Stance.WAR);</span>
+<span class="nc" id="L296">        inca.setTension(dutch, new Tension(Tension.Level.HATEFUL.getLimit()));</span>
+<span class="nc" id="L297">        assertTrue(&quot;Indian player should be at war with dutch&quot;,</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">                   inca.getStance(dutch) == Stance.WAR);</span>
+<span class="nc" id="L299">        assertEquals(&quot;Wrong Indian player tension towards dutch&quot;,</span>
+<span class="nc" id="L300">                     Tension.Level.HATEFUL.getLimit(),</span>
+<span class="nc" id="L301">                     inca.getTension(dutch).getValue());</span>
+
+<span class="nc" id="L303">        aiInca.abortInvalidMissions();</span>
+<span class="nc" id="L304">        aiInca.secureIndianSettlement(camp, lb);</span>
+<span class="nc" id="L305">        boolean seeking = false;</span>
+<span class="nc bnc" id="L306" title="All 2 branches missed.">        for (Unit brave : inca.getUnits()) {</span>
+<span class="nc" id="L307">            AIUnit aiUnit = aiMain.getAIUnit(brave);</span>
+<span class="nc" id="L308">            assertNotNull(aiUnit);</span>
+<span class="nc bnc" id="L309" title="All 2 branches missed.">            if (aiUnit.hasMission(UnitSeekAndDestroyMission.class)) {</span>
+<span class="nc" id="L310">                seeking = true;</span>
+<span class="nc" id="L311">                break;</span>
+            }
+        }
+<span class="nc" id="L314">        assertFalse(&quot;Braves should not pursue naval units&quot;, seeking);</span>
+<span class="nc" id="L315">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>MissionAIPlayer.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai</a> &gt; <span class="el_source">MissionAIPlayer.java</span></div><h1>MissionAIPlayer.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.model.FreeColObject;
+import net.sf.freecol.common.model.Location;
+import net.sf.freecol.common.model.PathNode;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Settlement;
+import net.sf.freecol.common.model.Tension;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.WorkLocation;
+import net.sf.freecol.common.util.LogBuilder;
+import net.sf.freecol.server.ai.mission.DefendSettlementMission;
+import net.sf.freecol.server.ai.mission.IdleAtSettlementMission;
+import net.sf.freecol.server.ai.mission.Mission;
+import net.sf.freecol.server.ai.mission.UnitSeekAndDestroyMission;
+import net.sf.freecol.server.ai.mission.UnitWanderHostileMission;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import static net.sf.freecol.common.util.StringUtils.*;
+
+
+/**
+ * An AIPlayer with support for executing &lt;code&gt;Mission&lt;/code&gt;s.
+ *
+ * The method {@link #startWorking} gets called by the
+ * {@link AIInGameInputHandler} when it is this player's turn.
+ */
+public abstract class MissionAIPlayer extends AIPlayer {
+
+<span class="nc" id="L61">    private static final Logger logger = Logger.getLogger(MissionAIPlayer.class.getName());</span>
+
+    /** A comparator to sort AI units by location. */
+<span class="nc" id="L64">    private static final Comparator&lt;AIUnit&gt; aiUnitLocationComparator</span>
+<span class="nc" id="L65">        = new Comparator&lt;AIUnit&gt;() {</span>
+            @Override
+            public int compare(AIUnit a1, AIUnit a2) {
+<span class="nc bnc" id="L68" title="All 2 branches missed.">                Location l1 = (a1 == null) ? null</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">                    : (a1.getUnit() == null) ? null</span>
+<span class="nc" id="L70">                    : a1.getUnit().getLocation();</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">                Location l2 = (a2 == null) ? null</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">                    : (a2.getUnit() == null) ? null</span>
+<span class="nc" id="L73">                    : a2.getUnit().getLocation();</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">                FreeColObject f1 = (l1 instanceof WorkLocation)</span>
+<span class="nc" id="L75">                    ? l1.getColony()</span>
+<span class="nc" id="L76">                    : (FreeColObject)l1;</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">                FreeColObject f2 = (l2 instanceof WorkLocation)</span>
+<span class="nc" id="L78">                    ? l2.getColony()</span>
+<span class="nc" id="L79">                    : (FreeColObject)l2;</span>
+<span class="nc" id="L80">                return FreeColObject.compareIds(f1, f2);</span>
+            }
+<span class="nc" id="L82">        };</span>
+
+    /**
+     * Temporary variable, used to hold all AIUnit objects belonging
+     * to this AI.  Any implementation of AIPlayer needs to make sure
+     * this list is invalidated as necessary, using clearAIUnits(), so
+     * that getAIUnitIterator() will create a new list.
+     */
+<span class="nc" id="L90">    private List&lt;AIUnit&gt; aiUnits = new ArrayList&lt;&gt;();</span>
+
+
+    /**
+     * Creates a new AI player.
+     *
+     * @param aiMain The &lt;code&gt;AIMain&lt;/code&gt; the player exists within.
+     * @param player The &lt;code&gt;ServerPlayer&lt;/code&gt; to associate this
+     *            AI player with.
+     */
+    public MissionAIPlayer(AIMain aiMain, ServerPlayer player) {
+<span class="nc" id="L101">        super(aiMain, player);</span>
+<span class="nc" id="L102">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;AIPlayer&lt;/code&gt; from the given
+     * XML-representation.
+     *
+     * @param aiMain The main AI-object.
+     * @param xr The input stream containing the XML.
+     * @exception XMLStreamException if a problem was encountered
+     *     during parsing.
+     */
+    public MissionAIPlayer(AIMain aiMain,
+                    FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L115">        super(aiMain, xr);</span>
+<span class="nc" id="L116">    }</span>
+
+
+    /**
+     * Clears the cache of AI units.
+     */
+    protected void clearAIUnits() {
+<span class="nc" id="L123">        aiUnits.clear();</span>
+<span class="nc" id="L124">    }</span>
+
+    /**
+     * Add an AI unit owned by this player.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to add.
+     */
+    public void addAIUnit(AIUnit aiUnit) {
+<span class="nc" id="L132">        aiUnits.add(aiUnit);</span>
+<span class="nc" id="L133">    }</span>
+
+    /**
+     * Removes an AI unit owned by this player.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to remove.
+     */
+    @Override
+    public void removeAIUnit(AIUnit aiUnit) {
+<span class="nc" id="L142">        aiUnit.dropTransport();</span>
+<span class="nc" id="L143">        aiUnit.changeMission(null);</span>
+<span class="nc" id="L144">        aiUnits.remove(aiUnit);</span>
+<span class="nc" id="L145">    }</span>
+
+    /**
+     * Gets a list of AIUnits for the player.
+     *
+     * @return A list of AIUnits.
+     */
+    @Override
+    protected List&lt;AIUnit&gt; getAIUnits() {
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (aiUnits.isEmpty()) aiUnits = super.getAIUnits();</span>
+<span class="nc" id="L155">        return new ArrayList&lt;&gt;(aiUnits);</span>
+    }
+
+    /**
+     * Returns an iterator over all the &lt;code&gt;AIUnit&lt;/code&gt;s owned by this
+     * player.
+     *
+     * @return The &lt;code&gt;Iterator&lt;/code&gt;.
+     */
+    protected Iterator&lt;AIUnit&gt; getAIUnitIterator() {
+<span class="nc bnc" id="L165" title="All 2 branches missed.">        if (aiUnits.isEmpty()) aiUnits = super.getAIUnits();</span>
+<span class="nc" id="L166">        return aiUnits.iterator();</span>
+    }
+
+    /**
+     * Counts the number of defenders allocated to a settlement.
+     *
+     * @param settlement The &lt;code&gt;Settlement&lt;/code&gt; to examine.
+     * @return The number of defenders.
+     */
+    public int getSettlementDefenders(Settlement settlement) {
+<span class="nc" id="L176">        int defenders = 0;</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">        for (AIUnit au : getAIUnits()) {</span>
+<span class="nc" id="L178">            Mission dm = au.getMission(DefendSettlementMission.class);</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">            if (dm != null</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">                &amp;&amp; dm.getTarget() == settlement</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">                &amp;&amp; au.getUnit().getSettlement() == settlement) {</span>
+<span class="nc" id="L182">                defenders++;</span>
+            }
+        }
+<span class="nc" id="L185">        return defenders;</span>
+    }
+
+    /**
+     * Find out if a tile contains a suitable target for seek-and-destroy.
+     *
+     * FIXME: Package for access by a test only - necessary?
+     *
+     * @param attacker The attacking &lt;code&gt;Unit&lt;/code&gt;.
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; to attack into.
+     * @return True if an attack can be launched.
+     */
+    public boolean isTargetValidForSeekAndDestroy(Unit attacker, Tile tile) {
+        // Insist the attacker exists.
+<span class="nc bnc" id="L199" title="All 2 branches missed.">        if (attacker == null) return false;</span>
+
+<span class="nc" id="L201">        Player attackerPlayer = attacker.getOwner();</span>
+
+        // Determine the defending player.
+<span class="nc" id="L204">        Settlement settlement = tile.getSettlement();</span>
+<span class="nc" id="L205">        Unit defender = tile.getDefendingUnit(attacker);</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">        Player defenderPlayer = (settlement != null) ? settlement.getOwner()</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">            : (defender != null) ? defender.getOwner()</span>
+<span class="nc" id="L208">            : null;</span>
+
+        // Insist there be a defending player.
+<span class="nc bnc" id="L211" title="All 2 branches missed.">        if (defenderPlayer == null) return false;</span>
+
+        // Can not attack our own units.
+<span class="nc bnc" id="L214" title="All 2 branches missed.">        if (attackerPlayer == defenderPlayer) return false;</span>
+
+        // If European, do not attack if not at war.
+        // If native, do not attack if not at war and at least content.
+        // Otherwise some attacks are allowed even if not at war.
+<span class="nc" id="L219">        boolean atWar = attackerPlayer.atWarWith(defenderPlayer);</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">        if (attackerPlayer.isEuropean()) {</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">            if (!atWar) return false;</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">        } else if (attackerPlayer.isIndian()) {</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">            if (!atWar &amp;&amp; attackerPlayer.getTension(defenderPlayer)</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">                .getLevel().compareTo(Tension.Level.CONTENT) &lt;= 0) {</span>
+<span class="nc" id="L225">                return false;</span>
+            }
+        }
+<span class="nc" id="L228">        return attacker.canAttack(defender);</span>
+    }
+
+
+    // Mission support
+
+    /**
+     * Log the missions of this player.
+     *
+     * @param reasons A map of reasons for the current mission by unit.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     */
+    protected void logMissions(java.util.Map&lt;Unit, String&gt; reasons,
+                               LogBuilder lb) {
+<span class="nc" id="L242">        List&lt;AIUnit&gt; units = getAIUnits();</span>
+<span class="nc" id="L243">        Collections.sort(units, aiUnitLocationComparator);</span>
+<span class="nc bnc" id="L244" title="All 2 branches missed.">        for (AIUnit aiu : units) {</span>
+<span class="nc" id="L245">            Unit u = aiu.getUnit();</span>
+<span class="nc" id="L246">            String reason = reasons.get(u);</span>
+<span class="nc bnc" id="L247" title="All 2 branches missed.">            if (reason == null) reason = &quot;OMITTED&quot;;</span>
+<span class="nc" id="L248">            String ms = &quot;NONE&quot;;</span>
+<span class="nc" id="L249">            Location target = null;</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">            if (aiu.hasMission()) {</span>
+<span class="nc" id="L251">                Mission m = aiu.getMission();</span>
+<span class="nc" id="L252">                ms = lastPart(m.getClass().toString(), &quot;.&quot;);</span>
+<span class="nc" id="L253">                ms = ms.substring(0, ms.length() - &quot;Mission&quot;.length());</span>
+<span class="nc" id="L254">                target = m.getTarget();</span>
+            }
+
+<span class="nc" id="L257">            lb.add(&quot;\n  @&quot;,</span>
+<span class="nc" id="L258">                String.format(&quot;%-30s%-10s%-40s%-16s&quot;,</span>
+<span class="nc" id="L259">                    chop(u.getLocation().toShortString(), 30),</span>
+<span class="nc" id="L260">                    chop(reason, 10),</span>
+<span class="nc" id="L261">                    chop(u.toShortString(), 40),</span>
+<span class="nc" id="L262">                    chop(ms, 16)));</span>
+<span class="nc bnc" id="L263" title="All 2 branches missed.">            if (target != null) lb.add(&quot;-&gt;&quot;, target);</span>
+        }
+<span class="nc" id="L265">    }</span>
+
+    /**
+     * Get a DefendSettlementMission for the current settlement of a
+     * unit if it is badly defended.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to check.
+     * @return A new misison, or null if impossible or not worthwhile.
+     */
+    public Mission getDefendCurrentSettlementMission(AIUnit aiUnit) {
+<span class="nc bnc" id="L275" title="All 2 branches missed.">        if (DefendSettlementMission.invalidReason(aiUnit) != null) return null;</span>
+<span class="nc" id="L276">        final Unit unit = aiUnit.getUnit();</span>
+<span class="nc" id="L277">        final Location loc = unit.getLocation();</span>
+<span class="nc bnc" id="L278" title="All 2 branches missed.">        final Settlement settlement = (loc == null) ? null</span>
+<span class="nc" id="L279">            : loc.getSettlement();</span>
+<span class="nc bnc" id="L280" title="All 4 branches missed.">        return (settlement != null &amp;&amp; settlement.isBadlyDefended())</span>
+<span class="nc" id="L281">            ? getDefendSettlementMission(aiUnit, settlement)</span>
+<span class="nc" id="L282">            : null;</span>
+    }
+
+    /**
+     * Gets a new DefendSettlementMission for a unit.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to check.
+     * @param target The &lt;code&gt;Settlement&lt;/code&gt; to defend.
+     * @return A new mission, or null if impossible.
+     */
+    public Mission getDefendSettlementMission(AIUnit aiUnit,
+                                              Settlement target) {
+<span class="nc bnc" id="L294" title="All 2 branches missed.">        return (DefendSettlementMission.invalidReason(aiUnit) != null) ? null</span>
+<span class="nc" id="L295">            : new DefendSettlementMission(getAIMain(), aiUnit, target);</span>
+    }
+
+    /**
+     * Gets a new IdleAtSettlementMission for a unit.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to use.
+     * @return A new mission, or null if impossible.
+     */
+    public Mission getIdleAtSettlementMission(AIUnit aiUnit) {
+<span class="nc bnc" id="L305" title="All 2 branches missed.">        return (IdleAtSettlementMission.invalidReason(aiUnit) != null) ? null</span>
+<span class="nc" id="L306">            : new IdleAtSettlementMission(getAIMain(), aiUnit);</span>
+    }
+       
+    /**
+     * Gets a UnitSeekAndDestroyMission for a unit.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to check.
+     * @param range A maximum range to search for a target within.
+     * @return A new mission, or null if impossible.
+     */
+    public Mission getSeekAndDestroyMission(AIUnit aiUnit, int range) {
+<span class="nc" id="L317">        Location loc = null;</span>
+<span class="nc bnc" id="L318" title="All 2 branches missed.">        if (UnitSeekAndDestroyMission.invalidReason(aiUnit) == null) {</span>
+<span class="nc" id="L319">            loc = UnitSeekAndDestroyMission.findTarget(aiUnit, range, false);</span>
+        }
+<span class="nc bnc" id="L321" title="All 2 branches missed.">        return (loc == null) ? null</span>
+<span class="nc" id="L322">            : getSeekAndDestroyMission(aiUnit, loc);</span>
+    }
+
+    /**
+     * Gets a UnitSeekAndDestroyMission for a unit.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to check.
+     * @param loc The target &lt;code&gt;Location&lt;/code&gt;.
+     * @return A new mission, or null if impossible.
+     */
+    public Mission getSeekAndDestroyMission(AIUnit aiUnit, Location loc) {
+<span class="nc bnc" id="L333" title="All 2 branches missed.">        return (UnitSeekAndDestroyMission.invalidReason(aiUnit) != null</span>
+<span class="nc bnc" id="L334" title="All 2 branches missed.">            || loc == null) ? null</span>
+<span class="nc" id="L335">            : new UnitSeekAndDestroyMission(getAIMain(), aiUnit, loc);</span>
+    }
+
+    /**
+     * Gets a new UnitWanderHostileMission for a unit.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to check.
+     * @return A new mission, or null if impossible.
+     */
+    public Mission getWanderHostileMission(AIUnit aiUnit) {
+<span class="nc bnc" id="L345" title="All 2 branches missed.">        return (UnitWanderHostileMission.invalidReason(aiUnit) != null) ? null</span>
+<span class="nc" id="L346">            : new UnitWanderHostileMission(getAIMain(), aiUnit);</span>
+    }
+
+
+    // AI behaviour interface to be implemented by subclasses
+
+    /**
+     * Makes every unit perform their mission.
+     *
+     * @param aiUnits A list of &lt;code&gt;AIUnit&lt;/code&gt;s to perform missions.
+     * @param lb A &lt;code&gt;LogBuilder&lt;/code&gt; to log to.
+     * @return A list of &lt;code&gt;AIUnit&lt;/code&gt;s that have moves left.
+     */
+    protected List&lt;AIUnit&gt; doMissions(List&lt;AIUnit&gt; aiUnits, LogBuilder lb) {
+<span class="nc" id="L360">        lb.add(&quot;\n  Do Missions:&quot;);</span>
+<span class="nc" id="L361">        List&lt;AIUnit&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L362" title="All 2 branches missed.">        for (AIUnit aiu : aiUnits) {</span>
+<span class="nc" id="L363">            final Unit unit = aiu.getUnit();</span>
+<span class="nc bnc" id="L364" title="All 4 branches missed.">            if (unit == null || unit.isDisposed()) continue;</span>
+<span class="nc" id="L365">            lb.add(&quot;\n  &quot;, unit, &quot; &quot;);</span>
+            try {
+<span class="nc" id="L367">                aiu.doMission(lb);</span>
+<span class="nc" id="L368">            } catch (Exception e) {</span>
+<span class="nc" id="L369">                logger.log(Level.WARNING, &quot;doMissions failed for: &quot; + aiu, e);</span>
+            }
+<span class="nc bnc" id="L371" title="All 4 branches missed.">            if (!unit.isDisposed() &amp;&amp; unit.getMovesLeft() &gt; 0) result.add(aiu);</span>
+        }
+<span class="nc" id="L373">        return result;</span>
+    }
+
+    /**
+     * Adjusts the score of this proposed mission for this player type.
+     * Subclasses should override and refine this.
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to perform the mission.
+     * @param path A &lt;code&gt;PathNode&lt;/code&gt; to the target of this mission.
+     * @param value The proposed value.
+     * @param type The mission type.
+     * @return A score representing the desirability of this mission.
+     */
+    public abstract int adjustMission(AIUnit aiUnit, PathNode path, Class type,
+                                      int value);
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

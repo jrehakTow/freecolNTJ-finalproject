@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>TranslationReport.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.tools</a> &gt; <span class="el_source">TranslationReport.java</span></div><h1>TranslationReport.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.tools;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FilenameFilter;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Properties;
+import java.util.TreeSet;
+
+// TODO: Auto-generated Javadoc
+/**
+ * Document the state of the translations.
+ */
+<span class="fc" id="L34">public class TranslationReport {</span>
+
+	/**
+	 * The Class LanguageStatsRecord.
+	 */
+<span class="nc" id="L39">	private static class LanguageStatsRecord {</span>
+
+		/** The local file. */
+<span class="nc" id="L42">		String localFile = &quot;&quot;;</span>
+
+		/** The missing keys. */
+<span class="nc" id="L45">		int missingKeys = 0;</span>
+
+		/** The missing variables. */
+<span class="nc" id="L48">		int missingVariables = 0;</span>
+
+		/** The copied keys. */
+<span class="nc" id="L51">		int copiedKeys = 0;</span>
+
+		/** The superfluous variables. */
+		public int superfluousVariables;
+
+		/** The superfluous keys. */
+		public int superfluousKeys;
+	}
+
+	/** The Constant stars. */
+	private static final String stars = &quot;*****************************************************************&quot;;
+
+	/** The Constant printSummary. */
+	private static final boolean printSummary = true;
+
+	/**
+	 * The main method.
+	 *
+	 * @param args
+	 *            the arguments
+	 * @throws Exception
+	 *             the exception
+	 */
+	public static void main(String[] args) throws Exception {
+<span class="nc" id="L75">		ArrayList&lt;LanguageStatsRecord&gt; statistics = new ArrayList&lt;&gt;();</span>
+
+		// String dirName = &quot;src/net/sf/freecol.common.i18n/&quot;;
+<span class="nc" id="L78">		String dirName = args[0];</span>
+<span class="nc" id="L79">		File directory = new File(dirName);</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">		if (!directory.isDirectory()) {</span>
+<span class="nc" id="L81">			System.exit(1);</span>
+		}
+<span class="nc bnc" id="L83" title="All 2 branches missed.">		final String localeKey = args.length &gt; 1 ? args[1] : &quot;&quot;;</span>
+<span class="nc" id="L84">		String[] languageFiles = directory.list(new FilenameFilter() {</span>
+			@Override
+			public boolean accept(File dir, String name) {
+<span class="nc" id="L87">				return name.matches(&quot;FreeColMessages_&quot; + localeKey + &quot;.*\\.properties&quot;);</span>
+			}
+		});
+
+<span class="nc" id="L91">		File masterFile = new File(directory, &quot;FreeColMessages.properties&quot;);</span>
+<span class="nc" id="L92">		Properties master = new Properties();</span>
+<span class="nc" id="L93">		master.load(new FileInputStream(masterFile));</span>
+		// System.out.println(&quot;*** Found master property file with &quot; +
+		// master.size() + &quot; properties.\n&quot;);
+
+<span class="nc bnc" id="L97" title="All 2 branches missed.">		for (String name : languageFiles) {</span>
+<span class="nc" id="L98">			LanguageStatsRecord lstat = new LanguageStatsRecord();</span>
+<span class="nc" id="L99">			lstat.localFile = name;</span>
+<span class="nc" id="L100">			File propertyFile = new File(directory, name);</span>
+<span class="nc" id="L101">			Properties properties = new Properties();</span>
+<span class="nc" id="L102">			properties.load(new FileInputStream(propertyFile));</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">			System.out.println(name.length() + 8 &lt; stars.length() ? stars.substring(0, name.length() + 8) : stars);</span>
+<span class="nc" id="L104">			System.out.println(&quot;*** &quot; + name + &quot; ***&quot;);</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">			System.out.println(name.length() + 8 &lt; stars.length() ? stars.substring(0, name.length() + 8) : stars);</span>
+
+<span class="nc" id="L107">			ArrayList&lt;String&gt; missingKeys = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L108">			ArrayList&lt;String&gt; missingVariables = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L109">			ArrayList&lt;String&gt; copiedFromMaster = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L111" title="All 2 branches missed.">			for (Enumeration&lt;Object&gt; keys = master.keys(); keys.hasMoreElements();) {</span>
+<span class="nc" id="L112">				String key = (String) keys.nextElement();</span>
+<span class="nc" id="L113">				String value = properties.getProperty(key, null);</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">				if (value == null) {</span>
+<span class="nc" id="L115">					missingKeys.add(key);</span>
+<span class="nc" id="L116">				} else {</span>
+<span class="nc" id="L117">					String masterValue = master.getProperty(key);</span>
+<span class="nc" id="L118">					int lastIndex = 0;</span>
+<span class="nc" id="L119">					boolean inVariable = false;</span>
+
+<span class="nc bnc" id="L121" title="All 2 branches missed.">					if (value.equalsIgnoreCase(masterValue)) {</span>
+						// ignore some values which are most probably copies in
+						// many languages
+<span class="nc bnc" id="L124" title="All 2 branches missed.">						if (!key.contains(&quot;newColonyName&quot;)</span>
+<span class="nc bnc" id="L125" title="All 4 branches missed.">								&amp;&amp; !(key.contains(&quot;foundingFather&quot;) &amp;&amp; key.contains(&quot;.birthAndDeath&quot;))</span>
+<span class="nc bnc" id="L126" title="All 4 branches missed.">								&amp;&amp; !(key.contains(&quot;foundingFather&quot;) &amp;&amp; key.contains(&quot;.name&quot;))) {</span>
+<span class="nc" id="L127">							copiedFromMaster.add(key);</span>
+						}
+					}
+
+<span class="nc bnc" id="L131" title="All 2 branches missed.">					for (int index = 0; index &lt; masterValue.length() - 1; index++) {</span>
+<span class="nc" id="L132">						char current = masterValue.charAt(index);</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">						if (current == '%') {</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">							if (inVariable) {</span>
+<span class="nc" id="L135">								String var = masterValue.substring(lastIndex, index + 1);</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">								if (!value.contains(var)) {</span>
+<span class="nc" id="L137">									missingVariables.add(key);</span>
+								}
+<span class="nc" id="L139">								inVariable = false;</span>
+<span class="nc" id="L140">							} else {</span>
+<span class="nc" id="L141">								lastIndex = index;</span>
+<span class="nc" id="L142">								inVariable = true;</span>
+							}
+<span class="nc bnc" id="L144" title="All 2 branches missed.">						} else if (!Character.isLetterOrDigit(current)) {</span>
+<span class="nc" id="L145">							inVariable = false;</span>
+						}
+					}
+				}
+			}
+
+<span class="nc bnc" id="L151" title="All 2 branches missed.">			if (!missingKeys.isEmpty()) {</span>
+<span class="nc" id="L152">				System.out.println(&quot;** Total of &quot; + missingKeys.size() + &quot; properties missing:\n&quot;);</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">				for (String key : sort(missingKeys)) {</span>
+<span class="nc" id="L154">					System.out.println(key + &quot;=&quot; + master.getProperty(key));</span>
+				}
+<span class="nc" id="L156">				lstat.missingKeys = missingKeys.size();</span>
+<span class="nc" id="L157">				System.out.println(&quot;&quot;);</span>
+<span class="nc" id="L158">			} else {</span>
+<span class="nc" id="L159">				System.out.println(&quot;** No properties missing.\n&quot;);</span>
+			}
+
+<span class="nc bnc" id="L162" title="All 2 branches missed.">			if (!copiedFromMaster.isEmpty()) {</span>
+<span class="nc" id="L163">				System.out.println(</span>
+<span class="nc" id="L164">						&quot;** Total of &quot; + copiedFromMaster.size() + &quot; properties copied from master properties:\n&quot;);</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">				for (String key : sort(copiedFromMaster)) {</span>
+<span class="nc" id="L166">					System.out.println(key + &quot;=&quot; + master.getProperty(key));</span>
+				}
+<span class="nc" id="L168">				lstat.copiedKeys = copiedFromMaster.size();</span>
+<span class="nc" id="L169">				System.out.println(&quot;&quot;);</span>
+<span class="nc" id="L170">			} else {</span>
+<span class="nc" id="L171">				System.out.println(&quot;** No properties copied.\n&quot;);</span>
+			}
+
+<span class="nc bnc" id="L174" title="All 2 branches missed.">			if (!missingVariables.isEmpty()) {</span>
+<span class="nc" id="L175">				System.out.println(&quot;** Total of &quot; + missingVariables.size() + &quot; properties with missing variables:\n&quot;);</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">				for (String key : sort(missingVariables)) {</span>
+<span class="nc" id="L177">					System.out.println(&quot;* CORRECT: &quot; + key + &quot;=&quot; + master.getProperty(key));</span>
+<span class="nc" id="L178">					System.out.println(&quot;INCORRECT: &quot; + key + &quot;=&quot; + properties.getProperty(key));</span>
+				}
+<span class="nc" id="L180">				lstat.missingVariables = missingVariables.size();</span>
+<span class="nc" id="L181">				System.out.println(&quot;&quot;);</span>
+<span class="nc" id="L182">			} else {</span>
+<span class="nc" id="L183">				System.out.println(&quot;** No properties with missing variables.\n&quot;);</span>
+			}
+
+<span class="nc" id="L186">			ArrayList&lt;String&gt; superfluousKeys = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L187">			ArrayList&lt;String&gt; superfluousVariables = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">			for (Enumeration&lt;Object&gt; keys = properties.keys(); keys.hasMoreElements();) {</span>
+<span class="nc" id="L189">				String key = (String) keys.nextElement();</span>
+<span class="nc" id="L190">				String value = master.getProperty(key, null);</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">				if (value == null) {</span>
+<span class="nc" id="L192">					superfluousKeys.add(key);</span>
+<span class="nc" id="L193">				} else {</span>
+<span class="nc" id="L194">					String propertiesValue = properties.getProperty(key);</span>
+<span class="nc" id="L195">					int lastIndex = 0;</span>
+<span class="nc" id="L196">					boolean inVariable = false;</span>
+
+<span class="nc bnc" id="L198" title="All 2 branches missed.">					for (int index = 0; index &lt; propertiesValue.length() - 1; index++) {</span>
+<span class="nc" id="L199">						char current = propertiesValue.charAt(index);</span>
+<span class="nc bnc" id="L200" title="All 2 branches missed.">						if (current == '%') {</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">							if (inVariable) {</span>
+<span class="nc" id="L202">								String var = propertiesValue.substring(lastIndex, index + 1);</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">								if (!value.contains(var)) {</span>
+<span class="nc" id="L204">									superfluousVariables.add(key);</span>
+								}
+<span class="nc" id="L206">								inVariable = false;</span>
+<span class="nc" id="L207">							} else {</span>
+<span class="nc" id="L208">								lastIndex = index;</span>
+<span class="nc" id="L209">								inVariable = true;</span>
+							}
+<span class="nc bnc" id="L211" title="All 2 branches missed.">						} else if (!Character.isLetterOrDigit(current)) {</span>
+<span class="nc" id="L212">							inVariable = false;</span>
+						}
+					}
+				}
+			}
+
+<span class="nc bnc" id="L218" title="All 2 branches missed.">			if (!superfluousKeys.isEmpty()) {</span>
+<span class="nc" id="L219">				System.out.println(&quot;** Total of &quot; + superfluousKeys.size() + &quot; superfluous properties:\n&quot;);</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">				for (String key : sort(superfluousKeys)) {</span>
+<span class="nc" id="L221">					System.out.println(key + &quot;=&quot; + properties.getProperty(key));</span>
+				}
+<span class="nc" id="L223">				lstat.superfluousKeys = superfluousKeys.size();</span>
+<span class="nc" id="L224">				System.out.println(&quot;&quot;);</span>
+<span class="nc" id="L225">			} else {</span>
+<span class="nc" id="L226">				System.out.println(&quot;** No superfluous properties.\n&quot;);</span>
+			}
+
+<span class="nc bnc" id="L229" title="All 2 branches missed.">			if (!superfluousVariables.isEmpty()) {</span>
+<span class="nc" id="L230">				System.out.println(</span>
+<span class="nc" id="L231">						&quot;** Total of &quot; + superfluousVariables.size() + &quot; properties with superfluous variables:\n&quot;);</span>
+<span class="nc bnc" id="L232" title="All 2 branches missed.">				for (String key : sort(superfluousVariables)) {</span>
+<span class="nc" id="L233">					System.out.println(&quot;* CORRECT: &quot; + key + &quot;=&quot; + master.getProperty(key));</span>
+<span class="nc" id="L234">					System.out.println(&quot;INCORRECT: &quot; + key + &quot;=&quot; + properties.getProperty(key));</span>
+				}
+<span class="nc" id="L236">				lstat.superfluousVariables = superfluousVariables.size();</span>
+<span class="nc" id="L237">				System.out.println(&quot;&quot;);</span>
+<span class="nc" id="L238">			} else {</span>
+<span class="nc" id="L239">				System.out.println(&quot;** No properties with superfluous variables.\n&quot;);</span>
+			}
+
+<span class="nc" id="L242">			statistics.add(lstat);</span>
+		}
+
+		if (printSummary) {
+<span class="nc" id="L246">			System.out.println(stars);</span>
+<span class="nc" id="L247">			System.out.println(&quot;*** Summary of translation efforts (&quot; + master.size() + &quot; keys in master file) ***&quot;);</span>
+<span class="nc" id="L248">			System.out.println(stars);</span>
+<span class="nc bnc" id="L249" title="All 2 branches missed.">			for (LanguageStatsRecord stats : statistics) {</span>
+<span class="nc" id="L250">				StringBuilder output = new StringBuilder();</span>
+<span class="nc" id="L251">				output.append(shortenName(stats.localFile));</span>
+<span class="nc" id="L252">				output.append(&quot;: &quot;);</span>
+<span class="nc" id="L253">				output.append(prettyPrint(stats.missingKeys));</span>
+<span class="nc" id="L254">				output.append(&quot; keys missing, &quot;);</span>
+<span class="nc" id="L255">				output.append(prettyPrint(stats.missingVariables));</span>
+<span class="nc" id="L256">				output.append(&quot; vars missing, &quot;);</span>
+<span class="nc" id="L257">				output.append(prettyPrint(stats.copiedKeys));</span>
+<span class="nc" id="L258">				output.append(&quot; entries copied, &quot;);</span>
+<span class="nc" id="L259">				output.append(prettyPrint(stats.superfluousKeys));</span>
+<span class="nc" id="L260">				output.append(&quot; redundant keys, &quot;);</span>
+<span class="nc" id="L261">				output.append(prettyPrint(stats.superfluousVariables));</span>
+<span class="nc" id="L262">				output.append(&quot; redundant vars. &quot;);</span>
+
+<span class="nc" id="L264">				float percentageDone = (100 * (master.size() - (stats.missingKeys + stats.copiedKeys)))</span>
+<span class="nc" id="L265">						/ (float) master.size();</span>
+<span class="nc" id="L266">				percentageDone = Math.round(percentageDone * 100) / 100f;</span>
+<span class="nc" id="L267">				output.append(percentageDone).append(&quot;% finished.&quot;);</span>
+
+<span class="nc" id="L269">				System.out.println(output.toString());</span>
+			}
+		}
+<span class="nc" id="L272">	}</span>
+
+	/**
+	 * Shorten name.
+	 *
+	 * @param localFile
+	 *            the local file
+	 * @return the string builder
+	 */
+	private static StringBuilder shortenName(String localFile) {
+<span class="nc" id="L282">		StringBuilder out = new StringBuilder(5);</span>
+<span class="nc" id="L283">		String temp = localFile.substring(16, localFile.indexOf('.'));</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">		if (temp.length() &lt; 5)</span>
+<span class="nc" id="L285">			out.append(&quot;   &quot;);</span>
+<span class="nc" id="L286">		out.append(temp);</span>
+<span class="nc" id="L287">		return out;</span>
+	}
+
+	/**
+	 * Pretty print.
+	 *
+	 * @param number
+	 *            the number
+	 * @return the string builder
+	 */
+	private static StringBuilder prettyPrint(int number) {
+<span class="nc" id="L298">		StringBuilder output = new StringBuilder(4);</span>
+<span class="nc bnc" id="L299" title="All 2 branches missed.">		if (number &lt; 10)</span>
+<span class="nc" id="L300">			output.append(&quot; &quot;);</span>
+<span class="nc bnc" id="L301" title="All 2 branches missed.">		if (number &lt; 100)</span>
+<span class="nc" id="L302">			output.append(&quot; &quot;);</span>
+<span class="nc bnc" id="L303" title="All 2 branches missed.">		if (number &lt; 1000)</span>
+<span class="nc" id="L304">			output.append(&quot; &quot;);</span>
+<span class="nc" id="L305">		output.append(number);</span>
+<span class="nc" id="L306">		return output;</span>
+	}
+
+	/**
+	 * Sort.
+	 *
+	 * @param missingKeys
+	 *            the missing keys
+	 * @return the tree set
+	 */
+	private static TreeSet&lt;String&gt; sort(ArrayList&lt;String&gt; missingKeys) {
+<span class="nc" id="L317">		TreeSet&lt;String&gt; sorted = new TreeSet&lt;&gt;();</span>
+<span class="nc" id="L318">		sorted.addAll(missingKeys);</span>
+<span class="nc" id="L319">		return sorted;</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

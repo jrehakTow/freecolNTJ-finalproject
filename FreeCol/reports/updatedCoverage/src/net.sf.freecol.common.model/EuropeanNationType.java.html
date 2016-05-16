@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>EuropeanNationType.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">EuropeanNationType.java</span></div><h1>EuropeanNationType.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+
+
+/**
+ * Represents one of the European nations present in the game,
+ * i.e. both REFs and possible human players.
+ */
+public class EuropeanNationType extends NationType {
+
+    /** Whether this is an REF Nation. */
+<span class="fc" id="L40">    private boolean ref = false;</span>
+
+    /**
+     * Stores the starting units of this Nation at various
+     * difficulties.
+     */
+<span class="fc" id="L46">    private final Map&lt;String, Map&lt;String, AbstractUnit&gt;&gt; startingUnitMap = new HashMap&lt;&gt;();</span>
+
+
+    /**
+     * Create a new European nation type.
+     *
+     * @param id The object identifier.
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; to refer to.
+     */
+    public EuropeanNationType(String id, Specification specification) {
+<span class="fc" id="L56">        super(id, specification);</span>
+<span class="fc" id="L57">    }</span>
+
+
+    /**
+     * Is this a REF nation type?
+     *
+     * @return True if this is a REF nation type.
+     */
+    @Override
+    public final boolean isREF() {
+<span class="fc" id="L67">        return ref;</span>
+    }
+
+    /**
+     * Is this a European nation type?
+     *
+     * @return True.
+     */
+    @Override
+    public boolean isEuropean() {
+<span class="fc" id="L77">        return true;</span>
+    }
+
+    /**
+     * Is this a native nation type?
+     *
+     * @return False.
+     */
+    @Override
+    public boolean isIndian() {
+<span class="nc" id="L87">        return false;</span>
+    }
+
+    /**
+     * Gets the starting units for this nation type.
+     *
+     * @return A list of &lt;code&gt;AbstractUnit&lt;/code&gt;s to start with.
+     */
+    public List&lt;AbstractUnit&gt; getStartingUnits() {
+<span class="nc" id="L96">        boolean ex = getSpecification().getBoolean(GameOptions.EXPERT_STARTING_UNITS);</span>
+<span class="nc" id="L97">        return getStartingUnits(String.valueOf(ex));</span>
+    }
+
+    /**
+     * Gets a list of this Nation's starting units at the given
+     * difficulty.
+     *
+     * @param key The value of the expert-starting-units field.
+     * @return A list of &lt;code&gt;AbstractUnit&lt;/code&gt;s to start with.
+     */
+    public List&lt;AbstractUnit&gt; getStartingUnits(String key) {
+<span class="nc" id="L108">        Map&lt;String, AbstractUnit&gt; result = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L109">        Map&lt;String, AbstractUnit&gt; defaultMap = startingUnitMap.get(null);</span>
+<span class="nc" id="L110">        Map&lt;String, AbstractUnit&gt; difficultyMap = startingUnitMap.get(key);</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        if (defaultMap != null) {</span>
+<span class="nc" id="L112">            result.putAll(defaultMap);</span>
+        }
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        if (difficultyMap != null) {</span>
+<span class="nc" id="L115">            result.putAll(difficultyMap);</span>
+        }
+<span class="nc" id="L117">        return new ArrayList&lt;&gt;(result.values());</span>
+    }
+
+    /**
+     * Add a starting unit.
+     *
+     * @param id The unit identifier.
+     * @param unit The &lt;code&gt;AbstractUnit&lt;/code&gt; to add.
+     * @param expert Is this an expert unit?
+     */
+    private void addStartingUnit(String id, AbstractUnit unit, boolean expert) {
+<span class="fc bfc" id="L128" title="All 2 branches covered.">        String exTag = (expert) ? Boolean.TRUE.toString() : null;</span>
+<span class="fc" id="L129">        Map&lt;String, AbstractUnit&gt; units = startingUnitMap.get(exTag);</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        if (units == null) {</span>
+<span class="fc" id="L131">            units = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L132">            startingUnitMap.put(exTag, units);</span>
+        }
+<span class="fc" id="L134">        units.put(id, unit);</span>
+<span class="fc" id="L135">    }</span>
+
+
+    // Serialization
+
+    private static final String EXPERT_STARTING_UNITS_TAG = &quot;expert-starting-units&quot;;
+    private static final String REF_TAG = &quot;ref&quot;;
+    private static final String ROLE_TAG = &quot;role&quot;;
+    private static final String TYPE_TAG = &quot;type&quot;;
+    private static final String UNIT_TAG = &quot;unit&quot;;
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L152">        super.writeAttributes(xw);</span>
+
+<span class="nc" id="L154">        xw.writeAttribute(REF_TAG, ref);</span>
+<span class="nc" id="L155">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeChildren(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L162">        super.writeChildren(xw);</span>
+
+<span class="nc bnc" id="L164" title="All 4 branches missed.">        if (startingUnitMap != null &amp;&amp; !startingUnitMap.isEmpty()) {</span>
+            Map&lt;String, AbstractUnit&gt; map;
+            // default map
+<span class="nc bnc" id="L167" title="All 2 branches missed.">            if ((map = startingUnitMap.get(null)) != null) {</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">                for (Map.Entry&lt;String, AbstractUnit&gt; entry : map.entrySet()) {</span>
+<span class="nc" id="L169">                    writeUnit(xw, entry.getKey(), entry.getValue(), false);</span>
+                }
+            }
+            // expert map
+<span class="nc bnc" id="L173" title="All 2 branches missed.">            if ((map = startingUnitMap.get(Boolean.TRUE.toString())) != null) {</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">                for (Map.Entry&lt;String, AbstractUnit&gt; entry : map.entrySet()) {</span>
+<span class="nc" id="L175">                    writeUnit(xw, entry.getKey(), entry.getValue(), true);</span>
+                }
+            }
+        }
+<span class="nc" id="L179">    }</span>
+
+    private void writeUnit(FreeColXMLWriter xw, String id,
+                           AbstractUnit au,
+                           boolean expert) throws XMLStreamException {
+<span class="nc" id="L184">        xw.writeStartElement(UNIT_TAG);</span>
+
+<span class="nc" id="L186">        xw.writeAttribute(ID_ATTRIBUTE_TAG, id);</span>
+
+<span class="nc" id="L188">        xw.writeAttribute(TYPE_TAG, au);</span>
+
+<span class="nc" id="L190">        xw.writeAttribute(ROLE_TAG, au.getRoleId());</span>
+
+        //xw.writeAttribute(&quot;number&quot;, unit.getNumber());
+
+<span class="nc bnc" id="L194" title="All 2 branches missed.">        if (expert) xw.writeAttribute(EXPERT_STARTING_UNITS_TAG, expert);</span>
+
+<span class="nc" id="L196">        xw.writeEndElement();</span>
+<span class="nc" id="L197">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L204">        super.readAttributes(xr);</span>
+
+<span class="fc" id="L206">        final Specification spec = getSpecification();</span>
+
+<span class="fc" id="L208">        EuropeanNationType parent = xr.getType(spec, EXTENDS_TAG,</span>
+<span class="fc" id="L209">                                               EuropeanNationType.class, this);</span>
+
+<span class="fc" id="L211">        ref = xr.getAttribute(REF_TAG, parent.ref);</span>
+<span class="fc" id="L212">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChildren(FreeColXMLReader xr) throws XMLStreamException {
+        // Clear containers.
+<span class="fc bfc" id="L220" title="All 2 branches covered.">        if (xr.shouldClearContainers()) {</span>
+<span class="fc" id="L221">            startingUnitMap.clear();</span>
+        }
+
+<span class="fc" id="L224">        final Specification spec = getSpecification();</span>
+<span class="fc" id="L225">        EuropeanNationType parent = xr.getType(spec, EXTENDS_TAG,</span>
+<span class="fc" id="L226">                                               EuropeanNationType.class, this);</span>
+<span class="fc bfc" id="L227" title="All 2 branches covered.">        if (parent != this) {</span>
+<span class="fc bfc" id="L228" title="All 2 branches covered.">            for (Map.Entry&lt;String, Map&lt;String, AbstractUnit&gt;&gt; entry</span>
+<span class="fc" id="L229">                     : parent.startingUnitMap.entrySet()) {</span>
+<span class="fc" id="L230">                startingUnitMap.put(entry.getKey(), new HashMap&lt;&gt;(entry.getValue()));</span>
+            }
+        }
+
+<span class="fc" id="L234">        super.readChildren(xr);</span>
+<span class="fc" id="L235">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChild(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L242">        final String tag = xr.getLocalName();</span>
+
+<span class="fc bfc" id="L244" title="All 2 branches covered.">        if (UNIT_TAG.equals(tag)) {</span>
+<span class="fc" id="L245">            String id = xr.readId();</span>
+
+<span class="fc" id="L247">            String type = xr.getAttribute(TYPE_TAG, (String)null);</span>
+
+<span class="fc" id="L249">            String roleId = xr.getAttribute(ROLE_TAG,</span>
+<span class="fc" id="L250">                                            Specification.DEFAULT_ROLE_ID);</span>
+
+            // @compat 0.10.7
+<span class="fc" id="L253">            roleId = Role.fixRoleId(roleId);</span>
+            // end @compat
+
+<span class="fc" id="L256">            boolean ex = xr.getAttribute(EXPERT_STARTING_UNITS_TAG, false);</span>
+
+<span class="fc" id="L258">            addStartingUnit(id, new AbstractUnit(type, roleId, 1), ex);</span>
+<span class="fc" id="L259">            xr.closeTag(UNIT_TAG);</span>
+
+<span class="fc" id="L261">        } else {</span>
+<span class="fc" id="L262">            super.readChild(xr);</span>
+        }
+<span class="fc" id="L264">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="nc" id="L270">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;european-nation-type&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L278">        return &quot;european-nation-type&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

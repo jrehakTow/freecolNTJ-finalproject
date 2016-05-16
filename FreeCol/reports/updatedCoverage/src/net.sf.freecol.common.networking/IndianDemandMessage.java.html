@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>IndianDemandMessage.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.networking</a> &gt; <span class="el_source">IndianDemandMessage.java</span></div><h1>IndianDemandMessage.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.networking;
+
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Settlement;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+
+
+/**
+ * The message sent to resolve natives making demands of a colony.
+ */
+public class IndianDemandMessage extends DOMMessage {
+
+    public static final String TAG = &quot;indianDemand&quot;;
+    private static final String AMOUNT_TAG = &quot;amount&quot;;
+    private static final String COLONY_TAG = &quot;colony&quot;;
+    private static final String RESULT_TAG = &quot;result&quot;;
+    private static final String TYPE_TAG = &quot;type&quot;;
+    private static final String UNIT_TAG = &quot;unit&quot;;
+    
+    /** The identifier of the unit that is demanding. */
+    private final String unitId;
+
+    /** The identifier of the colony being demanded of. */
+    private final String colonyId;
+
+    /** The type of goods being demanded, null implies gold. */
+    private final String typeId;
+
+    /** The amount of goods being demanded. */
+    private final String amount;
+
+    /** The result of this demand: null implies not decided yet. */
+    private String result;
+
+
+    /**
+     * Create a new &lt;code&gt;IndianDemandMessage&lt;/code&gt; with the
+     * supplied unit, colony and demands.
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; that is demanding.
+     * @param colony The &lt;code&gt;Colony&lt;/code&gt; being demanded of.
+     * @param type The &lt;code&gt;GoodsType&lt;/code&gt; being demanded.
+     * @param amount The amount of goods being demanded.
+     */
+    public IndianDemandMessage(Unit unit, Colony colony,
+                               GoodsType type, int amount) {
+<span class="nc" id="L73">        super(getTagName());</span>
+
+<span class="nc" id="L75">        this.unitId = unit.getId();</span>
+<span class="nc" id="L76">        this.colonyId = colony.getId();</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        this.typeId = (type == null) ? null : type.getId();</span>
+<span class="nc" id="L78">        this.amount = Integer.toString(amount);</span>
+<span class="nc" id="L79">        this.result = null;</span>
+<span class="nc" id="L80">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;IndianDemandMessage&lt;/code&gt; from a
+     * supplied element.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; this message belongs to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to use to create the message.
+     */
+    public IndianDemandMessage(Game game, Element element) {
+<span class="nc" id="L90">        super(getTagName());</span>
+
+<span class="nc" id="L92">        this.unitId = getStringAttribute(element, UNIT_TAG);</span>
+<span class="nc" id="L93">        this.colonyId = getStringAttribute(element, COLONY_TAG);</span>
+<span class="nc" id="L94">        this.typeId = getStringAttribute(element, TYPE_TAG);</span>
+<span class="nc" id="L95">        this.amount = getStringAttribute(element, AMOUNT_TAG);</span>
+<span class="nc" id="L96">        this.result = getStringAttribute(element, RESULT_TAG);</span>
+<span class="nc" id="L97">    }</span>
+
+
+    // Public interface
+
+    /**
+     * Client-side convenience function to get the unit in this message.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to look for the unit in.
+     * @return The &lt;code&gt;Unit&lt;/code&gt; found.
+     */
+    public Unit getUnit(Game game) {
+<span class="nc" id="L109">        return game.getFreeColGameObject(unitId, Unit.class);</span>
+    }
+
+    /**
+     * Client-side convenience function to get the colony in this message.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to look for the colony in.
+     * @return The &lt;code&gt;Colony&lt;/code&gt; found.
+     */
+    public Colony getColony(Game game) {
+<span class="nc" id="L119">        return game.getFreeColGameObject(colonyId, Colony.class);</span>
+    }
+
+    /**
+     * Client-side convenience function to get the goods type in this message.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to look for the goods type in.
+     * @return The &lt;code&gt;GoodsType&lt;/code&gt; found.
+     */
+    public GoodsType getType(Game game) {
+<span class="nc bnc" id="L129" title="All 2 branches missed.">        return (typeId == null) ? null</span>
+<span class="nc" id="L130">            : game.getSpecification().getGoodsType(typeId);</span>
+    }
+
+    /**
+     * Client-side convenience function to get the gold in this message.
+     *
+     * @return The amount of gold specified by this message, or -1 if
+     *     none or invalid.
+     */
+    public int getAmount() {
+        try {
+<span class="nc" id="L141">            return Integer.parseInt(amount);</span>
+<span class="nc" id="L142">        } catch (NumberFormatException nfe) {}</span>
+<span class="nc" id="L143">        return -1;</span>
+    }
+
+    /**
+     * Client-side convenience function to set the result of this message.
+     *
+     * @return The result of this demand.
+     */
+    public Boolean getResult() {
+<span class="nc bnc" id="L152" title="All 2 branches missed.">        return (result == null) ? null : Boolean.parseBoolean(result);</span>
+    }
+
+    /**
+     * Client-side convenience function to set the result of this message.
+     *
+     * @param result The new result of this demand.
+     */
+    public void setResult(boolean result) {
+<span class="nc" id="L161">        this.result = Boolean.toString(result);</span>
+<span class="nc" id="L162">    }</span>
+
+
+    /**
+     * Handle a &quot;indianDemand&quot;-message.
+     *
+     * @param server The &lt;code&gt;FreeColServer&lt;/code&gt; handling the message.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; the message applies to.
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; message was received on.
+     * @return An update containing the indianDemandd unit, or an
+     *     error &lt;code&gt;Element&lt;/code&gt; on failure.
+     */
+    public Element handle(FreeColServer server, Player player,
+                          Connection connection) {
+<span class="nc" id="L176">        final ServerPlayer serverPlayer = server.getPlayer(connection);</span>
+<span class="nc" id="L177">        final Game game = player.getGame();</span>
+
+        Unit unit;
+        try {
+<span class="nc bnc" id="L181" title="All 2 branches missed.">            if (result == null) { // Initial demand</span>
+<span class="nc" id="L182">                unit = player.getOurFreeColGameObject(this.unitId, Unit.class);</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">                if (unit.getMovesLeft() &lt;= 0) {</span>
+<span class="nc" id="L184">                    return serverPlayer.clientError(&quot;Unit has no moves left: &quot;</span>
+<span class="nc" id="L185">                        + this.unitId)</span>
+<span class="nc" id="L186">                        .build(serverPlayer);</span>
+                }
+            } else { // Reply from colony
+<span class="nc" id="L189">                unit = game.getFreeColGameObject(unitId, Unit.class);</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">                if (unit == null) {</span>
+<span class="nc" id="L191">                    return serverPlayer.clientError(&quot;Not a unit: &quot;</span>
+<span class="nc" id="L192">                        + this.unitId)</span>
+<span class="nc" id="L193">                        .build(serverPlayer);</span>
+                }
+            }
+<span class="nc" id="L196">        } catch (Exception e) {</span>
+<span class="nc" id="L197">            return serverPlayer.clientError(e.getMessage())</span>
+<span class="nc" id="L198">                .build(serverPlayer);</span>
+        }
+
+        Colony colony;
+        try {
+<span class="nc" id="L203">            Settlement settlement</span>
+<span class="nc" id="L204">                = unit.getAdjacentSettlementSafely(this.colonyId);</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">            if (!(settlement instanceof Colony)) {</span>
+<span class="nc" id="L206">                return serverPlayer.clientError(&quot;Not a colony: &quot;</span>
+<span class="nc" id="L207">                    + this.colonyId)</span>
+<span class="nc" id="L208">                    .build(serverPlayer);</span>
+            }
+<span class="nc" id="L210">            colony = (Colony)settlement;</span>
+<span class="nc" id="L211">        } catch (Exception e) {</span>
+<span class="nc" id="L212">            return serverPlayer.clientError(e.getMessage())</span>
+<span class="nc" id="L213">                .build(serverPlayer);</span>
+        }
+
+<span class="nc bnc" id="L216" title="All 2 branches missed.">        if (getAmount() &lt;= 0) {</span>
+<span class="nc" id="L217">            return serverPlayer.clientError(&quot;Bad amount: &quot; + this.amount)</span>
+<span class="nc" id="L218">                .build(serverPlayer);</span>
+        }
+
+        // Proceed to demand.
+<span class="nc" id="L222">        return server.getInGameController()</span>
+<span class="nc" id="L223">            .indianDemand(serverPlayer, unit, colony,</span>
+<span class="nc" id="L224">                          getType(game), getAmount())</span>
+<span class="nc" id="L225">            .build(serverPlayer);</span>
+    }
+
+    /**
+     * Convert this IndianDemandMessage to XML.
+     *
+     * @return The XML representation of this message.
+     */
+    @Override
+    public Element toXMLElement() {
+<span class="nc" id="L235">        return new DOMMessage(getTagName(),</span>
+<span class="nc" id="L236">            UNIT_TAG, this.unitId,</span>
+<span class="nc" id="L237">            COLONY_TAG, this.colonyId,</span>
+<span class="nc" id="L238">            AMOUNT_TAG, this.amount,</span>
+<span class="nc" id="L239">            TYPE_TAG, this.typeId,</span>
+<span class="nc" id="L240">            RESULT_TAG, this.result).toXMLElement();</span>
+    }
+
+    /**
+     * The tag name of the root element representing this object.
+     *
+     * @return &quot;indianDemand&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L249">        return TAG;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

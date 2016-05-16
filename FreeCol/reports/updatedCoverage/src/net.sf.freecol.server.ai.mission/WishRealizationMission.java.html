@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>WishRealizationMission.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.ai.mission</a> &gt; <span class="el_source">WishRealizationMission.java</span></div><h1>WishRealizationMission.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.ai.mission;
+
+import java.util.logging.Logger;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.Location;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.pathfinding.CostDeciders;
+import net.sf.freecol.common.util.LogBuilder;
+import net.sf.freecol.server.ai.AIColony;
+import net.sf.freecol.server.ai.AIMain;
+import net.sf.freecol.server.ai.AIUnit;
+import net.sf.freecol.server.ai.EuropeanAIPlayer;
+import net.sf.freecol.server.ai.GoodsWish;
+import net.sf.freecol.server.ai.Wish;
+import net.sf.freecol.server.ai.WorkerWish;
+
+
+/**
+ * Mission for realizing a &lt;code&gt;Wish&lt;/code&gt;.
+ */
+public class WishRealizationMission extends Mission {
+
+<span class="nc" id="L47">    private static final Logger logger = Logger.getLogger(WishRealizationMission.class.getName());</span>
+
+    /** The tag for this mission. */
+    private static final String tag = &quot;AI wisher&quot;;
+
+    /** The wish to be realized. */
+    private Wish wish;
+
+
+    /**
+     * Creates a mission for the given &lt;code&gt;AIUnit&lt;/code&gt;.
+     *
+     * @param aiMain The main AI-object.
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; this mission is created for.
+     * @param wish The &lt;code&gt;Wish&lt;/code&gt; which will be realized by
+     *     the unit and this mission.
+     */
+    public WishRealizationMission(AIMain aiMain, AIUnit aiUnit, Wish wish) {
+<span class="nc" id="L65">        super(aiMain, aiUnit, wish.getDestination());</span>
+
+<span class="nc" id="L67">        this.wish = wish;</span>
+<span class="nc" id="L68">        wish.setTransportable(aiUnit);</span>
+<span class="nc" id="L69">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;WishRealizationMission&lt;/code&gt; and reads the
+     * given element.
+     *
+     * @param aiMain The main AI-object.
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; this mission is created for.
+     * @param xr The input stream containing the XML.
+     * @throws XMLStreamException if a problem was encountered
+     *      during parsing.
+     * @see net.sf.freecol.server.ai.AIObject#readFromXML
+     */
+    public WishRealizationMission(AIMain aiMain, AIUnit aiUnit,
+                                  FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L84">        super(aiMain, aiUnit);</span>
+
+<span class="nc" id="L86">        readFromXML(xr);</span>
+<span class="nc" id="L87">    }</span>
+
+
+    /**
+     * Get the wish handled by this mission.
+     *
+     * @return The mission &lt;code&gt;Wish&lt;/code&gt;.
+     */
+    public Wish getWish() {
+<span class="nc" id="L96">        return this.wish;</span>
+    }
+
+    /**
+     * Why would this mission be invalid with the given AI unit and location?
+     *
+     * @param aiUnit The &lt;code&gt;AIUnit&lt;/code&gt; to check.
+     * @param loc The &lt;code&gt;Location&lt;/code&gt; to check.
+     * @return A reason for invalidity, or null if none found.
+     */
+    public static String invalidReason(AIUnit aiUnit, Location loc) {
+        String reason;
+<span class="nc bnc" id="L108" title="All 2 branches missed.">        return ((reason = invalidAIUnitReason(aiUnit)) != null) ? reason</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">            : ((reason = invalidTargetReason(loc,</span>
+<span class="nc" id="L110">                        aiUnit.getUnit().getOwner())) != null) ? reason</span>
+<span class="nc" id="L111">            : null;</span>
+    }
+
+
+    // Implement Mission
+    //   Inherit getTransportDestination, isOneTime
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void dispose() {
+<span class="nc bnc" id="L123" title="All 2 branches missed.">        if (this.wish != null) {</span>
+<span class="nc" id="L124">            this.wish.setTransportable(null);</span>
+<span class="nc" id="L125">            this.wish = null;</span>
+        }
+<span class="nc" id="L127">        super.dispose();</span>
+<span class="nc" id="L128">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getBaseTransportPriority() {
+<span class="nc" id="L135">        return NORMAL_TRANSPORT_PRIORITY;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Location getTarget() {
+<span class="nc bnc" id="L143" title="All 2 branches missed.">        return (this.wish == null) ? null : this.wish.getDestination();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setTarget(Location target) {
+        // Ignored, target is set by wish
+<span class="nc" id="L152">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Location findTarget() {
+<span class="nc" id="L159">        return getTarget();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String invalidReason() {
+<span class="nc bnc" id="L167" title="All 2 branches missed.">        return (this.wish == null) ? &quot;wish-null&quot;</span>
+<span class="nc" id="L168">            : invalidReason(getAIUnit(), getTarget());</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Mission doMission(LogBuilder lb) {
+<span class="nc" id="L176">        lb.add(tag);</span>
+<span class="nc" id="L177">        String reason = invalidReason();</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">        if (reason != null) return lbFail(lb, false, reason);</span>
+
+        // Move towards the target.
+<span class="nc" id="L181">        final Unit unit = getUnit();</span>
+<span class="nc" id="L182">        Location target = getTarget();</span>
+<span class="nc" id="L183">        Unit.MoveType mt = travelToTarget(target,</span>
+<span class="nc" id="L184">            CostDeciders.avoidSettlementsAndBlockingUnits(), lb);</span>
+<span class="nc bnc" id="L185" title="All 5 branches missed.">        switch (mt) {</span>
+        case MOVE: // Arrived
+<span class="nc" id="L187">            break;</span>
+
+        case MOVE_HIGH_SEAS: case MOVE_NO_MOVES: case MOVE_ILLEGAL:
+<span class="nc" id="L190">            return lbWait(lb);</span>
+
+        case MOVE_NO_REPAIR:
+<span class="nc" id="L193">            return lbFail(lb, false, AIUNITDIED);</span>
+
+        case MOVE_NO_ACCESS_EMBARK: case MOVE_NO_TILE:
+<span class="nc" id="L196">            return this;</span>
+
+        default:
+<span class="nc" id="L199">            return lbMove(lb, mt);</span>
+        }
+
+<span class="nc" id="L202">        lbAt(lb);</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">        if (target instanceof Colony) {</span>
+<span class="nc" id="L204">            final AIMain aiMain = getAIMain();</span>
+<span class="nc" id="L205">            final Colony colony = (Colony)target;</span>
+<span class="nc" id="L206">            final AIUnit aiUnit = getAIUnit();</span>
+<span class="nc" id="L207">            final AIColony aiColony = aiMain.getAIColony(colony);</span>
+<span class="nc" id="L208">            final EuropeanAIPlayer owner = getEuropeanAIPlayer();</span>
+<span class="nc" id="L209">            aiColony.completeWish(wish, unit.toShortString(), lb);</span>
+            // Replace the mission, with a defensive one if this is a
+            // military unit or a simple working one if not.
+<span class="nc bnc" id="L212" title="All 2 branches missed.">            if (unit.getType().isOffensive()) {</span>
+<span class="nc bnc" id="L213" title="All 2 branches missed.">                if (owner.getDefendSettlementMission(aiUnit, colony) != null) {</span>
+<span class="nc" id="L214">                    lbDone(lb, true, &quot;ready to defend, &quot;, colony);</span>
+<span class="nc" id="L215">                } else {</span>
+<span class="nc" id="L216">                    lbFail(lb, true, &quot;unable to defend&quot;);</span>
+                }
+<span class="nc" id="L218">            } else {                </span>
+<span class="nc" id="L219">                aiColony.requestRearrange();</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">                if (owner.getWorkInsideColonyMission(aiUnit, aiColony)!=null) {</span>
+<span class="nc" id="L221">                    lbDone(lb, true, &quot;ready to work &quot;, colony);</span>
+<span class="nc" id="L222">                } else {</span>
+<span class="nc" id="L223">                    lbFail(lb, true, &quot;unable to work&quot;);</span>
+                }
+            }
+<span class="nc" id="L226">        } else {</span>
+<span class="nc" id="L227">            lbFail(lb, true, &quot;broken wish &quot;, wish);</span>
+        }
+
+<span class="nc" id="L230">        this.wish = null; // completeWish disposes</span>
+<span class="nc" id="L231">        return lbDrop(lb);</span>
+    }
+
+
+    // Serialization
+
+    private static final String WISH_TAG = &quot;wish&quot;;
+    // @compat 0.10.3
+<span class="nc" id="L239">    private static final String OLD_GOODS_WISH_TAG = &quot;GoodsWish&quot;;</span>
+    // end @compat
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L248">        super.writeAttributes(xw);</span>
+
+<span class="nc" id="L250">        xw.writeAttribute(WISH_TAG, wish);</span>
+<span class="nc" id="L251">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L258">        super.readAttributes(xr);</span>
+
+<span class="nc" id="L260">        final AIMain aiMain = getAIMain();</span>
+
+<span class="nc" id="L262">        final String wid = xr.getAttribute(WISH_TAG, (String)null);</span>
+<span class="nc" id="L263">        wish = xr.getAttribute(aiMain, WISH_TAG, Wish.class, (Wish)null);</span>
+<span class="nc bnc" id="L264" title="All 2 branches missed.">        if (wish == null) {</span>
+<span class="nc bnc" id="L265" title="All 2 branches missed.">            if (wid.startsWith(GoodsWish.getTagName())</span>
+                // @compat 0.10.3
+<span class="nc bnc" id="L267" title="All 2 branches missed.">                || wid.startsWith(OLD_GOODS_WISH_TAG)</span>
+                // end @compat
+                ) {
+<span class="nc" id="L270">                wish = new GoodsWish(aiMain, wid);</span>
+
+<span class="nc bnc" id="L272" title="All 2 branches missed.">            } else if (wid.startsWith(WorkerWish.getTagName())) {</span>
+<span class="nc" id="L273">                wish = new WorkerWish(aiMain, wid);</span>
+
+<span class="nc" id="L275">            } else {</span>
+<span class="nc" id="L276">                throw new XMLStreamException(&quot;Unknown wish tag: &quot; + wid);</span>
+            }
+        }
+<span class="nc" id="L279">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="nc" id="L285">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return The &lt;code&gt;String&lt;/code&gt; &quot;wishRealizationMission&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L293">        return &quot;wishRealizationMission&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

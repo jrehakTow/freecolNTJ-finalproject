@@ -1,0 +1,476 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>Feature.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">Feature.java</span></div><h1>Feature.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+import net.sf.freecol.common.util.Utils;
+
+
+/**
+ * The &lt;code&gt;Feature&lt;/code&gt; class encapsulates a bonus or penalty
+ * that can be applied to any action within the game, most obviously
+ * combat.
+ */
+public abstract class Feature extends FreeColSpecObject implements Named {
+
+    /** The source of this Feature, e.g. a UnitType. */
+    private FreeColObject source;
+
+    /** The first Turn in which this Feature applies. */
+    private Turn firstTurn;
+
+    /** The last Turn in which this Feature applies. */
+    private Turn lastTurn;
+
+    /** The duration of this Feature. By default, the duration is unlimited. */
+<span class="fc" id="L52">    private int duration = 0;</span>
+
+    /**
+     * Transient features are provided by events such as disasters and
+     * goods parties, and need to be serialized by the
+     * FreeColGameObject they apply to.
+     */
+    private boolean temporary;
+
+    /**
+     * A list of Scopes limiting the applicability of this Feature.
+  	 * Allocated on demand.
+     */
+<span class="fc" id="L65">    private List&lt;Scope&gt; scopes = null;</span>
+
+
+    /**
+     * Deliberately trivial constructor.
+     *
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; to use.
+     */
+    public Feature(Specification specification) {
+<span class="fc" id="L74">        super(specification);</span>
+<span class="fc" id="L75">    }</span>
+
+
+    /**
+     * Copy another Feature.
+     *
+     * @param other The other &lt;code&gt;Feature&lt;/code&gt; to copy.
+     */
+    protected void copyFrom(Feature other) {
+<span class="fc" id="L84">        setId(other.getId());</span>
+<span class="fc" id="L85">        setSpecification(other.getSpecification());</span>
+<span class="fc" id="L86">        this.source = other.source;</span>
+<span class="fc" id="L87">        this.firstTurn = other.firstTurn;</span>
+<span class="fc" id="L88">        this.lastTurn = other.lastTurn;</span>
+<span class="fc" id="L89">        this.duration = other.duration;</span>
+<span class="fc" id="L90">        this.temporary = other.temporary;</span>
+<span class="fc" id="L91">        setScopes(other.getScopes());</span>
+<span class="fc" id="L92">    }</span>
+
+    /**
+     * Does this feature have a time limit?
+     *
+     * @return True if the feature is time limited.
+     */
+    public final boolean hasTimeLimit() {
+<span class="nc bnc" id="L100" title="All 4 branches missed.">        return (firstTurn != null || lastTurn != null);</span>
+    }
+
+    /**
+     * Get the first turn of a time limit.
+     *
+     * @return The first turn, or null if none.
+     */
+    public final Turn getFirstTurn() {
+<span class="nc" id="L109">        return firstTurn;</span>
+    }
+
+    /**
+     * Set the first turn of a time limit.
+     *
+     * @param newFirstTurn The new first turn value.
+     */
+    public final void setFirstTurn(final Turn newFirstTurn) {
+<span class="nc" id="L118">        this.firstTurn = newFirstTurn;</span>
+<span class="nc" id="L119">    }</span>
+
+    /**
+     * Get the last turn of a time limit.
+     *
+     * @return The last turn, or null if none.
+     */
+    public final Turn getLastTurn() {
+<span class="nc" id="L127">        return lastTurn;</span>
+    }
+
+    /**
+     * Set the last turn of a time limit.
+     *
+     * @param newLastTurn The new last turn value.
+     */
+    public final void setLastTurn(final Turn newLastTurn) {
+<span class="nc" id="L136">        this.lastTurn = newLastTurn;</span>
+<span class="nc" id="L137">    }</span>
+
+    /**
+     * Does this feature have a scope?
+     *
+     * @return True if there are any scopes attached to this feature.
+     */
+    public final boolean hasScope() {
+<span class="fc bfc" id="L145" title="All 4 branches covered.">        return scopes != null &amp;&amp; !scopes.isEmpty();</span>
+    }
+
+    /**
+     * Get the scopes for this feature.
+     *
+     * @return A list of &lt;code&gt;Scope&lt;/code&gt;s.
+     */
+    public final List&lt;Scope&gt; getScopes() {
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        return (scopes == null) ? Collections.&lt;Scope&gt;emptyList()</span>
+<span class="fc" id="L155">            : scopes;</span>
+    }
+
+    /**
+     * Set the scopes for this feature.
+     *
+     * @param scopes A list of new &lt;code&gt;Scope&lt;/code&gt;s.
+     */
+    public final void setScopes(List&lt;Scope&gt; scopes) {
+<span class="fc" id="L164">        this.scopes = scopes;</span>
+<span class="fc" id="L165">    }</span>
+
+    /**
+     * Add a scope.
+     *
+     * @param scope The &lt;code&gt;Scope&lt;/code&gt; to add.
+     */
+    public void addScope(Scope scope) {
+<span class="fc bfc" id="L173" title="All 2 branches covered.">        if (scopes == null) scopes = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L174">        scopes.add(scope);</span>
+<span class="fc" id="L175">    }</span>
+
+    /**
+     * Get the source of this feature.
+     *
+     * @return The source object.
+     */
+    public final FreeColObject getSource() {
+<span class="fc" id="L183">        return source;</span>
+    }
+
+    /**
+     * Set the source of this feature.
+     *
+     * @param newSource The new source.
+     */
+    public final void setSource(final FreeColObject newSource) {
+<span class="fc" id="L192">        this.source = newSource;</span>
+<span class="fc" id="L193">    }</span>
+
+    /**
+     * Get the duration of this feature.
+     *
+     * @return The number of turns this feature lasts.
+     */
+    public final int getDuration() {
+<span class="nc" id="L201">        return duration;</span>
+    }
+
+    /**
+     * Set the duration of this feature.
+     *
+     * @param newDuration The new duration.
+     */
+    public final void setDuration(final int newDuration) {
+<span class="nc" id="L210">        this.duration = newDuration;</span>
+<span class="nc" id="L211">    }</span>
+
+    /**
+     * Is this a temporary feature?
+     *
+     * @return True if this is a temporary feature.
+     */
+    public final boolean isTemporary() {
+<span class="nc" id="L219">        return temporary;</span>
+    }
+
+    /**
+     * Set the temporary status.
+     *
+     * @param newTemporary The new temporary status.
+     */
+    public final void setTemporary(final boolean newTemporary) {
+<span class="nc" id="L228">        this.temporary = newTemporary;</span>
+<span class="nc" id="L229">    }</span>
+
+    /**
+     * Does this feature apply to a given object type?
+     *
+     * @param objectType The &lt;code&gt;FreeColSpecObjectType&lt;/code&gt; to test.
+     * @return True if there are no scopes, or at least one scope is
+     *     applicable to the object.
+     */
+    public boolean appliesTo(final FreeColSpecObjectType objectType) {
+<span class="fc bfc" id="L239" title="All 2 branches covered.">        return (!hasScope()) ? true</span>
+<span class="fc" id="L240">            : any(scopes, s -&gt; s.appliesTo(objectType));</span>
+    }
+
+    /**
+     * Does this feature apply to a given turn?
+     *
+     * @param turn The &lt;code&gt;Turn&lt;/code&gt; to test.
+     * @return True if the turn is null or not outside a valid time limit.
+     */
+    protected boolean appliesTo(final Turn turn) {
+<span class="pc bpc" id="L250" title="3 of 4 branches missed.">        return !(turn != null</span>
+<span class="nc bnc" id="L251" title="All 4 branches missed.">            &amp;&amp; (firstTurn != null &amp;&amp; turn.getNumber() &lt; firstTurn.getNumber()</span>
+<span class="nc bnc" id="L252" title="All 2 branches missed.">                || lastTurn != null &amp;&amp; turn.getNumber() &gt; lastTurn.getNumber()));</span>
+    }
+
+    /**
+     * Does this feature apply to a given object type and turn.
+     *
+     * @param objectType The &lt;code&gt;FreeColSpecObjectType&lt;/code&gt; to test.
+     * @param turn The &lt;code&gt;Turn&lt;/code&gt; to test.
+     * @return True if the feature applies.
+     */
+    protected boolean appliesTo(final FreeColSpecObjectType objectType,
+                                final Turn turn) {
+<span class="pc bpc" id="L264" title="1 of 4 branches missed.">        return appliesTo(turn) &amp;&amp; appliesTo(objectType);</span>
+    }
+
+    /**
+     * Is this feature out of date with respect to a given turn?
+     *
+     * @param turn The &lt;code&gt;Turn&lt;/code&gt; to compare to.
+     * @return True if the Feature has an lastTurn turn smaller than the
+     *     given turn.
+     */
+    public boolean isOutOfDate(Turn turn) {
+<span class="nc bnc" id="L275" title="All 6 branches missed.">        return turn != null &amp;&amp; lastTurn != null</span>
+<span class="nc" id="L276">            &amp;&amp; turn.getNumber() &gt; lastTurn.getNumber();</span>
+    }
+
+    /**
+     * Is this feature an independent stand-alone one, or is it
+     * derived from some other entity such as a founding father.  This
+     * is important for player and colony serialization, where we do
+     * *not* want to read or write derived features because they are
+     * added to the player by the source.
+     *
+     * @return True if the feature is independent.
+     */
+    public boolean isIndependent() {
+<span class="nc bnc" id="L289" title="All 2 branches missed.">        if (source instanceof BuildingType</span>
+<span class="nc bnc" id="L290" title="All 2 branches missed.">            || source instanceof FoundingFather</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">            || source instanceof NationType</span>
+<span class="nc bnc" id="L292" title="All 2 branches missed.">            || source instanceof SettlementType) return false;</span>
+<span class="nc" id="L293">        return true;</span>
+    }
+
+
+    // Interface Named
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getNameKey() {
+<span class="nc" id="L304">        return Messages.nameKey(getId());</span>
+    }
+
+
+    // Override Object
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object o) {
+<span class="pc bpc" id="L315" title="1 of 2 branches missed.">        if (o == this) return true;</span>
+<span class="pc bpc" id="L316" title="1 of 2 branches missed.">        if (o instanceof Feature) {</span>
+<span class="fc" id="L317">            Feature feature = (Feature)o;</span>
+<span class="pc bpc" id="L318" title="1 of 2 branches missed.">            if (!super.equals(o)</span>
+<span class="pc bpc" id="L319" title="1 of 2 branches missed.">                || this.source != feature.source</span>
+<span class="pc bpc" id="L320" title="1 of 2 branches missed.">                || this.duration != feature.duration</span>
+<span class="pc bpc" id="L321" title="1 of 2 branches missed.">                || this.temporary != feature.temporary)</span>
+<span class="nc" id="L322">                return false;</span>
+<span class="pc bpc" id="L323" title="1 of 2 branches missed.">            if (firstTurn == null) {</span>
+<span class="pc bpc" id="L324" title="1 of 2 branches missed.">                if (feature.firstTurn != null) return false;</span>
+<span class="nc bnc" id="L325" title="All 2 branches missed.">            } else if (feature.firstTurn == null) {</span>
+<span class="nc" id="L326">                return false;</span>
+<span class="nc bnc" id="L327" title="All 2 branches missed.">            } else if (firstTurn.getNumber() != feature.firstTurn.getNumber()) {</span>
+<span class="nc" id="L328">                return false;</span>
+            }
+<span class="pc bpc" id="L330" title="1 of 2 branches missed.">            if (lastTurn == null) {</span>
+<span class="pc bpc" id="L331" title="1 of 2 branches missed.">                if (feature.lastTurn != null) return false;</span>
+<span class="nc bnc" id="L332" title="All 2 branches missed.">            } else if (feature.lastTurn == null) {</span>
+<span class="nc" id="L333">                return false;</span>
+<span class="nc bnc" id="L334" title="All 2 branches missed.">            } else if (lastTurn.getNumber() != feature.lastTurn.getNumber()) {</span>
+<span class="nc" id="L335">                return false;</span>
+            }
+<span class="pc bpc" id="L337" title="1 of 2 branches missed.">            if (scopes == null) {</span>
+<span class="pc bpc" id="L338" title="1 of 2 branches missed.">                if (feature.scopes != null) {</span>
+<span class="fc" id="L339">                    return false;</span>
+                }
+<span class="nc bnc" id="L341" title="All 2 branches missed.">            } else if (feature.scopes == null) {</span>
+<span class="nc" id="L342">                return false;</span>
+            } else {
+                // Not very efficient, but we do not expect many scopes
+<span class="nc bnc" id="L345" title="All 2 branches missed.">                if (!all(scopes, s -&gt; feature.scopes.contains(s))</span>
+<span class="nc bnc" id="L346" title="All 2 branches missed.">                    || !all(feature.scopes, s -&gt; scopes.contains(s)))</span>
+<span class="nc" id="L347">                    return false;</span>
+            }
+<span class="nc" id="L349">            return true;</span>
+        }
+<span class="nc" id="L351">        return false;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int hashCode() {
+<span class="fc" id="L359">        int hash = super.hashCode();</span>
+<span class="fc" id="L360">        hash += 31 * hash + Utils.hashCode(source);</span>
+<span class="pc bpc" id="L361" title="1 of 2 branches missed.">        hash += 31 * hash + ((firstTurn == null) ? 0 : firstTurn.getNumber());</span>
+<span class="pc bpc" id="L362" title="1 of 2 branches missed.">        hash += 31 * hash + ((lastTurn == null) ? 0 : lastTurn.getNumber());</span>
+<span class="fc" id="L363">        hash += 31 * hash + duration;</span>
+<span class="fc bfc" id="L364" title="All 2 branches covered.">        hash += 31 * ((temporary) ? 1 : 0);</span>
+<span class="fc bfc" id="L365" title="All 2 branches covered.">        if (scopes != null) {</span>
+<span class="fc bfc" id="L366" title="All 2 branches covered.">            for (Scope scope : scopes) {</span>
+                // FIXME: is this safe?  It is an easy way to ignore
+                // the order of scope elements.
+<span class="fc" id="L369">                hash += Utils.hashCode(scope);</span>
+            }
+        }
+<span class="fc" id="L372">        return hash;</span>
+    }
+
+
+    // Serialization
+
+    private static final String DURATION_TAG = &quot;duration&quot;;
+    private static final String FIRST_TURN_TAG = &quot;firstTurn&quot;;
+    private static final String LAST_TURN_TAG = &quot;lastTurn&quot;;
+    private static final String SOURCE_TAG = &quot;source&quot;;
+    private static final String TEMPORARY_TAG = &quot;temporary&quot;;
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L390">        super.writeAttributes(xw);</span>
+
+<span class="nc bnc" id="L392" title="All 2 branches missed.">        if (getSource() != null) {</span>
+<span class="nc" id="L393">            xw.writeAttribute(SOURCE_TAG, getSource());</span>
+        }
+
+<span class="nc bnc" id="L396" title="All 2 branches missed.">        if (getFirstTurn() != null) {</span>
+<span class="nc" id="L397">            xw.writeAttribute(FIRST_TURN_TAG, getFirstTurn().getNumber());</span>
+        }
+
+<span class="nc bnc" id="L400" title="All 2 branches missed.">        if (getLastTurn() != null) {</span>
+<span class="nc" id="L401">            xw.writeAttribute(LAST_TURN_TAG, getLastTurn().getNumber());</span>
+        }
+
+<span class="nc bnc" id="L404" title="All 2 branches missed.">        if (duration != 0) {</span>
+<span class="nc" id="L405">            xw.writeAttribute(DURATION_TAG, duration);</span>
+        }
+
+<span class="nc bnc" id="L408" title="All 2 branches missed.">        if (temporary) {</span>
+<span class="nc" id="L409">            xw.writeAttribute(TEMPORARY_TAG, temporary);</span>
+        }
+<span class="nc" id="L411">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeChildren(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L418">        super.writeChildren(xw);</span>
+
+<span class="nc bnc" id="L420" title="All 2 branches missed.">        for (Scope scope : getScopes()) scope.toXML(xw);</span>
+<span class="nc" id="L421">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L428">        super.readAttributes(xr);</span>
+
+<span class="fc" id="L430">        final Specification spec = getSpecification();</span>
+
+<span class="fc" id="L432">        String str = xr.getAttribute(SOURCE_TAG, (String)null);</span>
+<span class="fc bfc" id="L433" title="All 2 branches covered.">        if (str == null) {</span>
+<span class="fc" id="L434">            setSource(null);</span>
+<span class="pc bpc" id="L435" title="1 of 2 branches missed.">        } else if (spec != null) {</span>
+<span class="fc" id="L436">            setSource(spec.findType(str));</span>
+        }
+
+<span class="fc" id="L439">        int firstTurn = xr.getAttribute(FIRST_TURN_TAG, UNDEFINED);</span>
+<span class="pc bpc" id="L440" title="1 of 2 branches missed.">        if (firstTurn != UNDEFINED) setFirstTurn(new Turn(firstTurn));</span>
+
+<span class="fc" id="L442">        int lastTurn = xr.getAttribute(LAST_TURN_TAG, UNDEFINED);</span>
+<span class="pc bpc" id="L443" title="1 of 2 branches missed.">        if (lastTurn != UNDEFINED) setLastTurn(new Turn(lastTurn));</span>
+
+<span class="fc" id="L445">        duration = xr.getAttribute(DURATION_TAG, 0);</span>
+
+<span class="fc" id="L447">        temporary = xr.getAttribute(TEMPORARY_TAG, false);</span>
+<span class="fc" id="L448">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChildren(FreeColXMLReader xr) throws XMLStreamException {
+        // Clear containers.
+<span class="fc" id="L456">        scopes = null;</span>
+
+<span class="fc" id="L458">        super.readChildren(xr);</span>
+<span class="fc" id="L459">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChild(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L466">        final String tag = xr.getLocalName();</span>
+
+<span class="pc bpc" id="L468" title="1 of 2 branches missed.">        if (Scope.getTagName().equals(tag)) {</span>
+<span class="fc" id="L469">            addScope(new Scope(xr));</span>
+
+<span class="fc" id="L471">        } else {</span>
+<span class="nc" id="L472">            super.readChild(xr);</span>
+        }
+<span class="fc" id="L474">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>TradeRoute.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">TradeRoute.java</span></div><h1>TradeRoute.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.model.GameOptions;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+
+
+/**
+ * A TradeRoute holds all information for a unit to follow along a trade route.
+ */
+public class TradeRoute extends FreeColGameObject
+    implements Nameable, Ownable {
+
+<span class="nc" id="L43">    private static final Logger logger = Logger.getLogger(TradeRoute.class.getName());</span>
+
+    /** The name of this trade route. */
+    private String name;
+
+    /**
+     * The &lt;code&gt;Player&lt;/code&gt; who owns this trade route.  This is
+     * necessary to ensure that malicious clients can not modify the
+     * trade routes of other players.
+     */
+    private Player owner;
+
+    /** A list of stops. */
+<span class="nc" id="L56">    private final List&lt;TradeRouteStop&gt; stops = new ArrayList&lt;&gt;();</span>
+
+    /** Silence the messaging for this trade route. */
+<span class="nc" id="L59">    private boolean silent = false;</span>
+
+
+    /**
+     * Creates a new &lt;code&gt;TradeRoute&lt;/code&gt; instance.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param name The name of the trade route.
+     * @param player The owner &lt;code&gt;Player&lt;/code&gt;.
+     */
+    public TradeRoute(Game game, String name, Player player) {
+<span class="nc" id="L70">        super(game);</span>
+<span class="nc" id="L71">        this.name = name;</span>
+<span class="nc" id="L72">        this.owner = player;</span>
+<span class="nc" id="L73">        this.silent = false;</span>
+<span class="nc" id="L74">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;TradeRoute&lt;/code&gt; instance.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param id The object identifier.
+     */
+    public TradeRoute(Game game, String id) {
+<span class="nc" id="L83">        super(game, id);</span>
+<span class="nc" id="L84">    }</span>
+
+
+    /**
+     * Copy all fields from another trade route to this one.  This is
+     * useful when an updated route is received on the server side
+     * from the client.
+     *
+     * @param other The &lt;code&gt;TradeRoute&lt;/code&gt; to copy from.
+     */
+    public synchronized void updateFrom(TradeRoute other) {
+<span class="nc" id="L95">        setName(other.getName());</span>
+<span class="nc" id="L96">        setOwner(other.getOwner());</span>
+<span class="nc" id="L97">        clearStops();</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">        for (TradeRouteStop otherStop : other.getStops()) {</span>
+<span class="nc" id="L99">            addStop(new TradeRouteStop(otherStop));</span>
+        }
+<span class="nc" id="L101">        this.silent = other.silent;</span>
+<span class="nc" id="L102">    }</span>
+
+    /**
+     * Does this trade route generate no messages to the player?
+     *
+     * @return True if this trade route is silent.
+     */
+    public boolean isSilent() {
+<span class="nc" id="L110">        return this.silent;</span>
+    }
+
+    /**
+     * Set the silence status of this trade route.
+     *
+     * @param silent The new silence status of this trade route.
+     */
+    public void setSilent(boolean silent) {
+<span class="nc" id="L119">        this.silent = silent;</span>
+<span class="nc" id="L120">    }</span>
+
+    /**
+     * Get the stops in this trade route.
+     *
+     * @return A list of &lt;code&gt;TradeRouteStop&lt;/code&gt;s.
+     */
+    public final List&lt;TradeRouteStop&gt; getStops() {
+<span class="nc" id="L128">        return this.stops;</span>
+    }
+
+    /**
+     * Get a list of the trade route stops in this trade route, starting
+     * at a given stop (inclusive) and a final stop (exclusive).
+     *
+     * @param start The starting &lt;code&gt;TradeRouteStop&lt;/code&gt;.
+     * @param end The end &lt;code&gt;TradeRouteStop&lt;/code&gt;.
+     * @return A list of stops, or null on error.
+     */
+    public List&lt;TradeRouteStop&gt; getStopSublist(TradeRouteStop start,
+                                               TradeRouteStop end) {
+<span class="nc" id="L141">        int i0 = getIndex(start), in = getIndex(end);</span>
+<span class="nc bnc" id="L142" title="All 4 branches missed.">        if (i0 &lt; 0 || in &lt; 0) return null;</span>
+<span class="nc" id="L143">        List&lt;TradeRouteStop&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">        while (i0 != in) {</span>
+<span class="nc" id="L145">            result.add(this.stops.get(i0));</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">            if (++i0 &gt;= this.stops.size()) i0 = 0;</span>
+        }
+<span class="nc" id="L148">        return result;</span>
+    }
+
+    /**
+     * Add a new &lt;code&gt;TradeRouteStop&lt;/code&gt; to this trade route.
+     *
+     * @param stop The &lt;code&gt;TradeRouteStop&lt;/code&gt; to add.
+     */
+    public void addStop(TradeRouteStop stop) {
+<span class="nc bnc" id="L157" title="All 2 branches missed.">        if (stop != null) this.stops.add(stop);</span>
+<span class="nc" id="L158">    }</span>
+
+    /**
+     * Remove a &lt;code&gt;TradeRouteStop&lt;/code&gt; from this trade route.
+     *
+     * @param stop The &lt;code&gt;TradeRouteStop&lt;/code&gt; to remove.
+     */
+    public void removeStop(TradeRouteStop stop) {
+<span class="nc bnc" id="L166" title="All 2 branches missed.">        if (stop != null) this.stops.remove(stop);</span>
+<span class="nc" id="L167">    }</span>
+
+    /**
+     * Get the index of a stop in this trade route.
+     *
+     * @param stop The &lt;code&gt;TradeRouteStop&lt;/code&gt; to look for.
+     * @return The index of the given stop, or negative on failure.
+     */
+    public int getIndex(TradeRouteStop stop) {
+<span class="nc" id="L176">        int i = 0;</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">        for (TradeRouteStop trs : this.stops) {</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">            if (trs == stop) return i;</span>
+<span class="nc" id="L179">            i++;</span>
+        }
+<span class="nc" id="L181">        return -1;</span>
+    }
+
+    /**
+     * Clear the stops in this trade route.
+     */
+    public void clearStops() {
+<span class="nc" id="L188">        this.stops.clear();</span>
+<span class="nc" id="L189">    }</span>
+
+    /**
+     * Get the units assigned to this route.
+     *
+     * @return A list of assigned &lt;code&gt;Unit&lt;/code&gt;s.
+     */
+    public List&lt;Unit&gt; getAssignedUnits() {
+<span class="nc bnc" id="L197" title="All 2 branches missed.">        return transform(getOwner().getUnits(), u -&gt; u.getTradeRoute() == this,</span>
+<span class="nc" id="L198">                         Collectors.toList());</span>
+    }
+
+    /**
+     * Is a stop valid for a given unit?
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; to check.
+     * @param stop The &lt;code&gt;TradeRouteStop&lt;/code&gt; to check.
+     * @return True if the stop is valid.
+     */
+    public static boolean isStopValid(Unit unit, TradeRouteStop stop) {
+<span class="nc" id="L209">        return TradeRoute.isStopValid(unit.getOwner(), stop);</span>
+    }
+
+    /**
+     * Is a stop valid for a given player?
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; to check.
+     * @param stop The &lt;code&gt;TradeRouteStop&lt;/code&gt; to check.
+     * @return True if the stop is valid.
+     */
+    public static boolean isStopValid(Player player, TradeRouteStop stop) {
+<span class="nc bnc" id="L220" title="All 2 branches missed.">        return (stop == null) ? false : stop.isValid(player);</span>
+    }
+
+    /**
+     * Check the uniqueness of the trade route name.
+     *
+     * @return Null if the name is unique, or a &lt;code&gt;StringTemplate&lt;/code&gt;
+     *     containing an error message if not.
+     */
+    public StringTemplate verifyUniqueName() {
+<span class="nc bnc" id="L230" title="All 2 branches missed.">        return (getOwner().getTradeRouteByName(this.name, this) != null)</span>
+<span class="nc" id="L231">            ? StringTemplate.template(&quot;model.tradeRoute.duplicateName&quot;)</span>
+<span class="nc" id="L232">                .addName(&quot;%name%&quot;, this.name)</span>
+<span class="nc" id="L233">            : null;</span>
+    }
+
+    /**
+     * Check that the trade route is valid.
+     *
+     * @return Null if the route is valid, or a &lt;code&gt;StringTemplate&lt;/code&gt;
+     *     explaining the problem if invalid.
+     */
+    public StringTemplate verify() {
+<span class="nc bnc" id="L243" title="All 2 branches missed.">        if (this.name == null) {</span>
+<span class="nc" id="L244">            return StringTemplate.template(&quot;model.tradeRoute.nullName&quot;);</span>
+        }
+<span class="nc bnc" id="L246" title="All 2 branches missed.">        if (this.owner == null) {</span>
+<span class="nc" id="L247">            return StringTemplate.template(&quot;model.tradeRoute.nullOwner&quot;);</span>
+        }
+
+        // Verify that it has at least two stops
+<span class="nc bnc" id="L251" title="All 2 branches missed.">        if (this.stops.size() &lt; 2) {</span>
+<span class="nc" id="L252">            return StringTemplate.template(&quot;model.tradeRoute.notEnoughStops&quot;);</span>
+        }
+
+        // Check:
+        // - all stops are valid
+        // - there is at least one non-empty stop
+        // - there is no goods that is present unmaintained at all stops
+<span class="nc" id="L259">        Set&lt;GoodsType&gt; always = new HashSet&lt;&gt;(this.stops.get(0).getCargo());</span>
+<span class="nc" id="L260">        boolean empty = true;</span>
+<span class="nc bnc" id="L261" title="All 2 branches missed.">        for (TradeRouteStop stop : this.stops) {</span>
+<span class="nc bnc" id="L262" title="All 2 branches missed.">            if (!TradeRoute.isStopValid(owner, stop)) {</span>
+<span class="nc" id="L263">                return stop.invalidStopLabel(owner);</span>
+            }
+<span class="nc bnc" id="L265" title="All 2 branches missed.">            if (!stop.getCargo().isEmpty()) empty = false;</span>
+<span class="nc" id="L266">            always.retainAll(stop.getCargo());</span>
+        }
+<span class="nc" id="L268">        final boolean enhancedTradeRoutes = getSpecification()</span>
+<span class="nc" id="L269">            .getBoolean(GameOptions.ENHANCED_TRADE_ROUTES);</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">        return (empty)</span>
+<span class="nc" id="L271">            ? StringTemplate.template(&quot;model.tradeRoute.allEmpty&quot;)</span>
+<span class="nc bnc" id="L272" title="All 4 branches missed.">            : (!enhancedTradeRoutes &amp;&amp; !always.isEmpty())</span>
+<span class="nc" id="L273">            ? StringTemplate.template(&quot;model.tradeRoute.alwaysPresent&quot;)</span>
+<span class="nc" id="L274">                .addNamed(&quot;%goodsType%&quot;, always.iterator().next())</span>
+<span class="nc" id="L275">            : null;</span>
+    }
+
+
+    // Interface Nameable
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public final String getName() {
+<span class="nc" id="L286">        return this.name;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public final void setName(final String newName) {
+<span class="nc" id="L294">        this.name = newName;</span>
+<span class="nc" id="L295">    }</span>
+
+
+    // Interface Ownable
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public final Player getOwner() {
+<span class="nc" id="L305">        return this.owner;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public final void setOwner(final Player newOwner) {
+<span class="nc" id="L313">        this.owner = newOwner;</span>
+<span class="nc" id="L314">    }</span>
+
+
+    // Serialization
+
+    private static final String NAME_TAG = &quot;name&quot;;
+    private static final String OWNER_TAG = &quot;owner&quot;;
+<span class="nc" id="L321">    private static final String SILENT_TAG = &quot;silent&quot;;</span>
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L329">        super.writeAttributes(xw);</span>
+
+<span class="nc" id="L331">        xw.writeAttribute(NAME_TAG, getName());</span>
+
+<span class="nc" id="L333">        xw.writeAttribute(OWNER_TAG, getOwner());</span>
+
+<span class="nc" id="L335">        xw.writeAttribute(SILENT_TAG, isSilent());</span>
+<span class="nc" id="L336">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeChildren(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L343">        super.writeChildren(xw);</span>
+
+<span class="nc bnc" id="L345" title="All 2 branches missed.">        for (TradeRouteStop stop : this.stops) stop.toXML(xw);</span>
+<span class="nc" id="L346">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L353">        super.readAttributes(xr);</span>
+
+<span class="nc" id="L355">        this.name = xr.getAttribute(NAME_TAG, (String)null);</span>
+
+<span class="nc" id="L357">        this.owner = xr.findFreeColGameObject(getGame(), OWNER_TAG,</span>
+<span class="nc" id="L358">                                              Player.class, (Player)null, true);</span>
+
+<span class="nc" id="L360">        this.silent = xr.getAttribute(SILENT_TAG, false);</span>
+<span class="nc" id="L361">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChildren(FreeColXMLReader xr) throws XMLStreamException {
+        // Clear containers.
+<span class="nc" id="L369">        clearStops();</span>
+
+<span class="nc" id="L371">        super.readChildren(xr);</span>
+<span class="nc" id="L372">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChild(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L379">        final String tag = xr.getLocalName();</span>
+
+<span class="nc bnc" id="L381" title="All 2 branches missed.">        if (TradeRouteStop.getTagName().equals(tag)) {</span>
+<span class="nc" id="L382">            addStop(new TradeRouteStop(getGame(), xr));</span>
+            
+<span class="nc" id="L384">        } else {</span>
+<span class="nc" id="L385">            super.readChild(xr);</span>
+        }
+<span class="nc" id="L387">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L394">        StringBuilder sb = new StringBuilder(64);</span>
+<span class="nc" id="L395">        sb.append(&quot;[&quot;).append(getXMLTagName())</span>
+<span class="nc" id="L396">            .append(&quot; \&quot;&quot;).append(this.name).append(&quot;\&quot;&quot;);</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">        if (this.owner != null) sb.append(&quot; owner=&quot;).append(this.owner.getId());</span>
+<span class="nc" id="L398">        sb.append(&quot; silent=&quot;).append(Boolean.toString(this.silent));</span>
+<span class="nc bnc" id="L399" title="All 2 branches missed.">        for (TradeRouteStop stop : getStops()) sb.append(&quot; &quot;).append(stop);</span>
+<span class="nc" id="L400">        sb.append(&quot;]&quot;);</span>
+<span class="nc" id="L401">        return sb.toString();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="nc" id="L408">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;tradeRoute&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L416">        return &quot;tradeRoute&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

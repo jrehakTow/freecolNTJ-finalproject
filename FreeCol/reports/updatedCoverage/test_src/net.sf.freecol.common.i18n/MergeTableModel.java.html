@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>MergeTableModel.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.i18n</a> &gt; <span class="el_source">MergeTableModel.java</span></div><h1>MergeTableModel.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.i18n;
+
+import javax.swing.table.AbstractTableModel;
+
+
+<span class="nc" id="L25">public final class MergeTableModel extends AbstractTableModel {</span>
+<span class="nc" id="L26">    private static final String[]  COLUMN_NAME_ARRAY = { &quot;file1&quot;, &quot;file2&quot; };</span>
+
+    Merge  merge;
+
+
+    // ------------------------------------------------------------ API methods
+
+    void mergeChanged()
+    {
+<span class="nc" id="L35">        fireTableDataChanged();</span>
+<span class="nc" id="L36">    }</span>
+
+
+    String leftLineAtRow( int rowIndex )
+    {
+<span class="nc bnc" id="L41" title="All 2 branches missed.">        return rowIndex &lt; merge.lineFromFile1.size()</span>
+<span class="nc" id="L42">            ? (String) merge.lineFromFile1.get(rowIndex)</span>
+<span class="nc" id="L43">            : null;</span>
+    }
+
+
+    String rightLineAtRow( int rowIndex )
+    {
+<span class="nc bnc" id="L49" title="All 2 branches missed.">        return rowIndex &lt; merge.lineFromFile2.size()</span>
+<span class="nc" id="L50">            ? (String) merge.lineFromFile2.get(rowIndex)</span>
+<span class="nc" id="L51">            : null;</span>
+    }
+
+
+    public void insertInRight( int from, int to )
+    {
+<span class="nc bnc" id="L57" title="All 2 branches missed.">        for ( int i = from;  i &lt;= to;  i ++ )</span>
+        {
+<span class="nc" id="L59">            String  line = leftLineAtRow( i );</span>
+            // prefix newly inserted lines with an &quot;@&quot; to make it easy to find
+            // them when translating the new messages
+<span class="nc" id="L62">            line = &quot;@&quot; + line;</span>
+<span class="nc" id="L63">            merge.lineFromFile2.add( i, line );</span>
+        }
+
+<span class="nc" id="L66">        mergeChanged();</span>
+<span class="nc" id="L67">    }</span>
+
+
+    public void deleteFromRight( int from, int to )
+    {
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        for ( int i = to;  from &lt;= i;  i -- )</span>
+        {
+<span class="nc" id="L74">            merge.lineFromFile2.remove( i  );</span>
+        }
+
+<span class="nc" id="L77">        mergeChanged();</span>
+<span class="nc" id="L78">    }</span>
+
+
+    // ----------------------------------------------------- overridden methods
+
+    @Override
+    public int getRowCount()
+    {
+<span class="nc" id="L86">        return Math.max( merge.lineFromFile1.size(), merge.lineFromFile2.size() );</span>
+    }
+
+
+    @Override
+    public int getColumnCount()
+    {
+<span class="nc" id="L93">        return COLUMN_NAME_ARRAY.length;</span>
+    }
+
+
+    @Override
+    public String getColumnName( int columnIndex )
+    {
+<span class="nc" id="L100">        return COLUMN_NAME_ARRAY[ columnIndex ];</span>
+    }
+
+
+    @Override
+    public Object getValueAt( int rowIndex, int columnIndex )
+    {
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        if ( 0 == columnIndex )</span>
+        {
+<span class="nc" id="L109">            return leftLineAtRow( rowIndex );</span>
+        }
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        else if ( 1 == columnIndex )</span>
+        {
+<span class="nc" id="L113">            return rightLineAtRow( rowIndex );</span>
+        }
+<span class="nc" id="L115">        else { throw new RuntimeException( Integer.toString(columnIndex) ); }</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

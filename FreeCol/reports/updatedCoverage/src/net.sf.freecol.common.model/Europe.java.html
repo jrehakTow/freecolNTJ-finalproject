@@ -1,0 +1,663 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>Europe.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">Europe.java</span></div><h1>Europe.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Logger;
+
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.model.Unit.UnitState;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+
+
+/**
+ * Represents Europe in the game.  Each &lt;code&gt;Player&lt;/code&gt; has it's
+ * own &lt;code&gt;Europe&lt;/code&gt;.
+ *
+ * In Europe, you can recruit, train and purchase new units.  You can
+ * also equip units, as well as sell and buy goods.
+ */
+public class Europe extends UnitLocation
+    implements Ownable, Named, TradeLocation {
+
+<span class="nc" id="L47">    private static final Logger logger = Logger.getLogger(Europe.class.getName());</span>
+
+    /** The initial recruit price. */
+    private static final int RECRUIT_PRICE_INITIAL = 200;
+
+    /** The initial lower bound on recruitment price. */
+    private static final int LOWER_CAP_INITIAL = 80;
+
+    public static final String UNIT_CHANGE = &quot;unitChange&quot;;
+
+<span class="nc" id="L57">    public static final Ability ABILITY_DRESS_MISSIONARY</span>
+<span class="nc" id="L58">        = new Ability(Ability.DRESS_MISSIONARY, true);</span>
+
+    /**
+     * Migration handling.
+     *
+     * Migration routines operate on:
+     * - &quot;indexes&quot; which refer to a valid member of the recruitables
+     *   list, and must be [0, RECRUIT_COUNT)
+     * - &quot;slots&quot;, where slot zero means &quot;pick a random migrant&quot; and the
+     *   other slots in [1, RECRUIT_COUNT] refer to the index == slot-1
+     * The following constant should be used when the random choice
+     * behaviour is desired.
+     */
+<span class="nc" id="L71">    public static enum MigrationType {</span>
+<span class="nc" id="L72">        NORMAL,     // Unit decided to migrate</span>
+<span class="nc" id="L73">        RECRUIT,    // Player is paying</span>
+<span class="nc" id="L74">        FOUNTAIN,   // As a result of a Fountain of Youth discovery</span>
+<span class="nc" id="L75">        SURVIVAL;   // Emergency autorecruit in server</span>
+
+        /** The number of recruitable unit types. */
+        private static final int MIGRANT_COUNT = 3;
+
+        /**
+         * The unspecific migrant slot to use to denote a random
+         * choice between specific slots.
+         */
+        private static final int CHOOSE_MIGRANT_SLOT = 0;
+
+        /**
+         * The migrant slot to use when there is no reason to choose
+         * between them.
+         */
+<span class="nc" id="L90">        private static final int DEFAULT_MIGRANT_SLOT = 1;</span>
+
+        public static int getMigrantCount() {
+<span class="nc" id="L93">            return MIGRANT_COUNT;</span>
+        }
+
+        public static int getUnspecificSlot() {
+<span class="nc" id="L97">            return CHOOSE_MIGRANT_SLOT;</span>
+        }
+
+        public static int getDefaultSlot() {
+<span class="nc" id="L101">            return DEFAULT_MIGRANT_SLOT;</span>
+        }
+
+        public static boolean validMigrantIndex(int x) {
+<span class="nc bnc" id="L105" title="All 4 branches missed.">            return 0 &lt;= x &amp;&amp; x &lt; MIGRANT_COUNT;</span>
+        }
+
+        public static int migrantIndexToSlot(int x) {
+<span class="nc" id="L109">            return x + 1;</span>
+        }
+
+        public static int migrantSlotToIndex(int x) {
+<span class="nc" id="L113">            return x - 1;</span>
+        }
+
+        public static int convertToMigrantSlot(Integer i) {
+<span class="nc bnc" id="L117" title="All 4 branches missed.">            return (i == null || !validMigrantSlot(i)) ? CHOOSE_MIGRANT_SLOT</span>
+<span class="nc" id="L118">                : i;</span>
+        }
+
+        public static boolean validMigrantSlot(int x) {
+<span class="nc bnc" id="L122" title="All 4 branches missed.">            return 0 &lt;= x &amp;&amp; x &lt;= MIGRANT_COUNT;</span>
+        }
+
+        public static boolean specificMigrantSlot(int x) {
+<span class="nc bnc" id="L126" title="All 4 branches missed.">            return 1 &lt;= x &amp;&amp; x &lt;= MIGRANT_COUNT;</span>
+        }
+
+        public static boolean unspecificMigrantSlot(int x) {
+<span class="nc bnc" id="L130" title="All 2 branches missed.">            return CHOOSE_MIGRANT_SLOT == x;</span>
+        }
+    }
+
+    /**
+     * This list represents the types of the units that can be
+     * recruited in Europe.
+     */
+<span class="nc" id="L138">    protected final List&lt;UnitType&gt; recruitables = new ArrayList&lt;&gt;();</span>
+
+    /** Prices for trainable or purchasable units. */
+<span class="nc" id="L141">    protected final java.util.Map&lt;UnitType, Integer&gt; unitPrices = new HashMap&lt;&gt;();</span>
+
+    /** Current price to recruit a unit. */
+    protected int recruitPrice;
+
+    /** The lower bound on recruitment price. */
+    protected int recruitLowerCap;
+
+    /** The owner of this instance of Europe. */
+    private Player owner;
+
+    /** A feature container for this Europe's special features. */
+<span class="nc" id="L153">    private final FeatureContainer featureContainer = new FeatureContainer();</span>
+
+
+    /**
+     * Constructor for ServerEurope.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param owner The owning &lt;code&gt;Player&lt;/code&gt;.
+     */
+    protected Europe(Game game, Player owner) {
+<span class="nc" id="L163">        super(game);</span>
+
+<span class="nc" id="L165">        this.owner = owner;</span>
+<span class="nc" id="L166">        this.recruitPrice = RECRUIT_PRICE_INITIAL;</span>
+<span class="nc" id="L167">        this.recruitLowerCap = LOWER_CAP_INITIAL;</span>
+<span class="nc" id="L168">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;Europe&lt;/code&gt; with the given identifier.
+     (
+     * The object should be initialized later.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param id The object identifier.
+     */
+    public Europe(Game game, String id) {
+<span class="nc" id="L179">        super(game, id);</span>
+<span class="nc" id="L180">    }</span>
+
+
+    /**
+     * Get a list of the current recruitables.
+     *
+     * @return A list of recruitable &lt;code&gt;UnitType&lt;/code&gt;s.
+     */
+    public List&lt;UnitType&gt; getRecruitables() {
+<span class="nc" id="L189">        return new ArrayList&lt;&gt;(recruitables);</span>
+    }
+
+    /**
+     * Add a recruitable unit type.
+     *
+     * @param unitType The recruitable &lt;code&gt;UnitType&lt;/code&gt; to add.
+     * @return True if the recruitable was added.
+     */
+    protected boolean addRecruitable(UnitType unitType) {
+<span class="nc bnc" id="L199" title="All 2 branches missed.">        if (recruitables.size() &lt; MigrationType.MIGRANT_COUNT) {</span>
+<span class="nc" id="L200">            recruitables.add(unitType);</span>
+<span class="nc" id="L201">            return true;</span>
+        }
+<span class="nc" id="L203">        return false;</span>
+    }
+
+    /**
+     * Gets the price of a unit in Europe.
+     *
+     * @param unitType The &lt;code&gt;UnitType&lt;/code&gt; to price.
+     * @return The price of this unit when trained/purchased in Europe,
+     *     or UNDEFINED on failure.
+     */
+    public int getUnitPrice(UnitType unitType) {
+<span class="nc" id="L214">        Integer price = unitPrices.get(unitType);</span>
+<span class="nc bnc" id="L215" title="All 2 branches missed.">        return (price != null) ? price : unitType.getPrice();</span>
+    }
+
+    /**
+     * Gets the current price for a recruit.
+     *
+     * @return The current price of the recruit in this &lt;code&gt;Europe&lt;/code&gt;.
+     */
+    public int getRecruitPrice() {
+<span class="nc bnc" id="L224" title="All 2 branches missed.">        if (!owner.isColonial()) return -1;</span>
+<span class="nc" id="L225">        int required = owner.getImmigrationRequired();</span>
+<span class="nc" id="L226">        int immigration = owner.getImmigration();</span>
+<span class="nc" id="L227">        int difference = Math.max(required - immigration, 0);</span>
+<span class="nc" id="L228">        return Math.max((recruitPrice * difference) / required,</span>
+<span class="nc" id="L229">                        recruitLowerCap);</span>
+    }
+
+    /**
+     * Get any immigration produced in Europe.
+     *
+     * Col1 penalizes immigration by -4 per unit in Europe per turn,
+     * but there is a +2 player bonus, which we might as well add
+     * here.  Total immigration per turn can not be negative, but that
+     * is handled in ServerPlayer.
+     *
+     * @param production The current total colony production.
+     * @return Immigration produced this turn in Europe.
+     */
+    public int getImmigration(int production) {
+<span class="nc" id="L244">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L245">        int n = count(getUnitList(), u -&gt; u.isPerson());</span>
+<span class="nc" id="L246">        n *= spec.getInteger(GameOptions.EUROPEAN_UNIT_IMMIGRATION_PENALTY);</span>
+<span class="nc" id="L247">        n += spec.getInteger(GameOptions.PLAYER_IMMIGRATION_BONUS);</span>
+        // Do not allow total production to be negative.
+<span class="nc bnc" id="L249" title="All 2 branches missed.">        if (n + production &lt; 0) n = -production;</span>
+<span class="nc" id="L250">        return n;</span>
+    }
+
+
+    // Override FreeColObject
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public FeatureContainer getFeatureContainer() {
+<span class="nc" id="L261">        return featureContainer;</span>
+    }
+
+    // Override FreeColGameObject
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public FreeColGameObject getLinkTarget(Player player) {
+<span class="nc bnc" id="L271" title="All 2 branches missed.">        return (getOwner() == player) ? this : null;</span>
+    }
+
+    // Interface Location (from UnitLocation)
+    // Inheriting:
+    //   FreeColObject.getId()
+    //   UnitLocation.getTile
+    //   UnitLocation.getLocationLabelFor
+    //   UnitLocation.remove
+    //   UnitLocation.contains
+    //   UnitLocation.getUnitCount
+    //   UnitLocation.getUnitList
+    //   UnitLocation.getGoodsContainer
+    //   UnitLocation.getSettlement
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public StringTemplate getLocationLabel() {
+<span class="nc" id="L291">        return StringTemplate.key(this);</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean add(Locatable locatable) {
+<span class="nc" id="L299">        boolean result = super.add(locatable);</span>
+<span class="nc bnc" id="L300" title="All 4 branches missed.">        if (result &amp;&amp; locatable instanceof Unit) {</span>
+<span class="nc" id="L301">            Unit unit = (Unit) locatable;</span>
+<span class="nc bnc" id="L302" title="All 2 branches missed.">            unit.setState((unit.canCarryUnits()) ? UnitState.ACTIVE</span>
+<span class="nc" id="L303">                : UnitState.SENTRY);</span>
+        }
+<span class="nc" id="L305">        return result;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean canAdd(Locatable locatable) {
+<span class="nc bnc" id="L313" title="All 2 branches missed.">        if (locatable instanceof Goods) return true; // Can always land goods.</span>
+<span class="nc" id="L314">        return super.canAdd(locatable);</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Location up() {
+<span class="nc" id="L322">        return this;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getRank() {
+<span class="nc" id="L330">        return Location.LOCATION_RANK_EUROPE;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toShortString() {
+<span class="nc" id="L338">        return &quot;Europe&quot;;</span>
+    }
+
+
+    // Interface UnitLocation
+    // Inheriting
+    //   UnitLocation.getSpaceTaken
+    //   UnitLocation.moveToFront
+    //   UnitLocation.clearUnitList
+    //   UnitLocation.getNoAddReason
+    //   UnitLocation.getUnitCapacity
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int priceGoods(List&lt;AbstractGoods&gt; goods) {
+<span class="nc" id="L355">        Player player = getOwner();</span>
+<span class="nc" id="L356">        Market market = player.getMarket();</span>
+<span class="nc" id="L357">        int price = 0;</span>
+<span class="nc bnc" id="L358" title="All 2 branches missed.">        for (AbstractGoods ag : goods) {</span>
+<span class="nc bnc" id="L359" title="All 2 branches missed.">            if (ag.getAmount() &lt;= 0) continue;</span>
+<span class="nc" id="L360">            GoodsType goodsType = ag.getType();</span>
+            // Refuse to trade in boycotted goods
+<span class="nc bnc" id="L362" title="All 2 branches missed.">            if (!player.canTrade(goodsType)) {</span>
+<span class="nc" id="L363">                price = -1;</span>
+<span class="nc" id="L364">                break;</span>
+            }
+<span class="nc" id="L366">            price += market.getBidPrice(goodsType, ag.getAmount());</span>
+        }
+<span class="nc" id="L368">        return price;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equipForRole(Unit unit, Role role, int roleCount) {
+<span class="nc" id="L376">        throw new RuntimeException(&quot;Only valid in the server.&quot;);</span>
+    }
+
+
+    // Interface Named
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getNameKey() {
+<span class="nc" id="L387">        return getOwner().getEuropeNameKey();</span>
+    }
+
+
+    // Interface Ownable
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Player getOwner() {
+<span class="nc" id="L398">        return owner;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setOwner(Player p) {
+<span class="nc" id="L406">        throw new UnsupportedOperationException();</span>
+    }
+
+
+    // Interface TradeLocation
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getGoodsCount(GoodsType goodsType) {
+<span class="nc" id="L417">        return GoodsContainer.HUGE_CARGO_SIZE;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getExportAmount(GoodsType goodsType, int turns) {
+<span class="nc bnc" id="L425" title="All 2 branches missed.">        return (getOwner().canTrade(goodsType)) ? GoodsContainer.HUGE_CARGO_SIZE</span>
+<span class="nc" id="L426">            : 0;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getImportAmount(GoodsType goodsType, int turns) {
+<span class="nc bnc" id="L434" title="All 2 branches missed.">        return (getOwner().canTrade(goodsType)) ? GoodsContainer.HUGE_CARGO_SIZE</span>
+<span class="nc" id="L435">            : 0;</span>
+    }
+
+
+    // Override FreeColGameObject
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void disposeResources() {
+<span class="nc" id="L446">        Player owner = getOwner();</span>
+<span class="nc bnc" id="L447" title="All 2 branches missed.">        if (owner != null) {</span>
+<span class="nc" id="L448">            owner.setEurope(null);</span>
+<span class="nc" id="L449">            HighSeas highSeas = owner.getHighSeas();</span>
+<span class="nc bnc" id="L450" title="All 2 branches missed.">            if (highSeas != null) highSeas.removeDestination(this);</span>
+        }
+<span class="nc" id="L452">        super.disposeResources();</span>
+<span class="nc" id="L453">    }</span>
+
+
+    // Override FreeColObject
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Set&lt;Ability&gt; getAbilities(String id, FreeColSpecObjectType fcgot,
+                                     Turn turn) {
+<span class="nc" id="L464">        Set&lt;Ability&gt; result = super.getAbilities(id, fcgot, turn);</span>
+        // Always able to dress a missionary.
+<span class="nc bnc" id="L466" title="All 4 branches missed.">        if (id == null || Ability.DRESS_MISSIONARY.equals(id)) {</span>
+<span class="nc" id="L467">            result.add(ABILITY_DRESS_MISSIONARY);</span>
+        }
+<span class="nc" id="L469">        return result;</span>
+    }
+
+
+    // Serialization
+
+    private static final String OWNER_TAG = &quot;owner&quot;;
+    private static final String PRICE_TAG = &quot;price&quot;;
+    private static final String RECRUIT_TAG = &quot;recruit&quot;;
+    private static final String RECRUIT_ID_TAG = &quot;id&quot;;
+    private static final String RECRUIT_LOWER_CAP_TAG = &quot;recruitLowerCap&quot;;
+    private static final String RECRUIT_PRICE_TAG = &quot;recruitPrice&quot;;
+    private static final String UNIT_PRICE_TAG = &quot;unitPrice&quot;;
+    private static final String UNIT_TYPE_TAG = &quot;unitType&quot;;
+    // @compat 0.10.0
+<span class="nc" id="L484">    private static final String UNITS_TAG = &quot;units&quot;;</span>
+    // end @compat 0.10.0
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L493">        super.writeAttributes(xw);</span>
+
+<span class="nc bnc" id="L495" title="All 2 branches missed.">        if (xw.validFor(getOwner())) {</span>
+<span class="nc" id="L496">            xw.writeAttribute(RECRUIT_PRICE_TAG, recruitPrice);</span>
+
+<span class="nc" id="L498">            xw.writeAttribute(RECRUIT_LOWER_CAP_TAG, recruitLowerCap);</span>
+
+<span class="nc" id="L500">            xw.writeAttribute(OWNER_TAG, owner);</span>
+        }
+<span class="nc" id="L502">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeChildren(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L509">        super.writeChildren(xw);</span>
+
+<span class="nc bnc" id="L511" title="All 2 branches missed.">        if (xw.validFor(getOwner())) {</span>
+
+<span class="nc bnc" id="L513" title="All 2 branches missed.">            for (Ability ability : getSortedAbilities()) {</span>
+<span class="nc" id="L514">                ability.toXML(xw);</span>
+            }
+
+<span class="nc bnc" id="L517" title="All 2 branches missed.">            for (Modifier modifier : getSortedModifiers()) {</span>
+<span class="nc" id="L518">                modifier.toXML(xw);</span>
+            }
+
+<span class="nc bnc" id="L521" title="All 2 branches missed.">            for (UnitType unitType : toSortedList(unitPrices.keySet())) {</span>
+<span class="nc" id="L522">                xw.writeStartElement(UNIT_PRICE_TAG);</span>
+
+<span class="nc" id="L524">                xw.writeAttribute(UNIT_TYPE_TAG, unitType);</span>
+
+<span class="nc" id="L526">                xw.writeAttribute(PRICE_TAG, unitPrices.get(unitType).intValue());</span>
+
+<span class="nc" id="L528">                xw.writeEndElement();</span>
+            }
+
+<span class="nc bnc" id="L531" title="All 2 branches missed.">            for (UnitType unitType : recruitables) {</span>
+<span class="nc" id="L532">                xw.writeStartElement(RECRUIT_TAG);</span>
+<span class="nc" id="L533">                xw.writeAttribute(RECRUIT_ID_TAG, unitType.getId());</span>
+<span class="nc" id="L534">                xw.writeEndElement();</span>
+            }
+        }
+<span class="nc" id="L537">    }</span>
+
+    // @compat 0.10.7
+<span class="nc" id="L540">    private boolean clearRecruitables = true;</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L547">        super.readAttributes(xr);</span>
+
+<span class="nc" id="L549">        final Specification spec = getSpecification();</span>
+
+        // @compat 0.10.7
+<span class="nc bnc" id="L552" title="All 2 branches missed.">        for (int index = 0; index &lt; 3; index++) {</span>
+<span class="nc" id="L553">            UnitType unitType = xr.getType(spec, RECRUIT_TAG + index,</span>
+<span class="nc" id="L554">                                           UnitType.class, (UnitType)null);</span>
+<span class="nc bnc" id="L555" title="All 2 branches missed.">            if (unitType != null) {</span>
+<span class="nc" id="L556">                addRecruitable(unitType);</span>
+<span class="nc" id="L557">                clearRecruitables = false;</span>
+            }
+        }
+        // end @compat
+
+<span class="nc" id="L562">        owner = xr.findFreeColGameObject(getGame(), OWNER_TAG,</span>
+<span class="nc" id="L563">                                         Player.class, (Player)null, true);</span>
+
+<span class="nc" id="L565">        recruitPrice = xr.getAttribute(RECRUIT_PRICE_TAG,</span>
+<span class="nc" id="L566">                                       RECRUIT_PRICE_INITIAL);</span>
+
+<span class="nc" id="L568">        recruitLowerCap = xr.getAttribute(RECRUIT_LOWER_CAP_TAG,</span>
+<span class="nc" id="L569">                                          LOWER_CAP_INITIAL);</span>
+<span class="nc" id="L570">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChildren(FreeColXMLReader xr) throws XMLStreamException {
+        // Clear containers.
+<span class="nc" id="L578">        unitPrices.clear();</span>
+<span class="nc" id="L579">        featureContainer.clear();</span>
+
+        // @compat 0.10.7
+<span class="nc bnc" id="L582" title="All 2 branches missed.">        if (clearRecruitables) {</span>
+            // in future, always clear
+<span class="nc" id="L584">            recruitables.clear();</span>
+        }
+        // end @compat
+
+<span class="nc" id="L588">        super.readChildren(xr);</span>
+
+        // @compat 0.10.1
+        // Sometimes units in a Europe element have a missing
+        // location.  It should always be this Europe instance.
+<span class="nc bnc" id="L593" title="All 2 branches missed.">        for (Unit u : getUnitList()) {</span>
+<span class="nc bnc" id="L594" title="All 2 branches missed.">            if (u.getLocation() == null) u.setLocationNoUpdate(this);</span>
+        }
+        // end @compat
+<span class="nc" id="L597">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChild(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L604">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L605">        final String tag = xr.getLocalName();</span>
+
+<span class="nc bnc" id="L607" title="All 2 branches missed.">        if (Ability.getTagName().equals(tag)) {</span>
+<span class="nc" id="L608">            addAbility(new Ability(xr, spec));</span>
+
+<span class="nc bnc" id="L610" title="All 2 branches missed.">        } else if (Modifier.getTagName().equals(tag)) {</span>
+<span class="nc" id="L611">            addModifier(new Modifier(xr, spec));</span>
+
+<span class="nc bnc" id="L613" title="All 2 branches missed.">        } else if (RECRUIT_TAG.equals(tag)) {</span>
+<span class="nc" id="L614">            UnitType unitType = xr.getType(spec, RECRUIT_ID_TAG,</span>
+<span class="nc" id="L615">                                           UnitType.class, (UnitType)null);</span>
+<span class="nc bnc" id="L616" title="All 2 branches missed.">            if (unitType != null) addRecruitable(unitType);</span>
+<span class="nc" id="L617">            xr.closeTag(RECRUIT_TAG);</span>
+
+<span class="nc bnc" id="L619" title="All 2 branches missed.">        } else if (UNIT_PRICE_TAG.equals(tag)) {</span>
+<span class="nc" id="L620">            UnitType unitType = xr.getType(spec, UNIT_TYPE_TAG,</span>
+<span class="nc" id="L621">                                           UnitType.class, (UnitType)null);</span>
+
+<span class="nc" id="L623">            int price = xr.getAttribute(PRICE_TAG, -1);</span>
+
+<span class="nc" id="L625">            unitPrices.put(unitType, price);</span>
+<span class="nc" id="L626">            xr.closeTag(UNIT_PRICE_TAG);</span>
+
+        // @compat 0.10.0
+<span class="nc bnc" id="L629" title="All 2 branches missed.">        } else if (UNITS_TAG.equals(tag)) {</span>
+<span class="nc bnc" id="L630" title="All 2 branches missed.">            while (xr.nextTag() != XMLStreamConstants.END_ELEMENT) {</span>
+<span class="nc" id="L631">                super.readChild(xr);</span>
+            }
+        // end @compat 0.10.0
+
+<span class="nc" id="L635">        } else {</span>
+<span class="nc" id="L636">            super.readChild(xr);</span>
+        }
+<span class="nc" id="L638">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L645">        return &quot;Europe&quot;;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="nc" id="L652">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;europe&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L660">        return &quot;europe&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

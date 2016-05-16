@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>UnitTypeChangeTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">UnitTypeChangeTest.java</span></div><h1>UnitTypeChangeTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L30">public class UnitTypeChangeTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L32">    private static final UnitType farmer</span>
+<span class="nc" id="L33">        = spec().getUnitType(&quot;model.unit.expertFarmer&quot;);</span>
+
+
+    public void testEmptyScope() {
+<span class="nc" id="L37">        UnitTypeChange change = new UnitTypeChange(spec());</span>
+
+<span class="nc" id="L39">        assertTrue(&quot;A new change has empty scopes&quot;,</span>
+<span class="nc" id="L40">                   change.getScopes().isEmpty());</span>
+
+        // empty scope applies to all players
+<span class="nc bnc" id="L43" title="All 2 branches missed.">        for (Player player : getStandardGame().getPlayers()) {</span>
+<span class="nc" id="L44">            assertTrue(&quot;Empty scopes apply to all players&quot;,</span>
+<span class="nc" id="L45">                       change.appliesTo(player));</span>
+        }
+<span class="nc" id="L47">    }</span>
+
+    public void testAbilityScope() {
+<span class="nc" id="L50">        Game game = getStandardGame();</span>
+<span class="nc" id="L51">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L52">        Player inca = game.getPlayerByNationId(&quot;model.nation.inca&quot;);</span>
+
+<span class="nc" id="L54">        UnitType gardener = new UnitType(&quot;gardener&quot;, spec());</span>
+
+<span class="nc" id="L56">        Scope scope = new Scope();</span>
+<span class="nc" id="L57">        scope.setAbilityId(Ability.NATIVE);</span>
+
+<span class="nc" id="L59">        UnitTypeChange.ChangeType education = UnitTypeChange.ChangeType.EDUCATION;</span>
+<span class="nc" id="L60">        UnitTypeChange change = new UnitTypeChange(game.getSpecification());</span>
+<span class="nc" id="L61">        change.setNewUnitType(farmer);</span>
+<span class="nc" id="L62">        change.getChangeTypes().put(education, 100);</span>
+<span class="nc" id="L63">        List&lt;Scope&gt; scopes = new ArrayList&lt;&gt;(change.getScopes());</span>
+<span class="nc" id="L64">        scopes.add(scope);</span>
+<span class="nc" id="L65">        change.setScopes(scopes);</span>
+
+<span class="nc" id="L67">        List&lt;UnitTypeChange&gt; ch = new ArrayList&lt;&gt;(gardener.getTypeChanges());</span>
+<span class="nc" id="L68">        ch.add(change);</span>
+<span class="nc" id="L69">        gardener.setTypeChanges(ch);</span>
+
+<span class="nc" id="L71">        assertTrue(gardener.canBeUpgraded(farmer, education));</span>
+<span class="nc" id="L72">        assertEquals(null, gardener.getUnitTypeChange(education, dutch));</span>
+<span class="nc" id="L73">        assertEquals(farmer, gardener.getTargetType(education, inca));</span>
+<span class="nc" id="L74">        assertFalse(change.appliesTo(dutch));</span>
+<span class="nc" id="L75">        assertTrue(change.appliesTo(inca));</span>
+
+<span class="nc" id="L77">        scope.setMatchNegated(true);</span>
+<span class="nc" id="L78">        assertTrue(change.appliesTo(dutch));</span>
+<span class="nc" id="L79">        assertFalse(change.appliesTo(inca));</span>
+<span class="nc" id="L80">        assertEquals(farmer, gardener.getTargetType(education, dutch));</span>
+<span class="nc" id="L81">        assertEquals(null, gardener.getTargetType(education, inca));</span>
+
+<span class="nc" id="L83">    }</span>
+
+    public void testCreation() {
+<span class="nc" id="L86">        Game game = getStandardGame();</span>
+<span class="nc" id="L87">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+
+<span class="nc" id="L89">        UnitType gardener = new UnitType(&quot;gardener&quot;, spec());</span>
+
+<span class="nc" id="L91">        UnitTypeChange.ChangeType creation = UnitTypeChange.ChangeType.CREATION;</span>
+<span class="nc" id="L92">        UnitTypeChange change = new UnitTypeChange(game.getSpecification());</span>
+<span class="nc" id="L93">        change.setNewUnitType(farmer);</span>
+<span class="nc" id="L94">        change.getChangeTypes().put(creation, 100);</span>
+
+<span class="nc" id="L96">        List&lt;UnitTypeChange&gt; ch = new ArrayList&lt;&gt;(gardener.getTypeChanges());</span>
+<span class="nc" id="L97">        ch.add(change);</span>
+<span class="nc" id="L98">        gardener.setTypeChanges(ch);</span>
+
+<span class="nc" id="L100">        assertTrue(gardener.canBeUpgraded(farmer, creation));</span>
+<span class="nc" id="L101">        assertTrue(change.appliesTo(dutch));</span>
+<span class="nc" id="L102">        assertEquals(farmer, gardener.getTargetType(creation, dutch));</span>
+
+<span class="nc" id="L104">        Unit gardenerUnit = new ServerUnit(game, null, dutch, gardener);</span>
+<span class="nc" id="L105">        assertEquals(farmer, gardenerUnit.getType());</span>
+
+<span class="nc" id="L107">    }</span>
+
+    public void testEquality() {
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        for (UnitType unitType : spec().getUnitTypeList()) {</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">            for (UnitTypeChange change : unitType.getTypeChanges()) {</span>
+<span class="nc" id="L112">                UnitType newUnitType = change.getNewUnitType();</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">                assertTrue(newUnitType == spec().getUnitType(newUnitType.getId()));</span>
+            }
+        }
+<span class="nc" id="L116">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

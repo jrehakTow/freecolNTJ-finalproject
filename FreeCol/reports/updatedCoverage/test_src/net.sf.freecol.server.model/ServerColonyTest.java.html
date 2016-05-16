@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ServerColonyTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.model</a> &gt; <span class="el_source">ServerColonyTest.java</span></div><h1>ServerColonyTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.model;
+
+import java.util.List;
+
+import net.sf.freecol.common.model.AbstractGoods;
+import net.sf.freecol.common.model.Building;
+import net.sf.freecol.common.model.BuildingType;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.ResourceType;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TileType;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.util.test.FreeColTestCase;
+import net.sf.freecol.util.test.FreeColTestUtils;
+
+
+<span class="nc" id="L40">public class ServerColonyTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L42">    private static final BuildingType chapelType</span>
+<span class="nc" id="L43">        = spec().getBuildingType(&quot;model.building.chapel&quot;);</span>
+<span class="nc" id="L44">    private static final BuildingType carpenterHouseType</span>
+<span class="nc" id="L45">        = spec().getBuildingType(&quot;model.building.carpenterHouse&quot;);</span>
+<span class="nc" id="L46">    private static final BuildingType depotType</span>
+<span class="nc" id="L47">        = spec().getBuildingType(&quot;model.building.depot&quot;);</span>
+<span class="nc" id="L48">    private static final BuildingType lumberMillType</span>
+<span class="nc" id="L49">        = spec().getBuildingType(&quot;model.building.lumberMill&quot;);</span>
+<span class="nc" id="L50">    private static final BuildingType townHallType</span>
+<span class="nc" id="L51">        = spec().getBuildingType(&quot;model.building.townHall&quot;);</span>
+<span class="nc" id="L52">    private static final BuildingType warehouseType</span>
+<span class="nc" id="L53">        = spec().getBuildingType(&quot;model.building.warehouse&quot;);</span>
+
+<span class="nc" id="L55">    private static final GoodsType bellsType</span>
+<span class="nc" id="L56">        = spec().getGoodsType(&quot;model.goods.bells&quot;);</span>
+<span class="nc" id="L57">    private static final GoodsType crossesType</span>
+<span class="nc" id="L58">        = spec().getGoodsType(&quot;model.goods.crosses&quot;);</span>
+<span class="nc" id="L59">    private static final GoodsType grainType</span>
+<span class="nc" id="L60">        = spec().getGoodsType(&quot;model.goods.grain&quot;);</span>
+<span class="nc" id="L61">    private static final GoodsType hammerGoodsType</span>
+<span class="nc" id="L62">        = spec().getGoodsType(&quot;model.goods.hammers&quot;);</span>
+<span class="nc" id="L63">    private static final GoodsType lumberGoodsType</span>
+<span class="nc" id="L64">        = spec().getGoodsType(&quot;model.goods.lumber&quot;);</span>
+<span class="nc" id="L65">    private static final GoodsType foodType</span>
+<span class="nc" id="L66">        = spec().getGoodsType(&quot;model.goods.food&quot;);</span>
+<span class="nc" id="L67">    private static final GoodsType foodGoodsType</span>
+<span class="nc" id="L68">        = spec().getPrimaryFoodType();</span>
+
+<span class="nc" id="L70">    private static final ResourceType lumberResource</span>
+<span class="nc" id="L71">        = spec().getResourceType(&quot;model.resource.lumber&quot;);</span>
+
+<span class="nc" id="L73">    private static final TileType coniferForest</span>
+<span class="nc" id="L74">        = spec().getTileType(&quot;model.tile.coniferForest&quot;);</span>
+<span class="nc" id="L75">    private static final TileType desert</span>
+<span class="nc" id="L76">        = spec().getTileType(&quot;model.tile.desert&quot;);</span>
+<span class="nc" id="L77">    private static final TileType marsh</span>
+<span class="nc" id="L78">        = spec().getTileType(&quot;model.tile.marsh&quot;);</span>
+<span class="nc" id="L79">    private static final TileType plains</span>
+<span class="nc" id="L80">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+    
+<span class="nc" id="L82">    private static final UnitType colonistType</span>
+<span class="nc" id="L83">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="nc" id="L84">    private static final UnitType expertLumberJack</span>
+<span class="nc" id="L85">        = spec().getUnitType(&quot;model.unit.expertLumberJack&quot;);</span>
+<span class="nc" id="L86">    private static final UnitType pioneerType</span>
+<span class="nc" id="L87">        = spec().getUnitType(&quot;model.unit.hardyPioneer&quot;);</span>
+
+
+    public void testFoodConsumption() {
+<span class="nc" id="L91">        Game game = ServerTestHelper.startServerGame(getTestMap(plains));</span>
+<span class="nc" id="L92">        ServerPlayer dutch = (ServerPlayer)game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+        // Setting test colony and colonist
+<span class="nc" id="L94">        Colony colony = FreeColTestUtils.getColonyBuilder()</span>
+<span class="nc" id="L95">            .colonyTile(game.getMap().getTile(5, 8)).build();</span>
+<span class="nc" id="L96">        new ServerUnit(game, colony.getWorkLocationForProducing(bellsType),</span>
+<span class="nc" id="L97">                       dutch, colonistType);</span>
+<span class="nc" id="L98">        assertEquals(0, colony.getGoodsCount(foodType));</span>
+
+<span class="nc" id="L100">        int quantity = colony.getFoodConsumption() * 2;</span>
+<span class="nc" id="L101">        colony.addGoods(foodGoodsType, quantity);</span>
+<span class="nc" id="L102">        int foodStored = colony.getGoodsCount(foodGoodsType);</span>
+<span class="nc" id="L103">        assertEquals(quantity, foodStored);</span>
+<span class="nc" id="L104">        int foodExpected = foodStored - colony.getFoodConsumption()</span>
+<span class="nc" id="L105">            + colony.getFoodProduction();</span>
+
+<span class="nc" id="L107">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L108">        assertEquals(&quot;Unexpected value for remaining food, &quot;,</span>
+<span class="nc" id="L109">                     foodExpected, colony.getGoodsCount(foodGoodsType));</span>
+<span class="nc" id="L110">    }</span>
+
+    public void testEqualFoodProductionConsumptionCase() {
+<span class="nc" id="L113">        Game game = ServerTestHelper.startServerGame(getTestMap(desert));</span>
+
+        // Setting test colony
+<span class="nc" id="L116">        Tile colonyTile = game.getMap().getTile(5, 8);</span>
+<span class="nc" id="L117">        Colony colony = FreeColTestUtils.getColonyBuilder()</span>
+<span class="nc" id="L118">            .colonyTile(colonyTile).initialColonists(1).build();</span>
+
+        // Set the food production of the center tile of the colony to 2
+        // This will be the only food production of the colony
+<span class="nc" id="L122">        List&lt;AbstractGoods&gt; colonyTileProduction</span>
+<span class="nc" id="L123">            = colonyTile.getType().getPossibleProduction(true);</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">        for (int i = 0; i &lt; colonyTileProduction.size(); i++) {</span>
+<span class="nc" id="L125">            AbstractGoods production = colonyTileProduction.get(i);</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">            if (production.getType() == foodGoodsType) {</span>
+<span class="nc" id="L127">                production.setAmount(2);</span>
+<span class="nc" id="L128">                break;</span>
+            }
+        }
+<span class="nc" id="L131">        Unit unit = colony.getUnitList().get(0);</span>
+<span class="nc" id="L132">        unit.setLocation(colony.getWorkLocationFor(unit, bellsType));</span>
+
+        // Verify that there is enough food stored
+<span class="nc" id="L135">        colony.addGoods(foodGoodsType, colony.getFoodConsumption() * 2);</span>
+
+<span class="nc" id="L137">        assertEquals(&quot;Production not equal to consumption&quot;,</span>
+<span class="nc" id="L138">                     colony.getFoodConsumption(), colony.getFoodProduction());</span>
+
+<span class="nc" id="L140">        int colonists = colony.getUnitCount();</span>
+<span class="nc" id="L141">        assertEquals(&quot;Unexpected change of colonists in colony&quot;, colonists,</span>
+<span class="nc" id="L142">                     colony.getUnitCount());</span>
+
+<span class="nc" id="L144">        assertEquals(&quot;Unexpected change of production/consumption ratio&quot;,</span>
+<span class="nc" id="L145">                     colony.getFoodProduction(), colony.getFoodConsumption());</span>
+<span class="nc" id="L146">    }</span>
+
+    public void testDeathByStarvation() {
+<span class="nc" id="L149">        Game game = ServerTestHelper.startServerGame(getTestMap(marsh));</span>
+
+<span class="nc" id="L151">        int consumption, production, unitsBeforeNewTurn = 3;</span>
+<span class="nc" id="L152">        Colony colony = getStandardColony(unitsBeforeNewTurn);</span>
+<span class="nc" id="L153">        ServerPlayer player = (ServerPlayer) colony.getOwner();</span>
+
+<span class="nc" id="L155">        final Building townHall = colony.getBuilding(townHallType);</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">        for (Unit u : colony.getUnitList()) {</span>
+<span class="nc" id="L157">            u.setLocation(townHall);</span>
+        }
+<span class="nc" id="L159">        colony.removeGoods(foodGoodsType);</span>
+<span class="nc" id="L160">        colony.invalidateCache();</span>
+
+<span class="nc" id="L162">        consumption = colony.getFoodConsumption();</span>
+<span class="nc" id="L163">        production = colony.getFoodProduction();</span>
+<span class="nc" id="L164">        assertTrue(&quot;Food consumption (&quot; + consumption</span>
+<span class="nc" id="L165">            + &quot;) should be higher than production (&quot; + production + &quot;)&quot;,</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">            consumption &gt; production);</span>
+<span class="nc" id="L167">        assertEquals(&quot;No food stored in colony&quot;, 0,</span>
+<span class="nc" id="L168">            colony.getGoodsCount(foodType));</span>
+<span class="nc" id="L169">        assertEquals(&quot;Wrong number of units in colony&quot;, unitsBeforeNewTurn,</span>
+<span class="nc" id="L170">            colony.getUnitCount());</span>
+
+<span class="nc" id="L172">        ServerTestHelper.newTurn();</span>
+
+<span class="nc" id="L174">        consumption = colony.getFoodConsumption();</span>
+<span class="nc" id="L175">        production = colony.getFoodProduction();</span>
+<span class="nc" id="L176">        assertTrue(&quot;Food consumption (&quot; + consumption</span>
+<span class="nc" id="L177">            + &quot;) should be higher than production (&quot; + production + &quot;)&quot;,</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">            consumption &gt; production);</span>
+<span class="nc" id="L179">        assertEquals(&quot;No food stored in colony&quot;, 0,</span>
+<span class="nc" id="L180">            colony.getGoodsCount(foodType));</span>
+<span class="nc" id="L181">        assertEquals(&quot;Wrong number of units in colony&quot;, unitsBeforeNewTurn-1,</span>
+<span class="nc" id="L182">            colony.getUnitCount());</span>
+<span class="nc" id="L183">    }</span>
+
+    public void testAvoidStarvation() {
+<span class="nc" id="L186">        Game game = ServerTestHelper.startServerGame(getTestMap(marsh));</span>
+
+<span class="nc" id="L188">        int unitsBeforeNewTurn = 3;</span>
+<span class="nc" id="L189">        Colony colony = getStandardColony(unitsBeforeNewTurn);</span>
+<span class="nc" id="L190">        ServerPlayer player = (ServerPlayer) colony.getOwner();</span>
+<span class="nc" id="L191">        assertEquals(&quot;Wrong number of units in colony&quot;, unitsBeforeNewTurn,</span>
+<span class="nc" id="L192">            colony.getUnitCount());</span>
+
+<span class="nc" id="L194">        final Building townHall = colony.getBuilding(townHallType);</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">        for (Unit u : colony.getUnitList()) {</span>
+<span class="nc" id="L196">            u.setLocation(townHall);</span>
+        }
+<span class="nc" id="L198">        colony.removeGoods(foodGoodsType);</span>
+<span class="nc" id="L199">        colony.invalidateCache();</span>
+
+<span class="nc" id="L201">        int consumption = colony.getFoodConsumption();</span>
+<span class="nc" id="L202">        int production = colony.getTile().getType()</span>
+<span class="nc" id="L203">            .getPotentialProduction(grainType, null);</span>
+<span class="nc" id="L204">        assertEquals(6, consumption);</span>
+<span class="nc" id="L205">        assertEquals(3, production);</span>
+<span class="nc" id="L206">        assertEquals(-3, colony.getNetProductionOf(foodType));</span>
+<span class="nc" id="L207">        assertEquals(0, colony.getGoodsCount(foodType));</span>
+<span class="nc" id="L208">        assertEquals(0, colony.getTile().getUnitCount());</span>
+
+<span class="nc" id="L210">        colony.addGoods(foodType, 202);</span>
+<span class="nc" id="L211">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L212">        assertEquals(199, colony.getGoodsCount(foodType));</span>
+<span class="nc" id="L213">        assertEquals(0, colony.getTile().getUnitCount());</span>
+<span class="nc" id="L214">        assertEquals(3, colony.getUnitCount());</span>
+
+<span class="nc" id="L216">        colony.addGoods(foodType, 15);</span>
+<span class="nc" id="L217">        ServerTestHelper.newTurn();</span>
+<span class="nc" id="L218">        assertEquals(11, colony.getGoodsCount(foodType));</span>
+<span class="nc" id="L219">        assertEquals(1, colony.getTile().getUnitCount());</span>
+<span class="nc" id="L220">    }</span>
+
+    /**
+     * Tests completion of buildable
+     */
+    public void testBuildingCompletion() {
+<span class="nc" id="L226">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L228">        Colony colony = getStandardColony();</span>
+<span class="nc" id="L229">        ServerBuilding initialWarehouse</span>
+<span class="nc" id="L230">            = new ServerBuilding(getGame(), colony, depotType);</span>
+<span class="nc" id="L231">        colony.addBuilding(initialWarehouse);</span>
+<span class="nc" id="L232">        assertTrue(&quot;Colony should be able to build warehouse&quot;,</span>
+<span class="nc" id="L233">                   colony.canBuild(warehouseType));</span>
+
+        // Simulate that the build is done
+<span class="nc" id="L236">        colony.setCurrentlyBuilding(warehouseType);</span>
+<span class="nc" id="L237">        colony.addGoods(hammerGoodsType, 90);</span>
+<span class="nc" id="L238">        assertFalse(&quot;Colony should not have warehouse&quot;,</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">                    colony.getWarehouse().getType() == warehouseType);</span>
+
+<span class="nc" id="L241">        ServerTestHelper.newTurn();</span>
+
+<span class="nc" id="L243">        assertTrue(&quot;Colony should have warehouse&quot;,</span>
+<span class="nc bnc" id="L244" title="All 2 branches missed.">                   colony.getWarehouse().getType() == warehouseType);</span>
+<span class="nc" id="L245">    }</span>
+
+    /**
+     * Tests invalid completion of buildable, having enough resources
+     */
+    public void testInvalidCompletion() {
+<span class="nc" id="L251">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L253">        Colony colony = getStandardColony(2);</span>
+<span class="nc" id="L254">        Building carpenterHouse = colony.getBuilding(carpenterHouseType);</span>
+<span class="nc" id="L255">        assertEquals(&quot;Colony should not have lumber mill&quot;, carpenterHouse,</span>
+<span class="nc" id="L256">                     colony.getBuilding(lumberMillType));</span>
+<span class="nc" id="L257">        assertFalse(&quot;Colony should not be able to build lumber mill&quot;,</span>
+<span class="nc" id="L258">                    colony.canBuild(lumberMillType));</span>
+<span class="nc" id="L259">        colony.setCurrentlyBuilding(lumberMillType);</span>
+<span class="nc" id="L260">        assertEquals(&quot;Colony should be building lumber mill&quot;, lumberMillType,</span>
+<span class="nc" id="L261">                     colony.getCurrentlyBuilding());</span>
+        // Add sufficient units and goods to build lumber mill.
+<span class="nc" id="L263">        Unit unit = new ServerUnit(game, colony.getTile(), colony.getOwner(),</span>
+<span class="nc" id="L264">                                   colonistType);</span>
+<span class="nc" id="L265">        unit.setLocation(colony);</span>
+<span class="nc bnc" id="L266" title="All 2 branches missed.">        for (AbstractGoods ag : lumberMillType.getRequiredGoods()) {</span>
+<span class="nc" id="L267">            GoodsType type = ag.getType();</span>
+<span class="nc" id="L268">            int amount = ag.getAmount() + 1;</span>
+<span class="nc" id="L269">            colony.addGoods(type, amount);</span>
+<span class="nc" id="L270">            assertEquals(&quot;Wrong quantity of &quot; + type, amount,</span>
+<span class="nc" id="L271">                         colony.getGoodsCount(type));</span>
+        }
+
+        // Allow the building to finish
+<span class="nc" id="L275">        ServerTestHelper.newTurn();</span>
+
+<span class="nc" id="L277">        assertEquals(&quot;Colony should have lumber mill&quot;, lumberMillType,</span>
+<span class="nc" id="L278">                     colony.getBuilding(lumberMillType).getType());</span>
+<span class="nc" id="L279">        assertFalse(&quot;Colony should no longer be building lumber mill&quot;,</span>
+<span class="nc bnc" id="L280" title="All 2 branches missed.">                    colony.getCurrentlyBuilding() == lumberMillType);</span>
+<span class="nc" id="L281">    }</span>
+
+    public void testNoBuildingMaterialsProductionWhenBuildingNothing() {
+<span class="nc" id="L284">        Game game = getGame();</span>
+<span class="nc" id="L285">        game.setMap(getTestMap(true));</span>
+
+<span class="nc" id="L287">        Colony colony = getStandardColony(4);</span>
+<span class="nc" id="L288">        Building carpenterHouse = colony.getBuilding(carpenterHouseType);</span>
+<span class="nc" id="L289">        Unit unit = colony.getFirstUnit();</span>
+        // necessary for work production
+<span class="nc" id="L291">        int initialLumber = 100;</span>
+<span class="nc" id="L292">        int initialHammers = 0;</span>
+<span class="nc" id="L293">        colony.addGoods(lumberGoodsType, initialLumber);</span>
+<span class="nc" id="L294">        colony.setCurrentlyBuilding(null);</span>
+
+<span class="nc" id="L296">        assertEquals(&quot;Wrong initial lumber quantity.&quot;,</span>
+<span class="nc" id="L297">                     initialLumber, colony.getGoodsCount(lumberGoodsType));</span>
+<span class="nc" id="L298">        assertEquals(&quot;Colony should not have initial hammers.&quot;,</span>
+<span class="nc" id="L299">                     initialHammers, colony.getGoodsCount(hammerGoodsType));</span>
+
+<span class="nc" id="L301">        unit.setLocation(carpenterHouse);</span>
+
+<span class="nc" id="L303">        assertTrue(&quot;Colony should be producing hammers.&quot;,</span>
+<span class="nc bnc" id="L304" title="All 2 branches missed.">                   colony.getTotalProductionOf(hammerGoodsType) &gt; 0);</span>
+
+<span class="nc" id="L306">        ServerTestHelper.newTurn();</span>
+
+<span class="nc" id="L308">        assertEquals(&quot;Colony should not have produced hammers.&quot;,</span>
+<span class="nc" id="L309">                     initialHammers, colony.getGoodsCount(hammerGoodsType));</span>
+<span class="nc" id="L310">        assertEquals(&quot;Wrong final lumber quantity.&quot;,</span>
+<span class="nc" id="L311">                     initialLumber, colony.getGoodsCount(lumberGoodsType));</span>
+<span class="nc" id="L312">    }</span>
+
+    public void testLibertyAndImmigration() {
+<span class="nc" id="L315">        Game game = ServerTestHelper.startServerGame(getTestMap(true));</span>
+
+<span class="nc" id="L317">        final int population = 3;</span>
+<span class="nc" id="L318">        Colony colony = getStandardColony(population);</span>
+
+<span class="nc" id="L320">        ServerBuilding townHall</span>
+<span class="nc" id="L321">            = (ServerBuilding)colony.getBuilding(townHallType);</span>
+<span class="nc" id="L322">        Unit statesman = colony.getUnitList().get(0);</span>
+<span class="nc" id="L323">        townHall.setWorkFor(statesman);</span>
+<span class="nc" id="L324">        assertEquals(bellsType, statesman.getWorkType());</span>
+
+<span class="nc" id="L326">        ServerBuilding church</span>
+<span class="nc" id="L327">            = (ServerBuilding)colony.getBuilding(chapelType);</span>
+<span class="nc" id="L328">        church.upgrade();</span>
+<span class="nc" id="L329">        Unit preacher = colony.getUnitList().get(1);</span>
+<span class="nc" id="L330">        church.setWorkFor(preacher);</span>
+<span class="nc" id="L331">        assertEquals(crossesType, preacher.getWorkType());</span>
+
+<span class="nc" id="L333">        assertEquals(0, colony.getGoodsCount(bellsType));</span>
+<span class="nc" id="L334">        ServerTestHelper.newTurn();</span>
+
+<span class="nc" id="L336">        int bells = 3;</span>
+<span class="nc" id="L337">        assertEquals(population, colony.getUnitCount());</span>
+<span class="nc" id="L338">        assertEquals(bells, colony.getNetProductionOf(bellsType));</span>
+<span class="nc" id="L339">        assertEquals(bells, colony.getGoodsCount(bellsType));</span>
+
+<span class="nc" id="L341">        colony.addGoods(bellsType, 7);</span>
+<span class="nc" id="L342">        bells += 7;</span>
+<span class="nc" id="L343">        assertEquals(bells, colony.getGoodsCount(bellsType));</span>
+<span class="nc" id="L344">        assertEquals(bells, colony.getLiberty());</span>
+
+<span class="nc" id="L346">        colony.removeGoods(bellsType, 5);</span>
+<span class="nc" id="L347">        bells -= 5;</span>
+<span class="nc" id="L348">        assertEquals(bells, colony.getGoodsCount(bellsType));</span>
+<span class="nc" id="L349">        assertEquals(bells, colony.getLiberty());</span>
+
+<span class="nc" id="L351">        int crosses = colony.getTotalProductionOf(crossesType)</span>
+<span class="nc" id="L352">            - colony.getConsumptionOf(crossesType);</span>
+<span class="nc" id="L353">        assertEquals(crosses, colony.getNetProductionOf(crossesType));</span>
+<span class="nc" id="L354">        assertEquals(crosses, colony.getGoodsCount(crossesType));</span>
+<span class="nc" id="L355">        assertEquals(crosses, colony.getImmigration());</span>
+
+<span class="nc" id="L357">        colony.addGoods(crossesType, 7);</span>
+<span class="nc" id="L358">        crosses += 7;</span>
+<span class="nc" id="L359">        assertEquals(crosses, colony.getGoodsCount(crossesType));</span>
+<span class="nc" id="L360">        assertEquals(crosses, colony.getImmigration());</span>
+
+<span class="nc" id="L362">        colony.removeGoods(crossesType, 5);</span>
+<span class="nc" id="L363">        crosses -= 5;</span>
+<span class="nc" id="L364">        assertEquals(crosses, colony.getGoodsCount(crossesType));</span>
+<span class="nc" id="L365">        assertEquals(crosses, colony.getImmigration());</span>
+
+<span class="nc" id="L367">    }</span>
+
+    /** Disabled.  Currently no reliable way to count messages.
+
+    public void testLimitsMessageDelivery() {
+        Game game = ServerTestHelper.startServerGame(getTestMap());
+
+        final int lowLevel = 10;
+        final int highLevel = 90;
+        final int exportLevel = 50;
+        final int overfullLevel = 201;
+        final boolean canExport = true;
+        int foodStart= lowLevel;
+
+        Colony colony = getStandardColony(1);
+
+        //Setup
+        colony.addGoods(new AbstractGoods(foodGoodsType, foodStart));
+        assertEquals(&quot;Setup error, wrong food count&quot;, foodStart, colony.getGoodsCount(foodGoodsType));
+        colony.setExportData(new ExportData(foodGoodsType,canExport,lowLevel,highLevel,exportLevel));
+        assertEquals(&quot;Setup error, wrong food low level&quot;,lowLevel,colony.getExportData(foodGoodsType).getLowLevel());
+        colony.getGoodsContainer().saveState();
+
+        // Test current condition, no warnings
+        assertTrue(&quot;Setup error, no messages should have bee received yet&quot;, colony.getOwner().getModelMessages().isEmpty());
+
+        ServerTestHelper.newTurn();
+
+        assertEquals(&quot;Player should not have received any messages&quot;,
+                     0, colony.getOwner().getModelMessages().size());
+
+        // Simulate consumption of food
+        colony.getGoodsContainer().removeGoods(foodGoodsType, 1);
+
+        ServerTestHelper.newTurn();
+
+        // Test new condition food below limits
+        assertEquals(&quot;Player should have received one message&quot;,
+                     1, colony.getOwner().getModelMessages().size());
+
+        // Stuff the colony overfull with food.  This should *not* trigger
+        // a warning because upper limits are ignored for food.
+        colony.getGoodsContainer().addGoods(foodGoodsType, overfullLevel);
+        colony.getOwner().clearModelMessages();
+
+        ServerTestHelper.newTurn();
+
+        assertTrue(&quot;Food does not have a storage limit&quot;, foodGoodsType.limitIgnored());
+        assertEquals(&quot;Player should not receive a message&quot;,
+                     0, colony.getOwner().getModelMessages().size());
+    }
+    */
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

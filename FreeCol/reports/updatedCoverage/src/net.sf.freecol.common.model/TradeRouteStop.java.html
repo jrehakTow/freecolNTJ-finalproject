@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>TradeRouteStop.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">TradeRouteStop.java</span></div><h1>TradeRouteStop.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+
+
+/**
+ * A stop along a trade route.
+ */
+public class TradeRouteStop extends FreeColGameObject implements TradeLocation {
+
+<span class="nc" id="L38">    private static final Logger logger = Logger.getLogger(TradeRouteStop.class.getName());</span>
+
+    /** The trade location of the stop. */
+    private Location location;
+
+    /** The cargo expected to be on board on leaving the stop. */
+<span class="nc" id="L44">    private final List&lt;GoodsType&gt; cargo = new ArrayList&lt;&gt;();</span>
+
+
+    /**
+     * Create an empty trade route stop.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     */
+    public TradeRouteStop(Game game) {
+<span class="nc" id="L53">        super(game, &quot;&quot;); // Identifier not required</span>
+<span class="nc" id="L54">    }</span>
+
+    /**
+     * Create a stop for the given location from a stream.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param location The &lt;code&gt;Location&lt;/code&gt; of this stop.
+     */
+    public TradeRouteStop(Game game, Location location) {
+<span class="nc" id="L63">        this(game);</span>
+
+<span class="nc" id="L65">        this.location = location;</span>
+<span class="nc" id="L66">        this.cargo.clear();</span>
+<span class="nc" id="L67">    }</span>
+
+    /**
+     * Copy constructor.  Creates a stop based on the given one.
+     *
+     * @param other The other &lt;code&gt;TradeRouteStop&lt;/code&gt;.
+     */
+    public TradeRouteStop(TradeRouteStop other) {
+<span class="nc" id="L75">        this(other.getGame(), other.location);</span>
+
+<span class="nc" id="L77">        this.setCargo(other.cargo);</span>
+<span class="nc" id="L78">    }</span>
+
+    /**
+     * Create a new &lt;code&gt;TradeRouteStop&lt;/code&gt; from a stream.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param xr The &lt;code&gt;FreeColXMLReader&lt;/code&gt; to read from.
+     * @exception XMLStreamException if there is a problem reading the stream.
+     */
+    public TradeRouteStop(Game game, FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L88">        this(game);</span>
+
+<span class="nc" id="L90">        readFromXML(xr);</span>
+<span class="nc" id="L91">    }</span>
+
+
+    /**
+     * Get the location of this stop.
+     *
+     * @return The &lt;code&gt;Location&lt;/code&gt; of this stop.
+     */
+    public final Location getLocation() {
+<span class="nc" id="L100">        return location;</span>
+    }
+
+    /**
+     * Get the location of this stop as a TradeLocation.
+     *
+     * @return The &lt;code&gt;TradeLocation&lt;/code&gt; for this stop.
+     */
+    public TradeLocation getTradeLocation() {
+<span class="nc" id="L109">        return (TradeLocation)location;</span>
+    }
+
+    /**
+     * Is this stop valid?
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; that owns this route.
+     * @return True if the stop is valid.
+     */
+    public boolean isValid(Player player) {
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        return (location instanceof TradeLocation)</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">            &amp;&amp; !((FreeColGameObject)location).isDisposed()</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">            &amp;&amp; ((location instanceof Ownable)</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">                &amp;&amp; player.owns((Ownable)location));</span>
+    }
+
+    /**
+     * Get the current cargo for this stop.
+     *
+     * @return A list of cargo &lt;code&gt;GoodsType&lt;/code&gt;s.
+     */
+    public final List&lt;GoodsType&gt; getCargo() {
+<span class="nc" id="L131">        return cargo;</span>
+    }
+
+    /**
+     * Set the cargo value.
+     *
+     * @param newCargo A list of &lt;code&gt;GoodsType&lt;/code&gt; defining the cargo.
+     */
+    public final void setCargo(List&lt;GoodsType&gt; newCargo) {
+<span class="nc" id="L140">        cargo.clear();</span>
+<span class="nc" id="L141">        cargo.addAll(newCargo);</span>
+<span class="nc" id="L142">    }</span>
+
+    /**
+     * Add cargo to this stop.
+     *
+     * @param newCargo The &lt;code&gt;GoodsType&lt;/code&gt; to add.
+     */
+    public void addCargo(GoodsType newCargo) {
+<span class="nc" id="L150">        cargo.add(newCargo);</span>
+<span class="nc" id="L151">    }</span>
+
+    /**
+     * Get a list of the maximum abstract goods that could be loaded
+     * at this stop.  That is, a list of all the cargo goods types
+     * normally with amount equal to one CARGO_SIZE, but with
+     * duplicates removed and amounts accumulated.
+     *
+     * @return A list of &lt;code&gt;AbstractGoods&lt;/code&gt; to load.
+     */
+    public List&lt;AbstractGoods&gt; getCompactCargo() {
+<span class="nc" id="L162">        List&lt;AbstractGoods&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">        for (GoodsType type : getCargo()) {</span>
+<span class="nc" id="L164">            AbstractGoods ag = AbstractGoods.findByType(type, result);</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">            if (ag != null) {</span>
+<span class="nc" id="L166">                ag.setAmount(ag.getAmount() + GoodsContainer.CARGO_SIZE);</span>
+<span class="nc" id="L167">            } else {</span>
+<span class="nc" id="L168">                result.add(new AbstractGoods(type, GoodsContainer.CARGO_SIZE));</span>
+            }
+        }
+<span class="nc" id="L171">        return result;</span>
+    }
+        
+    /**
+     * Create a template for this trade route stop.
+     *
+     * @param key A message key.
+     * @param player The &lt;code&gt;Player&lt;/code&gt; who will see the message.
+     * @return A &lt;code&gt;StringTemplate&lt;/code&gt; for this stop.
+     */
+    public StringTemplate getLabelFor(String key, Player player) {
+<span class="nc" id="L182">        return StringTemplate.template(key)</span>
+<span class="nc" id="L183">            .addStringTemplate(&quot;%location%&quot;,</span>
+<span class="nc" id="L184">                this.getLocation().getLocationLabelFor(player));</span>
+    }
+
+    /**
+     * Create an invalid trade route stop label.
+     *
+     * @param player The &lt;code&gt;Player&lt;/code&gt; who will see the message.
+     * @return A &lt;code&gt;StringTemplate&lt;/code&gt; for this stop.
+     */
+    public StringTemplate invalidStopLabel(Player player) {
+<span class="nc" id="L194">        return getLabelFor(&quot;model.tradeRoute.invalidStop&quot;, player);</span>
+    }
+
+    /**
+     * Is there work for a unit to do at this stop?
+     *
+     * @param unit The &lt;code&gt;Unit&lt;/code&gt; to test.
+     * @param turns Account for production from this many turns.
+     * @return True if this unit should load or unload cargo at the stop.
+     */
+    public boolean hasWork(Unit unit, int turns) {
+        // Look for goods to load.
+<span class="nc" id="L206">        List&lt;AbstractGoods&gt; stopGoods = getCompactCargo();</span>
+        // There is space on the unit to load some more of this goods
+        // type, so return true if there is some available at the stop.
+<span class="nc" id="L209">        if (any(stopGoods.stream()</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">                .filter(ag -&gt; unit.getGoodsCount(ag.getType()) &lt; ag.getAmount()),</span>
+<span class="nc bnc" id="L211" title="All 4 branches missed.">                ag -&gt; getExportAmount(ag.getType(), turns) &gt; 0)) return true;</span>
+
+        // Look for goods to unload.
+<span class="nc" id="L214">        if (any(unit.getCompactGoodsList().stream()</span>
+<span class="nc bnc" id="L215" title="All 2 branches missed.">                .filter(ag -&gt; !AbstractGoods.containsType(ag.getType(), stopGoods)),</span>
+<span class="nc bnc" id="L216" title="All 4 branches missed.">                ag -&gt; getImportAmount(ag.getType(), turns) &gt; 0)) return true;</span>
+
+<span class="nc" id="L218">        return false;</span>
+    }
+
+
+    // Interface TradeLocation
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getGoodsCount(GoodsType goodsType) {
+<span class="nc bnc" id="L229" title="All 2 branches missed.">        return (location instanceof TradeLocation)</span>
+<span class="nc" id="L230">            ? ((TradeLocation)location).getGoodsCount(goodsType)</span>
+<span class="nc" id="L231">            : 0;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getExportAmount(GoodsType goodsType, int turns) {
+<span class="nc bnc" id="L239" title="All 2 branches missed.">        return (location instanceof TradeLocation)</span>
+<span class="nc" id="L240">            ? ((TradeLocation)location).getExportAmount(goodsType, turns)</span>
+<span class="nc" id="L241">            : 0;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getImportAmount(GoodsType goodsType, int turns) {
+<span class="nc bnc" id="L249" title="All 2 branches missed.">        return (location instanceof TradeLocation)</span>
+<span class="nc" id="L250">            ? ((TradeLocation)location).getImportAmount(goodsType, turns)</span>
+<span class="nc" id="L251">            : 0;</span>
+    }
+
+
+    // Override FreeColGameObject
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isInternable() {
+<span class="nc" id="L262">        return false;</span>
+    }
+
+
+    // Serialization
+
+    private static final String CARGO_TAG = &quot;cargo&quot;;
+<span class="nc" id="L269">    private static final String LOCATION_TAG = &quot;location&quot;;</span>
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L277">        xw.writeLocationAttribute(LOCATION_TAG, location);</span>
+<span class="nc" id="L278">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void writeChildren(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc bnc" id="L285" title="All 2 branches missed.">        for (GoodsType cargoType : cargo) {</span>
+
+<span class="nc" id="L287">            xw.writeStartElement(CARGO_TAG);</span>
+            
+<span class="nc" id="L289">            xw.writeAttribute(FreeColObject.ID_ATTRIBUTE_TAG, cargoType);</span>
+
+<span class="nc" id="L291">            xw.writeEndElement();</span>
+        }
+<span class="nc" id="L293">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L300">        location = xr.getLocationAttribute(getGame(), LOCATION_TAG, true);</span>
+<span class="nc" id="L301">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChildren(FreeColXMLReader xr) throws XMLStreamException {
+        // Clear containers.
+<span class="nc" id="L309">        cargo.clear();</span>
+
+<span class="nc" id="L311">        super.readChildren(xr);</span>
+<span class="nc" id="L312">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readChild(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L319">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L320">        final String tag = xr.getLocalName();</span>
+
+<span class="nc bnc" id="L322" title="All 2 branches missed.">        if (CARGO_TAG.equals(tag)) {</span>
+<span class="nc" id="L323">            cargo.add(xr.getType(spec, ID_ATTRIBUTE_TAG,</span>
+<span class="nc" id="L324">                                 GoodsType.class, (GoodsType)null));</span>
+
+<span class="nc" id="L326">            xr.closeTag(CARGO_TAG);</span>
+
+<span class="nc" id="L328">        } else {</span>
+<span class="nc" id="L329">            super.readChild(xr);</span>
+        }
+<span class="nc" id="L331">    }</span>
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L339">        StringBuilder sb = new StringBuilder(64);</span>
+<span class="nc" id="L340">        sb.append(&quot;[&quot;).append(getXMLTagName())</span>
+<span class="nc" id="L341">            .append(&quot; &quot;).append(getLocation().getId());</span>
+<span class="nc bnc" id="L342" title="All 2 branches missed.">        for (GoodsType goodsType : getCargo()) {</span>
+<span class="nc" id="L343">            sb.append(&quot; &quot;).append(goodsType);</span>
+        }
+<span class="nc" id="L345">        sb.append(&quot;]&quot;);</span>
+<span class="nc" id="L346">        return sb.toString();            </span>
+    }
+
+    /**
+     * Delegate to getTagName.
+     *
+     * @return What getTagName does.
+     */
+    @Override
+<span class="nc" id="L355">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     * 
+     * @return &quot;tradeRouteStop&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L363">        return &quot;tradeRouteStop&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

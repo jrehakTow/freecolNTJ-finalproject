@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>Force.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">Force.java</span></div><h1>Force.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.AbstractUnit;
+import net.sf.freecol.common.model.Force;
+import net.sf.freecol.common.model.FreeColSpecObject;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.model.UnitType;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+
+
+/**
+ * A group of units with a common origin and purpose.
+ */
+public class Force extends FreeColSpecObject {
+
+    /** The number of land units in the REF. */
+<span class="nc" id="L46">    private final List&lt;AbstractUnit&gt; landUnits = new ArrayList&lt;&gt;();</span>
+
+    /** The number of naval units in the REF. */
+<span class="nc" id="L49">    private final List&lt;AbstractUnit&gt; navalUnits = new ArrayList&lt;&gt;();</span>
+
+    // Internal variables that do not need serialization.
+    /** The space required to transport all land units. */
+    private int spaceRequired;
+
+    /** The current naval transport capacity. */
+    private int capacity;
+
+
+    /**
+     * Basic constructor.
+     *
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; for this object.
+     */
+    public Force(Specification specification) {
+<span class="nc" id="L65">        super(specification);</span>
+<span class="nc" id="L66">    }</span>
+
+    /**
+     * Create a new Force.
+     *
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; for this object.
+     * @param units A list of &lt;code&gt;AbstractUnit&lt;/code&gt;s defining the force.
+     * @param ability An optional ability name required of the units
+     *     in the force.
+     */
+    public Force(Specification specification, List&lt;AbstractUnit&gt; units,
+                 String ability) {
+<span class="nc" id="L78">        this(specification);</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">        for (AbstractUnit unit : units) {</span>
+<span class="nc" id="L80">            UnitType unitType = unit.getType(specification);</span>
+<span class="nc bnc" id="L81" title="All 4 branches missed.">            if (ability == null || unitType.hasAbility(ability)) {</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">                if (unitType.hasAbility(Ability.NAVAL_UNIT)) {</span>
+<span class="nc" id="L83">                    navalUnits.add(unit);</span>
+<span class="nc" id="L84">                } else {</span>
+<span class="nc" id="L85">                    landUnits.add(unit);</span>
+                }
+<span class="nc" id="L87">            } else {</span>
+<span class="nc" id="L88">                logger.warning(&quot;Found unit lacking required ability \&quot;&quot;</span>
+<span class="nc" id="L89">                    + ability + &quot;\&quot;: &quot; + unit);</span>
+            }
+        }
+<span class="nc" id="L92">        updateSpaceAndCapacity();</span>
+<span class="nc" id="L93">    }</span>
+
+
+    /**
+     * Get the cargo space required for the land units of this force.
+     *
+     * @return The required cargo space.
+     */
+    public final int getSpaceRequired() {
+<span class="nc" id="L102">        return this.spaceRequired;</span>
+    }
+
+    /**
+     * Get the cargo space provided by the naval units of this force.
+     *
+     * @return The provided cargo space.
+     */
+    public final int getCapacity() {
+<span class="nc" id="L111">        return this.capacity;</span>
+    }
+
+    /**
+     * Update the space and capacity variables.
+     */
+    public final void updateSpaceAndCapacity() {
+<span class="nc" id="L118">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L119">        this.capacity = sum(this.navalUnits,</span>
+<span class="nc" id="L120">            nu -&gt; nu.getType(spec).canCarryUnits(),</span>
+<span class="nc" id="L121">            nu -&gt; nu.getType(spec).getSpace() * nu.getNumber());</span>
+<span class="nc" id="L122">        this.spaceRequired = sum(this.landUnits,</span>
+<span class="nc" id="L123">            lu -&gt; lu.getType(spec).getSpaceTaken() * lu.getNumber());</span>
+<span class="nc" id="L124">    }</span>
+
+    /**
+     * Gets all units.
+     *
+     * @return A copy of the list of all units.
+     */
+    public final List&lt;AbstractUnit&gt; getUnits() {
+<span class="nc" id="L132">        List&lt;AbstractUnit&gt; result = getLandUnits();</span>
+<span class="nc" id="L133">        result.addAll(getNavalUnits());</span>
+<span class="nc" id="L134">        return result;</span>
+    }
+
+    /**
+     * Gets the naval units.
+     *
+     * @return A copy of the list of the naval units.
+     */
+    public final List&lt;AbstractUnit&gt; getNavalUnits() {
+<span class="nc" id="L143">        return AbstractUnit.deepCopy(this.navalUnits);</span>
+    }
+
+    /**
+     * Gets the land units.
+     *
+     * @return A list of the  land units.
+     */
+    public final List&lt;AbstractUnit&gt; getLandUnits() {
+<span class="nc" id="L152">        return AbstractUnit.deepCopy(this.landUnits);</span>
+    }
+
+    /**
+     * Is this Force empty?
+     *
+     * @return True if there are no land or naval units.
+     */
+    public final boolean isEmpty() {
+<span class="nc bnc" id="L161" title="All 4 branches missed.">        return this.landUnits.isEmpty() &amp;&amp; this.navalUnits.isEmpty();</span>
+    }
+
+    /**
+     * Adds units to this Force.
+     *
+     * @param au The addition to this Force.
+     */
+    public void add(AbstractUnit au) {
+<span class="nc" id="L170">        final Specification spec = getSpecification();</span>
+<span class="nc" id="L171">        final UnitType unitType = au.getType(spec);</span>
+<span class="nc" id="L172">        final int n = au.getNumber();</span>
+<span class="nc" id="L173">        boolean added = false;</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">        if (unitType.hasAbility(Ability.NAVAL_UNIT)) {</span>
+<span class="nc bnc" id="L175" title="All 2 branches missed.">            for (AbstractUnit refUnit : navalUnits) {</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">                if (spec.getUnitType(refUnit.getId()) == unitType) {</span>
+<span class="nc" id="L177">                    refUnit.setNumber(refUnit.getNumber() + n);</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">                    if (unitType.canCarryUnits()) {</span>
+<span class="nc" id="L179">                        this.capacity += unitType.getSpace() * n;</span>
+                    }
+<span class="nc" id="L181">                    added = true;</span>
+<span class="nc" id="L182">                    break;</span>
+                }
+            }
+<span class="nc bnc" id="L185" title="All 2 branches missed.">            if (!added) navalUnits.add(au);</span>
+<span class="nc" id="L186">        } else {</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">            for (AbstractUnit refUnit : landUnits) {</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">                if (spec.getUnitType(refUnit.getId()) == unitType</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">                    &amp;&amp; refUnit.getRoleId().equals(au.getRoleId())) {</span>
+<span class="nc" id="L190">                    refUnit.setNumber(refUnit.getNumber() + n);</span>
+<span class="nc" id="L191">                    spaceRequired += unitType.getSpaceTaken() * n;</span>
+<span class="nc" id="L192">                    added = true;</span>
+<span class="nc" id="L193">                    break;</span>
+                }
+            }
+<span class="nc bnc" id="L196" title="All 2 branches missed.">            if (!added) this.landUnits.add(au);</span>
+        }
+<span class="nc" id="L198">        updateSpaceAndCapacity();</span>
+<span class="nc" id="L199">    }</span>
+
+    /**
+     * Calculate the approximate offence power of this force.
+     *
+     * @param naval If true, consider only naval units, otherwise
+     *     consider the land units.
+     * @return The approximate offence power.
+     */
+    public double calculateStrength(boolean naval) {
+<span class="nc" id="L209">        return AbstractUnit.calculateStrength(getSpecification(),</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">            (naval) ? this.navalUnits : this.landUnits);</span>
+    }
+
+    // @compat 0.10.x
+    public void fixOldREFRoles() {
+<span class="nc" id="L215">        Iterator&lt;AbstractUnit&gt; aui = landUnits.iterator();</span>
+<span class="nc" id="L216">        List&lt;AbstractUnit&gt; todo = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">        while (aui.hasNext()) {</span>
+<span class="nc" id="L218">            AbstractUnit au = aui.next();</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">            if (&quot;SOLDIER&quot;.equals(au.getRoleId())</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">                || &quot;model.role.soldier&quot;.equals(au.getRoleId())) {</span>
+<span class="nc" id="L221">                au.setRoleId(&quot;model.role.infantry&quot;);</span>
+<span class="nc" id="L222">                aui.remove();</span>
+<span class="nc" id="L223">                todo.add(au);</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">            } else if (&quot;DRAGOON&quot;.equals(au.getRoleId())</span>
+<span class="nc bnc" id="L225" title="All 2 branches missed.">                || &quot;model.role.dragoon&quot;.equals(au.getRoleId())) {</span>
+<span class="nc" id="L226">                au.setRoleId(&quot;model.role.cavalry&quot;);</span>
+<span class="nc" id="L227">                aui.remove();</span>
+<span class="nc" id="L228">                todo.add(au);</span>
+            }
+        }
+<span class="nc bnc" id="L231" title="All 2 branches missed.">        while (!todo.isEmpty()) add(todo.remove(0));</span>
+<span class="nc" id="L232">    }</span>
+    // end @compat 0.10.x
+
+                    
+    // Serialization
+
+    public static final String LAND_UNITS_TAG = &quot;landUnits&quot;;
+    public static final String NAVAL_UNITS_TAG = &quot;navalUnits&quot;;
+    // @compat 0.10.5
+    // public for now, revert to private
+    // end @compat
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void toXML(FreeColXMLWriter xw, String tag) throws XMLStreamException {
+<span class="nc" id="L250">        xw.writeStartElement(tag);</span>
+
+<span class="nc" id="L252">        xw.writeStartElement(NAVAL_UNITS_TAG);</span>
+
+<span class="nc bnc" id="L254" title="All 2 branches missed.">        for (AbstractUnit unit : navalUnits) unit.toXML(xw);</span>
+
+<span class="nc" id="L256">        xw.writeEndElement();</span>
+
+<span class="nc" id="L258">        xw.writeStartElement(LAND_UNITS_TAG);</span>
+
+<span class="nc bnc" id="L260" title="All 2 branches missed.">        for (AbstractUnit unit : landUnits) unit.toXML(xw);</span>
+
+<span class="nc" id="L262">        xw.writeEndElement();</span>
+
+<span class="nc" id="L264">        xw.writeEndElement();</span>
+<span class="nc" id="L265">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readFromXML(FreeColXMLReader xr) throws XMLStreamException {
+        // Clear containers.
+<span class="nc" id="L273">        navalUnits.clear();</span>
+<span class="nc" id="L274">        landUnits.clear();</span>
+
+<span class="nc bnc" id="L276" title="All 2 branches missed.">        while (xr.nextTag() != XMLStreamConstants.END_ELEMENT) {</span>
+<span class="nc" id="L277">            final String tag = xr.getLocalName();</span>
+
+<span class="nc bnc" id="L279" title="All 2 branches missed.">            if (LAND_UNITS_TAG.equals(tag)) {</span>
+<span class="nc bnc" id="L280" title="All 2 branches missed.">                while (xr.nextTag() != XMLStreamConstants.END_ELEMENT) {</span>
+<span class="nc" id="L281">                    add(new AbstractUnit(xr));</span>
+                }
+<span class="nc bnc" id="L283" title="All 2 branches missed.">            } else if (NAVAL_UNITS_TAG.equals(tag)) {</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">                while (xr.nextTag() != XMLStreamConstants.END_ELEMENT) {</span>
+<span class="nc" id="L285">                    add(new AbstractUnit(xr));</span>
+                }
+<span class="nc" id="L287">            } else {</span>
+<span class="nc" id="L288">                logger.warning(&quot;Bogus Force tag: &quot; + tag);</span>
+            }
+        }
+<span class="nc" id="L291">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="nc" id="L297">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;force&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L305">        return &quot;force&quot;;</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>AbstractUnit.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">AbstractUnit.java</span></div><h1>AbstractUnit.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+
+
+/**
+ * Contains the information necessary to create a new unit.
+ */
+public class AbstractUnit extends FreeColObject {
+
+    /** The role identifier of this AbstractUnit. */
+<span class="pc" id="L40">    private String roleId = Specification.DEFAULT_ROLE_ID;</span>
+
+    /** The number of units. */
+<span class="pc" id="L43">    private int number = 1;</span>
+
+
+    /**
+     * Deliberately empty constructor, for FreeColObject.newInstance.
+     */
+<span class="nc" id="L49">    public AbstractUnit() {}</span>
+
+    /**
+     * Create a new AbstractUnit.
+     *
+     * @param id The object identifier.
+     * @param roleId The unit role identifier.
+     * @param number A number of units.
+     */
+<span class="fc" id="L58">    public AbstractUnit(String id, String roleId, int number) {</span>
+<span class="fc" id="L59">        setId(id);</span>
+<span class="fc" id="L60">        this.roleId = roleId;</span>
+<span class="fc" id="L61">        this.number = number;</span>
+<span class="fc" id="L62">    }</span>
+
+    /**
+     * Create a new AbstractUnit.
+     *
+     * @param unitType The type of unit to create.
+     * @param roleId The unit role identifier.
+     * @param number The number of units.
+     */
+    public AbstractUnit(UnitType unitType, String roleId, int number) {
+<span class="fc" id="L72">        this(unitType.getId(), roleId, number);</span>
+<span class="fc" id="L73">    }</span>
+
+    /**
+     * Creates a new &lt;code&gt;AbstractUnit&lt;/code&gt; instance.
+     *
+     * @param xr The &lt;code&gt;FreeColXMLReader&lt;/code&gt; to read from.
+     * @exception XMLStreamException if an error occurs
+     */
+<span class="fc" id="L81">    public AbstractUnit(FreeColXMLReader xr) throws XMLStreamException {</span>
+<span class="fc" id="L82">        readFromXML(xr);</span>
+<span class="fc" id="L83">    }</span>
+
+
+    /**
+     * Get the role identifier.
+     *
+     * @return The role identifier.
+     */
+    public final String getRoleId() {
+<span class="fc" id="L92">        return roleId;</span>
+    }
+
+    /**
+     * Set the role identifier.
+     *
+     * @param roleId The new role identifier.
+     */
+    public final void setRoleId(final String roleId) {
+<span class="nc" id="L101">        this.roleId = roleId;</span>
+<span class="nc" id="L102">    }</span>
+
+    /**
+     * Get the number of units.
+     *
+     * @return The number of units.
+     */
+    public final int getNumber() {
+<span class="fc" id="L110">        return number;</span>
+    }
+
+    /**
+     * Set the number of units.
+     *
+     * @param newNumber The new number of units.
+     */
+    public final void setNumber(final int newNumber) {
+<span class="nc" id="L119">        this.number = newNumber;</span>
+<span class="nc" id="L120">    }</span>
+
+    /**
+     * Gets a template describing this abstract unit.
+     *
+     * @return A &lt;code&gt;StringTemplate&lt;/code&gt; describing the abstract unit.
+     */
+    public StringTemplate getLabel() {
+<span class="nc" id="L128">        StringTemplate tmpl = Messages.getUnitLabel(null, getId(), getNumber(),</span>
+<span class="nc" id="L129">                                                    null, getRoleId(), null);</span>
+<span class="nc" id="L130">        return StringTemplate.template(&quot;model.abstractUnit.label&quot;)</span>
+<span class="nc" id="L131">                             .addAmount(&quot;%number%&quot;, getNumber())</span>
+<span class="nc" id="L132">                             .addStringTemplate(&quot;%unit%&quot;, tmpl);</span>
+    }
+
+    /**
+     * Get a description of this abstract unit.
+     *
+     * @return A &lt;code&gt;String&lt;/code&gt; describing this abstract unit.
+     */
+    public String getDescription() {
+<span class="nc" id="L141">        return Messages.message(getLabel());</span>
+    }
+
+    /**
+     * Convenience accessor for the role.
+     *
+     * @param spec A &lt;code&gt;Specification&lt;/code&gt; to look up the role in.
+     * @return The &lt;code&gt;Role&lt;/code&gt; of this abstract unit.
+     */
+    public Role getRole(Specification spec) {
+<span class="nc" id="L151">        return spec.getRole(getRoleId());</span>
+    }
+
+    /**
+     * Convenience accessor for the unit type.
+     *
+     * @param spec A &lt;code&gt;Specification&lt;/code&gt; to look up the type in.
+     * @return The &lt;code&gt;UnitType&lt;/code&gt; of this abstract unit.
+     */
+    public UnitType getType(Specification spec) {
+<span class="fc" id="L161">        return spec.getUnitType(getId());</span>
+    }
+
+    /**
+     * Get the approximate offence power that an instantiated unit
+     * corresponding to this abstract form would have.
+     *
+     * @param spec A &lt;code&gt;Specification&lt;/code&gt; to look up.
+     * @return The approximate offence power.
+     */
+    public double getOffence(Specification spec) {
+<span class="nc" id="L172">        int n = getNumber();</span>
+<span class="nc" id="L173">        Role role = getRole(spec);</span>
+<span class="nc" id="L174">        UnitType type = spec.getUnitType(getId());</span>
+<span class="nc" id="L175">        return n * (type.getOffence() + role.getOffence());</span>
+    }
+
+    /**
+     * Calculate the approximate offence power of a list of units.
+     *
+     * @param spec A &lt;code&gt;Specification&lt;/code&gt; to look up the type in.
+     * @param units A list of &lt;code&gt;AbstractUnit&lt;/code&gt;s.
+     * @return The approximate offence power.
+     */
+    public static double calculateStrength(Specification spec,
+                                           List&lt;AbstractUnit&gt; units) { 
+<span class="nc" id="L187">        return sumDouble(units, au -&gt; au.getOffence(spec));</span>
+    }
+
+    /**
+     * Get a deep copy of a list of abstract units.
+     *
+     * @param units The list of &lt;code&gt;AbstractUnit&lt;/code&gt;s to copy.
+     * @return A list of &lt;code&gt;AbstractUnit&lt;/code&gt;s.
+     */
+    public static List&lt;AbstractUnit&gt; deepCopy(List&lt;AbstractUnit&gt; units) {
+<span class="nc" id="L197">        return toList(map(units, au -&gt;</span>
+<span class="nc" id="L198">                new AbstractUnit(au.getId(), au.getRoleId(), au.getNumber())));</span>
+    }
+
+    /**
+     * Get a template for a list of abstract units.
+     *
+     * @param base The label template base.
+     * @param units The list of &lt;code&gt;AbstractUnit&lt;/code&gt;s to use.
+     * @return A suitable &lt;code&gt;StringTemplate&lt;/code&gt;.
+     */
+    public static StringTemplate getListLabel(String base,
+                                              List&lt;AbstractUnit&gt; units) {
+<span class="nc" id="L210">        StringTemplate template = StringTemplate.label(base);</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">        for (AbstractUnit au : units) {</span>
+<span class="nc" id="L212">            template.addStringTemplate(au.getLabel());</span>
+        }
+<span class="nc" id="L214">        return template;</span>
+    }
+
+
+    // Serialization
+
+    private static final String ROLE_TAG = &quot;role&quot;;
+    private static final String NUMBER_TAG = &quot;number&quot;;
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L229">        super.writeAttributes(xw);</span>
+
+<span class="nc" id="L231">        xw.writeAttribute(ROLE_TAG, roleId);</span>
+
+<span class="nc" id="L233">        xw.writeAttribute(NUMBER_TAG, number);</span>
+<span class="nc" id="L234">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected final void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="fc" id="L241">        super.readAttributes(xr);</span>
+
+<span class="fc" id="L243">        roleId = xr.getAttribute(ROLE_TAG, Specification.DEFAULT_ROLE_ID);</span>
+        // @compat 0.10.7
+<span class="fc" id="L245">        roleId = Role.fixRoleId(roleId);</span>
+        // end @compat
+
+<span class="fc" id="L248">        number = xr.getAttribute(NUMBER_TAG, 1);</span>
+<span class="fc" id="L249">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc" id="L256">        StringBuilder sb = new StringBuilder(16);</span>
+<span class="nc" id="L257">        sb.append(number).append(&quot; &quot;).append(getId())</span>
+<span class="nc" id="L258">            .append(&quot; (&quot;).append(roleId).append(&quot;)&quot;);</span>
+<span class="nc" id="L259">        return sb.toString();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="nc" id="L266">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;abstractUnit&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L274">        return &quot;abstractUnit&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

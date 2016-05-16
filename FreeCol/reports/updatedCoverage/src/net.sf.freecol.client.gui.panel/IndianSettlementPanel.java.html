@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>IndianSettlementPanel.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.gui.panel</a> &gt; <span class="el_source">IndianSettlementPanel.java</span></div><h1>IndianSettlementPanel.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.gui.panel;
+
+import java.util.List;
+import java.util.logging.Logger;
+
+import javax.swing.ImageIcon;
+import javax.swing.JLabel;
+
+import net.miginfocom.swing.MigLayout;
+
+import net.sf.freecol.client.FreeColClient;
+import net.sf.freecol.client.gui.ImageLibrary;
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.model.GoodsType;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.StringTemplate;
+import net.sf.freecol.common.model.Tension;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.resources.ResourceManager;
+
+
+/**
+ * This panel is used to show information about an Indian settlement.
+ */
+public final class IndianSettlementPanel extends FreeColPanel {
+
+    @SuppressWarnings(&quot;unused&quot;)
+<span class="nc" id="L49">    private static final Logger logger = Logger.getLogger(IndianSettlementPanel.class.getName());</span>
+
+
+    /**
+     * Creates a panel to show information about a native settlement.
+     *
+     * @param freeColClient The &lt;code&gt;FreeColClient&lt;/code&gt; for the game.
+     * @param settlement The &lt;code&gt;IndianSettlement&lt;/code&gt; to display.
+     */
+    public IndianSettlementPanel(FreeColClient freeColClient,
+                                 IndianSettlement settlement) {
+<span class="nc" id="L60">        super(freeColClient, new MigLayout(&quot;wrap 2, gapx 20&quot;, &quot;&quot;, &quot;&quot;));</span>
+
+<span class="nc" id="L62">        ImageLibrary lib = getImageLibrary();</span>
+<span class="nc" id="L63">        JLabel settlementLabel = new JLabel(new ImageIcon(</span>
+<span class="nc" id="L64">            lib.getSettlementImage(settlement)));</span>
+<span class="nc" id="L65">        Player indian = settlement.getOwner();</span>
+<span class="nc" id="L66">        Player player = getMyPlayer();</span>
+<span class="nc" id="L67">        boolean contacted = settlement.hasContacted(player);</span>
+<span class="nc" id="L68">        boolean visited = settlement.hasVisited(player);</span>
+<span class="nc" id="L69">        String text = Messages.message(settlement.getLocationLabelFor(player))</span>
+<span class="nc" id="L70">            + &quot;, &quot;</span>
+<span class="nc" id="L71">            + Messages.message(StringTemplate</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">                .template(settlement.isCapital()</span>
+<span class="nc" id="L73">                    ? &quot;indianSettlementPanel.indianCapital&quot;</span>
+<span class="nc" id="L74">                    : &quot;indianSettlementPanel.indianSettlement&quot;)</span>
+<span class="nc" id="L75">                .addStringTemplate(&quot;%nation%&quot;, indian.getNationLabel()));</span>
+<span class="nc" id="L76">        Tension tension = settlement.getAlarm(player);</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        if (tension != null) text += &quot; (&quot; + Messages.getName(tension) + &quot;)&quot;;</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        if (settlement.worthScouting(player)) {</span>
+<span class="nc" id="L79">            text += ResourceManager.getString(&quot;unscoutedIndianSettlement&quot;);</span>
+        }
+<span class="nc" id="L81">        settlementLabel.setText(text);</span>
+<span class="nc" id="L82">        add(settlementLabel);</span>
+
+<span class="nc" id="L84">        final Unit missionary = settlement.getMissionary();</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        if (missionary != null) {</span>
+<span class="nc" id="L86">            add(Utility.localizedLabel(missionary.getLabel(Unit.UnitLabelType.NATIONAL),</span>
+<span class="nc" id="L87">                new ImageIcon(lib.getSmallUnitImage(missionary)),</span>
+<span class="nc" id="L88">                JLabel.CENTER));</span>
+        }
+
+<span class="nc" id="L91">        add(Utility.localizedLabel(&quot;indianSettlementPanel.learnableSkill&quot;), &quot;newline&quot;);</span>
+<span class="nc" id="L92">        final UnitType skillType = settlement.getLearnableSkill();</span>
+<span class="nc" id="L93">        add(Utility.localizedLabel(settlement.getLearnableSkillLabel(visited),</span>
+<span class="nc bnc" id="L94" title="All 4 branches missed.">                ((visited &amp;&amp; skillType != null)</span>
+<span class="nc" id="L95">                    ? new ImageIcon(lib.getSmallUnitImage(skillType))</span>
+<span class="nc" id="L96">                    : null),</span>
+<span class="nc" id="L97">                JLabel.CENTER));</span>
+
+<span class="nc" id="L99">        add(Utility.localizedLabel(&quot;indianSettlementPanel.mostHated&quot;), &quot;newline&quot;);</span>
+<span class="nc" id="L100">        final Player mostHated = settlement.getMostHated();</span>
+<span class="nc" id="L101">        add(Utility.localizedLabel(settlement.getMostHatedLabel(contacted),</span>
+<span class="nc bnc" id="L102" title="All 4 branches missed.">                ((contacted &amp;&amp; mostHated != null)</span>
+<span class="nc" id="L103">                    ? new ImageIcon(lib.getSmallMiscIconImage(mostHated.getNation()))</span>
+<span class="nc" id="L104">                    : null),</span>
+<span class="nc" id="L105">                JLabel.CENTER));</span>
+
+<span class="nc" id="L107">        GoodsType[] wantedGoods = settlement.getWantedGoods();</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">        final int n = (visited) ? settlement.getWantedGoodsAmount() : 2;</span>
+<span class="nc" id="L109">        List&lt;StringTemplate&gt; wants = settlement.getWantedGoodsLabel(0, player);</span>
+<span class="nc" id="L110">        add(Utility.localizedLabel(&quot;indianSettlementPanel.highlyWanted&quot;), &quot;newline&quot;);</span>
+<span class="nc" id="L111">        JLabel label = Utility.localizedLabel(wants.get(0),</span>
+<span class="nc bnc" id="L112" title="All 4 branches missed.">            ((visited &amp;&amp; wantedGoods[0] != null)</span>
+<span class="nc" id="L113">                ? new ImageIcon(lib.getIconImage(wantedGoods[0]))</span>
+<span class="nc" id="L114">                : null),</span>
+<span class="nc" id="L115">            JLabel.CENTER);</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (wants.size() &gt; 1) Utility.localizeToolTip(label, wants.get(1));</span>
+<span class="nc" id="L117">        add(label);</span>
+<span class="nc" id="L118">        add(Utility.localizedLabel(&quot;indianSettlementPanel.otherWanted&quot;), &quot;newline&quot;);</span>
+<span class="nc" id="L119">        String x = &quot;split &quot; + Integer.toString(n-1);</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">        for (int i = 1; i &lt; n; i++) {</span>
+<span class="nc" id="L121">            wants = settlement.getWantedGoodsLabel(i, player);</span>
+<span class="nc" id="L122">            label = Utility.localizedLabel(wants.get(0),</span>
+<span class="nc bnc" id="L123" title="All 4 branches missed.">                ((visited &amp;&amp; wantedGoods[i] != null)</span>
+<span class="nc" id="L124">                    ? new ImageIcon(lib.getIconImage(wantedGoods[i]))</span>
+<span class="nc" id="L125">                    : null),</span>
+<span class="nc" id="L126">                JLabel.CENTER);</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">            if (wants.size() &gt; 1) Utility.localizeToolTip(label, wants.get(1));</span>
+<span class="nc" id="L128">            add(label, x);</span>
+<span class="nc" id="L129">            x = null;</span>
+        }
+
+<span class="nc" id="L132">        add(okButton, &quot;newline 20, span, tag ok&quot;);</span>
+
+<span class="nc" id="L134">        setSize(getPreferredSize());</span>
+<span class="nc" id="L135">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

@@ -1,0 +1,650 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ConnectController.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.control</a> &gt; <span class="el_source">ConnectController.java</span></div><h1>ConnectController.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.control;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import javax.swing.SwingUtilities;
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.FreeCol; 
+import net.sf.freecol.client.ClientOptions;
+import net.sf.freecol.client.FreeColClient;
+import net.sf.freecol.client.control.FreeColClientHolder;
+import net.sf.freecol.client.gui.ChoiceItem;
+import net.sf.freecol.client.gui.GUI;
+import net.sf.freecol.client.gui.LoadingSavegameInfo;
+import net.sf.freecol.common.FreeColException;
+import net.sf.freecol.common.ServerInfo;
+import net.sf.freecol.common.debug.FreeColDebugger;
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.io.FreeColModFile;
+import net.sf.freecol.common.io.FreeColSavegameFile;
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.model.StringTemplate;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.networking.Connection;
+import net.sf.freecol.common.networking.DOMMessage;
+import net.sf.freecol.common.networking.ErrorMessage;
+import net.sf.freecol.common.networking.GameStateMessage;
+import net.sf.freecol.common.networking.LoginMessage;
+import net.sf.freecol.common.networking.ServerListMessage;
+import net.sf.freecol.common.networking.VacantPlayersMessage;
+import net.sf.freecol.common.resources.ResourceManager;
+import static net.sf.freecol.common.util.CollectionUtils.*;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.FreeColServer.GameState;
+
+
+/**
+ * The controller responsible for starting a server and connecting to it.
+ * {@link PreGameInputHandler} will be set as the input handler when a
+ * successful login has been completed,
+ */
+public final class ConnectController extends FreeColClientHolder {
+
+<span class="nc" id="L74">    private static final Logger logger = Logger.getLogger(ConnectController.class.getName());</span>
+
+
+    /**
+     * Creates a new &lt;code&gt;ConnectController&lt;/code&gt;.
+     *
+     * @param freeColClient The &lt;code&gt;FreeColClient&lt;/code&gt; for the game.
+     */
+    public ConnectController(FreeColClient freeColClient) {
+<span class="nc" id="L83">        super(freeColClient);</span>
+<span class="nc" id="L84">    }</span>
+
+
+    /**
+     * The game is finishing.  Release/unhook everything.
+     */
+    private void finish() {
+<span class="nc" id="L91">        ResourceManager.setScenarioMapping(null);</span>
+
+<span class="nc" id="L93">        final FreeColClient fcc = getFreeColClient();</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">        if (!fcc.isHeadless()) fcc.setInGame(false);</span>
+<span class="nc" id="L95">        fcc.setGame(null);</span>
+<span class="nc" id="L96">        fcc.setMyPlayer(null);</span>
+<span class="nc" id="L97">        askServer().reset();</span>
+<span class="nc" id="L98">        fcc.setLoggedIn(false);</span>
+<span class="nc" id="L99">    }</span>
+
+    /**
+     * Shut down an existing server on a given port.
+     *
+     * @param port The port to unblock.
+     * @return True if there should be no blocking server remaining.
+     */
+    private boolean unblockServer(int port) {
+<span class="nc" id="L108">        FreeColServer freeColServer = getFreeColServer();</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if (freeColServer != null</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">            &amp;&amp; freeColServer.getServer().getPort() == port) {</span>
+<span class="nc" id="L111">            if (getGUI().confirm(&quot;stopServer.text&quot;, &quot;stopServer.yes&quot;,</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">                                 &quot;stopServer.no&quot;)) {</span>
+<span class="nc" id="L113">                freeColServer.getController().shutdown();</span>
+<span class="nc" id="L114">            } else {</span>
+<span class="nc" id="L115">                return false;</span>
+            }
+        }
+<span class="nc" id="L118">        return true;</span>
+    }
+
+    /**
+     * Start a server.
+     *
+     * @param publicServer If true, add to the meta-server.
+     * @param singlePlayer True if this is a single player game.
+     * @param spec The &lt;code&gt;Specification&lt;/code&gt; to use in this game.
+     * @param port The TCP port to use for the public socket.
+     * @return A new &lt;code&gt;FreeColServer&lt;/code&gt; or null on error.
+     */
+    private FreeColServer startServer(boolean publicServer,
+        boolean singlePlayer, Specification spec, int port) {
+        FreeColServer freeColServer;
+        try {
+<span class="nc" id="L134">            freeColServer = new FreeColServer(publicServer, singlePlayer,</span>
+<span class="nc" id="L135">                                              spec, port, null);</span>
+<span class="nc" id="L136">        } catch (IOException e) {</span>
+<span class="nc" id="L137">            freeColServer = null;</span>
+<span class="nc" id="L138">            getGUI().showErrorMessage(&quot;server.initialize&quot;);</span>
+<span class="nc" id="L139">            logger.log(Level.WARNING, &quot;Could not start server.&quot;, e);</span>
+        }
+<span class="nc bnc" id="L141" title="All 4 branches missed.">        if (publicServer &amp;&amp; freeColServer != null</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">            &amp;&amp; !freeColServer.getPublicServer()) {</span>
+<span class="nc" id="L143">            getGUI().showErrorMessage(&quot;server.noRouteToServer&quot;);</span>
+        }
+<span class="nc" id="L145">        return freeColServer;</span>
+    }
+
+    /**
+     * Ask the server a question, but do not make a persistent
+     * connection yet.
+     *
+     * Handle showing error messages on the GUI.  Only simple messages
+     * will work here.
+     *
+     * @param host The name of the machine running the
+     *     &lt;code&gt;FreeColServer&lt;/code&gt;.
+     * @param port The port to use when connecting to the host.
+     * @param query The &lt;code&gt;DOMMessage&lt;/code&gt; query to send.
+     * @param replyTag The expected tag of the reply, or null for anything.
+     * @param errorId An optional error message identifier.
+     * @return The reply message matching the specified tag, or null on error.
+     */
+    private DOMMessage ask(String host, int port, DOMMessage query,
+                           String replyTag, String errorId) {
+        DOMMessage reply;
+<span class="nc" id="L166">        try (</span>
+<span class="nc" id="L167">            Connection c = new Connection(host, port, null,</span>
+<span class="nc" id="L168">                                          FreeCol.CLIENT_THREAD)</span>
+        ) {
+<span class="nc" id="L170">            reply = c.ask(getGame(), query, replyTag);</span>
+<span class="nc bnc" id="L171" title="All 8 branches missed.">        } catch (IOException ioe) {</span>
+<span class="nc" id="L172">            getGUI().showErrorMessage(&quot;server.couldNotConnect&quot;,</span>
+<span class="nc" id="L173">                                      ioe.getMessage());</span>
+<span class="nc" id="L174">            logger.log(Level.WARNING, &quot;Could not connect to &quot; + host</span>
+<span class="nc" id="L175">                + &quot;:&quot; + port, ioe);</span>
+<span class="nc" id="L176">            return null;</span>
+        }
+<span class="nc bnc" id="L178" title="All 2 branches missed.">        if (reply == null) {</span>
+            ;
+<span class="nc bnc" id="L180" title="All 4 branches missed.">        } else if (replyTag == null || reply.isType(replyTag)) {</span>
+<span class="nc" id="L181">            return reply;</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">        } else if (reply.isType(ErrorMessage.TAG)) {</span>
+<span class="nc" id="L183">            ErrorMessage em = (ErrorMessage)reply;</span>
+<span class="nc bnc" id="L184" title="All 4 branches missed.">            if (errorId == null &amp;&amp; em.getMessageId() != null) {</span>
+<span class="nc" id="L185">                errorId = em.getMessageId();</span>
+            }
+<span class="nc" id="L187">            getGUI().showErrorMessage(errorId, em.getMessage());</span>
+<span class="nc" id="L188">        } else {</span>
+<span class="nc" id="L189">            throw new IllegalStateException(&quot;Bogus tag: &quot; + reply.getType());</span>
+        }
+<span class="nc" id="L191">        return null;</span>
+    }
+        
+    /**
+     * Starts the client and connects to &lt;i&gt;host:port&lt;/i&gt;.
+     *
+     * Public for the test suite.
+     *
+     * @param user The name of the player to use.
+     * @param host The name of the machine running the
+     *            &lt;code&gt;FreeColServer&lt;/code&gt;.
+     * @param port The port to use when connecting to the host.
+     * @return True if the login succeeds.
+     */
+    public boolean login(String user, String host, int port) {
+<span class="nc" id="L206">        final FreeColClient fcc = getFreeColClient();</span>
+<span class="nc" id="L207">        fcc.setMapEditor(false);</span>
+ 
+        try {
+<span class="nc" id="L210">            askServer().disconnect();</span>
+<span class="nc" id="L211">        } catch (IOException ioe) {} // Ignore            </span>
+
+        // Establish the full connection here
+<span class="nc" id="L214">        String message = null;</span>
+        try {
+<span class="nc" id="L216">            if (!askServer().connect(FreeCol.CLIENT_THREAD + user,</span>
+<span class="nc" id="L217">                                     host, port,</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">                                     fcc.getPreGameInputHandler())) {</span>
+<span class="nc" id="L219">                message = &quot;repeated failure&quot;;</span>
+            }
+<span class="nc" id="L221">        } catch (Exception ex) {</span>
+<span class="nc" id="L222">            message = ex.getMessage();</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">            if (message == null) message = &quot;connection exception&quot;;</span>
+        }
+<span class="nc bnc" id="L225" title="All 2 branches missed.">        if (message != null) {</span>
+<span class="nc" id="L226">            getGUI().showErrorMessage(&quot;server.couldNotConnect&quot;, message);</span>
+<span class="nc" id="L227">            return false;</span>
+        }
+<span class="nc" id="L229">        logger.info(&quot;Connected to &quot; + host + &quot;:&quot; + port);</span>
+
+        // Ask the server to log in a player with the given user name
+        // and return the game with the player inside.
+        // The work is done in PGIH.login().
+        Game game;
+<span class="nc bnc" id="L235" title="All 2 branches missed.">        if (!askServer().login(user, FreeCol.getVersion())</span>
+<span class="nc bnc" id="L236" title="All 2 branches missed.">            || (game = getGame()) == null) {</span>
+<span class="nc" id="L237">            getGUI().showErrorMessage(&quot;server.couldNotLogin&quot;);</span>
+<span class="nc" id="L238">            return false;</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">        } else if (getMyPlayer() == null) {</span>
+<span class="nc" id="L240">            return false; // Error handled in PGIH.login</span>
+        }
+<span class="nc" id="L242">        return true;</span>
+    }
+
+    //
+    // There are several ways to start a game.
+    // - multi-player
+    // - single player
+    // - restore from saved game
+    //
+    // They all ultimately have to establish a connection to the server,
+    // and get the game from there, which is done in {@link #login()}.
+    //
+    // When restoring from saved we are mostly done at this point and
+    // the game will begin.  Otherwise we may still need to select a
+    // nation and change game or map options, which is done in the
+    // {@link StartGamePanel}.  The start game panel can then send a
+    // requestLaunch message which will tell the server to generate
+    // the game and map with the required parameters.  The updated
+    // game is sent to all clients with an &quot;update&quot; message.
+    //
+    // The server then tells the clients that the game is starting
+    // with a &quot;startGame&quot; message.  Except for saved games where it
+    // cheats and sets a &quot;startGame&quot; flag in the login response that
+    // short circuits this.  FIXME: which is awkward, tidy?
+    //
+    // &quot;startGame&quot; eventually ends up in FreeColServer.startGame,
+    // where the inGame state is finally set to true, and the game
+    // begins.
+    //
+
+    /**
+     * Starts a multiplayer server and connects to it.
+     *
+     * @param specification The &lt;code&gt;Specification&lt;/code&gt; for the game.
+     * @param publicServer Whether to make the server public.
+     * @param port The port in which the server should listen for new clients.
+     * @return True if the game is started successfully.
+     */
+    public boolean startMultiplayerGame(Specification specification,
+                                        boolean publicServer, int port) {
+<span class="nc" id="L282">        final FreeColClient fcc = getFreeColClient();</span>
+<span class="nc" id="L283">        fcc.setMapEditor(false);</span>
+
+<span class="nc bnc" id="L285" title="All 2 branches missed.">        if (fcc.isLoggedIn()) logout(true);</span>
+
+<span class="nc bnc" id="L287" title="All 2 branches missed.">        if (!unblockServer(port)) return false;</span>
+
+<span class="nc" id="L289">        FreeColServer freeColServer = startServer(publicServer, false,</span>
+<span class="nc" id="L290">                                                  specification, port);</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">        if (freeColServer == null) return false;</span>
+
+<span class="nc" id="L293">        fcc.setFreeColServer(freeColServer);</span>
+<span class="nc" id="L294">        return joinMultiplayerGame(freeColServer.getHost(),</span>
+<span class="nc" id="L295">                                   freeColServer.getPort());</span>
+    }
+
+    /**
+     * Join an existing multiplayer game.
+     *
+     * @param host The name of the machine running the server.
+     * @param port The port to use when connecting to the host.
+     * @return True if the game starts successfully.
+     */
+    public boolean joinMultiplayerGame(String host, int port) {
+<span class="nc" id="L306">        final FreeColClient fcc = getFreeColClient();</span>
+<span class="nc" id="L307">        fcc.setMapEditor(false);</span>
+
+<span class="nc bnc" id="L309" title="All 2 branches missed.">        if (fcc.isLoggedIn()) logout(true);</span>
+
+<span class="nc" id="L311">        DOMMessage msg = ask(host, port, new GameStateMessage(),</span>
+<span class="nc" id="L312">                             GameStateMessage.TAG, &quot;client.noState&quot;);</span>
+<span class="nc bnc" id="L313" title="All 2 branches missed.">        GameState state = (msg instanceof GameStateMessage)</span>
+<span class="nc" id="L314">            ? ((GameStateMessage)msg).getGameState()</span>
+<span class="nc" id="L315">            : null;        </span>
+<span class="nc bnc" id="L316" title="All 2 branches missed.">        if (state == null) return false;</span>
+
+<span class="nc bnc" id="L318" title="All 3 branches missed.">        switch (state) {</span>
+        case STARTING_GAME:
+<span class="nc bnc" id="L320" title="All 2 branches missed.">            if (!login(FreeCol.getName(), host, port)) return false;</span>
+<span class="nc" id="L321">            fcc.setLoggedIn(true);</span>
+<span class="nc" id="L322">            getGUI().showStartGamePanel(getGame(), getMyPlayer(), false);</span>
+<span class="nc" id="L323">            break;</span>
+
+        case IN_GAME:
+            // Disable this check if you need to debug a multiplayer client.
+<span class="nc bnc" id="L327" title="All 2 branches missed.">            if (FreeColDebugger.isInDebugMode(FreeColDebugger.DebugMode.MENUS)) {</span>
+<span class="nc" id="L328">                getGUI().showErrorMessage(&quot;client.debugConnect&quot;);</span>
+<span class="nc" id="L329">                return false;</span>
+            }
+<span class="nc" id="L331">            msg = ask(host, port, new VacantPlayersMessage(),</span>
+<span class="nc" id="L332">                VacantPlayersMessage.TAG, &quot;client.noPlayers&quot;);</span>
+<span class="nc bnc" id="L333" title="All 2 branches missed.">            List&lt;String&gt; names = (msg instanceof VacantPlayersMessage)</span>
+<span class="nc" id="L334">                ? ((VacantPlayersMessage)msg).getVacantPlayers()</span>
+<span class="nc" id="L335">                : null;</span>
+<span class="nc bnc" id="L336" title="All 4 branches missed.">            if (names == null || names.isEmpty()) return false;</span>
+
+<span class="nc" id="L338">            String choice = getGUI().getChoice(null,</span>
+<span class="nc" id="L339">                Messages.message(&quot;client.choicePlayer&quot;),</span>
+<span class="nc" id="L340">                &quot;cancel&quot;,</span>
+<span class="nc" id="L341">                toList(map(names, n -&gt;</span>
+<span class="nc" id="L342">                        new ChoiceItem&lt;&gt;(Messages.message(StringTemplate</span>
+<span class="nc" id="L343">                                .template(&quot;countryName&quot;)</span>
+<span class="nc" id="L344">                                .add(&quot;%nation%&quot;, Messages.nameKey(n))), n))));</span>
+<span class="nc bnc" id="L345" title="All 2 branches missed.">            if (choice == null) return false; // User cancelled</span>
+
+<span class="nc bnc" id="L347" title="All 2 branches missed.">            if (!login(Messages.getRulerName(choice), host, port)) return false;</span>
+<span class="nc" id="L348">            fcc.setLoggedIn(true);</span>
+<span class="nc" id="L349">            break;</span>
+
+        case ENDING_GAME: default:
+<span class="nc" id="L352">            getGUI().showErrorMessage(&quot;client.ending&quot;);</span>
+<span class="nc" id="L353">            return false;</span>
+        }
+<span class="nc" id="L355">        return true;</span>
+    }
+
+    /**
+     * Starts a new single player game by connecting to the server.
+     *
+     * FIXME: connect client/server directly (not using network-classes)
+     *
+     * @param spec The &lt;code&gt;Specification&lt;/code&gt; for the game.
+     * @param skip Skip the start game panel.
+     * @return True if the game starts successfully.
+     */
+    public boolean startSinglePlayerGame(Specification spec, boolean skip) {
+<span class="nc" id="L368">        final FreeColClient fcc = getFreeColClient();</span>
+<span class="nc" id="L369">        fcc.setMapEditor(false);</span>
+
+<span class="nc bnc" id="L371" title="All 2 branches missed.">        if (fcc.isLoggedIn()) logout(true);</span>
+
+<span class="nc bnc" id="L373" title="All 2 branches missed.">        if (!unblockServer(FreeCol.getServerPort())) return false;</span>
+
+        // Load the player mods into the specification that is about to be
+        // used to initialize the server.
+        //
+        // ATM we only allow mods in single player games.
+        // FIXME: allow in stand alone server starts?
+<span class="nc" id="L380">        List&lt;FreeColModFile&gt; mods = getClientOptions().getActiveMods();</span>
+<span class="nc" id="L381">        spec.loadMods(mods);</span>
+<span class="nc" id="L382">        Messages.loadActiveModMessageBundle(mods, FreeCol.getLocale());</span>
+<span class="nc" id="L383">        FreeColServer freeColServer = startServer(false, true, spec, -1);</span>
+<span class="nc bnc" id="L384" title="All 2 branches missed.">        if (freeColServer == null) return false;</span>
+
+<span class="nc" id="L386">        fcc.setFreeColServer(freeColServer);</span>
+<span class="nc" id="L387">        fcc.setSinglePlayer(true);</span>
+<span class="nc" id="L388">        if (!login(FreeCol.getName(), freeColServer.getHost(),</span>
+<span class="nc bnc" id="L389" title="All 2 branches missed.">                   freeColServer.getPort())) return false;</span>
+
+<span class="nc" id="L391">        final ClientOptions co = getClientOptions();</span>
+<span class="nc bnc" id="L392" title="All 2 branches missed.">        if (co.getBoolean(ClientOptions.AUTOSAVE_DELETE)) {</span>
+<span class="nc" id="L393">            FreeColServer.removeAutosaves(co.getText(ClientOptions.AUTO_SAVE_PREFIX));</span>
+        }
+<span class="nc" id="L395">        fcc.getPreGameController().setReady(true);</span>
+<span class="nc bnc" id="L396" title="All 2 branches missed.">        if (skip) {</span>
+<span class="nc" id="L397">            fcc.getPreGameController().requestLaunch();</span>
+<span class="nc" id="L398">        } else {</span>
+<span class="nc" id="L399">            getGUI().showStartGamePanel(getGame(), getMyPlayer(), true);</span>
+        }
+<span class="nc" id="L401">        return true;</span>
+    }
+
+    /**
+     * Loads and starts a game from the given file.
+     *
+     * @param file The saved game.
+     * @param userMsg An optional message key to be displayed early.
+     * @return True if the game starts successully.
+     */
+    public boolean startSavedGame(File file, final String userMsg) {
+<span class="nc" id="L412">        final FreeColClient fcc = getFreeColClient();</span>
+<span class="nc" id="L413">        fcc.setMapEditor(false);</span>
+
+        class ErrorJob implements Runnable {
+            private final String message;
+            private final StringTemplate template;
+            
+<span class="nc" id="L419">            ErrorJob(String message) {</span>
+<span class="nc" id="L420">                this.message = message;</span>
+<span class="nc" id="L421">                this.template = null;</span>
+<span class="nc" id="L422">            }</span>
+
+<span class="nc" id="L424">            ErrorJob(StringTemplate template) {</span>
+<span class="nc" id="L425">                this.message = null;</span>
+<span class="nc" id="L426">                this.template = template;</span>
+<span class="nc" id="L427">            }</span>
+            
+            @Override
+            public void run() {
+<span class="nc" id="L431">                getGUI().closeMenus();</span>
+<span class="nc bnc" id="L432" title="All 2 branches missed.">                if (this.template != null) {</span>
+<span class="nc" id="L433">                    getGUI().showErrorMessage(template);</span>
+<span class="nc" id="L434">                } else {</span>
+<span class="nc" id="L435">                    getGUI().showErrorMessage(message);</span>
+                }
+<span class="nc" id="L437">            }</span>
+        }
+
+<span class="nc" id="L440">        final ClientOptions options = getClientOptions();</span>
+        final boolean defaultSinglePlayer;
+        final boolean defaultPublicServer;
+<span class="nc" id="L443">        FreeColSavegameFile fis = null;</span>
+        try {
+<span class="nc" id="L445">            fis = new FreeColSavegameFile(file);</span>
+<span class="nc" id="L446">        } catch (IOException ioe) {</span>
+<span class="nc" id="L447">            SwingUtilities.invokeLater(new ErrorJob(FreeCol.badLoad(file)));</span>
+<span class="nc" id="L448">            logger.log(Level.WARNING, &quot;Could not open save file: &quot;</span>
+<span class="nc" id="L449">                + file.getName());</span>
+<span class="nc" id="L450">            return false;</span>
+        }
+<span class="nc" id="L452">        options.merge(fis);</span>
+<span class="nc" id="L453">        options.fixClientOptions();</span>
+
+        // Get suggestions for &quot;singlePlayer&quot; and &quot;publicServer&quot;
+        // settings from the file, and update the client options if
+        // possible.
+<span class="nc" id="L458">        try (</span>
+<span class="nc" id="L459">            FreeColXMLReader xr = fis.getSavedGameFreeColXMLReader();</span>
+        ) {
+<span class="nc" id="L461">            xr.nextTag();</span>
+
+<span class="nc" id="L463">            String str = xr.getAttribute(FreeColServer.OWNER_TAG,</span>
+<span class="nc" id="L464">                                         (String)null);</span>
+<span class="nc bnc" id="L465" title="All 2 branches missed.">            if (str != null) FreeCol.setName(str);</span>
+
+<span class="nc" id="L467">            defaultSinglePlayer</span>
+<span class="nc" id="L468">                = xr.getAttribute(FreeColServer.SINGLE_PLAYER_TAG, false);</span>
+<span class="nc" id="L469">            defaultPublicServer</span>
+<span class="nc" id="L470">                = xr.getAttribute(FreeColServer.PUBLIC_SERVER_TAG, false);</span>
+
+<span class="nc bnc" id="L472" title="All 8 branches missed.">        } catch (FileNotFoundException e) {</span>
+<span class="nc" id="L473">            SwingUtilities.invokeLater(new ErrorJob(&quot;server.fileNotFound&quot;));</span>
+<span class="nc" id="L474">            logger.log(Level.WARNING, &quot;Can not find file: &quot; + file.getName(),</span>
+<span class="nc" id="L475">                e);</span>
+<span class="nc" id="L476">            return false;</span>
+<span class="nc" id="L477">        } catch (XMLStreamException e) {</span>
+<span class="nc" id="L478">            SwingUtilities.invokeLater(new ErrorJob(FreeCol.badLoad(file)));</span>
+<span class="nc" id="L479">            logger.log(Level.WARNING, &quot;Error reading game from: &quot;</span>
+<span class="nc" id="L480">                + file.getName(), e);</span>
+<span class="nc" id="L481">            return false;</span>
+<span class="nc" id="L482">        } catch (Exception e) {</span>
+<span class="nc" id="L483">            SwingUtilities.invokeLater(new ErrorJob(FreeCol.badLoad(file)));</span>
+<span class="nc" id="L484">            logger.log(Level.WARNING, &quot;Could not load game from: &quot;</span>
+<span class="nc" id="L485">                + file.getName(), e);</span>
+<span class="nc" id="L486">            return false;</span>
+        }
+
+        // Reload the client options saved with this game.
+        final boolean singlePlayer;
+        final String name;
+        final int port;
+<span class="nc" id="L493">        final int sgo = options.getInteger(ClientOptions.SHOW_SAVEGAME_SETTINGS);</span>
+<span class="nc bnc" id="L494" title="All 2 branches missed.">        boolean show = sgo == ClientOptions.SHOW_SAVEGAME_SETTINGS_ALWAYS</span>
+<span class="nc bnc" id="L495" title="All 2 branches missed.">            || (!defaultSinglePlayer</span>
+<span class="nc bnc" id="L496" title="All 2 branches missed.">                &amp;&amp; sgo == ClientOptions.SHOW_SAVEGAME_SETTINGS_MULTIPLAYER);</span>
+<span class="nc bnc" id="L497" title="All 2 branches missed.">        if (show) {</span>
+<span class="nc" id="L498">            if (!getGUI().showLoadingSavegameDialog(defaultPublicServer,</span>
+<span class="nc bnc" id="L499" title="All 2 branches missed.">                                                    defaultSinglePlayer))</span>
+<span class="nc" id="L500">                return false;</span>
+<span class="nc" id="L501">            LoadingSavegameInfo lsd = getGUI().getLoadingSavegameInfo();</span>
+<span class="nc" id="L502">            singlePlayer = lsd.isSinglePlayer();</span>
+<span class="nc" id="L503">            name = lsd.getServerName();</span>
+<span class="nc" id="L504">            port = lsd.getPort();</span>
+<span class="nc" id="L505">        } else {</span>
+<span class="nc" id="L506">            singlePlayer = defaultSinglePlayer;</span>
+<span class="nc" id="L507">            name = null;</span>
+<span class="nc" id="L508">            port = -1;</span>
+        }
+<span class="nc" id="L510">        Messages.loadActiveModMessageBundle(options.getActiveMods(),</span>
+<span class="nc" id="L511">                                            FreeCol.getLocale());</span>
+<span class="nc bnc" id="L512" title="All 2 branches missed.">        if (!unblockServer(port)) return false;</span>
+<span class="nc" id="L513">        getGUI().showStatusPanel(Messages.message(&quot;status.loadingGame&quot;));</span>
+
+<span class="nc" id="L515">        final File theFile = file;</span>
+<span class="nc" id="L516">        Runnable loadGameJob = () -&gt; {</span>
+<span class="nc" id="L517">            FreeColServer freeColServer = null;</span>
+<span class="nc" id="L518">            StringTemplate err = null;</span>
+            try {
+<span class="nc" id="L520">                final FreeColSavegameFile saveGame</span>
+<span class="nc" id="L521">                    = new FreeColSavegameFile(theFile);</span>
+<span class="nc" id="L522">                freeColServer = new FreeColServer(saveGame,</span>
+<span class="nc" id="L523">                    (Specification)null, port, name);</span>
+<span class="nc" id="L524">                fcc.setFreeColServer(freeColServer);</span>
+                // Server might have bounced to another port.
+<span class="nc" id="L526">                fcc.setSinglePlayer(singlePlayer);</span>
+<span class="nc" id="L527">                igc().setGameConnected();</span>
+<span class="nc" id="L528">                if (login(FreeCol.getName(), freeColServer.getHost(), </span>
+<span class="nc bnc" id="L529" title="All 2 branches missed.">                          freeColServer.getPort())) {</span>
+<span class="nc" id="L530">                    SwingUtilities.invokeLater(() -&gt; {</span>
+<span class="nc" id="L531">                            ResourceManager.setScenarioMapping(saveGame.getResourceMapping());</span>
+<span class="nc bnc" id="L532" title="All 2 branches missed.">                            if (userMsg != null) {</span>
+<span class="nc" id="L533">                                getGUI().showInformationMessage(userMsg);</span>
+                            }
+<span class="nc" id="L535">                            getGUI().closeStatusPanel();</span>
+<span class="nc" id="L536">                        });</span>
+<span class="nc" id="L537">                    return; // Success!</span>
+                }
+<span class="nc" id="L539">                err = StringTemplate.key(&quot;server.couldNotLogin&quot;);</span>
+<span class="nc" id="L540">                logger.warning(&quot;Could not log in.&quot;);</span>
+<span class="nc" id="L541">            } catch (FileNotFoundException e) {</span>
+<span class="nc" id="L542">                err = StringTemplate.key(&quot;server.fileNotFound&quot;);</span>
+<span class="nc" id="L543">                logger.log(Level.WARNING, &quot;Can not find file.&quot;, e);</span>
+<span class="nc" id="L544">            } catch (IOException e) {</span>
+<span class="nc" id="L545">                err = StringTemplate.key(&quot;server.initialize&quot;);</span>
+<span class="nc" id="L546">                logger.log(Level.WARNING, &quot;Error starting game.&quot;, e);</span>
+<span class="nc" id="L547">            } catch (XMLStreamException e) {</span>
+<span class="nc" id="L548">                err = FreeCol.badLoad(theFile);</span>
+<span class="nc" id="L549">                logger.log(Level.WARNING, &quot;Stream error.&quot;, e);</span>
+<span class="nc" id="L550">            } catch (Exception e) {</span>
+<span class="nc" id="L551">                String msg = e.getMessage();</span>
+<span class="nc bnc" id="L552" title="All 2 branches missed.">                err = StringTemplate.name((msg == null) ? &quot;(null)&quot; : msg);</span>
+<span class="nc" id="L553">                logger.log(Level.WARNING, &quot;FreeCol error.&quot;, e);</span>
+            }                
+<span class="nc bnc" id="L555" title="All 2 branches missed.">            if (err != null) {</span>
+                // If this is a debug run, fail hard.
+<span class="nc bnc" id="L557" title="All 4 branches missed.">                if (fcc.isHeadless() || FreeColDebugger.getDebugRunTurns() &gt;= 0) {</span>
+<span class="nc" id="L558">                    FreeCol.fatal(Messages.message(err));</span>
+                }
+<span class="nc" id="L560">                SwingUtilities.invokeLater(() -&gt; {</span>
+<span class="nc" id="L561">                        getGUI().closeMainPanel();</span>
+<span class="nc" id="L562">                        getGUI().showMainPanel(null);</span>
+<span class="nc" id="L563">                    });</span>
+<span class="nc" id="L564">                SwingUtilities.invokeLater(new ErrorJob(err));</span>
+            }
+<span class="nc" id="L566">        };</span>
+<span class="nc" id="L567">        fcc.setWork(loadGameJob);</span>
+<span class="nc" id="L568">        return true;</span>
+    }
+
+    /**
+     * Reconnects to the server.
+     *
+     * @return True if the reconnection succeeds.
+     */
+    public boolean reconnect() {
+<span class="nc" id="L577">        final String host = askServer().getHost();</span>
+<span class="nc" id="L578">        final int port = askServer().getPort();</span>
+
+<span class="nc" id="L580">        getGUI().removeInGameComponents();</span>
+<span class="nc" id="L581">        logout(true);</span>
+<span class="nc bnc" id="L582" title="All 2 branches missed.">        if (!login(FreeCol.getName(), host, port)) return false;</span>
+<span class="nc" id="L583">        igc().nextModelMessage();</span>
+<span class="nc" id="L584">        return true;</span>
+    }
+
+    /**
+     * Sends a logout message to the server.
+     *
+     * @param notifyServer Whether or not the server should be
+     *     notified of the logout.  For example: if the server kicked us
+     *     out then we don't need to confirm with a logout message.
+     */
+    public void logout(boolean notifyServer) {
+<span class="nc bnc" id="L595" title="All 2 branches missed.">        if (notifyServer) askServer().logout();</span>
+        try {
+<span class="nc" id="L597">            askServer().disconnect();</span>
+<span class="nc" id="L598">        } catch (IOException ioe) {</span>
+<span class="nc" id="L599">            logger.log(Level.WARNING, &quot;Disconnection error&quot;, ioe);</span>
+        }
+<span class="nc" id="L601">        finish();</span>
+<span class="nc" id="L602">    }</span>
+
+    /**
+     * Quits the current game, optionally notifying and stopping the server.
+     *
+     * @param stopServer Whether to stop the server.
+     * @param notifyServer Whether or not the server should be
+     *     notified of the logout.  For example: if the server kicked us
+     *     out then we don't need to confirm with a logout message.
+     */
+    public void quitGame(boolean stopServer, boolean notifyServer) {
+<span class="nc" id="L613">        final FreeColServer server = getFreeColServer();</span>
+<span class="nc bnc" id="L614" title="All 4 branches missed.">        if (stopServer &amp;&amp; server != null) {</span>
+<span class="nc" id="L615">            server.getController().shutdown();</span>
+<span class="nc" id="L616">            getFreeColClient().setFreeColServer(null);</span>
+<span class="nc" id="L617">            finish();</span>
+<span class="nc" id="L618">        } else {</span>
+<span class="nc bnc" id="L619" title="All 2 branches missed.">            if (getFreeColClient().isLoggedIn()) logout(notifyServer);</span>
+        }
+<span class="nc" id="L621">    }</span>
+
+    /**
+     * Quits the current game. If a server is running it will be
+     * stopped if stopServer is &lt;i&gt;true&lt;/i&gt;.  The server and perhaps
+     * the clients (if a server is running through this client and
+     * stopServer is true) will be notified.
+     *
+     * @param stopServer Indicates whether or not a server that was
+     *     started through this client should be stopped.
+     */
+    public void quitGame(boolean stopServer) {
+<span class="nc" id="L633">        quitGame(stopServer, true);</span>
+<span class="nc" id="L634">    }</span>
+
+    /**
+     * Gets a list of servers from the meta server.
+     *
+     * @return A list of {@link ServerInfo} objects, or null on error.
+     */
+    public List&lt;ServerInfo&gt; getServerList() {
+<span class="nc" id="L642">        DOMMessage msg = ask(FreeCol.META_SERVER_ADDRESS,</span>
+<span class="nc" id="L643">            FreeCol.META_SERVER_PORT, new ServerListMessage(),</span>
+<span class="nc" id="L644">            ServerListMessage.TAG, &quot;metaServer.communicationError&quot;);</span>
+<span class="nc bnc" id="L645" title="All 2 branches missed.">        return (msg instanceof ServerListMessage)</span>
+<span class="nc" id="L646">            ? ((ServerListMessage)msg).getServers()</span>
+<span class="nc" id="L647">            : null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

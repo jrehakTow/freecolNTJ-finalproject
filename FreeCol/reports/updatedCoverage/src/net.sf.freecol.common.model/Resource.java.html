@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>Resource.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">Resource.java</span></div><h1>Resource.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Logger;
+
+import javax.xml.stream.XMLStreamException;
+
+import net.sf.freecol.common.io.FreeColXMLReader;
+import net.sf.freecol.common.io.FreeColXMLWriter;
+import net.sf.freecol.common.model.Map.Layer;
+
+
+/**
+ * Represents a production resource, such as prime tobacco, or an ore
+ * vein, located on a Tile. A resource may be exhausted. In the
+ * original game, only resources that produced silver were exhausted.
+ */
+public class Resource extends TileItem {
+
+<span class="nc" id="L42">    private static final Logger logger = Logger.getLogger(Resource.class.getName());</span>
+
+    /** Some resources are unlimited. */
+    private static final int UNLIMITED = -1;
+
+    /** The type of resource. */
+    private ResourceType type;
+
+    /** The amount of the resource present. */
+    private int quantity;
+
+
+    /**
+     * Creates a standard &lt;code&gt;Resource&lt;/code&gt;-instance.
+     *
+     * This constructor asserts that the game, tile and type are valid.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; on which this object sits.
+     * @param type The &lt;code&gt;ResourceType&lt;/code&gt; of this Resource.
+     * @param quantity The quantity of resource.
+     */
+    public Resource(Game game, Tile tile, ResourceType type, int quantity) {
+<span class="nc" id="L65">        super(game, tile);</span>
+
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        if (type == null) {</span>
+<span class="nc" id="L68">            throw new IllegalArgumentException(&quot;Parameter 'type' must not be 'null'.&quot;);</span>
+        }
+<span class="nc" id="L70">        this.type = type;</span>
+<span class="nc" id="L71">        this.quantity = quantity;</span>
+<span class="nc" id="L72">    }</span>
+
+    /**
+     * Creates a standard &lt;code&gt;Resource&lt;/code&gt;-instance.
+     *
+     * This constructor asserts that the game, tile and type are valid.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param tile The &lt;code&gt;Tile&lt;/code&gt; on which this object sits.
+     * @param type The &lt;code&gt;ResourceType&lt;/code&gt; of this Resource.
+     */
+    public Resource(Game game, Tile tile, ResourceType type) {
+<span class="nc" id="L84">        this(game, tile, type, type.getMaxValue());</span>
+<span class="nc" id="L85">    }</span>
+
+    /**
+     * Creates new &lt;code&gt;Resource&lt;/code&gt;.
+     *
+     * @param game The enclosing &lt;code&gt;Game&lt;/code&gt;.
+     * @param id The object identifier.
+     */
+    public Resource(Game game, String id) {
+<span class="nc" id="L94">        super(game, id);</span>
+<span class="nc" id="L95">    }</span>
+
+
+    /**
+     * Get the type of this resource.
+     *
+     * @return The resource type.
+     */
+    public ResourceType getType() {
+<span class="nc" id="L104">        return type;</span>
+    }
+
+    /**
+     * Is this an unlimited resource?
+     *
+     * @return True if this is an unlimited resource.
+     */
+    public boolean isUnlimited() {
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        return quantity == UNLIMITED;</span>
+    }
+
+    /**
+     * Get the resource quantity.
+     *
+     * @return The resource quantity.
+     */
+    public int getQuantity() {
+<span class="nc" id="L122">        return quantity;</span>
+    }
+
+    /**
+     * Set the resource quantity.
+     *
+     * @param newQuantity The new resource quantity.
+     */
+    public void setQuantity(int newQuantity) {
+<span class="nc" id="L131">        quantity = newQuantity;</span>
+<span class="nc" id="L132">    }</span>
+
+    /**
+     * Get the best goods type to produce here.
+     *
+     * @return The best goods type.
+     */
+    public GoodsType getBestGoodsType() {
+<span class="nc" id="L140">        return type.getBestGoodsType();</span>
+    }
+
+    /**
+     * Reduce the available quantity by the bonus output of
+     * &lt;code&gt;GoodsType&lt;/code&gt;.
+     *
+     * @param goodsType The &lt;code&gt;GoodsType&lt;/code&gt; to check.
+     * @param unitType The producing &lt;code&gt;UnitType&lt;/code&gt;.
+     * @param potential The base potential of the tile.
+     * @return The new quantity of resource.
+     */
+    public int useQuantity(GoodsType goodsType, UnitType unitType,
+                           int potential) {
+        // Return UNLIMITED here if not limited resource?
+<span class="nc" id="L155">        return useQuantity(applyBonus(goodsType, unitType, potential)</span>
+<span class="nc" id="L156">            - potential);</span>
+    }
+
+    /**
+     * Reduces the available quantity.
+     *
+     * @param usedQuantity The quantity that was used up.
+     * @return The final value of quantity.
+     */
+    public int useQuantity(int usedQuantity) {
+<span class="nc bnc" id="L166" title="All 2 branches missed.">        if (quantity == UNLIMITED) {</span>
+            ; // No change
+<span class="nc bnc" id="L168" title="All 2 branches missed.">        } else if (quantity &gt;= usedQuantity) {</span>
+<span class="nc" id="L169">            quantity -= usedQuantity;</span>
+<span class="nc" id="L170">        } else {</span>
+            // Shouldn't generally happen.  Do something more drastic here?
+<span class="nc" id="L172">            logger.severe(&quot;Insufficient quantity in &quot; + this);</span>
+<span class="nc" id="L173">            quantity = 0;</span>
+        }
+<span class="nc" id="L175">        return quantity;</span>
+    }
+
+
+    // Implement Named
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getNameKey() {
+<span class="nc" id="L186">        return getType().getNameKey();</span>
+    }
+
+
+    // Interface TileItem
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public final int getZIndex() {
+<span class="nc" id="L197">        return Tile.RESOURCE_ZINDEX;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isTileTypeAllowed(TileType tileType) {
+<span class="nc" id="L205">        return tileType.canHaveResourceType(getType());</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int applyBonus(GoodsType goodsType, UnitType unitType,
+                          int potential) {
+<span class="nc" id="L214">        Set&lt;Modifier&gt; bonus = type.getModifiers(goodsType.getId(), unitType);</span>
+<span class="nc" id="L215">        int amount = (int)applyModifiers(potential, null, bonus) - potential;</span>
+<span class="nc" id="L216">        return potential</span>
+<span class="nc bnc" id="L217" title="All 4 branches missed.">            + ((quantity == UNLIMITED || quantity &gt; amount) ? amount</span>
+<span class="nc" id="L218">                : quantity);</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean canProduce(GoodsType goodsType, UnitType unitType) {
+<span class="nc bnc" id="L226" title="All 2 branches missed.">        if (goodsType == null) return false;</span>
+        // The presence of a resource can give a tile the ability to
+        // produce a goods type.
+<span class="nc bnc" id="L229" title="All 2 branches missed.">        return (int)applyModifiers(0f, getGame().getTurn(),</span>
+<span class="nc" id="L230">            getProductionModifiers(goodsType, unitType)) &gt; 0;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List&lt;Modifier&gt; getProductionModifiers(GoodsType goodsType,
+                                                 UnitType unitType) {
+<span class="nc bnc" id="L239" title="All 2 branches missed.">        return (goodsType == null) ? Collections.&lt;Modifier&gt;emptyList()</span>
+<span class="nc" id="L240">            : new ArrayList&lt;&gt;(getType()</span>
+<span class="nc" id="L241">                .getModifiers(goodsType.getId(), unitType));</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isNatural() {
+<span class="nc" id="L249">        return true;</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isComplete() {
+<span class="nc" id="L257">        return true;</span>
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Layer getLayer() {
+<span class="nc" id="L265">        return Layer.RESOURCES;</span>
+    }
+
+
+    // Override FreeColGameObject
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int checkIntegrity(boolean fix) {
+<span class="nc bnc" id="L276" title="All 2 branches missed.">        return (type == null) ? -1 : 1;</span>
+    }
+
+
+    // Serialization
+
+    private static final String QUANTITY_TAG = &quot;quantity&quot;;
+    private static final String TILE_TAG = &quot;tile&quot;;
+<span class="nc" id="L284">    private static final String TYPE_TAG = &quot;type&quot;;</span>
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void writeAttributes(FreeColXMLWriter xw) throws XMLStreamException {
+<span class="nc" id="L292">        super.writeAttributes(xw);</span>
+
+<span class="nc" id="L294">        xw.writeAttribute(TILE_TAG, getTile());</span>
+
+<span class="nc" id="L296">        xw.writeAttribute(TYPE_TAG, getType());</span>
+
+<span class="nc" id="L298">        xw.writeAttribute(QUANTITY_TAG, quantity);</span>
+<span class="nc" id="L299">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void readAttributes(FreeColXMLReader xr) throws XMLStreamException {
+<span class="nc" id="L306">        final Specification spec = getSpecification();</span>
+
+<span class="nc" id="L308">        super.readAttributes(xr);</span>
+
+<span class="nc" id="L310">        tile = xr.findFreeColGameObject(getGame(), TILE_TAG,</span>
+<span class="nc" id="L311">                                        Tile.class, (Tile)null, true);</span>
+
+<span class="nc" id="L313">        type = xr.getType(spec, TYPE_TAG,</span>
+<span class="nc" id="L314">                          ResourceType.class, (ResourceType)null);</span>
+
+<span class="nc" id="L316">        quantity = xr.getAttribute(QUANTITY_TAG, 0);</span>
+<span class="nc" id="L317">    }</span>
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+<span class="nc bnc" id="L324" title="All 2 branches missed.">        return (quantity == UNLIMITED) ? getType().getId()</span>
+<span class="nc" id="L325">            : Integer.toString(quantity) + &quot; &quot; + getType().getId();</span>
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+<span class="nc" id="L332">    public String getXMLTagName() { return getTagName(); }</span>
+
+    /**
+     * Gets the tag name of the root element representing this object.
+     *
+     * @return &quot;resource&quot;.
+     */
+    public static String getTagName() {
+<span class="nc" id="L340">        return &quot;resource&quot;;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

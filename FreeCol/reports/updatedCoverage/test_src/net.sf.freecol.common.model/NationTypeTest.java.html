@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>NationTypeTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">NationTypeTest.java</span></div><h1>NationTypeTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.option.OptionGroup;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L30">public class NationTypeTest extends FreeColTestCase {</span>
+
+    public void testHasType(){
+
+<span class="nc" id="L34">        Specification s = spec();</span>
+
+        // Make sure that each nation has a type
+<span class="nc bnc" id="L37" title="All 2 branches missed.">        for (Nation n : s.getNations()){</span>
+<span class="nc" id="L38">            assertNotNull(n.toString(), n.getType());</span>
+        }
+<span class="nc" id="L40">    }</span>
+
+    public void testisRef() {
+
+<span class="nc" id="L44">        Specification s = spec();</span>
+
+<span class="nc" id="L46">        assertTrue(s.getNationType(&quot;model.nationType.trade&quot;).isEuropean());</span>
+<span class="nc" id="L47">        assertTrue(s.getNationType(&quot;model.nationType.default&quot;).isEuropean());</span>
+<span class="nc" id="L48">        assertTrue(s.getNationType(&quot;model.nationType.ref&quot;).isEuropean());</span>
+<span class="nc" id="L49">        assertTrue(s.getNationType(&quot;model.nationType.cooperation&quot;).isEuropean());</span>
+<span class="nc" id="L50">        assertTrue(s.getNationType(&quot;model.nationType.immigration&quot;).isEuropean());</span>
+<span class="nc" id="L51">        assertTrue(s.getNationType(&quot;model.nationType.conquest&quot;).isEuropean());</span>
+
+<span class="nc" id="L53">        assertFalse(s.getNationType(&quot;model.nationType.apache&quot;).isEuropean());</span>
+<span class="nc" id="L54">        assertFalse(s.getNationType(&quot;model.nationType.sioux&quot;).isEuropean());</span>
+<span class="nc" id="L55">        assertFalse(s.getNationType(&quot;model.nationType.tupi&quot;).isEuropean());</span>
+<span class="nc" id="L56">        assertFalse(s.getNationType(&quot;model.nationType.arawak&quot;).isEuropean());</span>
+<span class="nc" id="L57">        assertFalse(s.getNationType(&quot;model.nationType.cherokee&quot;).isEuropean());</span>
+<span class="nc" id="L58">        assertFalse(s.getNationType(&quot;model.nationType.iroquois&quot;).isEuropean());</span>
+<span class="nc" id="L59">        assertFalse(s.getNationType(&quot;model.nationType.inca&quot;).isEuropean());</span>
+<span class="nc" id="L60">        assertFalse(s.getNationType(&quot;model.nationType.aztec&quot;).isEuropean());</span>
+<span class="nc" id="L61">    }</span>
+
+    public void testIsREF() {
+<span class="nc" id="L64">        Specification s = spec();</span>
+
+<span class="nc" id="L66">        assertFalse(s.getNationType(&quot;model.nationType.trade&quot;).isREF());</span>
+<span class="nc" id="L67">        assertFalse(s.getNationType(&quot;model.nationType.default&quot;).isREF());</span>
+<span class="nc" id="L68">        assertTrue(s.getNationType(&quot;model.nationType.ref&quot;).isREF());</span>
+<span class="nc" id="L69">        assertFalse(s.getNationType(&quot;model.nationType.cooperation&quot;).isREF());</span>
+<span class="nc" id="L70">        assertFalse(s.getNationType(&quot;model.nationType.immigration&quot;).isREF());</span>
+<span class="nc" id="L71">        assertFalse(s.getNationType(&quot;model.nationType.conquest&quot;).isREF());</span>
+
+<span class="nc" id="L73">        assertFalse(s.getNationType(&quot;model.nationType.apache&quot;).isREF());</span>
+<span class="nc" id="L74">        assertFalse(s.getNationType(&quot;model.nationType.sioux&quot;).isREF());</span>
+<span class="nc" id="L75">        assertFalse(s.getNationType(&quot;model.nationType.tupi&quot;).isREF());</span>
+<span class="nc" id="L76">        assertFalse(s.getNationType(&quot;model.nationType.arawak&quot;).isREF());</span>
+<span class="nc" id="L77">        assertFalse(s.getNationType(&quot;model.nationType.cherokee&quot;).isREF());</span>
+<span class="nc" id="L78">        assertFalse(s.getNationType(&quot;model.nationType.iroquois&quot;).isREF());</span>
+<span class="nc" id="L79">        assertFalse(s.getNationType(&quot;model.nationType.inca&quot;).isREF());</span>
+<span class="nc" id="L80">        assertFalse(s.getNationType(&quot;model.nationType.aztec&quot;).isREF());</span>
+<span class="nc" id="L81">    }</span>
+
+    public void testSettlementType() {
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        for (NationType nationType : spec().getIndianNationTypes()) {</span>
+<span class="nc" id="L85">            assertFalse(nationType.getSettlementTypes().isEmpty());</span>
+<span class="nc" id="L86">            SettlementType settlement = nationType.getSettlementType(false);</span>
+<span class="nc" id="L87">            SettlementType capital = nationType.getSettlementType(true);</span>
+<span class="nc" id="L88">            assertNotNull(nationType.getId(), settlement);</span>
+<span class="nc" id="L89">            assertNotNull(nationType.getId(), capital);</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">            assertFalse(nationType.getId(), capital == settlement);</span>
+        }
+<span class="nc" id="L92">    }</span>
+
+    public void testStartingUnits() {
+<span class="nc" id="L95">        int difficulty = 0;</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">        for (OptionGroup og : spec().getDifficultyLevels()) {</span>
+<span class="nc" id="L97">            spec().applyDifficultyLevel(og);</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">            for (EuropeanNationType type : spec().getEuropeanNationTypes()) {</span>
+<span class="nc" id="L99">                List&lt;AbstractUnit&gt; startingUnits = type.getStartingUnits();</span>
+<span class="nc" id="L100">                assertEquals(&quot;Wrong number of starting units: &quot; + type.toString(),</span>
+<span class="nc" id="L101">                             3, startingUnits.size());</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">                for (AbstractUnit au : startingUnits) {</span>
+<span class="nc" id="L103">                    String unitTypeId = au.getId();</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">                    if (&quot;model.role.soldier&quot;.equals(au.getRoleId())) {</span>
+<span class="nc bnc" id="L105" title="All 4 branches missed.">                        if (difficulty == 0 || difficulty == 1</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">                            || &quot;model.nationType.conquest&quot;.equals(type.getId())) {</span>
+<span class="nc" id="L107">                            assertEquals(&quot;Wrong type of soldier: &quot; + type.toString(),</span>
+<span class="nc" id="L108">                                         &quot;model.unit.veteranSoldier&quot;, unitTypeId);</span>
+<span class="nc" id="L109">                        } else {</span>
+<span class="nc" id="L110">                            assertFalse(&quot;Wrong type of soldier: &quot; + type.toString(),</span>
+<span class="nc" id="L111">                                        &quot;model.unit.veteranSoldier&quot;.equals(unitTypeId));</span>
+                        }
+<span class="nc bnc" id="L113" title="All 2 branches missed.">                    } else if (&quot;model.role.pioneer&quot;.equals(au.getRoleId())) {</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">                        if (&quot;model.nationType.cooperation&quot;.equals(type.getId())) {</span>
+<span class="nc" id="L115">                            assertEquals(&quot;Wrong type of pioneer: &quot; + type.toString(),</span>
+<span class="nc" id="L116">                                         &quot;model.unit.hardyPioneer&quot;, unitTypeId);</span>
+<span class="nc" id="L117">                        } else {</span>
+<span class="nc" id="L118">                            assertFalse(&quot;Wrong type of pioneer: &quot; + type.toString(),</span>
+<span class="nc" id="L119">                                        &quot;model.unit.hardyPioneer&quot;.equals(unitTypeId));</span>
+                        }
+<span class="nc bnc" id="L121" title="All 2 branches missed.">                    } else if (Role.isDefaultRoleId(au.getRoleId())) {</span>
+<span class="nc" id="L122">                        assertTrue(&quot;Ship is not naval: &quot; + type.toString(),</span>
+<span class="nc" id="L123">                                   spec().getUnitType(au.getId()).hasAbility(Ability.NAVAL_UNIT));</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">                        if (&quot;model.nationType.trade&quot;.equals(type.getId())</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">                            || &quot;model.nationType.naval&quot;.equals(type.getId())) {</span>
+<span class="nc" id="L126">                            assertEquals(&quot;Wrong type of ship: &quot; + type.toString(),</span>
+<span class="nc" id="L127">                                         &quot;model.unit.merchantman&quot;, unitTypeId);</span>
+<span class="nc" id="L128">                        } else {</span>
+<span class="nc" id="L129">                            assertEquals(&quot;Wrong type of ship: &quot; + type.toString(),</span>
+<span class="nc" id="L130">                                         &quot;model.unit.caravel&quot;, unitTypeId);</span>
+                        }
+                    }
+                }
+            }
+<span class="nc" id="L135">            difficulty++;</span>
+        }
+<span class="nc" id="L137">    }</span>
+
+    public void testAdvantagesThatOnlyApplyToPersons() {
+<span class="nc" id="L140">        Game game = getGame();</span>
+<span class="nc" id="L141">        game.setMap(getTestMap(true));</span>
+
+<span class="nc" id="L143">        Colony colony = getStandardColony();</span>
+<span class="nc" id="L144">        colony.getOwner().changeNationType(spec().getNationType(&quot;model.nationType.building&quot;));</span>
+
+<span class="nc" id="L146">        List&lt;Modifier&gt; modifiers = new ArrayList&lt;&gt;(colony.getOwner().getModifiers(&quot;model.goods.hammers&quot;));</span>
+<span class="nc" id="L147">        assertEquals(1, modifiers.size());</span>
+
+<span class="nc" id="L149">        BuildingType carpenterHouse = spec().getBuildingType(&quot;model.building.carpenterHouse&quot;);</span>
+<span class="nc" id="L150">        assertFalse(&quot;Hammer production bonus should not apply to buildings&quot;,</span>
+<span class="nc" id="L151">                    modifiers.get(0).appliesTo(carpenterHouse));</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">        for (Unit unit : colony.getUnitList()) {</span>
+<span class="nc" id="L153">            assertTrue(&quot;Hammer production bonus should apply to all persons&quot;,</span>
+<span class="nc" id="L154">                       modifiers.get(0).appliesTo(unit.getType()));</span>
+        }
+
+<span class="nc" id="L157">        colony.getOwner().changeNationType(spec().getNationType(&quot;model.nationType.furTrapping&quot;));</span>
+
+<span class="nc" id="L159">        modifiers = new ArrayList&lt;&gt;(colony.getOwner().getModifiers(&quot;model.goods.coats&quot;));</span>
+<span class="nc" id="L160">        assertEquals(1, modifiers.size());</span>
+
+<span class="nc" id="L162">        BuildingType traderHouse = spec().getBuildingType(&quot;model.building.furTraderHouse&quot;);</span>
+<span class="nc" id="L163">        assertFalse(&quot;Coat production bonus should not apply to buildings&quot;,</span>
+<span class="nc" id="L164">                    modifiers.get(0).appliesTo(traderHouse));</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">        for (Unit unit : colony.getUnitList()) {</span>
+<span class="nc" id="L166">            assertTrue(&quot;Coat production bonus should apply to all persons&quot;,</span>
+<span class="nc" id="L167">                       modifiers.get(0).appliesTo(unit.getType()));</span>
+        }
+
+
+<span class="nc" id="L171">    }</span>
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

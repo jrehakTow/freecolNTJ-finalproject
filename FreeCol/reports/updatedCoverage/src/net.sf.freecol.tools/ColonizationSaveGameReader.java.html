@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ColonizationSaveGameReader.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.tools</a> &gt; <span class="el_source">ColonizationSaveGameReader.java</span></div><h1>ColonizationSaveGameReader.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.tools;
+
+import java.io.RandomAccessFile;
+import java.util.Arrays;
+
+// TODO: Auto-generated Javadoc
+/**
+ * The Class ColonizationSaveGameReader.
+ */
+public class ColonizationSaveGameReader {
+
+	/** The Constant PLAYER_DATA. */
+	private final static int PLAYER_DATA = 0x9e;
+
+	/** The Constant COLONY_DATA. */
+	private final static int COLONY_DATA = 0x186;
+
+	/** The Constant NATIONS. */
+<span class="fc" id="L38">	private final static String[] NATIONS = { &quot;English&quot;, &quot;French&quot;, &quot;Spanish&quot;, &quot;Dutch&quot; };</span>
+
+	/**
+	 * The Class GameData.
+	 */
+	private class GameData {
+
+		/** The map width. */
+		private final int mapWidth;
+
+		/** The map height. */
+		private final int mapHeight;
+
+		/** The number of colonies. */
+		private final int numberOfColonies;
+
+		/** The difficulty. */
+		private final int difficulty;
+
+		/**
+		 * Instantiates a new game data.
+		 *
+		 * @param data
+		 *            the data
+		 */
+<span class="nc" id="L63">		public GameData(byte[] data) {</span>
+<span class="nc" id="L64">			mapWidth = data[0xc];</span>
+<span class="nc" id="L65">			mapHeight = data[0xe];</span>
+<span class="nc" id="L66">			numberOfColonies = data[0x2e];</span>
+<span class="nc" id="L67">			difficulty = data[0x36];</span>
+<span class="nc" id="L68">		}</span>
+
+		/**
+		 * Prints the.
+		 */
+		public void print() {
+<span class="nc" id="L74">			System.out.println(&quot;Map size is &quot; + mapWidth + &quot; x &quot; + mapHeight);</span>
+<span class="nc" id="L75">			System.out.println(&quot;Difficulty is &quot; + difficulty);</span>
+<span class="nc" id="L76">			System.out.println(numberOfColonies + &quot; colonies found&quot;);</span>
+<span class="nc" id="L77">		}</span>
+
+		/**
+		 * Gets the number of colonies.
+		 *
+		 * @return the number of colonies
+		 */
+		public int getNumberOfColonies() {
+<span class="nc" id="L85">			return numberOfColonies;</span>
+		}
+	}
+
+	/**
+	 * The Class PlayerData.
+	 */
+	private class PlayerData {
+
+		/** The Constant LENGTH. */
+		public static final int LENGTH = 52;
+
+		/** The new land name. */
+		private final String newLandName;
+
+		/** The player name. */
+		private final String playerName;
+
+		/** The human player. */
+		private final boolean humanPlayer;
+
+		/**
+		 * Instantiates a new player data.
+		 *
+		 * @param data
+		 *            the data
+		 * @param offset
+		 *            the offset
+		 */
+<span class="nc" id="L114">		public PlayerData(byte[] data, int offset) {</span>
+<span class="nc" id="L115">			playerName = getString(data, offset, 23);</span>
+<span class="nc" id="L116">			newLandName = getString(data, offset + 24, 23);</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">			humanPlayer = (data[offset + 49] == 0);</span>
+<span class="nc" id="L118">		}</span>
+
+		/**
+		 * Prints the.
+		 */
+		public void print() {
+<span class="nc bnc" id="L124" title="All 2 branches missed.">			System.out.println(&quot;Player name is &quot; + playerName + (humanPlayer ? &quot; [human]&quot; : &quot; [AI]&quot;));</span>
+<span class="nc" id="L125">			System.out.println(&quot;New land name is &quot; + newLandName);</span>
+<span class="nc" id="L126">		}</span>
+
+	}
+
+	/**
+	 * The Class ColonyData.
+	 */
+	private class ColonyData {
+
+		/** The Constant LENGTH. */
+		public static final int LENGTH = 202;
+
+		/** The Constant COLONIST_OCCUPATION. */
+		public static final int COLONIST_OCCUPATION = 0x20;
+
+		/** The Constant COLONIST_SPECIALITY. */
+		public static final int COLONIST_SPECIALITY = 0x40;
+
+		/** The Constant TILES. */
+		public static final int TILES = 0x70;
+
+		/** The x. */
+		private final int x;
+
+		/** The y. */
+		private final int y;
+
+		/** The number of colonists. */
+		private final int numberOfColonists;
+
+		/** The name. */
+		private final String name;
+
+		/** The colonists. */
+		private final Colonist[] colonists;
+
+		/**
+		 * Instantiates a new colony data.
+		 *
+		 * @param data
+		 *            the data
+		 * @param offset
+		 *            the offset
+		 */
+<span class="nc" id="L170">		public ColonyData(byte[] data, int offset) {</span>
+<span class="nc" id="L171">			x = data[offset];</span>
+<span class="nc" id="L172">			y = data[offset + 1];</span>
+<span class="nc" id="L173">			name = getString(data, offset + 2, offset + 25);</span>
+<span class="nc" id="L174">			numberOfColonists = data[offset + 0x1f];</span>
+<span class="nc" id="L175">			colonists = new Colonist[numberOfColonists];</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">			for (int index = 0; index &lt; numberOfColonists; index++) {</span>
+<span class="nc" id="L177">				int tile = -1;</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">				for (int tileIndex = 0; tileIndex &lt; 8; tileIndex++) {</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">					if (data[offset + TILES + tileIndex] == index) {</span>
+<span class="nc" id="L180">						tile = tileIndex;</span>
+<span class="nc" id="L181">						break;</span>
+					}
+				}
+<span class="nc" id="L184">				colonists[index] = new Colonist(data[offset + COLONIST_OCCUPATION + index],</span>
+<span class="nc" id="L185">						data[offset + COLONIST_SPECIALITY + index], tile);</span>
+			}
+
+<span class="nc" id="L188">		}</span>
+
+		/**
+		 * Prints the.
+		 */
+		public void print() {
+<span class="nc" id="L194">			System.out.println(name + &quot; [&quot; + x + &quot;, &quot; + y + &quot;], &quot; + numberOfColonists + &quot; colonists&quot;);</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">			for (Colonist colonist : colonists) {</span>
+<span class="nc" id="L196">				colonist.print();</span>
+			}
+<span class="nc" id="L198">		}</span>
+	}
+
+	/**
+	 * The Class Colonist.
+	 */
+	public class Colonist {
+
+		/** The occupation. */
+<span class="nc" id="L207">		public final String[] OCCUPATION = { &quot;Farmer&quot;, &quot;Sugar planter&quot;, &quot;Tobacco planter&quot;, &quot;Cotton planter&quot;,</span>
+<span class="nc" id="L208">				&quot;Fur trapper&quot;, &quot;Lumberjack&quot;, &quot;Ore miner&quot;, &quot;Silver miner&quot;, &quot;Fisherman&quot;, &quot;Distiller&quot;, &quot;Tobacconist&quot;,</span>
+<span class="nc" id="L209">				&quot;Weaver&quot;, &quot;Fur Trader&quot;, &quot;Carpenter&quot;, &quot;Blacksmith&quot;, &quot;Gunsmith&quot;, &quot;Preacher&quot;, &quot;Statesman&quot;, &quot;Teacher&quot;, &quot;&quot;,</span>
+<span class="nc" id="L210">				&quot;Pioneer&quot;, &quot;Veteran Soldier&quot;, &quot;Scout&quot;, &quot;Veteran Dragoon&quot;, &quot;Missionary&quot;, &quot;Indentured Servant&quot;,</span>
+<span class="nc" id="L211">				&quot;Petty Criminal&quot;, &quot;Indian convert&quot;, &quot;Free colonist&quot;, &quot;Armed brave&quot;, &quot;Mounted brave&quot; };</span>
+
+		/** The tiles. */
+<span class="nc" id="L214">		public final String[] TILES = { &quot;N&quot;, &quot;E&quot;, &quot;S&quot;, &quot;W&quot;, &quot;NW&quot;, &quot;NE&quot;, &quot;SE&quot;, &quot;SW&quot; };</span>
+
+		/** The occupation. */
+		final int occupation;
+
+		/** The speciality. */
+		final int speciality;
+
+		/** The tile. */
+		final int tile;
+
+		/**
+		 * Instantiates a new colonist.
+		 *
+		 * @param occupation
+		 *            the occupation
+		 * @param speciality
+		 *            the speciality
+		 * @param tile
+		 *            the tile
+		 */
+<span class="nc" id="L235">		public Colonist(int occupation, int speciality, int tile) {</span>
+<span class="nc" id="L236">			this.occupation = occupation;</span>
+<span class="nc" id="L237">			this.speciality = speciality;</span>
+<span class="nc" id="L238">			this.tile = tile;</span>
+<span class="nc" id="L239">		}</span>
+
+		/**
+		 * Prints the.
+		 */
+		public void print() {
+<span class="nc bnc" id="L245" title="All 2 branches missed.">			String tileString = (tile &gt;= 0) ? &quot; [tile &quot; + TILES[tile] + &quot;]&quot; : &quot;&quot;;</span>
+<span class="nc" id="L246">			System.out.println(OCCUPATION[speciality] + &quot; working as &quot; + OCCUPATION[occupation] + tileString);</span>
+<span class="nc" id="L247">		}</span>
+
+	}
+
+	/** The data. */
+	private final byte[] data;
+
+	/**
+	 * Instantiates a new colonization save game reader.
+	 *
+	 * @param data
+	 *            the data
+	 */
+<span class="fc" id="L260">	public ColonizationSaveGameReader(byte[] data) {</span>
+<span class="fc" id="L261">		this.data = data;</span>
+<span class="fc" id="L262">	}</span>
+
+	/**
+	 * The main method.
+	 *
+	 * @param args
+	 *            the arguments
+	 * @throws Exception
+	 *             the exception
+	 */
+	public static void main(String[] args) throws Exception {
+
+		byte[] data;
+<span class="pc" id="L275">		try (RandomAccessFile reader = new RandomAccessFile(args[0], &quot;r&quot;)) {</span>
+<span class="nc" id="L276">			data = new byte[(int) reader.length()];</span>
+<span class="nc" id="L277">			reader.read(data);</span>
+<span class="pc bpc" id="L278" title="7 of 8 branches missed.">		}</span>
+<span class="nc" id="L279">		new ColonizationSaveGameReader(data).run();</span>
+<span class="nc" id="L280">	}</span>
+
+	/**
+	 * Run.
+	 */
+	private void run() {
+
+<span class="nc" id="L287">		GameData gameData = new GameData(data);</span>
+<span class="nc" id="L288">		gameData.print();</span>
+<span class="nc bnc" id="L289" title="All 2 branches missed.">		for (int index = 0; index &lt; 4; index++) {</span>
+<span class="nc" id="L290">			System.out.println(&quot;Nation is &quot; + NATIONS[index]);</span>
+<span class="nc" id="L291">			PlayerData playerData = new PlayerData(data, PLAYER_DATA + index * PlayerData.LENGTH);</span>
+<span class="nc" id="L292">			playerData.print();</span>
+		}
+<span class="nc" id="L294">		int count = gameData.getNumberOfColonies();</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">		for (int index = 0; index &lt; count; index++) {</span>
+<span class="nc" id="L296">			ColonyData colonyData = new ColonyData(data, COLONY_DATA + index * ColonyData.LENGTH);</span>
+<span class="nc" id="L297">			colonyData.print();</span>
+		}
+
+<span class="nc" id="L300">	}</span>
+
+	/**
+	 * Gets the string.
+	 *
+	 * @param data
+	 *            the data
+	 * @param start
+	 *            the start
+	 * @param length
+	 *            the length
+	 * @return the string
+	 */
+	public static String getString(byte[] data, int start, int length) {
+<span class="fc" id="L314">		byte[] bytes = Arrays.copyOfRange(data, start, start + length);</span>
+<span class="fc" id="L315">		String value = new String(bytes);</span>
+<span class="fc" id="L316">		int index = value.indexOf(0);</span>
+<span class="pc bpc" id="L317" title="1 of 2 branches missed.">		if (index &lt; 0) {</span>
+<span class="fc" id="L318">			return value;</span>
+		} else {
+<span class="nc" id="L320">			return value.substring(0, index);</span>
+		}
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

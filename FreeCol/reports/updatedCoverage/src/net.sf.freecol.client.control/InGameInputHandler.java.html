@@ -1,0 +1,1109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>InGameInputHandler.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.control</a> &gt; <span class="el_source">InGameInputHandler.java</span></div><h1>InGameInputHandler.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.control;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import net.sf.freecol.client.FreeColClient;
+import net.sf.freecol.common.debug.FreeColDebugger;
+import net.sf.freecol.common.model.Ability;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.DiplomaticTrade;
+import net.sf.freecol.common.model.FoundingFather;
+import net.sf.freecol.common.model.FreeColGameObject;
+import net.sf.freecol.common.model.FreeColObject;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Goods;
+import net.sf.freecol.common.model.HistoryEvent;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.LastSale;
+import net.sf.freecol.common.model.ModelMessage;
+import net.sf.freecol.common.model.Modifier;
+import net.sf.freecol.common.model.NationSummary;
+import net.sf.freecol.common.model.Ownable;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Stance;
+import net.sf.freecol.common.model.Region;
+import net.sf.freecol.common.model.Settlement;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TradeRoute;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.networking.AddPlayerMessage;
+import net.sf.freecol.common.networking.AssignTradeRouteMessage;
+import net.sf.freecol.common.networking.ChatMessage;
+import net.sf.freecol.common.networking.ChooseFoundingFatherMessage;
+import net.sf.freecol.common.networking.Connection;
+import net.sf.freecol.common.networking.DeleteTradeRouteMessage;
+import net.sf.freecol.common.networking.DOMMessage;
+import net.sf.freecol.common.networking.DiplomacyMessage;
+import net.sf.freecol.common.networking.ErrorMessage;
+import net.sf.freecol.common.networking.FirstContactMessage;
+import net.sf.freecol.common.networking.GoodsForSaleMessage;
+import net.sf.freecol.common.networking.HighScoreMessage;
+import net.sf.freecol.common.networking.InciteMessage;
+import net.sf.freecol.common.networking.IndianDemandMessage;
+import net.sf.freecol.common.networking.LoginMessage;
+import net.sf.freecol.common.networking.LootCargoMessage;
+import net.sf.freecol.common.networking.MonarchActionMessage;
+import net.sf.freecol.common.networking.MultipleMessage;
+import net.sf.freecol.common.networking.NationSummaryMessage;
+import net.sf.freecol.common.networking.NewLandNameMessage;
+import net.sf.freecol.common.networking.NewRegionNameMessage;
+import net.sf.freecol.common.networking.NewTradeRouteMessage;
+import net.sf.freecol.common.networking.ScoutSpeakToChiefMessage;
+import net.sf.freecol.common.networking.SpySettlementMessage;
+import net.sf.freecol.common.networking.UpdateMessage;
+
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+
+/**
+ * Handle the network messages that arrives while in the game.
+ *
+ * Delegate to the real handlers in InGameController which are allowed
+ * to touch the GUI.  Call IGC through invokeLater except for the messages
+ * that demand a response, which requires invokeAndWait.
+ *
+ * Note that the EDT often calls the controller, which queries the
+ * server, which results in handling the reply here, still within the
+ * EDT.  invokeAndWait is illegal within the EDT, but none of messages
+ * that require a response are client-initiated so the problem does
+ * not arise...
+ *
+ * ...except for the special case of the animations.  These have to be
+ * done in series but are sometimes in the EDT (our unit moves) and
+ * sometimes not (other nation unit moves).  Hence the hack
+ * GUI.invokeNowOrWait.
+ */
+public final class InGameInputHandler extends ClientInputHandler {
+
+<span class="nc" id="L102">    private static final Logger logger = Logger.getLogger(InGameInputHandler.class.getName());</span>
+
+    // A bunch of predefined non-closure runnables.
+<span class="nc" id="L105">    private final Runnable closeMenusRunnable = () -&gt; {</span>
+<span class="nc" id="L106">        igc().closeMenus();</span>
+<span class="nc" id="L107">    };</span>
+<span class="nc" id="L108">    private final Runnable displayModelMessagesRunnable = () -&gt; {</span>
+<span class="nc" id="L109">        igc().displayModelMessages(false);</span>
+<span class="nc" id="L110">    };</span>
+<span class="nc" id="L111">    private final Runnable reconnectRunnable = () -&gt; {</span>
+<span class="nc" id="L112">        igc().reconnect();</span>
+<span class="nc" id="L113">    };</span>
+
+
+    /**
+     * The constructor to use.
+     *
+     * @param freeColClient The &lt;code&gt;FreeColClient&lt;/code&gt; for the game.
+     */
+    public InGameInputHandler(FreeColClient freeColClient) {
+<span class="nc" id="L122">        super(freeColClient);</span>
+
+<span class="nc" id="L124">        register(Connection.DISCONNECT_TAG,</span>
+<span class="nc" id="L125">            (Connection c, Element e) -&gt; disconnect(e));</span>
+<span class="nc" id="L126">        register(&quot;addObject&quot;,</span>
+<span class="nc" id="L127">            (Connection c, Element e) -&gt; addObject(e));</span>
+<span class="nc" id="L128">        register(AddPlayerMessage.TAG,</span>
+<span class="nc" id="L129">            (Connection c, Element e) -&gt; addPlayer(e));</span>
+<span class="nc" id="L130">        register(&quot;animateAttack&quot;,</span>
+<span class="nc" id="L131">            (Connection c, Element e) -&gt; animateAttack(e));</span>
+<span class="nc" id="L132">        register(&quot;animateMove&quot;,</span>
+<span class="nc" id="L133">            (Connection c, Element e) -&gt; animateMove(e));</span>
+<span class="nc" id="L134">        register(&quot;chat&quot;,</span>
+<span class="nc" id="L135">            (Connection c, Element e) -&gt; chat(e));</span>
+<span class="nc" id="L136">        register(&quot;chooseFoundingFather&quot;,</span>
+<span class="nc" id="L137">            (Connection c, Element e) -&gt; chooseFoundingFather(e));</span>
+<span class="nc" id="L138">        register(&quot;closeMenus&quot;,</span>
+<span class="nc" id="L139">            (Connection c, Element e) -&gt; closeMenus());</span>
+<span class="nc" id="L140">        register(&quot;diplomacy&quot;,</span>
+<span class="nc" id="L141">            (Connection c, Element e) -&gt; diplomacy(e));</span>
+<span class="nc" id="L142">        register(ErrorMessage.TAG,</span>
+<span class="nc" id="L143">            (Connection c, Element e) -&gt; error(e));</span>
+<span class="nc" id="L144">        register(&quot;featureChange&quot;,</span>
+<span class="nc" id="L145">            (Connection c, Element e) -&gt; featureChange(e));</span>
+<span class="nc" id="L146">        register(&quot;firstContact&quot;,</span>
+<span class="nc" id="L147">            (Connection c, Element e) -&gt; firstContact(e));</span>
+<span class="nc" id="L148">        register(&quot;fountainOfYouth&quot;,</span>
+<span class="nc" id="L149">            (Connection c, Element e) -&gt; fountainOfYouth(e));</span>
+<span class="nc" id="L150">        register(&quot;gameEnded&quot;,</span>
+<span class="nc" id="L151">            (Connection c, Element e) -&gt; gameEnded(e));</span>
+<span class="nc" id="L152">        register(GoodsForSaleMessage.TAG,</span>
+<span class="nc" id="L153">            (Connection c, Element e) -&gt; goodsForSale(e));</span>
+<span class="nc" id="L154">        register(HighScoreMessage.TAG,</span>
+<span class="nc" id="L155">            (Connection c, Element e) -&gt; highScore(e));</span>
+<span class="nc" id="L156">        register(InciteMessage.TAG,</span>
+<span class="nc" id="L157">            (Connection c, Element e) -&gt; incite(e));</span>
+<span class="nc" id="L158">        register(&quot;indianDemand&quot;,</span>
+<span class="nc" id="L159">            (Connection c, Element e) -&gt; indianDemand(e));</span>
+<span class="nc" id="L160">        register(&quot;lootCargo&quot;,</span>
+<span class="nc" id="L161">            (Connection c, Element e) -&gt; lootCargo(e));</span>
+<span class="nc" id="L162">        register(&quot;monarchAction&quot;,</span>
+<span class="nc" id="L163">            (Connection c, Element e) -&gt; monarchAction(e));</span>
+<span class="nc" id="L164">        register(MultipleMessage.TAG,</span>
+<span class="nc" id="L165">            (Connection c, Element e) -&gt; multiple(c, e));</span>
+<span class="nc" id="L166">        register(NationSummaryMessage.TAG,</span>
+<span class="nc" id="L167">            (Connection c, Element e) -&gt; nationSummary(e));</span>
+<span class="nc" id="L168">        register(&quot;newLandName&quot;,</span>
+<span class="nc" id="L169">            (Connection c, Element e) -&gt; newLandName(e));</span>
+<span class="nc" id="L170">        register(&quot;newRegionName&quot;,</span>
+<span class="nc" id="L171">            (Connection c, Element e) -&gt; newRegionName(e));</span>
+<span class="nc" id="L172">        register(&quot;newTurn&quot;,</span>
+<span class="nc" id="L173">            (Connection c, Element e) -&gt; newTurn(e));</span>
+<span class="nc" id="L174">        register(&quot;newTradeRoute&quot;,</span>
+<span class="nc" id="L175">            (Connection c, Element e) -&gt; newTradeRoute(e));</span>
+<span class="nc" id="L176">        register(Connection.RECONNECT_TAG,</span>
+<span class="nc" id="L177">            (Connection c, Element e) -&gt; reconnect());</span>
+<span class="nc" id="L178">        register(&quot;remove&quot;,</span>
+<span class="nc" id="L179">            (Connection c, Element e) -&gt; remove(e));</span>
+<span class="nc" id="L180">        register(ScoutSpeakToChiefMessage.TAG,</span>
+<span class="nc" id="L181">            (Connection c, Element e) -&gt; scoutSpeakToChief(e));</span>
+<span class="nc" id="L182">        register(&quot;setAI&quot;,</span>
+<span class="nc" id="L183">            (Connection c, Element e) -&gt; setAI(e));</span>
+<span class="nc" id="L184">        register(&quot;setCurrentPlayer&quot;,</span>
+<span class="nc" id="L185">            (Connection c, Element e) -&gt; setCurrentPlayer(e));</span>
+<span class="nc" id="L186">        register(&quot;setDead&quot;,</span>
+<span class="nc" id="L187">            (Connection c, Element e) -&gt; setDead(e));</span>
+<span class="nc" id="L188">        register(&quot;setStance&quot;,</span>
+<span class="nc" id="L189">            (Connection c, Element e) -&gt; setStance(e));</span>
+<span class="nc" id="L190">        register(SpySettlementMessage.TAG,</span>
+<span class="nc" id="L191">            (Connection c, Element e) -&gt; spySettlement(e));</span>
+<span class="nc" id="L192">        register(UpdateMessage.TAG,</span>
+<span class="nc" id="L193">            (Connection c, Element e) -&gt; update(e));</span>
+<span class="nc" id="L194">    }</span>
+
+
+    /**
+     * Shorthand to run in the EDT and wait.
+     *
+     * @param runnable The &lt;code&gt;Runnable&lt;/code&gt; to run.
+     */
+    private void invokeAndWait(Runnable runnable) {
+<span class="nc" id="L203">        getGUI().invokeNowOrWait(runnable);</span>
+<span class="nc" id="L204">    }</span>
+    
+    /**
+     * Shorthand to run in the EDT eventually.
+     *
+     * @param runnable The &lt;code&gt;Runnable&lt;/code&gt; to run.
+     */
+    private void invokeLater(Runnable runnable) {
+<span class="nc" id="L212">        getGUI().invokeNowOrLater(runnable);</span>
+<span class="nc" id="L213">    }</span>
+    
+    /**
+     * Get the integer value of an element attribute.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to query.
+     * @param attrib The attribute to use.
+     * @return The integer value of the attribute, or
+     *     Integer.MIN_VALUE on failure.
+     */
+    private static int getIntegerAttribute(Element element, String attrib) {
+        int n;
+        try {
+<span class="nc" id="L226">            n = Integer.parseInt(element.getAttribute(attrib));</span>
+<span class="nc" id="L227">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L228">            n = Integer.MIN_VALUE;</span>
+        }
+<span class="nc" id="L230">        return n;</span>
+    }
+
+    /**
+     * Select a child element with the given object identifier from a
+     * parent element.
+     *
+     * @param parent The parent &lt;code&gt;Element&lt;/code&gt;.
+     * @param key The key to search for.
+     * @return An &lt;code&gt;Element&lt;/code&gt; with matching key,
+     *     or null if none found.
+     */
+    private static Element selectElement(Element parent, String key) {
+<span class="nc" id="L243">        NodeList nodes = parent.getChildNodes();</span>
+<span class="nc bnc" id="L244" title="All 2 branches missed.">        for (int i = 0; i &lt; nodes.getLength(); i++) {</span>
+<span class="nc" id="L245">            Element e = (Element)nodes.item(i);</span>
+<span class="nc bnc" id="L246" title="All 2 branches missed.">            if (key.equals(DOMMessage.readId(e))) return e;</span>
+        }
+<span class="nc" id="L248">        return null;</span>
+    }
+
+    /**
+     * Sometimes units appear which the client does not know about,
+     * and are passed in as the children of the parent element.
+     * Worse, if their location is a Unit, that unit has to be passed in too.
+     * Pull a unit out of the children by id.
+     *
+     * @param game The &lt;code&gt;Game&lt;/code&gt; to add the unit to.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to find a unit in.
+     * @param id The object identifier of the unit to find.
+     * @return A unit or null if none found.
+     */
+    private static Unit selectUnitFromElement(Game game, Element element,
+                                              String id) {
+<span class="nc" id="L264">        Element e = selectElement(element, id);</span>
+<span class="nc" id="L265">        Unit u = null;</span>
+<span class="nc bnc" id="L266" title="All 2 branches missed.">        if (e != null) {</span>
+<span class="nc" id="L267">            u = new Unit(game, e);</span>
+<span class="nc bnc" id="L268" title="All 2 branches missed.">            if (u.getLocation() == null) {</span>
+<span class="nc" id="L269">                throw new RuntimeException(&quot;Null location: &quot; + u);</span>
+            }
+        }
+<span class="nc" id="L272">        return u;</span>
+    }
+
+
+    // Override ClientInputHandler
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Element handle(Connection connection, Element element) {
+<span class="nc bnc" id="L283" title="All 2 branches missed.">        if (element == null) return null;</span>
+<span class="nc" id="L284">        Element reply = super.handle(connection, element);</span>
+
+        // If there is a &quot;flush&quot; attribute present, encourage the client
+        // to display any new messages.
+<span class="nc bnc" id="L288" title="All 2 branches missed.">        if (Boolean.TRUE.toString().equals(element.getAttribute(&quot;flush&quot;))</span>
+<span class="nc bnc" id="L289" title="All 2 branches missed.">            &amp;&amp; currentPlayerIsMyPlayer()) {</span>
+<span class="nc" id="L290">            invokeLater(displayModelMessagesRunnable);</span>
+        }
+<span class="nc" id="L292">        return reply;</span>
+    }
+
+
+    // Individual message handlers
+
+    /**
+     * Add the objects which are the children of this Element.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element addObject(Element element) {
+<span class="nc" id="L305">        final Game game = getGame();</span>
+<span class="nc" id="L306">        final Specification spec = game.getSpecification();</span>
+<span class="nc" id="L307">        DOMMessage.mapChildren(element, (e) -&gt; {</span>
+<span class="nc" id="L308">                String owner = DOMMessage.getStringAttribute(e, &quot;owner&quot;);</span>
+<span class="nc" id="L309">                Player player = game.getFreeColGameObject(owner, Player.class);</span>
+<span class="nc bnc" id="L310" title="All 2 branches missed.">                if (player == null) {</span>
+<span class="nc" id="L311">                    logger.warning(&quot;addObject with broken owner: &quot; + owner);</span>
+<span class="nc" id="L312">                } else {</span>
+<span class="nc" id="L313">                    final String tag = e.getTagName();</span>
+<span class="nc bnc" id="L314" title="All 2 branches missed.">                    if (FoundingFather.getTagName().equals(tag)) {</span>
+<span class="nc" id="L315">                        FoundingFather father</span>
+<span class="nc" id="L316">                            = spec.getFoundingFather(DOMMessage.readId(e));</span>
+<span class="nc bnc" id="L317" title="All 2 branches missed.">                        if (father != null) player.addFather(father);</span>
+<span class="nc" id="L318">                        player.invalidateCanSeeTiles();// Might be coronado?</span>
+                        
+<span class="nc bnc" id="L320" title="All 2 branches missed.">                    } else if (HistoryEvent.getTagName().equals(tag)) {</span>
+<span class="nc" id="L321">                        player.addHistory(DOMMessage.readElement(game, e, HistoryEvent.class));</span>
+                        
+<span class="nc bnc" id="L323" title="All 2 branches missed.">                    } else if (LastSale.getTagName().equals(tag)) {</span>
+<span class="nc" id="L324">                        player.addLastSale(DOMMessage.readElement(game, e, LastSale.class));</span>
+                        
+<span class="nc bnc" id="L326" title="All 2 branches missed.">                    } else if (ModelMessage.getTagName().equals(tag)) {</span>
+<span class="nc" id="L327">                        player.addModelMessage(DOMMessage.readElement(game, e, ModelMessage.class));</span>
+                        
+<span class="nc" id="L329">                    } else {</span>
+<span class="nc" id="L330">                        logger.warning(&quot;addObject unrecognized: &quot; + tag);</span>
+                    }
+                }
+<span class="nc" id="L333">                return player;</span>
+            });
+<span class="nc" id="L335">        return null;</span>
+    }
+
+    /**
+     * Handle an &quot;addPlayer&quot;-message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element addPlayer(Element element) {
+<span class="nc" id="L345">        new AddPlayerMessage(getGame(), element);</span>
+<span class="nc" id="L346">        return null;</span>
+    }
+
+    /**
+     * Handle an &quot;animateAttack&quot;-message.  This only performs animation, if
+     * required.  It does not actually perform any attacks.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element animateAttack(Element element) {
+<span class="nc" id="L357">        final Game game = getGame();</span>
+<span class="nc" id="L358">        final Player player = getMyPlayer();</span>
+        String str;
+        Unit u;
+
+<span class="nc bnc" id="L362" title="All 2 branches missed.">        if ((str = element.getAttribute(&quot;attacker&quot;)).isEmpty()) {</span>
+<span class="nc" id="L363">            throw new IllegalStateException(&quot;Attack animation for: &quot;</span>
+<span class="nc" id="L364">                + player.getId() + &quot; missing attacker attribute.&quot;);</span>
+        }
+<span class="nc bnc" id="L366" title="All 2 branches missed.">        if ((u = game.getFreeColGameObject(str, Unit.class)) == null</span>
+<span class="nc bnc" id="L367" title="All 2 branches missed.">            &amp;&amp; (u = selectUnitFromElement(game, element, str)) == null) {</span>
+<span class="nc" id="L368">            throw new IllegalStateException(&quot;Attack animation for: &quot;</span>
+<span class="nc" id="L369">                + player.getId() + &quot; omitted attacker: &quot; + str);</span>
+        }
+<span class="nc" id="L371">        final Unit attacker = u;</span>
+
+<span class="nc bnc" id="L373" title="All 2 branches missed.">        if ((str = element.getAttribute(&quot;defender&quot;)).isEmpty()) {</span>
+<span class="nc" id="L374">            throw new IllegalStateException(&quot;Attack animation for: &quot;</span>
+<span class="nc" id="L375">                + player.getId() + &quot; missing defender attribute.&quot;);</span>
+        }
+<span class="nc bnc" id="L377" title="All 2 branches missed.">        if ((u = game.getFreeColGameObject(str, Unit.class)) == null</span>
+<span class="nc bnc" id="L378" title="All 2 branches missed.">            &amp;&amp; (u = selectUnitFromElement(game, element, str)) == null) {</span>
+<span class="nc" id="L379">            throw new IllegalStateException(&quot;Attack animation for: &quot;</span>
+<span class="nc" id="L380">                + player.getId() + &quot; omitted defender: &quot; + str);</span>
+        }
+<span class="nc" id="L382">        final Unit defender = u;</span>
+
+<span class="nc bnc" id="L384" title="All 2 branches missed.">        if ((str = element.getAttribute(&quot;attackerTile&quot;)).isEmpty()) {</span>
+<span class="nc" id="L385">            throw new IllegalStateException(&quot;Attack animation for: &quot;</span>
+<span class="nc" id="L386">                + player.getId() + &quot; missing attacker tile attribute.&quot;);</span>
+        }
+<span class="nc" id="L388">        final Tile attackerTile = game.getFreeColGameObject(str, Tile.class);</span>
+<span class="nc bnc" id="L389" title="All 2 branches missed.">        if (attackerTile == null) {</span>
+<span class="nc" id="L390">            throw new IllegalStateException(&quot;Attack animation for: &quot;</span>
+<span class="nc" id="L391">                + player.getId() + &quot; omitted attacker tile: &quot; + str);</span>
+        }
+
+<span class="nc bnc" id="L394" title="All 2 branches missed.">        if ((str = element.getAttribute(&quot;defenderTile&quot;)).isEmpty()) {</span>
+<span class="nc" id="L395">            throw new IllegalStateException(&quot;Attack animation for: &quot;</span>
+<span class="nc" id="L396">                + player.getId() + &quot; missing defender tile attribute.&quot;);</span>
+        }
+<span class="nc" id="L398">        final Tile defenderTile = game.getFreeColGameObject(str, Tile.class);</span>
+<span class="nc bnc" id="L399" title="All 2 branches missed.">        if (defenderTile == null) {</span>
+<span class="nc" id="L400">            throw new IllegalStateException(&quot;Attack animation for: &quot;</span>
+<span class="nc" id="L401">                + player.getId() + &quot; omitted defender tile: &quot; + str);</span>
+        }
+
+<span class="nc" id="L404">        final boolean success</span>
+<span class="nc" id="L405">            = Boolean.parseBoolean(element.getAttribute(&quot;success&quot;));</span>
+
+        // All is well, do the animation.
+<span class="nc" id="L408">        invokeAndWait(() -&gt; {</span>
+<span class="nc" id="L409">                igc().animateAttack(attacker, defender,</span>
+<span class="nc" id="L410">                                    attackerTile, defenderTile, success);</span>
+<span class="nc" id="L411">            });</span>
+<span class="nc" id="L412">        return null;</span>
+    }
+
+    /**
+     * Handle an &quot;animateMove&quot;-message.  This only performs
+     * animation, if required.  It does not actually change unit
+     * positions, which happens in an &quot;update&quot;.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element animateMove(Element element) {
+<span class="nc" id="L424">        final Game game = getGame();</span>
+<span class="nc" id="L425">        final Player player = getMyPlayer();</span>
+
+<span class="nc" id="L427">        String unitId = element.getAttribute(&quot;unit&quot;);</span>
+<span class="nc bnc" id="L428" title="All 2 branches missed.">        if (unitId.isEmpty()) {</span>
+<span class="nc" id="L429">            logger.warning(&quot;Animation for: &quot; + player.getId()</span>
+<span class="nc" id="L430">                + &quot; missing unitId.&quot;);</span>
+<span class="nc" id="L431">            return null;</span>
+        }
+<span class="nc" id="L433">        Unit u = game.getFreeColGameObject(unitId, Unit.class);</span>
+<span class="nc bnc" id="L434" title="All 2 branches missed.">        if (u == null) {</span>
+<span class="nc" id="L435">            u = selectUnitFromElement(game, element, unitId);</span>
+            //if (u != null) logger.info(&quot;Added unit from element: &quot; + unitId);
+        }
+<span class="nc bnc" id="L438" title="All 2 branches missed.">        if (u == null) {</span>
+<span class="nc" id="L439">            logger.warning(&quot;Animation for: &quot; + player.getId()</span>
+<span class="nc" id="L440">                + &quot; missing unit:&quot; + unitId);</span>
+<span class="nc" id="L441">            return null;</span>
+        }
+<span class="nc" id="L443">        final Unit unit = u;</span>
+
+<span class="nc" id="L445">        String oldTileId = element.getAttribute(&quot;oldTile&quot;);</span>
+<span class="nc bnc" id="L446" title="All 2 branches missed.">        if (oldTileId.isEmpty()) {</span>
+<span class="nc" id="L447">            logger.warning(&quot;Animation for: &quot; + player.getId()</span>
+<span class="nc" id="L448">                + &quot; missing oldTileId&quot;);</span>
+<span class="nc" id="L449">            return null;</span>
+        }
+<span class="nc" id="L451">        final Tile oldTile = game.getFreeColGameObject(oldTileId, Tile.class);</span>
+<span class="nc bnc" id="L452" title="All 2 branches missed.">        if (oldTile == null) {</span>
+<span class="nc" id="L453">            logger.warning(&quot;Animation for: &quot; + player.getId()</span>
+<span class="nc" id="L454">                + &quot; missing oldTile: &quot; + oldTileId);</span>
+<span class="nc" id="L455">            return null;</span>
+        }
+
+<span class="nc" id="L458">        String newTileId = element.getAttribute(&quot;newTile&quot;);</span>
+<span class="nc bnc" id="L459" title="All 2 branches missed.">        if (newTileId.isEmpty()) {</span>
+<span class="nc" id="L460">            logger.warning(&quot;Animation for: &quot; + player.getId()</span>
+<span class="nc" id="L461">                + &quot; missing newTileId&quot;);</span>
+<span class="nc" id="L462">            return null;</span>
+        }
+<span class="nc" id="L464">        final Tile newTile = game.getFreeColGameObject(newTileId, Tile.class);</span>
+<span class="nc bnc" id="L465" title="All 2 branches missed.">        if (newTile == null) {</span>
+<span class="nc" id="L466">            logger.warning(&quot;Animation for: &quot; + player.getId()</span>
+<span class="nc" id="L467">                + &quot; missing newTile: &quot; + newTileId);</span>
+<span class="nc" id="L468">            return null;</span>
+        }
+
+<span class="nc" id="L471">        invokeAndWait(() -&gt; { igc().animateMove(unit, oldTile, newTile); });</span>
+<span class="nc" id="L472">        return null;</span>
+    }
+
+    /**
+     * Handle a &quot;chat&quot;-message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element chat(Element element) {
+<span class="nc" id="L482">        final Game game = getGame();</span>
+<span class="nc" id="L483">        final ChatMessage chatMessage = new ChatMessage(game, element);</span>
+
+<span class="nc" id="L485">        invokeLater(() -&gt;</span>
+<span class="nc" id="L486">            igc().chat(chatMessage.getPlayer(game), chatMessage.getMessage(),</span>
+<span class="nc" id="L487">                       chatMessage.isPrivate()));</span>
+<span class="nc" id="L488">        return null;</span>
+    }
+
+    /**
+     * Handle an &quot;chooseFoundingFather&quot;-request.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.  The choice is returned asynchronously.
+     */
+    private Element chooseFoundingFather(Element element) {
+<span class="nc" id="L498">        final ChooseFoundingFatherMessage message</span>
+<span class="nc" id="L499">            = new ChooseFoundingFatherMessage(getGame(), element);</span>
+<span class="nc" id="L500">        final List&lt;FoundingFather&gt; ffs = message.getFathers();</span>
+
+<span class="nc" id="L502">        invokeLater(() -&gt; igc().chooseFoundingFather(ffs));</span>
+<span class="nc" id="L503">        return null;</span>
+    }
+
+    /**
+     * Trivial handler to allow the server to signal to the client
+     * that an offer that caused a popup (for example, a native demand
+     * or diplomacy proposal) has not been answered quickly enough and
+     * that the offering player has assumed this player has
+     * refused-by-inaction, and therefore, the popup needs to be
+     * closed.
+     *
+     * @return Null.
+     */
+    private Element closeMenus() {
+<span class="nc" id="L517">        invokeAndWait(closeMenusRunnable);</span>
+<span class="nc" id="L518">        return null;</span>
+    }
+
+    /**
+     * Handle a &quot;diplomacy&quot;-request.  If the message informs of an
+     * acceptance or rejection then display the result and return
+     * null.  If the message is a proposal, then ask the user about
+     * it and return the response with appropriate response set.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return A diplomacy response, or null if none required.
+     */
+    private Element diplomacy(Element element) {
+<span class="nc" id="L531">        final Game game = getGame();</span>
+<span class="nc" id="L532">        final DiplomacyMessage message</span>
+<span class="nc" id="L533">            = new DiplomacyMessage(getGame(), element);</span>
+<span class="nc" id="L534">        final DiplomaticTrade agreement = message.getAgreement();</span>
+
+<span class="nc" id="L536">        final FreeColGameObject our = message.getOurFCGO(game);</span>
+<span class="nc bnc" id="L537" title="All 2 branches missed.">        if (our == null) {</span>
+<span class="nc" id="L538">            logger.warning(&quot;Our FCGO omitted from diplomacy message.&quot;);</span>
+<span class="nc" id="L539">            return null;</span>
+        }
+
+<span class="nc" id="L542">        final FreeColGameObject other = message.getOtherFCGO(game);</span>
+<span class="nc bnc" id="L543" title="All 2 branches missed.">        if (other == null) {</span>
+<span class="nc" id="L544">            logger.warning(&quot;Other FCGO omitted from diplomacy message.&quot;);</span>
+<span class="nc" id="L545">            return null;</span>
+        }
+
+<span class="nc" id="L548">        invokeAndWait(() -&gt; {</span>
+<span class="nc" id="L549">                message.setAgreement(igc().diplomacy(our, other, agreement));</span>
+<span class="nc" id="L550">            });</span>
+<span class="nc bnc" id="L551" title="All 2 branches missed.">        return (message.getAgreement() == null) ? null</span>
+<span class="nc" id="L552">            : message.toXMLElement();</span>
+    }
+
+    /**
+     * Disposes of the &lt;code&gt;Unit&lt;/code&gt;s which are the children of this
+     * Element.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element disposeUnits(Element element) {
+<span class="nc" id="L563">        final Game game = getGame();</span>
+<span class="nc" id="L564">        DOMMessage.mapChildren(element, (e) -&gt; {</span>
+                // Do not read the whole unit out of the element as we
+                // are only going to dispose of it, not forgetting
+                // that the server may have already done so and its
+                // view will only mislead us here in the client.
+<span class="nc" id="L569">                final String id = DOMMessage.readId(e);</span>
+<span class="nc" id="L570">                Unit u = game.getFreeColGameObject(id, Unit.class);</span>
+<span class="nc bnc" id="L571" title="All 2 branches missed.">                if (u == null) {</span>
+<span class="nc" id="L572">                    logger.warning(&quot;Object is not a unit&quot;);</span>
+<span class="nc" id="L573">                } else {</span>
+<span class="nc" id="L574">                    u.dispose();</span>
+                }
+<span class="nc" id="L576">                return u;</span>
+            });
+<span class="nc" id="L578">        return null;</span>
+    }
+
+    /**
+     * Handle an &quot;error&quot;-message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element error(Element element) {
+<span class="nc" id="L588">        final ErrorMessage errorMessage = new ErrorMessage(getGame(), element);</span>
+<span class="nc" id="L589">        invokeLater(() -&gt; igc().error(errorMessage.getMessageId(),</span>
+<span class="nc" id="L590">                                      errorMessage.getMessage()));</span>
+<span class="nc" id="L591">        return null;</span>
+    }
+
+    /**
+     * Adds a feature to or removes a feature from a FreeColGameObject.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element featureChange(Element element) {
+<span class="nc" id="L601">        final Game game = getGame();</span>
+<span class="nc" id="L602">        final Specification spec = game.getSpecification();</span>
+<span class="nc" id="L603">        final boolean add = &quot;add&quot;.equalsIgnoreCase(element.getAttribute(&quot;add&quot;));</span>
+<span class="nc" id="L604">        final String id = DOMMessage.readId(element);</span>
+<span class="nc" id="L605">        final FreeColGameObject object = game.getFreeColGameObject(id);</span>
+<span class="nc bnc" id="L606" title="All 2 branches missed.">        if (object == null) {</span>
+<span class="nc" id="L607">            logger.warning(&quot;featureChange with null object&quot;);</span>
+<span class="nc" id="L608">            return null;</span>
+        }
+
+<span class="nc" id="L611">        DOMMessage.mapChildren(element, (e) -&gt; {</span>
+<span class="nc" id="L612">                final String tag = DOMMessage.readId(e);</span>
+<span class="nc bnc" id="L613" title="All 2 branches missed.">                if (Ability.getTagName().equals(tag)) {</span>
+<span class="nc bnc" id="L614" title="All 2 branches missed.">                    if (add) {</span>
+<span class="nc" id="L615">                        object.addAbility(new Ability(e, spec));</span>
+<span class="nc" id="L616">                    } else {</span>
+<span class="nc" id="L617">                        object.removeAbility(new Ability(e, spec));</span>
+                    }
+                    
+<span class="nc bnc" id="L620" title="All 2 branches missed.">                } else if (Modifier.getTagName().equals(tag)) {</span>
+<span class="nc bnc" id="L621" title="All 2 branches missed.">                    if (add) {</span>
+<span class="nc" id="L622">                        object.addModifier(new Modifier(e, spec));</span>
+<span class="nc" id="L623">                    } else {</span>
+<span class="nc" id="L624">                        object.removeModifier(new Modifier(e, spec));</span>
+                    }
+                    
+<span class="nc" id="L627">                } else {</span>
+<span class="nc" id="L628">                    logger.warning(&quot;featureChange unrecognized: &quot; + tag);</span>
+                }
+<span class="nc" id="L630">                return object;</span>
+            });
+<span class="nc" id="L632">        return null;</span>
+    }
+
+    /**
+     * Handle a first contact with a native nation.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element firstContact(Element element) {
+<span class="nc" id="L642">        final Game game = getGame();</span>
+<span class="nc" id="L643">        final FirstContactMessage message</span>
+<span class="nc" id="L644">            = new FirstContactMessage(game, element);</span>
+
+<span class="nc" id="L646">        final Player player = message.getPlayer(game);</span>
+<span class="nc bnc" id="L647" title="All 4 branches missed.">        if (player == null || player != getMyPlayer()) {</span>
+<span class="nc" id="L648">            logger.warning(&quot;firstContact with bad player: &quot; + player);</span>
+<span class="nc" id="L649">            return null;</span>
+        }
+<span class="nc" id="L651">        final Player other = message.getOtherPlayer(game);</span>
+<span class="nc bnc" id="L652" title="All 6 branches missed.">        if (other == null || other == player || !other.isIndian()) {</span>
+<span class="nc" id="L653">            logger.warning(&quot;firstContact with bad other player: &quot; + other);</span>
+<span class="nc" id="L654">            return null;</span>
+        }
+<span class="nc" id="L656">        final Tile tile = message.getTile(game);</span>
+<span class="nc bnc" id="L657" title="All 4 branches missed.">        if (tile != null &amp;&amp; tile.getOwner() != other) {</span>
+<span class="nc" id="L658">            logger.warning(&quot;firstContact with bad tile: &quot; + tile);</span>
+<span class="nc" id="L659">            return null;</span>
+        }
+<span class="nc" id="L661">        final int n = message.getSettlementCount();</span>
+
+<span class="nc" id="L663">        invokeLater(() -&gt; { igc().firstContact(player, other, tile, n); });</span>
+<span class="nc" id="L664">        return null;</span>
+    }
+
+    /**
+     * Ask the player to choose migrants from a fountain of youth event.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element fountainOfYouth(Element element) {
+<span class="nc" id="L674">        final int n = getIntegerAttribute(element, &quot;migrants&quot;);</span>
+<span class="nc bnc" id="L675" title="All 2 branches missed.">        if (n &lt;= 0) {</span>
+<span class="nc" id="L676">            logger.warning(&quot;Invalid migrants attribute: &quot;</span>
+<span class="nc" id="L677">                + element.getAttribute(&quot;migrants&quot;));</span>
+<span class="nc" id="L678">            return null;</span>
+        }
+
+<span class="nc" id="L681">        invokeLater(() -&gt; { igc().fountainOfYouth(n); });</span>
+<span class="nc" id="L682">        return null;</span>
+    }
+
+    /**
+     * Handle a &quot;gameEnded&quot;-message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element gameEnded(Element element) {
+<span class="nc" id="L692">        FreeColDebugger.finishDebugRun(getFreeColClient(), true);</span>
+<span class="nc" id="L693">        final Player winner</span>
+<span class="nc" id="L694">            = getGame().getFreeColGameObject(element.getAttribute(&quot;winner&quot;),</span>
+<span class="nc" id="L695">                                             Player.class);</span>
+<span class="nc bnc" id="L696" title="All 2 branches missed.">        if (winner == null) {</span>
+<span class="nc" id="L697">            logger.warning(&quot;Invalid player for gameEnded&quot;);</span>
+<span class="nc" id="L698">            return null;</span>
+        }
+<span class="nc" id="L700">        final String highScore = element.getAttribute(&quot;highScore&quot;);</span>
+
+<span class="nc bnc" id="L702" title="All 2 branches missed.">        if (winner == getMyPlayer()) {</span>
+<span class="nc" id="L703">            invokeLater(() -&gt; { igc().victory(highScore); });</span>
+        }
+<span class="nc" id="L705">        return null;</span>
+    }
+
+    /**
+     * Handle a &quot;goodsForSale&quot;-message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element goodsForSale(Element element) {
+<span class="nc" id="L715">        final Game game = getGame();</span>
+<span class="nc" id="L716">        final Player player = getMyPlayer();</span>
+<span class="nc" id="L717">        final GoodsForSaleMessage message</span>
+<span class="nc" id="L718">            = new GoodsForSaleMessage(game, element);</span>
+<span class="nc" id="L719">        final Unit unit = message.getUnit(player);</span>
+<span class="nc" id="L720">        final IndianSettlement is = message.getSettlement(unit); </span>
+
+<span class="nc" id="L722">        is.setGoodsForSale(message.getGoods());</span>
+<span class="nc" id="L723">        return null;</span>
+    }
+
+    /**
+     * Handle an &quot;incite&quot; message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element incite(Element element) {
+<span class="nc" id="L733">        final Game game = getGame();</span>
+<span class="nc" id="L734">        final Player player = getMyPlayer();</span>
+<span class="nc" id="L735">        final InciteMessage message = new InciteMessage(game, element);</span>
+<span class="nc" id="L736">        final Unit unit = message.getUnit(player);</span>
+<span class="nc" id="L737">        final IndianSettlement is = message.getSettlement(unit);</span>
+<span class="nc" id="L738">        final Player enemy = message.getEnemy(game);</span>
+<span class="nc" id="L739">        final int gold = message.getGold();</span>
+        
+<span class="nc" id="L741">        invokeLater(() -&gt; { igc().incite(unit, is, enemy, gold); });</span>
+<span class="nc" id="L742">        return null;</span>
+    }
+    
+    /**
+     * Handle an incoming nation summary.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element nationSummary(Element element) {
+<span class="nc" id="L752">        final Game game = getGame();</span>
+<span class="nc" id="L753">        final Player player = getMyPlayer();</span>
+
+<span class="nc" id="L755">        NationSummaryMessage message = new NationSummaryMessage(game, element);</span>
+<span class="nc" id="L756">        Player other = message.getPlayer(game);</span>
+<span class="nc" id="L757">        NationSummary ns = message.getNationSummary();</span>
+<span class="nc" id="L758">        player.putNationSummary(other, ns);</span>
+<span class="nc" id="L759">        logger.info(&quot;Updated nation summary of &quot; + other.getSuffix()</span>
+<span class="nc" id="L760">            + &quot; for &quot; + player.getSuffix() + &quot; with &quot; + ns);</span>
+<span class="nc" id="L761">        return null;</span>
+    }
+        
+    /**
+     * Handle a &quot;highScore&quot; message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element highScore(Element element) {
+<span class="nc" id="L771">        final Game game = getGame();</span>
+<span class="nc" id="L772">        final HighScoreMessage message</span>
+<span class="nc" id="L773">            = new HighScoreMessage(game, element);</span>
+<span class="nc" id="L774">        invokeLater(() -&gt; { igc().displayHighScores(message.getKey(),</span>
+<span class="nc" id="L775">                                                    message.getScores()); });</span>
+<span class="nc" id="L776">        return null;</span>
+    }
+        
+    /**
+     * Handle an &quot;indianDemand&quot;-request.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return An &lt;code&gt;IndianDemand&lt;/code&gt; message containing the response,
+     *     or null on error.
+     */
+    private Element indianDemand(Element element) {
+<span class="nc" id="L787">        final Game game = getGame();</span>
+<span class="nc" id="L788">        final Player player = getMyPlayer();</span>
+<span class="nc" id="L789">        final IndianDemandMessage message</span>
+<span class="nc" id="L790">            = new IndianDemandMessage(game, element);</span>
+<span class="nc" id="L791">        final Unit unit = message.getUnit(game);</span>
+<span class="nc bnc" id="L792" title="All 2 branches missed.">        if (unit == null) {</span>
+<span class="nc" id="L793">            logger.warning(&quot;IndianDemand with null unit: &quot;</span>
+<span class="nc" id="L794">                + element.getAttribute(&quot;unit&quot;));</span>
+<span class="nc" id="L795">            return null;</span>
+        }
+<span class="nc" id="L797">        final Colony colony = message.getColony(game);</span>
+<span class="nc bnc" id="L798" title="All 2 branches missed.">        if (colony == null) {</span>
+<span class="nc" id="L799">            logger.warning(&quot;IndianDemand with null colony: &quot;</span>
+<span class="nc" id="L800">                + element.getAttribute(&quot;colony&quot;));</span>
+<span class="nc" id="L801">            return null;</span>
+<span class="nc bnc" id="L802" title="All 2 branches missed.">        } else if (!player.owns(colony)) {</span>
+<span class="nc" id="L803">            throw new IllegalArgumentException(&quot;Demand to anothers colony&quot;);</span>
+        }
+
+<span class="nc" id="L806">        invokeAndWait(() -&gt; message.setResult(igc().indianDemand(unit, colony,</span>
+<span class="nc" id="L807">                    message.getType(game), message.getAmount())));</span>
+<span class="nc" id="L808">        return message.toXMLElement();</span>
+    }
+
+    /**
+     * Ask the player to choose something to loot.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element lootCargo(Element element) {
+<span class="nc" id="L818">        final Game game = getGame();</span>
+<span class="nc" id="L819">        final LootCargoMessage message = new LootCargoMessage(game, element);</span>
+<span class="nc" id="L820">        final Unit unit = message.getUnit(game);</span>
+<span class="nc" id="L821">        final String defenderId = message.getDefenderId();</span>
+<span class="nc" id="L822">        final List&lt;Goods&gt; goods = message.getGoods();</span>
+<span class="nc bnc" id="L823" title="All 4 branches missed.">        if (unit == null || goods == null) return null;</span>
+
+<span class="nc" id="L825">        invokeLater(() -&gt; igc().loot(unit, goods, defenderId));</span>
+<span class="nc" id="L826">        return null;</span>
+    }
+
+    /**
+     * Handle a &quot;monarchAction&quot;-request.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element monarchAction(Element element) {
+<span class="nc" id="L836">        final Game game = getGame();</span>
+<span class="nc" id="L837">        final MonarchActionMessage message</span>
+<span class="nc" id="L838">            = new MonarchActionMessage(game, element);</span>
+
+<span class="nc" id="L840">        invokeLater(() -&gt; igc().monarch(message.getAction(),</span>
+<span class="nc" id="L841">                message.getTemplate(), message.getMonarchKey()));</span>
+<span class="nc" id="L842">        return null;</span>
+    }
+
+    /**
+     * Handle all the children of this element.
+     *
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the element arrived on.
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return An &lt;code&gt;Element&lt;/code&gt; containing the response/s.
+     */
+    private Element multiple(Connection connection, Element element) {
+<span class="nc" id="L853">        return new MultipleMessage(element).applyHandler(this, connection);</span>
+    }
+
+    /**
+     * Ask the player to name the new land.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element newLandName(Element element) {
+<span class="nc" id="L863">        final Game game = getGame();</span>
+<span class="nc" id="L864">        NewLandNameMessage message = new NewLandNameMessage(game, element);</span>
+<span class="nc" id="L865">        final Unit unit = message.getUnit(getMyPlayer());</span>
+<span class="nc" id="L866">        final String defaultName = message.getNewLandName();</span>
+<span class="nc bnc" id="L867" title="All 4 branches missed.">        if (unit == null || defaultName == null </span>
+<span class="nc bnc" id="L868" title="All 2 branches missed.">            || !unit.hasTile()) return null;</span>
+
+<span class="nc" id="L870">        invokeLater(() -&gt; igc().newLandName(defaultName, unit));</span>
+<span class="nc" id="L871">        return null;</span>
+    }
+
+    /**
+     * Ask the player to name a new region.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element newRegionName(Element element) {
+<span class="nc" id="L881">        final Game game = getGame();</span>
+<span class="nc" id="L882">        NewRegionNameMessage message = new NewRegionNameMessage(game, element);</span>
+<span class="nc" id="L883">        final Tile tile = message.getTile(game);</span>
+<span class="nc" id="L884">        final Unit unit = message.getUnit(getMyPlayer());</span>
+<span class="nc" id="L885">        final Region region = message.getRegion(game);</span>
+<span class="nc" id="L886">        final String defaultName = message.getNewRegionName();</span>
+<span class="nc bnc" id="L887" title="All 4 branches missed.">        if (defaultName == null || region == null) return null;</span>
+
+<span class="nc" id="L889">        invokeLater(() -&gt; igc().newRegionName(region, defaultName, tile, unit));</span>
+<span class="nc" id="L890">        return null;</span>
+    }
+
+    /**
+     * Handle a &quot;newTradeRoute&quot; message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element newTradeRoute(Element element) {
+<span class="nc" id="L900">        final Game game = getGame();</span>
+<span class="nc" id="L901">        NewTradeRouteMessage message = new NewTradeRouteMessage(game, element);</span>
+<span class="nc bnc" id="L902" title="All 2 branches missed.">        if (message != null) {</span>
+<span class="nc" id="L903">            final Player player = getMyPlayer();</span>
+<span class="nc" id="L904">            TradeRoute tr = message.getTradeRoute();</span>
+<span class="nc bnc" id="L905" title="All 2 branches missed.">            if (tr != null) player.addTradeRoute(tr);</span>
+        }
+<span class="nc" id="L907">        return null;</span>
+    }
+        
+    /**
+     * Handle a &quot;newTurn&quot;-message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element newTurn(Element element) {
+<span class="nc" id="L917">        final int n = getIntegerAttribute(element, &quot;turn&quot;);</span>
+<span class="nc bnc" id="L918" title="All 2 branches missed.">        if (n &lt; 0) {</span>
+<span class="nc" id="L919">            logger.warning(&quot;Invalid turn for newTurn&quot;);</span>
+<span class="nc" id="L920">            return null;</span>
+        }
+
+<span class="nc" id="L923">        invokeLater(() -&gt; igc().newTurn(n));</span>
+<span class="nc" id="L924">        return null;</span>
+    }
+
+    /**
+     * Handle an &quot;reconnect&quot;-message.
+     *
+     * @return Null.
+     */
+    private Element reconnect() {
+<span class="nc" id="L933">        invokeLater(reconnectRunnable);</span>
+<span class="nc" id="L934">        return null;</span>
+    }
+
+    /**
+     * Handle a &quot;remove&quot;-message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element remove(Element element) {
+<span class="nc" id="L944">        final Game game = getGame();</span>
+<span class="nc" id="L945">        final FreeColGameObject divert</span>
+<span class="nc" id="L946">            = game.getFreeColGameObject(element.getAttribute(&quot;divert&quot;));</span>
+<span class="nc" id="L947">        final List&lt;FreeColGameObject&gt; objects = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L948">        DOMMessage.mapChildren(element, (e) -&gt; {</span>
+<span class="nc" id="L949">                final String id = DOMMessage.readId(e);</span>
+<span class="nc" id="L950">                FreeColGameObject fcgo = game.getFreeColGameObject(id);</span>
+<span class="nc bnc" id="L951" title="All 2 branches missed.">                if (fcgo != null) {</span>
+                    // Null fcgo can happen legitimately when an
+                    // update that removes pointers to a disappearing
+                    // unit happens, then a gc which drops the weak
+                    // reference in freeColGameObjects, before this
+                    // remove is processed.
+<span class="nc" id="L957">                    objects.add(fcgo);</span>
+                }
+<span class="nc" id="L959">                return fcgo;</span>
+            });
+<span class="nc bnc" id="L961" title="All 2 branches missed.">        if (!objects.isEmpty()) {</span>
+<span class="nc" id="L962">            invokeLater(() -&gt; igc().remove(objects, divert));</span>
+        }
+<span class="nc" id="L964">        return null;</span>
+    }
+
+    /**
+     * Handle a &quot;scoutSpeakToChief&quot;-message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element scoutSpeakToChief(Element element) {
+<span class="nc" id="L974">        final Game game = getGame();</span>
+<span class="nc" id="L975">        final ScoutSpeakToChiefMessage message</span>
+<span class="nc" id="L976">            = new ScoutSpeakToChiefMessage(game, element);</span>
+<span class="nc bnc" id="L977" title="All 2 branches missed.">        if (message != null) {</span>
+<span class="nc" id="L978">            final Unit unit = message.getUnit(game);</span>
+<span class="nc" id="L979">            final IndianSettlement settlement = message.getSettlement(game);</span>
+<span class="nc" id="L980">            final String result = message.getResult();</span>
+<span class="nc" id="L981">            invokeLater(() -&gt;</span>
+<span class="nc" id="L982">                igc().scoutSpeakToChief(unit, settlement, result));</span>
+        }
+<span class="nc" id="L984">        return null;</span>
+    }
+
+    /**
+     * Handle a &quot;setAI&quot;-message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element setAI(Element element) {
+<span class="nc" id="L994">        final Game game = getGame();</span>
+<span class="nc" id="L995">        Player p = game.getFreeColGameObject(element.getAttribute(&quot;player&quot;),</span>
+<span class="nc" id="L996">                                             Player.class);</span>
+<span class="nc" id="L997">        p.setAI(Boolean.parseBoolean(element.getAttribute(&quot;ai&quot;)));</span>
+
+<span class="nc" id="L999">        return null;</span>
+    }
+
+    /**
+     * Handle a &quot;setCurrentPlayer&quot;-message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element setCurrentPlayer(Element element) {
+<span class="nc" id="L1009">        final Player player</span>
+<span class="nc" id="L1010">            = getGame().getFreeColGameObject(element.getAttribute(&quot;player&quot;),</span>
+<span class="nc" id="L1011">                                             Player.class);</span>
+<span class="nc bnc" id="L1012" title="All 2 branches missed.">        if (player == null) {</span>
+<span class="nc" id="L1013">            logger.warning(&quot;Invalid player for setCurrentPlayer&quot;);</span>
+<span class="nc" id="L1014">            return null;</span>
+        }
+
+<span class="nc" id="L1017">        igc().setCurrentPlayer(player); // It is safe to call this one directly</span>
+<span class="nc" id="L1018">        return null;</span>
+    }
+
+    /**
+     * Handle a &quot;setDead&quot;-message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element setDead(Element element) {
+<span class="nc" id="L1028">        final Player player = getGame()</span>
+<span class="nc" id="L1029">            .getFreeColGameObject(element.getAttribute(&quot;player&quot;),Player.class);</span>
+<span class="nc bnc" id="L1030" title="All 2 branches missed.">        if (player == null) {</span>
+<span class="nc" id="L1031">            logger.warning(&quot;Invalid player for setDead&quot;);</span>
+<span class="nc" id="L1032">            return null;</span>
+        }
+
+<span class="nc" id="L1035">        invokeLater(() -&gt; igc().setDead(player));</span>
+<span class="nc" id="L1036">        return null;</span>
+    }
+
+    /**
+     * Handle a &quot;setStance&quot;-request.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element setStance(Element element) {
+<span class="nc" id="L1046">        final Game game = getGame();</span>
+<span class="nc" id="L1047">        final Stance stance = Enum.valueOf(Stance.class,</span>
+<span class="nc" id="L1048">                                           element.getAttribute(&quot;stance&quot;));</span>
+<span class="nc bnc" id="L1049" title="All 2 branches missed.">        if (stance == null) {</span>
+<span class="nc" id="L1050">            logger.warning(&quot;Invalid stance for setStance&quot;);</span>
+<span class="nc" id="L1051">            return null;</span>
+        }
+<span class="nc" id="L1053">        final Player p1 = game</span>
+<span class="nc" id="L1054">            .getFreeColGameObject(element.getAttribute(&quot;first&quot;), Player.class);</span>
+<span class="nc bnc" id="L1055" title="All 2 branches missed.">        if (p1 == null) {</span>
+<span class="nc" id="L1056">            logger.warning(&quot;Invalid player1 for setStance&quot;);</span>
+<span class="nc" id="L1057">            return null;</span>
+        }
+<span class="nc" id="L1059">        final Player p2 = game</span>
+<span class="nc" id="L1060">            .getFreeColGameObject(element.getAttribute(&quot;second&quot;),Player.class);</span>
+<span class="nc bnc" id="L1061" title="All 2 branches missed.">        if (p2 == null) {</span>
+<span class="nc" id="L1062">            logger.warning(&quot;Invalid player2 for setStance&quot;);</span>
+<span class="nc" id="L1063">            return null;</span>
+        }
+
+<span class="nc" id="L1066">        invokeLater(() -&gt; igc().setStance(stance, p1, p2));</span>
+<span class="nc" id="L1067">        return null;</span>
+    }
+
+    /**
+     * Handle a &quot;spyResult&quot; message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element spySettlement(Element element) {
+<span class="nc" id="L1077">        final Game game = getGame();</span>
+<span class="nc" id="L1078">        final SpySettlementMessage message</span>
+<span class="nc" id="L1079">            = new SpySettlementMessage(game, element);</span>
+<span class="nc" id="L1080">        final Tile spyTile = message.getSpyTile();</span>
+<span class="nc" id="L1081">        invokeLater(() -&gt; igc().spyColony(spyTile));</span>
+<span class="nc" id="L1082">        return null;</span>
+    }
+
+    /**
+     * Handle an &quot;update&quot;-message.
+     *
+     * @param element The &lt;code&gt;Element&lt;/code&gt; to process.
+     * @return Null.
+     */
+    private Element update(Element element) {
+<span class="nc" id="L1092">        final Player player = getMyPlayer();</span>
+<span class="nc" id="L1093">        final Game game = getGame();</span>
+<span class="nc" id="L1094">        final UpdateMessage message = new UpdateMessage(game, element);</span>
+<span class="nc" id="L1095">        boolean visibilityChange = false;</span>
+        
+<span class="nc bnc" id="L1097" title="All 2 branches missed.">        for (FreeColGameObject fcgo : message.getObjects()) {</span>
+<span class="nc bnc" id="L1098" title="All 4 branches missed.">            if ((fcgo instanceof Player &amp;&amp; (fcgo == player))</span>
+<span class="nc bnc" id="L1099" title="All 4 branches missed.">                || ((fcgo instanceof Settlement || fcgo instanceof Unit)</span>
+<span class="nc bnc" id="L1100" title="All 2 branches missed.">                    &amp;&amp; player.owns((Ownable)fcgo))) {</span>
+<span class="nc" id="L1101">                visibilityChange = true;//-vis(player)</span>
+            }
+        }
+<span class="nc bnc" id="L1104" title="All 2 branches missed.">        if (visibilityChange) player.invalidateCanSeeTiles();//+vis(player)</span>
+
+<span class="nc" id="L1106">        return null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

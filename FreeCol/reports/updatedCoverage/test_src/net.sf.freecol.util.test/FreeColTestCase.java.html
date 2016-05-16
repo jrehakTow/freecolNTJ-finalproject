@@ -1,0 +1,722 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>FreeColTestCase.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.util.test</a> &gt; <span class="el_source">FreeColTestCase.java</span></div><h1>FreeColTestCase.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.util.test;
+
+import java.lang.reflect.Field;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+
+import junit.framework.TestCase;
+import net.sf.freecol.FreeCol;
+import net.sf.freecol.common.i18n.Messages;
+import net.sf.freecol.common.io.FreeColTcFile;
+import net.sf.freecol.common.model.AbstractGoods;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.CombatModel;
+import net.sf.freecol.common.model.CombatModel.CombatOdds;
+import net.sf.freecol.common.model.CombatModel.CombatResult;
+import net.sf.freecol.common.model.FreeColGameObject;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.IndianSettlement;
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Nation;
+import net.sf.freecol.common.model.NationOptions;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.model.Region;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.TileType;
+import net.sf.freecol.common.model.Unit;
+import net.sf.freecol.common.model.UnitType;
+import net.sf.freecol.common.model.WorkLocation;
+import net.sf.freecol.server.model.ServerGame;
+import net.sf.freecol.server.model.ServerIndianSettlement;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.model.ServerUnit;
+
+
+/**
+ * The base class for all FreeCol tests. Contains useful methods used by the
+ * individual tests.
+ */
+<span class="fc" id="L62">public class FreeColTestCase extends TestCase {</span>
+
+<span class="fc" id="L64">    private static java.util.Map&lt;String, Specification&gt; specifications</span>
+<span class="fc" id="L65">        = new HashMap&lt;&gt;();</span>
+
+    /**
+     * use getGame to access this.
+     */
+    static Game game;
+
+<span class="fc" id="L72">    static boolean updateLocale = true;</span>
+
+    @Override
+    protected void setUp() throws Exception {
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        if (updateLocale) {</span>
+<span class="fc" id="L77">            updateLocale = false;</span>
+<span class="fc" id="L78">            Messages.loadMessageBundle(Locale.US);</span>
+        }
+<span class="fc" id="L80">    }</span>
+
+    @Override
+    protected void tearDown() throws Exception {
+        // If a game has been created destroy it.
+<span class="fc" id="L85">        game = null;</span>
+<span class="fc" id="L86">    }</span>
+
+    /**
+     * Get a game pseudo-singleton, i.e. the same instance will be returned
+     * until getStandardGame() is called, which resets the singleton to a new
+     * value.
+     *
+     * Calling this method repetitively without calling getStandardGame() will
+     * result in the same Game being returned.
+     *
+     * @return The game singleton.
+     */
+    public static Game getGame() {
+<span class="nc bnc" id="L99" title="All 2 branches missed.">        if (game == null) {</span>
+<span class="nc" id="L100">            game = getStandardGame();</span>
+        }
+<span class="nc" id="L102">        return game;</span>
+    }
+
+    /**
+     * Specifically sets the game instance to run with.  Necessary for
+     * server tests that create their own game instances.  Allows for
+     * same interface for accessing the game instance for all types of
+     * tests.
+     *
+     * @param newGame Game instance to work with
+     */
+    public static void setGame(Game newGame) {
+<span class="nc" id="L114">        game = newGame;</span>
+<span class="nc" id="L115">    }</span>
+
+    public static Specification spec() {
+<span class="nc" id="L118">        return getSpecification(&quot;freecol&quot;);</span>
+    }
+
+    public static Specification spec(String name) {
+<span class="nc" id="L122">        return getSpecification(name);</span>
+    }
+
+    public static Specification getSpecification(String name) {
+<span class="nc" id="L126">        Specification result = specifications.get(name);</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        if (result == null) {</span>
+            try {
+<span class="nc" id="L129">                FreeColTcFile tc = new FreeColTcFile(name);</span>
+<span class="nc" id="L130">                result = FreeCol.loadSpecification(tc, null, &quot;model.difficulty.medium&quot;);</span>
+<span class="nc" id="L131">                specifications.put(name, result);</span>
+<span class="nc" id="L132">            } catch (Exception e) {</span>
+<span class="nc" id="L133">                e.printStackTrace();</span>
+<span class="nc" id="L134">                return null;</span>
+            }
+        }
+<span class="nc" id="L137">        return result;</span>
+    }
+
+    /**
+     * Returns a new game, with all players set.
+     *
+     * As a side effect this call will reset the singleton game value that can
+     * be accessed using getGame().
+     *
+     * @return A new game with with players for each nation added.
+     */
+    public static Game getStandardGame() {
+<span class="nc" id="L149">        return getStandardGame(&quot;freecol&quot;);</span>
+    }
+
+    /**
+     * Returns a new game, with all players set.
+     *
+     * As a side effect this call will reset the singleton game value that can
+     * be accessed using getGame().
+     *
+     * @param specName a &lt;code&gt;String&lt;/code&gt; value
+     * @return A new game with with players for each nation added.
+     */
+    public static Game getStandardGame(String specName) {
+<span class="nc" id="L162">        Specification specification = spec(specName);</span>
+<span class="nc" id="L163">        game = new ServerGame(specification);</span>
+<span class="nc" id="L164">        NationOptions nationOptions = new NationOptions(specification);</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">        for (Nation nation : specification.getEuropeanNations()) {</span>
+<span class="nc" id="L166">            nationOptions.setNationState(nation, NationOptions.NationState.AVAILABLE);</span>
+        }
+<span class="nc" id="L168">        game.setNationOptions(nationOptions);</span>
+
+<span class="nc" id="L170">        specification.applyDifficultyLevel(&quot;model.difficulty.medium&quot;);</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">        for (Nation n : specification.getNations()) {</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">            if (n.isUnknownEnemy()) continue;</span>
+<span class="nc" id="L173">            Player p = new ServerPlayer(game, false, n, null, null);</span>
+<span class="nc bnc" id="L174" title="All 4 branches missed.">            boolean ai = !n.getType().isEuropean() || n.getType().isREF();</span>
+<span class="nc" id="L175">            p.setAI(ai);</span>
+<span class="nc bnc" id="L176" title="All 4 branches missed.">            if (ai || game.canAddNewPlayer()) game.addPlayer(p);</span>
+        }
+<span class="nc" id="L178">        return game;</span>
+    }
+
+    /**
+     * Creates a standardized map on which all fields have the plains type.
+     *
+     * Uses the getGame() method to access the currently running game.
+     *
+     * Does not call Game.setMap(Map) with the returned map. The map
+     * is unexplored.
+     *
+     * @return The map created as described above.
+     */
+    public static Map getTestMap() {
+<span class="nc" id="L192">        MapBuilder builder = new MapBuilder(getGame());</span>
+<span class="nc" id="L193">        return builder.build();</span>
+    }
+
+    /**
+     * Creates a standardized map on which all fields have the same given type.
+     *
+     * Uses the getGame() method to access the currently running game.
+     *
+     * Does not call Game.setMap(Map) with the returned map. The map
+     * is unexplored.
+     *
+     * @param tileType The type of land with which to initialize the map.
+     *
+     * @return The map created as described above.
+     */
+    public static Map getTestMap(TileType tileType) {
+<span class="nc" id="L209">        MapBuilder builder = new MapBuilder(getGame());</span>
+<span class="nc" id="L210">        builder.setBaseTileType(tileType);</span>
+<span class="nc" id="L211">        return builder.build();</span>
+    }
+
+    /**
+     * Creates a standardized map on which all fields have the same given type.
+     *
+     * Uses the getGame() method to access the currently running game.
+     *
+     * Does not call Game.setMap(Map) with the returned map.
+     *
+     * @param tileType The type of land with which to initialize the map.
+     * @param explored Set to true if you want all the tiles on the
+     *     map to have been explored by all players.
+     * @return The map created as described above.
+     */
+    public static Map getTestMap(TileType tileType, boolean explored) {
+<span class="nc" id="L227">        MapBuilder builder = new MapBuilder(getGame());</span>
+<span class="nc" id="L228">        builder.setBaseTileType(tileType).setExploredByAll(explored);</span>
+<span class="nc" id="L229">        return builder.build();</span>
+    }
+
+    public static Map getTestMap(boolean explored) {
+<span class="nc" id="L233">        MapBuilder builder = new MapBuilder(getGame());</span>
+<span class="nc" id="L234">        builder.setExploredByAll(explored);</span>
+<span class="nc" id="L235">        return builder.build();</span>
+    }
+
+    public static Map getCoastTestMap(TileType landTileType) {
+<span class="nc" id="L239">        return getCoastTestMap(landTileType, false);</span>
+    }
+
+    /**
+     * Creates a standardized map, half land (left), half sea (right)
+     *
+     * The land half has the same given type.
+     *
+     * Uses the getGame() method to access the currently running game.
+     *
+     * Does not call Game.setMap(Map) with the returned map.
+     *
+     * @param landTileType The type of land with which to initialize the map.
+     *
+     * @param explored Set to true if you want all the tiles on the map to have been explored by all players.
+     *
+     * @return The map created as described above.
+     */
+    public static Map getCoastTestMap(TileType landTileType, boolean explored) {
+<span class="nc" id="L258">        int totalWidth = 20;</span>
+<span class="nc" id="L259">        int totalHeight = 15;</span>
+<span class="nc" id="L260">        final TileType oceanType = spec().getTileType(&quot;model.tile.ocean&quot;);</span>
+        
+<span class="nc" id="L262">        MapBuilder builder = new MapBuilder(getGame());</span>
+<span class="nc" id="L263">        builder.setDimensions(totalWidth, totalHeight).setBaseTileType(oceanType);</span>
+<span class="nc bnc" id="L264" title="All 2 branches missed.">        if (explored) {</span>
+<span class="nc" id="L265">            builder.setExploredByAll(true);</span>
+        }
+
+        // Fill half with land, the builder will fill the rest with ocean
+<span class="nc" id="L269">        int landWidth = (int) Math.floor(totalWidth/2);</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">        for (int x = 0; x &lt; landWidth; x++) {</span>
+<span class="nc bnc" id="L271" title="All 2 branches missed.">            for (int y = 0; y &lt; totalHeight; y++) {</span>
+<span class="nc" id="L272">                builder.setTile(x, y, landTileType);</span>
+            }
+        }
+
+        // Add high seas.
+<span class="nc" id="L277">        final TileType highSeasType = spec().getTileType(&quot;model.tile.highSeas&quot;);</span>
+<span class="nc bnc" id="L278" title="All 2 branches missed.">        for (int y = 0; y &lt; totalHeight; y++) {</span>
+<span class="nc" id="L279">            builder.setTile(totalWidth - 1, y, highSeasType);</span>
+        }
+
+<span class="nc" id="L282">        return builder.build();</span>
+    }
+
+    /**
+     * Get a standard colony at the location 5,8 with one free colonist
+     *
+     * @return The &lt;code&gt;Colony&lt;/code&gt; as specified.
+     */
+    public Colony getStandardColony() {
+<span class="nc" id="L291">        return getStandardColony(1, 5, 8);</span>
+    }
+
+    /**
+     * Get a colony with the given number of settlers
+     *
+     * @param numberOfSettlers The number of settlers to put into the
+     *     colony.  Must be &gt;= 1.
+     * @return The &lt;code&gt;Colony&lt;/code&gt; as specified.
+     */
+    public Colony getStandardColony(int numberOfSettlers) {
+<span class="nc" id="L302">        return getStandardColony(numberOfSettlers, 5, 8);</span>
+    }
+
+    /**
+     * Get a colony with the given number of settlers, at a specified
+     * location.
+     *
+     * @param numberOfSettlers The number of settlers to put into the
+     *     colony.  Must be &gt;= 1.
+     * @param tileX Coordinate of tile for the colony.
+     * @param tileY Coordinate of tile for the colony.
+     * @return The &lt;code&gt;Colony&lt;/code&gt; as specified.
+     */
+    public Colony getStandardColony(int numberOfSettlers,
+                                    int tileX, int tileY) {
+<span class="nc" id="L317">        Game game = getGame();</span>
+<span class="nc" id="L318">        Map map = game.getMap();</span>
+<span class="nc" id="L319">        Tile tile = map.getTile(tileX, tileY);</span>
+
+<span class="nc" id="L321">        FreeColTestUtils.ColonyBuilder builder</span>
+<span class="nc" id="L322">            = FreeColTestUtils.getColonyBuilder();</span>
+<span class="nc" id="L323">        builder.colonyTile(tile).initialColonists(numberOfSettlers);</span>
+
+<span class="nc" id="L325">        Colony ret = builder.build();</span>
+<span class="nc" id="L326">        ((ServerPlayer)ret.getOwner()).exploreForSettlement(ret);</span>
+<span class="nc" id="L327">        return ret;</span>
+    }
+
+    /**
+     * Useful utility to make sure a work location is empty before doing
+     * some test that implicates it.
+     *
+     * @param wl The &lt;code&gt;WorkLocation&lt;/code&gt; to clear.
+     * @return True if the work location is clear, false if there was a problem
+     *     removing a unit.
+     */
+    public boolean clearWorkLocation(WorkLocation wl) {
+<span class="nc bnc" id="L339" title="All 2 branches missed.">        for (Unit u : wl.getUnitList()) {</span>
+<span class="nc bnc" id="L340" title="All 2 branches missed.">            for (WorkLocation w : wl.getColony().getCurrentWorkLocations()) {</span>
+<span class="nc bnc" id="L341" title="All 2 branches missed.">                if (w == wl) continue;</span>
+<span class="nc bnc" id="L342" title="All 2 branches missed.">                if (w.canAdd(u)) {</span>
+<span class="nc" id="L343">                    u.setLocation(w);</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">                    if (u.getLocation() == w) break;</span>
+                }
+            }
+        }
+<span class="nc" id="L348">        return wl.isEmpty();</span>
+    }
+
+    public static class MapBuilder{
+
+        // Required parameter
+        private final Game game;
+
+<span class="nc" id="L356">        private TileType[][] tiles = null;</span>
+        private int width;
+        private int height;
+        private TileType baseTile;
+        private boolean exploredByAll;
+        private boolean initiated;
+
+<span class="nc" id="L363">        public MapBuilder(Game game){</span>
+<span class="nc" id="L364">            this.game = game;</span>
+<span class="nc" id="L365">            setStartingParams();</span>
+<span class="nc" id="L366">        }</span>
+
+        private void setStartingParams(){
+<span class="nc" id="L369">            width = 20;</span>
+<span class="nc" id="L370">            height = 15;</span>
+<span class="nc" id="L371">            baseTile = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+<span class="nc" id="L372">            exploredByAll = false;</span>
+<span class="nc" id="L373">            initiated = false;</span>
+            // set empty grid
+<span class="nc bnc" id="L375" title="All 2 branches missed.">            if(tiles == null){</span>
+<span class="nc" id="L376">                tiles = new TileType[width][height];</span>
+            }
+<span class="nc bnc" id="L378" title="All 2 branches missed.">            for (int x = 0; x &lt; width; x++) {</span>
+<span class="nc bnc" id="L379" title="All 2 branches missed.">                for (int y = 0; y &lt; height; y++) {</span>
+<span class="nc" id="L380">                    tiles[x][y] = null;</span>
+                }
+            }
+<span class="nc" id="L383">        }</span>
+
+        public MapBuilder setBaseTileType(TileType baseType){
+<span class="nc bnc" id="L386" title="All 2 branches missed.">            if(baseType == null){</span>
+<span class="nc" id="L387">                throw new NullPointerException(&quot;Base tile type cannot be null&quot;);</span>
+            }
+<span class="nc" id="L389">            this.baseTile = baseType;</span>
+<span class="nc" id="L390">            return this;</span>
+        }
+
+        public MapBuilder setDimensions(int width, int heigth){
+<span class="nc bnc" id="L394" title="All 2 branches missed.">            if(width &lt;= 0){</span>
+<span class="nc" id="L395">                throw new IllegalArgumentException(&quot;Width must be positive&quot;);</span>
+            }
+<span class="nc bnc" id="L397" title="All 2 branches missed.">            if(heigth &lt;= 0){</span>
+<span class="nc" id="L398">                throw new IllegalArgumentException(&quot;Heigth must be positive&quot;);</span>
+            }
+<span class="nc bnc" id="L400" title="All 2 branches missed.">            if(initiated){</span>
+<span class="nc" id="L401">                throw new IllegalStateException(&quot;Cannot resize map after setting a tile&quot;);</span>
+            }
+<span class="nc" id="L403">            this.width = width;</span>
+<span class="nc" id="L404">            this.height = heigth;</span>
+<span class="nc" id="L405">            this.tiles = new TileType[width][height];</span>
+<span class="nc" id="L406">            return this;</span>
+        }
+
+        public MapBuilder setExploredByAll(boolean exploredByAll){
+<span class="nc" id="L410">            this.exploredByAll = exploredByAll;</span>
+<span class="nc" id="L411">            return this;</span>
+        }
+
+        public MapBuilder setTile(int x, int y, TileType tileType){
+<span class="nc bnc" id="L415" title="All 4 branches missed.">            if(x &lt; 0 || y &lt; 0){</span>
+<span class="nc" id="L416">                throw new IllegalArgumentException(&quot;Coordenates cannot be negative&quot;);</span>
+            }
+<span class="nc bnc" id="L418" title="All 4 branches missed.">            if(x &gt;= width || y &gt;= height ){</span>
+<span class="nc" id="L419">                throw new IllegalArgumentException(&quot;Coordenate out of bounds&quot;);</span>
+            }
+<span class="nc bnc" id="L421" title="All 2 branches missed.">            if(tileType == null){</span>
+<span class="nc" id="L422">                throw new NullPointerException(&quot;Tile type cannot be null&quot;);</span>
+            }
+
+<span class="nc" id="L425">            tiles[x][y]= tileType;</span>
+<span class="nc" id="L426">            initiated = true;</span>
+
+<span class="nc" id="L428">            return this;</span>
+        }
+
+        // Implementation method, completes grid by setting uninitialized tiles
+        //to the base tile type
+        private void completeWorkingGrid(){
+<span class="nc bnc" id="L434" title="All 2 branches missed.">            for (int x = 0; x &lt; width; x++) {</span>
+<span class="nc bnc" id="L435" title="All 2 branches missed.">                for (int y = 0; y &lt; height; y++) {</span>
+                    // Already manually set by the tester
+<span class="nc bnc" id="L437" title="All 2 branches missed.">                    if(tiles[x][y] != null){</span>
+<span class="nc" id="L438">                        continue;</span>
+                    }
+<span class="nc" id="L440">                    tiles[x][y] = baseTile;</span>
+                }
+            }
+<span class="nc" id="L443">            initiated=true;</span>
+<span class="nc" id="L444">        }</span>
+
+        public Map build(){
+<span class="nc" id="L447">            completeWorkingGrid();</span>
+<span class="nc" id="L448">            Map map = new Map(game, width, height);</span>
+<span class="nc" id="L449">            Region region = new Region(game);</span>
+
+<span class="nc bnc" id="L451" title="All 2 branches missed.">            for (int x = 0; x &lt; width; x++) {</span>
+<span class="nc bnc" id="L452" title="All 2 branches missed.">                for (int y = 0; y &lt; height; y++) {</span>
+<span class="nc" id="L453">                    TileType tileType = tiles[x][y];</span>
+<span class="nc" id="L454">                    Tile t = new Tile(game, tileType, x, y);</span>
+<span class="nc" id="L455">                    t.setRegion(region);</span>
+<span class="nc" id="L456">                    map.setTile(t, x, y);</span>
+                }
+            }
+
+<span class="nc" id="L460">            map.resetContiguity();</span>
+<span class="nc" id="L461">            map.resetHighSeasCount();</span>
+<span class="nc bnc" id="L462" title="All 2 branches missed.">            if (exploredByAll) {</span>
+<span class="nc bnc" id="L463" title="All 2 branches missed.">                for (Tile tile : map.getAllTiles()) {</span>
+<span class="nc bnc" id="L464" title="All 2 branches missed.">                    for (Player player : game.getLiveEuropeanPlayers(null)) {</span>
+<span class="nc" id="L465">                        tile.setExplored(player, true);</span>
+                    }
+                }
+            }
+<span class="nc" id="L469">            return map;</span>
+        }
+
+        public MapBuilder reset() {
+<span class="nc" id="L473">            setStartingParams();</span>
+
+<span class="nc" id="L475">            return this;</span>
+        }
+    }
+
+    public static class IndianSettlementBuilder{
+
+        // Required parameter
+        private final Game game;
+
+        private Player indianPlayer;
+<span class="nc" id="L485">        private final String defaultIndianPlayer = &quot;model.nation.tupi&quot;;</span>
+        private String skillTaught;
+        private int initialBravesInCamp;
+        private Tile settlementTile;
+<span class="nc" id="L489">        private static int settlementNumber = 1;</span>
+
+        private boolean isCapital;
+        private Unit residentMissionary;
+
+<span class="nc" id="L494">        public IndianSettlementBuilder(Game game){</span>
+<span class="nc" id="L495">            this.game = game;</span>
+<span class="nc" id="L496">            setStartingParams();</span>
+<span class="nc" id="L497">        }</span>
+
+        private void setStartingParams(){
+            // Some params can only be set in build(), because the default values
+            //may not be valid for the game set
+            // However, the tester himself may set them to valid values later,
+            //so they are set to null for now
+<span class="nc" id="L504">            indianPlayer = null;</span>
+<span class="nc" id="L505">            initialBravesInCamp = 1;</span>
+<span class="nc" id="L506">            settlementTile = null;</span>
+<span class="nc" id="L507">            skillTaught = &quot;model.unit.masterCottonPlanter&quot;;</span>
+<span class="nc" id="L508">            isCapital = false;</span>
+<span class="nc" id="L509">            residentMissionary = null;</span>
+<span class="nc" id="L510">        }</span>
+
+        public IndianSettlementBuilder player(Player player){
+<span class="nc" id="L513">            this.indianPlayer = player;</span>
+
+<span class="nc bnc" id="L515" title="All 4 branches missed.">            if(indianPlayer == null || !game.getPlayers().contains(player)){</span>
+<span class="nc" id="L516">                throw new IllegalArgumentException(&quot;Indian player not in game&quot;);</span>
+            }
+
+<span class="nc" id="L519">            return this;</span>
+        }
+
+        public IndianSettlementBuilder initialBravesInCamp(int nBraves){
+<span class="nc bnc" id="L523" title="All 2 branches missed.">            if(nBraves &lt;= 0){</span>
+<span class="nc" id="L524">                throw new IllegalArgumentException(&quot;Number of braves must be positive&quot;);</span>
+            }
+<span class="nc" id="L526">            this.initialBravesInCamp = nBraves;</span>
+<span class="nc" id="L527">            return this;</span>
+        }
+
+        public IndianSettlementBuilder settlementTile(Tile tile){
+<span class="nc" id="L531">            Tile tileOnMap = this.game.getMap().getTile(tile.getX(), tile.getY());</span>
+<span class="nc bnc" id="L532" title="All 2 branches missed.">            if(tile != tileOnMap){</span>
+<span class="nc" id="L533">                throw new IllegalArgumentException(&quot;Given tile not on map&quot;);</span>
+            }
+<span class="nc" id="L535">            this.settlementTile = tile;</span>
+<span class="nc" id="L536">            return this;</span>
+        }
+
+        public IndianSettlementBuilder capital(boolean isCapital){
+<span class="nc" id="L540">            this.isCapital = isCapital;</span>
+
+<span class="nc" id="L542">            return this;</span>
+        }
+
+        public IndianSettlementBuilder missionary(Unit missionary){
+<span class="nc" id="L546">            this.residentMissionary = missionary;</span>
+
+<span class="nc" id="L548">            return this;</span>
+        }
+
+        public IndianSettlementBuilder skillToTeach(String skill){
+<span class="nc" id="L552">            this.skillTaught = skill;</span>
+
+<span class="nc" id="L554">            return this;</span>
+        }
+
+        private String getSimpleName(Player player, boolean isCapital) {
+<span class="nc bnc" id="L558" title="All 2 branches missed.">            return (isCapital) ? player.getName() + &quot;-capital&quot;</span>
+<span class="nc" id="L559">                : &quot;Settlement-&quot; + settlementNumber++;</span>
+        }
+
+        public IndianSettlement build(){
+<span class="nc" id="L563">            UnitType skillToTeach = null;</span>
+
+<span class="nc bnc" id="L565" title="All 2 branches missed.">            if(skillTaught != null){</span>
+<span class="nc" id="L566">                skillToTeach = spec().getUnitType(skillTaught);</span>
+            }
+
+            // indianPlayer not set, get default
+<span class="nc bnc" id="L570" title="All 2 branches missed.">            if (indianPlayer == null) {</span>
+<span class="nc" id="L571">                indianPlayer = game.getPlayerByNationId(defaultIndianPlayer);</span>
+<span class="nc bnc" id="L572" title="All 2 branches missed.">                if(indianPlayer == null){</span>
+<span class="nc" id="L573">                    throw new IllegalArgumentException(&quot;Default Indian player &quot; + defaultIndianPlayer + &quot; not in game&quot;);</span>
+                }
+            }
+<span class="nc" id="L576">            UnitType indianBraveType = spec().getDefaultUnitType(indianPlayer);</span>
+
+            // settlement tile no set, get default
+<span class="nc bnc" id="L579" title="All 2 branches missed.">            if(settlementTile == null){</span>
+<span class="nc" id="L580">                settlementTile = game.getMap().getTile(5, 8);</span>
+<span class="nc bnc" id="L581" title="All 2 branches missed.">                if(settlementTile == null){</span>
+<span class="nc" id="L582">                    throw new IllegalArgumentException(&quot;Default tile not in game&quot;);</span>
+                }
+            }
+
+<span class="nc" id="L586">            IndianSettlement camp</span>
+<span class="nc" id="L587">                = new ServerIndianSettlement(game, indianPlayer,</span>
+<span class="nc" id="L588">                                             getSimpleName(indianPlayer, isCapital),</span>
+<span class="nc" id="L589">                                             settlementTile, isCapital,</span>
+<span class="nc" id="L590">                                             skillToTeach, residentMissionary);</span>
+<span class="nc" id="L591">            indianPlayer.addSettlement(camp);</span>
+
+            // Add braves
+<span class="nc bnc" id="L594" title="All 2 branches missed.">            for(int i=0; i &lt; initialBravesInCamp; i++){</span>
+<span class="nc" id="L595">                Unit brave = new ServerUnit(game, camp, indianPlayer,</span>
+<span class="nc" id="L596">                                            indianBraveType);</span>
+<span class="nc" id="L597">                camp.addOwnedUnit(brave);</span>
+            }
+<span class="nc" id="L599">            camp.placeSettlement(true);</span>
+<span class="nc" id="L600">            return camp;</span>
+        }
+
+        public IndianSettlementBuilder reset() {
+<span class="nc" id="L604">            setStartingParams();</span>
+
+<span class="nc" id="L606">            return this;</span>
+        }
+    }
+
+
+    /**
+     * Set the production bonus of the given colony to the given
+     * value.
+     *
+     * @param colony a &lt;code&gt;Colony&lt;/code&gt; value
+     * @param value an &lt;code&gt;int&lt;/code&gt; value
+     */
+    public void setProductionBonus(Colony colony, int value) {
+        try {
+<span class="nc" id="L620">            Field productionBonus = Colony.class.getDeclaredField(&quot;productionBonus&quot;);</span>
+<span class="nc" id="L621">            productionBonus.setAccessible(true);</span>
+<span class="nc" id="L622">            productionBonus.setInt(colony, value);</span>
+<span class="nc" id="L623">            colony.invalidateCache();</span>
+<span class="nc" id="L624">        } catch (Exception e) {</span>
+            // do nothing
+        }
+<span class="nc" id="L627">    }</span>
+
+    /**
+     * Build/place a colony with a unit, without requiring the server.
+     */
+    public void nonServerBuildColony(Unit builder, Colony colony) {
+<span class="nc" id="L633">        colony.placeSettlement(true);//-vis</span>
+<span class="nc" id="L634">        colony.getOwner().invalidateCanSeeTiles();//+vis</span>
+<span class="nc" id="L635">        nonServerJoinColony(builder, colony);</span>
+<span class="nc" id="L636">    }</span>
+
+    /**
+     * Join a colony with a unit, without requiring the server.
+     */
+    public void nonServerJoinColony(Unit builder, Colony colony) {
+<span class="nc" id="L642">        builder.setLocation(colony);</span>
+<span class="nc" id="L643">        builder.setMovesLeft(0);</span>
+<span class="nc" id="L644">    }</span>
+
+    /**
+     * Repeatedly ask the CombatModel for an attack result until it
+     * gives the primary one we want (WIN, LOSE, NO_RESULT).
+     */
+    public List&lt;CombatResult&gt; fakeAttackResult(CombatResult result,
+                                               FreeColGameObject attacker,
+                                               FreeColGameObject defender)
+    {
+        List&lt;CombatResult&gt; crs;
+<span class="nc" id="L655">        final double delta = 0.02;</span>
+<span class="nc" id="L656">        CombatModel combatModel = getGame().getCombatModel();</span>
+<span class="nc" id="L657">        CombatOdds combatOdds = combatModel.calculateCombatOdds(attacker, defender);</span>
+<span class="nc" id="L658">        double p = combatOdds.win;</span>
+<span class="nc" id="L659">        MockPseudoRandom mr = new MockPseudoRandom();</span>
+<span class="nc" id="L660">        List&lt;Integer&gt; number = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L661">        number.add(-1);</span>
+        do {
+<span class="nc bnc" id="L663" title="All 2 branches missed.">            p += (result == CombatResult.WIN) ? -delta : delta;</span>
+<span class="nc bnc" id="L664" title="All 4 branches missed.">            if (p &lt; 0.0 || p &gt;= 1.0) {</span>
+<span class="nc" id="L665">                throw new IllegalStateException(&quot;f out of range: &quot;</span>
+<span class="nc" id="L666">                                                + Double.toString(p));</span>
+            }
+<span class="nc" id="L668">            number.set(0, (int)(Integer.MAX_VALUE * p));</span>
+<span class="nc" id="L669">            mr.setNextNumbers(number, true);</span>
+<span class="nc" id="L670">            crs = combatModel.generateAttackResult(mr, attacker, defender);</span>
+<span class="nc bnc" id="L671" title="All 2 branches missed.">        } while (crs.get(0) != result);</span>
+<span class="nc" id="L672">        return crs;</span>
+    }
+
+    /**
+     * Check a combat result list.
+     *
+     * @param name A base string for the error message.
+     * @param crs The list of &lt;code&gt;CombatResult&lt;/code&gt; to check.
+     * @param results The expected &lt;code&gt;CombatResult&lt;/code&gt;s.
+     */
+    public void checkCombat(String name, List&lt;CombatResult&gt; crs,
+                            CombatResult... results) {
+<span class="nc" id="L684">        int i = 0;</span>
+<span class="nc bnc" id="L685" title="All 2 branches missed.">        for (CombatResult cr : results) {</span>
+<span class="nc bnc" id="L686" title="All 2 branches missed.">            CombatResult expect = (i &lt; crs.size()) ? crs.get(i) : null;</span>
+<span class="nc bnc" id="L687" title="All 2 branches missed.">            if (expect != cr) break;</span>
+<span class="nc" id="L688">            i++;</span>
+        }
+<span class="nc bnc" id="L690" title="All 2 branches missed.">        if (i == results.length) {</span>
+<span class="nc bnc" id="L691" title="All 2 branches missed.">            if (crs.size() == i) return;</span>
+<span class="nc" id="L692">            i++;</span>
+        }
+<span class="nc" id="L694">        String err = name + &quot;, failed at &quot; + i + &quot;:&quot;;</span>
+<span class="nc bnc" id="L695" title="All 2 branches missed.">        for (CombatResult cr : results) {</span>
+<span class="nc" id="L696">            err += &quot; &quot; + cr;</span>
+        }
+<span class="nc" id="L698">        err += &quot; !=&quot;;</span>
+<span class="nc bnc" id="L699" title="All 2 branches missed.">        for (CombatResult cr : crs) {</span>
+<span class="nc" id="L700">            err += &quot; &quot; + cr;</span>
+        }
+<span class="nc" id="L702">        fail(err);</span>
+<span class="nc" id="L703">    }               </span>
+
+    /**
+     * Check a list of goods.
+     *
+     * @param err A base string for the error message.
+     * @param goods A list of expected &lt;code&gt;AbstractGoods&lt;/code&gt; to check.
+     * @param results The expected &lt;code&gt;AbstractGoods&lt;/code&gt;.
+     */
+    public void checkGoods(String err, List&lt;AbstractGoods&gt; goods,
+                           AbstractGoods... results) {
+<span class="nc" id="L714">        List&lt;AbstractGoods&gt; check = new ArrayList&lt;&gt;(goods);</span>
+<span class="nc bnc" id="L715" title="All 2 branches missed.">        for (AbstractGoods ag : results) {</span>
+<span class="nc" id="L716">            assertTrue(err + &quot; requires &quot; + ag, check.contains(ag));</span>
+<span class="nc" id="L717">            check.remove(ag);</span>
+        }
+<span class="nc" id="L719">        assertTrue(err + &quot; requires more goods&quot;, check.isEmpty());</span>
+<span class="nc" id="L720">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

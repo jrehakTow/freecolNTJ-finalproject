@@ -1,0 +1,678 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>MapTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">MapTest.java</span></div><h1>MapTest.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+
+import net.sf.freecol.common.FreeColException;
+import net.sf.freecol.common.model.FreeColObject;
+import net.sf.freecol.common.model.Direction;
+import net.sf.freecol.common.model.Stance;
+import net.sf.freecol.common.model.pathfinding.CostDecider;
+import net.sf.freecol.common.model.pathfinding.CostDeciders;
+import net.sf.freecol.common.model.pathfinding.GoalDecider;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.FreeColTestCase;
+import net.sf.freecol.util.test.FreeColTestUtils;
+
+
+// TODO: Auto-generated Javadoc
+/**
+ * The Class MapTest.
+ */
+<span class="nc" id="L44">public class MapTest extends FreeColTestCase {</span>
+
+    /** The high seas type. */
+<span class="nc" id="L47">    private final TileType highSeasType</span>
+<span class="nc" id="L48">        = spec().getTileType(&quot;model.tile.highSeas&quot;);</span>
+    
+    /** The lake type. */
+<span class="nc" id="L51">    private final TileType lakeType</span>
+<span class="nc" id="L52">        = spec().getTileType(&quot;model.tile.lake&quot;);</span>
+    
+    /** The ocean type. */
+<span class="nc" id="L55">    private final TileType oceanType</span>
+<span class="nc" id="L56">        = spec().getTileType(&quot;model.tile.ocean&quot;);</span>
+    
+    /** The plains type. */
+<span class="nc" id="L59">    private final TileType plainsType</span>
+<span class="nc" id="L60">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+
+    /** The artillery type. */
+<span class="nc" id="L63">    private final UnitType artilleryType</span>
+<span class="nc" id="L64">        = spec().getUnitType(&quot;model.unit.artillery&quot;);</span>
+    
+    /** The colonist type. */
+<span class="nc" id="L67">    private final UnitType colonistType</span>
+<span class="nc" id="L68">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+    
+    /** The galleon type. */
+<span class="nc" id="L71">    private final UnitType galleonType</span>
+<span class="nc" id="L72">        = spec().getUnitType(&quot;model.unit.galleon&quot;);</span>
+    
+    /** The pioneer type. */
+<span class="nc" id="L75">    private final UnitType pioneerType</span>
+<span class="nc" id="L76">        = spec().getUnitType(&quot;model.unit.hardyPioneer&quot;);</span>
+
+
+    /**
+     * Gets the single land path map.
+     *
+     * @param game the game
+     * @return the single land path map
+     */
+    private Map getSingleLandPathMap(Game game) {
+<span class="nc" id="L86">        MapBuilder builder = new MapBuilder(game);</span>
+<span class="nc" id="L87">        builder.setBaseTileType(oceanType);</span>
+        // Land Stripe
+<span class="nc" id="L89">        builder.setTile(1,11,plainsType);</span>
+<span class="nc" id="L90">        builder.setTile(2,10,plainsType);</span>
+<span class="nc" id="L91">        builder.setTile(2,9,plainsType);</span>
+<span class="nc" id="L92">        builder.setTile(3,8,plainsType);</span>
+<span class="nc" id="L93">        builder.setTile(3,7,plainsType);</span>
+
+<span class="nc" id="L95">        return builder.build();</span>
+    }
+
+    // (1,5)*
+    //          *
+    //      *        *     * F(3,7)
+    //                  * C(3,8)
+    //      *        *
+    //
+    //      *   *
+    //
+    //      *S(1,11)
+    /**
+     * Gets the short long path map.
+     *
+     * @param game the game
+     * @return the short long path map
+     */
+    //
+    private Map getShortLongPathMap(Game game) {
+<span class="nc" id="L115">        MapBuilder builder = new MapBuilder(game);</span>
+<span class="nc" id="L116">        builder.setBaseTileType(oceanType);</span>
+        //Start
+<span class="nc" id="L118">        builder.setTile(1,11,plainsType);</span>
+        //Short path
+<span class="nc" id="L120">        builder.setTile(2,10,plainsType);</span>
+<span class="nc" id="L121">        builder.setTile(2,9,plainsType);</span>
+        //Longer path
+<span class="nc" id="L123">        builder.setTile(1,9,plainsType);</span>
+<span class="nc" id="L124">        builder.setTile(1,7,plainsType);</span>
+<span class="nc" id="L125">        builder.setTile(1,5,plainsType);</span>
+<span class="nc" id="L126">        builder.setTile(2,6,plainsType);</span>
+<span class="nc" id="L127">        builder.setTile(2,7,plainsType);</span>
+        // Common
+<span class="nc" id="L129">        builder.setTile(3,8,plainsType);</span>
+        // Finish
+<span class="nc" id="L131">        builder.setTile(3,7,plainsType);</span>
+
+<span class="nc" id="L133">        return builder.build();</span>
+    }
+
+    /**
+     * Test map game int.
+     *
+     * @throws FreeColException the free col exception
+     */
+    public void testMapGameInt() throws FreeColException {
+<span class="nc" id="L142">        int expectedWidth = 20;</span>
+<span class="nc" id="L143">        int expectedHeigth = 15;</span>
+
+<span class="nc" id="L145">        Game game = getStandardGame();</span>
+<span class="nc" id="L146">        MapBuilder builder = new MapBuilder(game);</span>
+<span class="nc" id="L147">        Map map = builder.setDimensions(expectedWidth, expectedHeigth).build();</span>
+
+<span class="nc" id="L149">        assertEquals(expectedWidth, map.getWidth());</span>
+<span class="nc" id="L150">        assertEquals(expectedHeigth, map.getHeight());</span>
+<span class="nc" id="L151">    }</span>
+
+    /**
+     * Test get surrounding tiles.
+     */
+    public void testGetSurroundingTiles() {
+<span class="nc" id="L157">        Game game = getStandardGame();</span>
+
+<span class="nc" id="L159">        MapBuilder builder = new MapBuilder(game);</span>
+<span class="nc" id="L160">        Map map = builder.setDimensions(10, 15).build();</span>
+<span class="nc" id="L161">        game.setMap(map);</span>
+
+        // Check in the middle
+<span class="nc" id="L164">        List&lt;Tile&gt; surroundingTiles = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">        for (Tile t: map.getTile(4,8).getSurroundingTiles(1))</span>
+<span class="nc" id="L166">            surroundingTiles.add(t);</span>
+
+<span class="nc" id="L168">        assertEquals(8, surroundingTiles.size());</span>
+<span class="nc" id="L169">        assertTrue(surroundingTiles.contains(map.getTile(4, 6)));</span>
+<span class="nc" id="L170">        assertTrue(surroundingTiles.contains(map.getTile(4, 10)));</span>
+<span class="nc" id="L171">        assertTrue(surroundingTiles.contains(map.getTile(3, 8)));</span>
+<span class="nc" id="L172">        assertTrue(surroundingTiles.contains(map.getTile(5, 8)));</span>
+<span class="nc" id="L173">        assertTrue(surroundingTiles.contains(map.getTile(3, 7)));</span>
+<span class="nc" id="L174">        assertTrue(surroundingTiles.contains(map.getTile(4, 7)));</span>
+<span class="nc" id="L175">        assertTrue(surroundingTiles.contains(map.getTile(3, 9)));</span>
+<span class="nc" id="L176">        assertTrue(surroundingTiles.contains(map.getTile(4, 9)));</span>
+
+        // Check on sides
+<span class="nc" id="L179">        surroundingTiles = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">        for (Tile t: map.getTile(0, 0).getSurroundingTiles(1))</span>
+<span class="nc" id="L181">            surroundingTiles.add(t);</span>
+
+<span class="nc" id="L183">        assertEquals(3, surroundingTiles.size());</span>
+<span class="nc" id="L184">        assertTrue(surroundingTiles.contains(map.getTile(0, 2)));</span>
+<span class="nc" id="L185">        assertTrue(surroundingTiles.contains(map.getTile(1, 0)));</span>
+<span class="nc" id="L186">        assertTrue(surroundingTiles.contains(map.getTile(0, 1)));</span>
+
+        // Check larger range
+<span class="nc" id="L189">        surroundingTiles = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">        for (Tile t: map.getTile(4, 8).getSurroundingTiles(2))</span>
+<span class="nc" id="L191">            surroundingTiles.add(t);</span>
+
+<span class="nc" id="L193">        assertEquals(25 - 1, surroundingTiles.size());</span>
+
+        // Check that all tiles are returned
+<span class="nc" id="L196">        surroundingTiles = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">        for (Tile t: map.getTile(4, 8).getSurroundingTiles(10))</span>
+<span class="nc" id="L198">            surroundingTiles.add(t);</span>
+
+<span class="nc" id="L200">        assertEquals(150 - 1, surroundingTiles.size());</span>
+<span class="nc" id="L201">    }</span>
+
+    /**
+     * Test get reverse direction.
+     */
+    public void testGetReverseDirection() {
+<span class="nc" id="L207">        assertEquals(Direction.S, Direction.N.getReverseDirection());</span>
+<span class="nc" id="L208">        assertEquals(Direction.N, Direction.S.getReverseDirection());</span>
+<span class="nc" id="L209">        assertEquals(Direction.E, Direction.W.getReverseDirection());</span>
+<span class="nc" id="L210">        assertEquals(Direction.W, Direction.E.getReverseDirection());</span>
+<span class="nc" id="L211">        assertEquals(Direction.NE, Direction.SW.getReverseDirection());</span>
+<span class="nc" id="L212">        assertEquals(Direction.NW, Direction.SE.getReverseDirection());</span>
+<span class="nc" id="L213">        assertEquals(Direction.SW, Direction.NE.getReverseDirection());</span>
+<span class="nc" id="L214">        assertEquals(Direction.SE, Direction.NW.getReverseDirection());</span>
+<span class="nc" id="L215">    }</span>
+
+    /**
+     * Test get all tiles.
+     */
+    public void testGetAllTiles() {
+<span class="nc" id="L221">        Game game = getStandardGame();</span>
+<span class="nc" id="L222">        final int xmax = 5;</span>
+<span class="nc" id="L223">        final int ymax = 6;</span>
+<span class="nc" id="L224">        Set&lt;Tile&gt; allTiles = new HashSet&lt;Tile&gt;();</span>
+<span class="nc" id="L225">        Map map = new Map(game, xmax, ymax);</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">        for (int x = 0; x &lt; xmax; x++) {</span>
+<span class="nc bnc" id="L227" title="All 2 branches missed.">            for (int y = 0; y &lt; ymax; y++) {</span>
+<span class="nc" id="L228">                Tile tile = new Tile(game, plainsType, x, y);</span>
+<span class="nc" id="L229">                map.setTile(tile, x, y);</span>
+<span class="nc" id="L230">                allTiles.add(tile);</span>
+            }
+        }
+        
+<span class="nc" id="L234">        int i = 0;</span>
+<span class="nc bnc" id="L235" title="All 2 branches missed.">        for (Tile t : map.getAllTiles()) {</span>
+<span class="nc" id="L236">            i++;</span>
+<span class="nc" id="L237">            assertTrue(allTiles.remove(t));</span>
+        }
+<span class="nc" id="L239">        assertTrue(allTiles.isEmpty());</span>
+<span class="nc" id="L240">        assertEquals(xmax * ymax, i);</span>
+<span class="nc" id="L241">    }</span>
+
+    /**
+     * Test random direction.
+     */
+    public void testRandomDirection() {
+<span class="nc" id="L247">        Game game = getStandardGame();</span>
+<span class="nc" id="L248">        MapBuilder builder = new MapBuilder(game);</span>
+<span class="nc" id="L249">        builder.setDimensions(10, 15).build();</span>
+<span class="nc" id="L250">        Direction[] dirs = Direction.getRandomDirections(&quot;testRandomDirection&quot;,</span>
+<span class="nc" id="L251">            null, new Random(1));</span>
+<span class="nc" id="L252">        assertNotNull(dirs);</span>
+<span class="nc" id="L253">    }</span>
+
+    /**
+     * Tests path discoverability in a map with only one path available
+     * That path is obstructed by a settlement, so is invalid.
+     */
+    public void testNoPathAvailableDueToCampInTheWay() {
+<span class="nc" id="L260">        Game game = getStandardGame();</span>
+<span class="nc" id="L261">        Map map = getSingleLandPathMap(game);</span>
+<span class="nc" id="L262">        game.setMap(map);</span>
+
+        // set obstructing indian camp
+<span class="nc" id="L265">        Tile settlementTile = map.getTile(2,10);</span>
+<span class="nc" id="L266">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="nc" id="L267">            = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="nc" id="L268">        builder.settlementTile(settlementTile).build();</span>
+
+        // set unit
+<span class="nc" id="L271">        Player dutchPlayer = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L272">        Tile unitTile = map.getTile(1, 11);</span>
+<span class="nc" id="L273">        Tile destinationTile = map.getTile(3,7);</span>
+<span class="nc" id="L274">        Unit colonist = new ServerUnit(game, unitTile, dutchPlayer,</span>
+<span class="nc" id="L275">                                       colonistType);</span>
+<span class="nc" id="L276">        colonist.setDestination(destinationTile);</span>
+
+<span class="nc" id="L278">        PathNode path = colonist.findPath(destinationTile);</span>
+<span class="nc" id="L279">        assertNull(&quot;No path should be available&quot;, path);</span>
+<span class="nc" id="L280">    }</span>
+
+    /**
+     * Tests path discoverability in a map with only one path available
+     * That path is obstructed by a settlement, so is invalid.
+     */
+    public void testNoPathAvailableDueToColonyInTheWay() {
+<span class="nc" id="L287">        Game game = getStandardGame();</span>
+<span class="nc" id="L288">        Map map = getSingleLandPathMap(game);</span>
+<span class="nc" id="L289">        game.setMap(map);</span>
+
+        // set obstructing french colony
+<span class="nc" id="L292">        Player frenchPlayer = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="nc" id="L293">        Tile settlementTile = map.getTile(2,10);</span>
+<span class="nc" id="L294">        FreeColTestUtils.getColonyBuilder().player(frenchPlayer)</span>
+<span class="nc" id="L295">            .colonyTile(settlementTile).build();</span>
+<span class="nc" id="L296">        assertTrue(&quot;French colony was not set properly on the map&quot;,</span>
+<span class="nc" id="L297">            settlementTile.hasSettlement());</span>
+        // set unit
+<span class="nc" id="L299">        Player dutchPlayer = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L300">        Tile unitTile = map.getTile(1, 11);</span>
+<span class="nc" id="L301">        Tile destinationTile = map.getTile(3,7);</span>
+<span class="nc" id="L302">        Unit colonist = new ServerUnit(game, unitTile, dutchPlayer,</span>
+<span class="nc" id="L303">                                       colonistType);</span>
+<span class="nc" id="L304">        colonist.setDestination(destinationTile);</span>
+
+<span class="nc" id="L306">        PathNode path = colonist.findPath(destinationTile);</span>
+<span class="nc" id="L307">        assertNull(&quot;No path should be available&quot;, path);</span>
+<span class="nc" id="L308">    }</span>
+
+    /**
+     * Test move through tile with enemy unit.
+     */
+    public void testMoveThroughTileWithEnemyUnit() {
+<span class="nc" id="L314">        Game game = getStandardGame();</span>
+<span class="nc" id="L315">        Map map = getTestMap();</span>
+<span class="nc" id="L316">        game.setMap(map);</span>
+
+        //Setup
+<span class="nc" id="L319">        Tile enemyUnitTile = map.getTile(2,1);</span>
+<span class="nc" id="L320">        Player frenchPlayer = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="nc" id="L321">        new ServerUnit(game, enemyUnitTile, frenchPlayer, pioneerType);</span>
+
+<span class="nc" id="L323">        Tile unitTile = map.getTile(1, 1);</span>
+<span class="nc" id="L324">        Tile otherTile = map.getTile(1, 2);</span>
+<span class="nc" id="L325">        Player dutchPlayer = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L326">        Unit unit = new ServerUnit(game, unitTile, dutchPlayer, pioneerType);</span>
+        // unit is going somewhere else
+<span class="nc" id="L328">        Tile unitDestination = map.getTile(3, 1);</span>
+<span class="nc" id="L329">        unit.setDestination(unitDestination);</span>
+
+        // Execute
+<span class="nc" id="L332">        CostDecider decider = CostDeciders.avoidSettlementsAndBlockingUnits();</span>
+<span class="nc" id="L333">        assertTrue(&quot;No blocking unit, should be legal&quot;,</span>
+<span class="nc bnc" id="L334" title="All 2 branches missed.">                   decider.getCost(unit, unitTile, otherTile, 4)</span>
+<span class="nc" id="L335">                   != CostDecider.ILLEGAL_MOVE);</span>
+<span class="nc" id="L336">        assertTrue(&quot;Blocking unit, should be illegal&quot;,</span>
+<span class="nc bnc" id="L337" title="All 2 branches missed.">                   decider.getCost(unit, unitTile, enemyUnitTile, 4)</span>
+<span class="nc" id="L338">                   == CostDecider.ILLEGAL_MOVE);</span>
+<span class="nc" id="L339">    }</span>
+
+    /**
+     * Tests path discoverability in a map with only one path available
+     * That path is obstructed by a settlement, so is invalid.
+     */
+    public void testNoPathAvailableDueToUnitInTheWay() {
+<span class="nc" id="L346">        Game game = getStandardGame();</span>
+<span class="nc" id="L347">        Map map = getSingleLandPathMap(game);</span>
+<span class="nc" id="L348">        game.setMap(map);</span>
+
+        // set obstructing unit
+<span class="nc" id="L351">        Tile unitObstructionTile = map.getTile(2,10);</span>
+<span class="nc" id="L352">        Player frenchPlayer = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="nc" id="L353">        new ServerUnit(game, unitObstructionTile, frenchPlayer, colonistType);</span>
+
+        // set unit
+<span class="nc" id="L356">        Player dutchPlayer = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L357">        Tile unitTile = map.getTile(1, 11);</span>
+<span class="nc" id="L358">        Tile destinationTile = map.getTile(3,7);</span>
+<span class="nc" id="L359">        Unit colonist = new ServerUnit(game, unitTile, dutchPlayer,</span>
+<span class="nc" id="L360">                                       colonistType);</span>
+<span class="nc" id="L361">        colonist.setDestination(destinationTile);</span>
+
+<span class="nc" id="L363">        PathNode path = map.findPath(colonist, colonist.getTile(),</span>
+<span class="nc" id="L364">            destinationTile, null,</span>
+<span class="nc" id="L365">            CostDeciders.avoidSettlementsAndBlockingUnits(), null);</span>
+<span class="nc" id="L366">        assertNull(&quot;No path should be available&quot;, path);</span>
+<span class="nc" id="L367">    }</span>
+
+    /**
+     * Test shortest path obstructed.
+     */
+    public void testShortestPathObstructed() {
+<span class="nc" id="L373">        Game game = getStandardGame();</span>
+<span class="nc" id="L374">        Map map = getShortLongPathMap(getGame());</span>
+<span class="nc" id="L375">        game.setMap(map);</span>
+
+        // set obstructing indian camp
+<span class="nc" id="L378">        Tile settlementTile = map.getTile(2, 10);</span>
+<span class="nc" id="L379">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="nc" id="L380">            = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="nc" id="L381">        builder.settlementTile(settlementTile).build();</span>
+
+        // set unit
+<span class="nc" id="L384">        Player dutchPlayer = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L385">        Tile unitTile = map.getTile(1, 11);</span>
+<span class="nc" id="L386">        Unit colonist = new ServerUnit(game, unitTile, dutchPlayer,</span>
+<span class="nc" id="L387">                                       colonistType);</span>
+<span class="nc" id="L388">        Tile destinationTile = map.getTile(3,7);</span>
+<span class="nc" id="L389">        colonist.setDestination(destinationTile);</span>
+
+<span class="nc" id="L391">        PathNode path = colonist.findPath(destinationTile);</span>
+<span class="nc" id="L392">        assertNotNull(&quot;A path should be available&quot;, path);</span>
+<span class="nc" id="L393">    }</span>
+
+    /**
+     * Test search for colony.
+     */
+    public void testSearchForColony() {
+<span class="nc" id="L399">        Game game = getStandardGame();</span>
+<span class="nc" id="L400">        Map map = getCoastTestMap(plainsType, true);</span>
+<span class="nc" id="L401">        game.setMap(map);</span>
+
+<span class="nc" id="L403">        Player dutchPlayer = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L404">        Player frenchPlayer = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="nc" id="L405">        Tile unitTile = map.getTile(15, 5);</span>
+<span class="nc" id="L406">        Tile colonyTile = map.getTile(9, 9); // should be on coast</span>
+<span class="nc" id="L407">        Unit galleon = new ServerUnit(game, unitTile, dutchPlayer, galleonType);</span>
+<span class="nc" id="L408">        Unit artillery = new ServerUnit(game, galleon, dutchPlayer, artilleryType);</span>
+<span class="nc" id="L409">        FreeColTestUtils.getColonyBuilder().player(frenchPlayer)</span>
+<span class="nc" id="L410">            .colonyTile(colonyTile).build();</span>
+<span class="nc" id="L411">        assertTrue(&quot;French colony not on the map&quot;, colonyTile.hasSettlement());</span>
+<span class="nc" id="L412">        dutchPlayer.setStance(frenchPlayer, Stance.WAR);</span>
+<span class="nc" id="L413">        frenchPlayer.setStance(dutchPlayer, Stance.WAR);</span>
+
+        // Test a GoalDecider with subgoals.
+        // The scoring function is deliberately simple.
+<span class="nc" id="L417">        GoalDecider gd = new GoalDecider() {</span>
+<span class="nc" id="L418">                private PathNode found = null;</span>
+<span class="nc" id="L419">                private int score = -1;</span>
+
+                private int scoreTile(Tile tile) {
+<span class="nc" id="L422">                    return tile.getX() + tile.getY();</span>
+                }
+
+                public PathNode getGoal() {
+<span class="nc" id="L426">                    return found;</span>
+                }
+
+                public boolean hasSubGoals() {
+<span class="nc" id="L430">                    return true;</span>
+                }
+
+                public boolean check(Unit u, PathNode pathNode) {
+<span class="nc" id="L434">                    Settlement settlement = pathNode.getLocation().getSettlement();</span>
+<span class="nc bnc" id="L435" title="All 2 branches missed.">                    if (settlement != null) {</span>
+<span class="nc" id="L436">                        int value = scoreTile(pathNode.getTile());</span>
+<span class="nc bnc" id="L437" title="All 2 branches missed.">                        if (value &gt; score) {</span>
+<span class="nc" id="L438">                            score = value;</span>
+<span class="nc" id="L439">                            found = pathNode;</span>
+<span class="nc" id="L440">                            return true;</span>
+                        }
+                    }
+<span class="nc" id="L443">                    return false;</span>
+                }
+            };
+
+<span class="nc" id="L447">        PathNode path = map.search(artillery, unitTile, gd,</span>
+<span class="nc" id="L448">                                   CostDeciders.avoidIllegal(),</span>
+<span class="nc" id="L449">                                   FreeColObject.INFINITY, galleon, null);</span>
+<span class="nc" id="L450">        assertTrue(&quot;Should find the French colony via a drop off&quot;,</span>
+<span class="nc bnc" id="L451" title="All 4 branches missed.">                   path != null &amp;&amp; path.getTransportDropNode() != null</span>
+<span class="nc bnc" id="L452" title="All 2 branches missed.">                   &amp;&amp; path.getLastNode().getTile() == colonyTile);</span>
+
+        // Add another colony
+<span class="nc" id="L455">        Tile colonyTile2 = map.getTile(5, 5); // should score less</span>
+<span class="nc" id="L456">        FreeColTestUtils.getColonyBuilder().player(frenchPlayer)</span>
+<span class="nc" id="L457">            .colonyTile(colonyTile2).build();</span>
+<span class="nc" id="L458">        assertTrue(&quot;French colony not on the map&quot;,</span>
+<span class="nc" id="L459">                   colonyTile2.hasSettlement());</span>
+<span class="nc" id="L460">        path = map.search(artillery, unitTile, gd,</span>
+<span class="nc" id="L461">                          CostDeciders.avoidIllegal(),</span>
+<span class="nc" id="L462">                          FreeColObject.INFINITY, galleon, null);</span>
+<span class="nc" id="L463">        assertTrue(&quot;Should still find the first French colony via a drop off&quot;,</span>
+<span class="nc bnc" id="L464" title="All 4 branches missed.">                   path != null &amp;&amp; path.getTransportDropNode() != null</span>
+<span class="nc bnc" id="L465" title="All 2 branches missed.">                   &amp;&amp; path.getLastNode().getTile() == colonyTile);</span>
+<span class="nc" id="L466">    }</span>
+
+    /**
+     * Test latitude.
+     */
+    public void testLatitude() {
+<span class="nc" id="L472">        Game game = getStandardGame();</span>
+
+<span class="nc" id="L474">        MapBuilder builder = new MapBuilder(game);</span>
+<span class="nc" id="L475">        Map map = builder.setDimensions(1, 181).build();</span>
+
+<span class="nc" id="L477">        assertEquals(181, map.getHeight());</span>
+<span class="nc" id="L478">        assertEquals(1f, map.getLatitudePerRow());</span>
+<span class="nc" id="L479">        assertEquals(-90, map.getLatitude(0));</span>
+<span class="nc" id="L480">        assertEquals(0, map.getRow(-90));</span>
+<span class="nc" id="L481">        assertEquals(0, map.getLatitude(90));</span>
+<span class="nc" id="L482">        assertEquals(90, map.getRow(0));</span>
+<span class="nc" id="L483">        assertEquals(90, map.getLatitude(180));</span>
+<span class="nc" id="L484">        assertEquals(180, map.getRow(90));</span>
+
+<span class="nc" id="L486">        builder = new MapBuilder(game);</span>
+<span class="nc" id="L487">        map = builder.setDimensions(1, 91).build();</span>
+
+<span class="nc" id="L489">        assertEquals(91, map.getHeight());</span>
+<span class="nc" id="L490">        assertEquals(2f, map.getLatitudePerRow());</span>
+<span class="nc" id="L491">        assertEquals(-90, map.getLatitude(0));</span>
+<span class="nc" id="L492">        assertEquals(0, map.getRow(-90));</span>
+<span class="nc" id="L493">        assertEquals(0, map.getLatitude(45));</span>
+<span class="nc" id="L494">        assertEquals(45, map.getRow(0));</span>
+<span class="nc" id="L495">        assertEquals(90, map.getLatitude(90));</span>
+<span class="nc" id="L496">        assertEquals(90, map.getRow(90));</span>
+
+<span class="nc" id="L498">        builder = new MapBuilder(game);</span>
+<span class="nc" id="L499">        map = builder.setDimensions(1, 91).build();</span>
+<span class="nc" id="L500">        map.setMinimumLatitude(0);</span>
+
+<span class="nc" id="L502">        assertEquals(91, map.getHeight());</span>
+<span class="nc" id="L503">        assertEquals(1f, map.getLatitudePerRow());</span>
+<span class="nc" id="L504">        assertEquals(0, map.getLatitude(0));</span>
+<span class="nc" id="L505">        assertEquals(0, map.getRow(0));</span>
+<span class="nc" id="L506">        assertEquals(45, map.getLatitude(45));</span>
+<span class="nc" id="L507">        assertEquals(45, map.getRow(45));</span>
+<span class="nc" id="L508">        assertEquals(90, map.getLatitude(90));</span>
+<span class="nc" id="L509">        assertEquals(90, map.getRow(90));</span>
+<span class="nc" id="L510">    }</span>
+
+    /**
+     * Test find path.
+     */
+    public void testFindPath() {
+<span class="nc" id="L516">        Game game = getStandardGame();</span>
+<span class="nc" id="L517">        Map map = getCoastTestMap(plainsType, true);</span>
+<span class="nc" id="L518">        game.setMap(map);</span>
+
+<span class="nc" id="L520">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L521">        Europe europe = dutch.getEurope();</span>
+        PathNode path;
+
+        // Nearest port should be Europe
+<span class="nc" id="L525">        Tile seaTile = map.getTile(13, 2);</span>
+<span class="nc" id="L526">        Unit galleon = new ServerUnit(game, seaTile, dutch,</span>
+<span class="nc" id="L527">                                      galleonType);</span>
+<span class="nc" id="L528">        path = galleon.findOurNearestPort();</span>
+<span class="nc" id="L529">        assertNotNull(&quot;Nearest port should exist.&quot;, path);</span>
+<span class="nc" id="L530">        assertEquals(&quot;Nearest port should be Europe.&quot;, europe,</span>
+<span class="nc" id="L531">                      path.getLastNode().getLocation());</span>
+
+<span class="nc" id="L533">        Tile settlementTile = map.getTile(9, 2);</span>
+<span class="nc" id="L534">        FreeColTestUtils.getColonyBuilder().player(dutch)</span>
+<span class="nc" id="L535">            .colonyTile(settlementTile).build();</span>
+<span class="nc" id="L536">        assertTrue(&quot;Dutch colony should be on the map.&quot;,</span>
+<span class="nc" id="L537">            settlementTile.hasSettlement());</span>
+<span class="nc" id="L538">        assertTrue(&quot;Dutch colony should be on the shore.&quot;,</span>
+<span class="nc" id="L539">            settlementTile.isShore());</span>
+
+        // Nearest port should now be the colony.
+<span class="nc" id="L542">        path = galleon.findOurNearestPort();</span>
+<span class="nc" id="L543">        assertNotNull(&quot;Nearest port should exist.&quot;, path);</span>
+<span class="nc" id="L544">        assertEquals(&quot;Nearest port should be the colony.&quot;, settlementTile,</span>
+<span class="nc" id="L545">                     path.getLastNode().getTile());</span>
+
+        // Check colonist can find the trivial path
+<span class="nc" id="L548">        Unit colonist = new ServerUnit(game, settlementTile, dutch,</span>
+<span class="nc" id="L549">                                       colonistType);</span>
+<span class="nc" id="L550">        path = map.findPath(colonist, settlementTile,</span>
+<span class="nc" id="L551">                            settlementTile, null, null, null);</span>
+<span class="nc" id="L552">        assertNotNull(&quot;Trivial path should exist.&quot;, path);</span>
+<span class="nc" id="L553">        assertNull(&quot;Trivial path should be trivial.&quot;, path.next);</span>
+<span class="nc" id="L554">        assertEquals(&quot;Trivial path should start at settlement.&quot;,</span>
+<span class="nc" id="L555">            settlementTile, path.getTile());</span>
+
+        // Check colonist can not find a path into the sea
+<span class="nc" id="L558">        path = map.findPath(colonist, settlementTile, seaTile,</span>
+<span class="nc" id="L559">                            null, null, null);</span>
+<span class="nc" id="L560">        assertNull(&quot;Sea path should be illegal.&quot;, path);</span>
+
+        // Check that a naval unit can find that path.
+<span class="nc" id="L563">        path = map.findPath(galleon, settlementTile, seaTile,</span>
+<span class="nc" id="L564">                            null, null, null);</span>
+<span class="nc" id="L565">        assertNotNull(&quot;Sea path should be legal for naval unit.&quot;, path);</span>
+<span class="nc" id="L566">        assertEquals(&quot;Sea path should start at settlement.&quot;, settlementTile,</span>
+<span class="nc" id="L567">            path.getTile());</span>
+<span class="nc" id="L568">        assertEquals(&quot;Sea path should end at sea tile.&quot;, seaTile,</span>
+<span class="nc" id="L569">            path.getLastNode().getTile());</span>
+
+        // Check giving the colonist access to a carrier makes the sea
+        // path work.
+<span class="nc" id="L573">        path = map.findPath(colonist, settlementTile, seaTile, galleon,</span>
+<span class="nc" id="L574">                            null, null);</span>
+<span class="nc" id="L575">        assertNotNull(&quot;Sea path should now be legal.&quot;, path);</span>
+<span class="nc" id="L576">        assertEquals(&quot;Sea path should start at settlement.&quot;, settlementTile,</span>
+<span class="nc" id="L577">            path.getTile());</span>
+<span class="nc" id="L578">        assertEquals(&quot;Sea path should end at sea tile.&quot;, seaTile,</span>
+<span class="nc" id="L579">            path.getLastNode().getTile());</span>
+
+        // Check the path still works if the colonist has to walk to
+        // the carrier.
+<span class="nc" id="L583">        Tile landTile = map.getTile(2, 2);</span>
+<span class="nc" id="L584">        path = map.findPath(colonist, landTile, seaTile, galleon, null, null);</span>
+<span class="nc" id="L585">        assertNotNull(&quot;Sea path should still be legal.&quot;, path);</span>
+<span class="nc" id="L586">        assertEquals(&quot;Sea path should start at land tile.&quot;, landTile,</span>
+<span class="nc" id="L587">            path.getTile());</span>
+<span class="nc" id="L588">        assertEquals(&quot;Sea path should end at sea tile.&quot;, seaTile,</span>
+<span class="nc" id="L589">            path.getLastNode().getTile());</span>
+<span class="nc bnc" id="L590" title="All 2 branches missed.">        while (!path.isOnCarrier()) path = path.next;</span>
+<span class="nc" id="L591">        assertEquals(&quot;Sea path should include pickup at settlement.&quot;,</span>
+<span class="nc" id="L592">            settlementTile, path.getTile());</span>
+
+        // Check the colonist uses the carrier if it is quicker than walking.
+<span class="nc" id="L595">        Tile shoreTile = map.getTile(9, 13);</span>
+<span class="nc" id="L596">        assertTrue(&quot;Shore tile should be on the shore.&quot;, shoreTile.isShore());</span>
+<span class="nc" id="L597">        path = map.findPath(colonist, settlementTile, shoreTile,</span>
+<span class="nc" id="L598">                            galleon, null, null);</span>
+<span class="nc" id="L599">        assertNotNull(&quot;Shore path should be legal.&quot;, path);</span>
+<span class="nc" id="L600">        assertTrue(&quot;Shore path should have carrier moves.&quot;,</span>
+<span class="nc" id="L601">            path.usesCarrier());</span>
+<span class="nc" id="L602">        assertNotNull(&quot;Shore path should have drop node.&quot;,</span>
+<span class="nc" id="L603">            path.getCarrierMove().getTransportDropNode());</span>
+
+        // Check the colonist does not use the carrier if it does not help.
+<span class="nc" id="L606">        Tile midTile = map.getTile(9, 4);</span>
+<span class="nc" id="L607">        path = map.findPath(colonist, map.getTile(2, 5), midTile,</span>
+<span class="nc" id="L608">                            galleon, null, null);</span>
+<span class="nc" id="L609">        assertNotNull(&quot;Middle path should be legal.&quot;, path);</span>
+<span class="nc" id="L610">        assertFalse(&quot;Middle path should not not use carrier.&quot;,</span>
+<span class="nc" id="L611">            path.usesCarrier());</span>
+
+        // Check path to Europe.
+<span class="nc" id="L614">        path = map.findPath(colonist, settlementTile, europe,</span>
+<span class="nc" id="L615">                            galleon, null, null);</span>
+<span class="nc" id="L616">        assertNotNull(&quot;To-Europe path should be valid.&quot;, path);</span>
+<span class="nc" id="L617">        assertEquals(&quot;To-Europe path should end in Europe.&quot;, europe,</span>
+<span class="nc" id="L618">            path.getLastNode().getLocation());</span>
+
+        // Check path from Europe.
+<span class="nc" id="L621">        path = map.findPath(colonist, europe, landTile, galleon, null, null);</span>
+<span class="nc" id="L622">        assertNotNull(&quot;From-Europe path should be valid.&quot;, path);</span>
+<span class="nc" id="L623">        assertEquals(&quot;From-Europe path should start in Europe.&quot;, europe,</span>
+<span class="nc" id="L624">            path.getLocation());</span>
+
+        // Add another settlement on a lake connected to the existing
+        // settlement and see if a ship at the new settlement can find
+        // a path to Europe.
+<span class="nc" id="L629">        Tile lakeTile = map.getTile(8, 2);</span>
+<span class="nc" id="L630">        lakeTile.setType(lakeType);</span>
+<span class="nc" id="L631">        Tile anotherSettlementTile = map.getTile(7, 2);</span>
+<span class="nc" id="L632">        FreeColTestUtils.getColonyBuilder().player(dutch)</span>
+<span class="nc" id="L633">            .colonyTile(anotherSettlementTile).build();</span>
+<span class="nc" id="L634">        path = map.findPath(galleon, anotherSettlementTile, europe,</span>
+<span class="nc" id="L635">                            null, null, null);</span>
+<span class="nc" id="L636">        assertNotNull(&quot;From-lake-settlement path should be valid.&quot;, path);</span>
+<span class="nc" id="L637">        assertEquals(&quot;From-lake-settlement path should end in Europe.&quot;, europe,</span>
+<span class="nc" id="L638">            path.getLastNode().getLocation());</span>
+
+        // Put the unit on the carrier, put the carrier out to sea, and
+        // find a path inland.
+<span class="nc" id="L642">        colonist.setLocation(galleon);</span>
+<span class="nc" id="L643">        galleon.setLocation(seaTile);</span>
+<span class="nc" id="L644">        path = map.findPath(colonist, galleon, landTile, galleon, null, null);</span>
+<span class="nc" id="L645">        assertNotNull(&quot;From-galleon path should be valid.&quot;, path);</span>
+<span class="nc" id="L646">        assertEquals(&quot;From-galleon path should start at sea.&quot;, seaTile,</span>
+<span class="nc" id="L647">            path.getLocation());</span>
+<span class="nc" id="L648">        assertTrue(&quot;From-galleon path should start on carrier.&quot;,</span>
+<span class="nc" id="L649">            path.isOnCarrier());</span>
+<span class="nc" id="L650">        assertNotNull(&quot;From-galleon path should have a drop node.&quot;,</span>
+<span class="nc" id="L651">            path.getTransportDropNode());</span>
+<span class="nc" id="L652">    }</span>
+
+    /**
+     * Test copy.
+     */
+    public void testCopy() {
+<span class="nc" id="L658">        Game game = getStandardGame();</span>
+<span class="nc" id="L659">        game.setMap(getTestMap());</span>
+<span class="nc" id="L660">        Map map = game.getMap();</span>
+<span class="nc" id="L661">        Colony colony = getStandardColony();</span>
+<span class="nc" id="L662">        Tile tile = colony.getTile();</span>
+
+<span class="nc" id="L664">        Map otherMap = map.copy(game, map.getClass());</span>
+<span class="nc" id="L665">        assertNotNull(otherMap);</span>
+<span class="nc bnc" id="L666" title="All 2 branches missed.">        assertFalse(otherMap == map);</span>
+<span class="nc" id="L667">        assertEquals(otherMap.getId(), map.getId());</span>
+<span class="nc" id="L668">        Tile otherTile = otherMap.getTile(tile.getX(), tile.getY());</span>
+<span class="nc" id="L669">        assertNotNull(otherTile);</span>
+<span class="nc bnc" id="L670" title="All 2 branches missed.">        assertFalse(otherTile == tile);</span>
+<span class="nc" id="L671">        assertEquals(otherTile.getId(), tile.getId());</span>
+<span class="nc" id="L672">        Colony otherColony = otherTile.getColony();</span>
+<span class="nc" id="L673">        assertNotNull(otherColony);</span>
+<span class="nc bnc" id="L674" title="All 2 branches missed.">        assertFalse(otherColony == colony);</span>
+<span class="nc" id="L675">        assertEquals(otherColony.getId(), colony.getId());</span>
+<span class="nc" id="L676">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

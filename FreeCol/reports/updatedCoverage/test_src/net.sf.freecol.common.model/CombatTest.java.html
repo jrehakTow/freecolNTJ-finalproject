@@ -1,0 +1,594 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>CombatTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.common.model</a> &gt; <span class="el_source">CombatTest.java</span></div><h1>CombatTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.common.model;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+
+import net.sf.freecol.common.model.CombatModel;
+import net.sf.freecol.common.model.CombatModel.CombatResult;
+import net.sf.freecol.common.model.Unit.MoveType;
+import net.sf.freecol.common.option.IntegerOption;
+import net.sf.freecol.server.ServerTestHelper;
+import net.sf.freecol.server.control.ChangeSet;
+import net.sf.freecol.server.control.InGameController;
+import net.sf.freecol.server.model.ServerPlayer;
+import net.sf.freecol.server.model.ServerUnit;
+import net.sf.freecol.util.test.MockPseudoRandom;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L40">public class CombatTest extends FreeColTestCase {</span>
+
+<span class="nc" id="L42">    private static final Role armedBraveRole</span>
+<span class="nc" id="L43">        = spec().getRole(&quot;model.role.armedBrave&quot;);</span>
+<span class="nc" id="L44">    private static final Role cavalryRole</span>
+<span class="nc" id="L45">        = spec().getRole(&quot;model.role.cavalry&quot;);</span>
+<span class="nc" id="L46">    private static final Role dragoonRole</span>
+<span class="nc" id="L47">        = spec().getRole(&quot;model.role.dragoon&quot;);</span>
+<span class="nc" id="L48">    private static final Role infantryRole</span>
+<span class="nc" id="L49">        = spec().getRole(&quot;model.role.infantry&quot;);</span>
+<span class="nc" id="L50">    private static final Role missionaryRole</span>
+<span class="nc" id="L51">        = spec().getRole(&quot;model.role.missionary&quot;);</span>
+<span class="nc" id="L52">    private static final Role nativeDragoonRole</span>
+<span class="nc" id="L53">        = spec().getRole(&quot;model.role.nativeDragoon&quot;);</span>
+<span class="nc" id="L54">    private static final Role soldierRole</span>
+<span class="nc" id="L55">        = spec().getRole(&quot;model.role.soldier&quot;);</span>
+
+<span class="nc" id="L57">    private static final TileType hills</span>
+<span class="nc" id="L58">        = spec().getTileType(&quot;model.tile.hills&quot;);</span>
+<span class="nc" id="L59">    private static final TileType ocean</span>
+<span class="nc" id="L60">        = spec().getTileType(&quot;model.tile.ocean&quot;);</span>
+<span class="nc" id="L61">    private static final TileType plains</span>
+<span class="nc" id="L62">        = spec().getTileType(&quot;model.tile.plains&quot;);</span>
+
+<span class="nc" id="L64">    private static final UnitType artilleryType</span>
+<span class="nc" id="L65">        = spec().getUnitType(&quot;model.unit.artillery&quot;);</span>
+<span class="nc" id="L66">    private static final UnitType braveType</span>
+<span class="nc" id="L67">        = spec().getUnitType(&quot;model.unit.brave&quot;);</span>
+<span class="nc" id="L68">    private static final UnitType colonialRegularType</span>
+<span class="nc" id="L69">        = spec().getUnitType(&quot;model.unit.colonialRegular&quot;);</span>
+<span class="nc" id="L70">    private static final UnitType colonistType</span>
+<span class="nc" id="L71">        = spec().getUnitType(&quot;model.unit.freeColonist&quot;);</span>
+<span class="nc" id="L72">    private static final UnitType damagedArtilleryType</span>
+<span class="nc" id="L73">        = spec().getUnitType(&quot;model.unit.damagedArtillery&quot;);</span>
+<span class="nc" id="L74">    private static final UnitType galleonType</span>
+<span class="nc" id="L75">        = spec().getUnitType(&quot;model.unit.galleon&quot;);</span>
+<span class="nc" id="L76">    private static final UnitType indenturedServantType</span>
+<span class="nc" id="L77">        = spec().getUnitType(&quot;model.unit.indenturedServant&quot;);</span>
+<span class="nc" id="L78">    private static final UnitType indianConvertType</span>
+<span class="nc" id="L79">        = spec().getUnitType(&quot;model.unit.indianConvert&quot;);</span>
+<span class="nc" id="L80">    private static final UnitType jesuitMissionaryType</span>
+<span class="nc" id="L81">        = spec().getUnitType(&quot;model.unit.jesuitMissionary&quot;);</span>
+<span class="nc" id="L82">    private static final UnitType kingsRegularType</span>
+<span class="nc" id="L83">        = spec().getUnitType(&quot;model.unit.kingsRegular&quot;);</span>
+<span class="nc" id="L84">    private static final UnitType pettyCriminalType</span>
+<span class="nc" id="L85">        = spec().getUnitType(&quot;model.unit.pettyCriminal&quot;);</span>
+<span class="nc" id="L86">    private static final UnitType privateerType</span>
+<span class="nc" id="L87">        = spec().getUnitType(&quot;model.unit.privateer&quot;);</span>
+<span class="nc" id="L88">    private static final UnitType veteranType</span>
+<span class="nc" id="L89">        = spec().getUnitType(&quot;model.unit.veteranSoldier&quot;);</span>
+
+
+    public void testColonistAttackedByVeteran() throws Exception {
+<span class="nc" id="L93">        Game game = getStandardGame();</span>
+<span class="nc" id="L94">        CombatModel combatModel = game.getCombatModel();</span>
+<span class="nc" id="L95">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L96">        Player french = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="nc" id="L97">        Map map = getTestMap(plains);</span>
+<span class="nc" id="L98">        game.setMap(map);</span>
+<span class="nc" id="L99">        FreeColTestCase.spec();</span>
+<span class="nc" id="L100">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="nc" id="L101">        tile1.setType(hills);</span>
+<span class="nc" id="L102">        assertEquals(hills, tile1.getType());</span>
+<span class="nc" id="L103">        tile1.setExplored(dutch, true);</span>
+<span class="nc" id="L104">        tile1.setExplored(french, true);</span>
+<span class="nc" id="L105">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="nc" id="L106">        tile2.setExplored(dutch, true);</span>
+<span class="nc" id="L107">        tile2.setExplored(french, true);</span>
+
+<span class="nc" id="L109">        Unit colonist = new ServerUnit(game, tile1, dutch, colonistType);</span>
+<span class="nc" id="L110">        colonist.setStateUnchecked(Unit.UnitState.FORTIFIED);</span>
+<span class="nc" id="L111">        Unit soldier = new ServerUnit(game, tile2, french,</span>
+<span class="nc" id="L112">                                      veteranType, dragoonRole);</span>
+<span class="nc" id="L113">        soldier.setMovesLeft(1);</span>
+<span class="nc" id="L114">        assertFalse(soldier.hasAbility(Ability.AMBUSH_BONUS));</span>
+<span class="nc" id="L115">        assertFalse(colonist.hasAbility(Ability.AMBUSH_PENALTY));</span>
+
+<span class="nc" id="L117">        final Modifier bigMovementPenalty</span>
+<span class="nc" id="L118">            = spec().getModifiers(Modifier.BIG_MOVEMENT_PENALTY).get(0);</span>
+<span class="nc" id="L119">        final Modifier attackModifier</span>
+<span class="nc" id="L120">            = spec().getModifiers(Modifier.ATTACK_BONUS).get(0);</span>
+<span class="nc" id="L121">        final Set&lt;Modifier&gt; veteranModifierSet</span>
+<span class="nc" id="L122">            = veteranType.getModifiers(Modifier.OFFENCE);</span>
+<span class="nc" id="L123">        assertEquals(1, veteranModifierSet.size());</span>
+<span class="nc" id="L124">        final Modifier veteranModifier = veteranModifierSet.iterator().next();</span>
+
+<span class="nc" id="L126">        Set&lt;Modifier&gt; offenceModifiers</span>
+<span class="nc" id="L127">            = combatModel.getOffensiveModifiers(soldier, colonist);</span>
+<span class="nc" id="L128">        assertEquals(5, offenceModifiers.size());</span>
+<span class="nc" id="L129">        int n = 0;</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        for (Modifier m : offenceModifiers) {</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">            if (m.getSource() == Specification.BASE_OFFENCE_SOURCE) n += 1;</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">            if (m == bigMovementPenalty) n += 2;</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">            if (m == attackModifier) n += 4;</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">            if (m == veteranModifier) n += 8;</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">            if (m.getSource() == dragoonRole) n += 16;</span>
+        }
+<span class="nc" id="L137">        assertEquals(31, n);</span>
+
+<span class="nc" id="L139">        final Modifier fortifiedModifier</span>
+<span class="nc" id="L140">            = spec().getModifiers(Modifier.FORTIFIED).get(0);</span>
+<span class="nc" id="L141">        final Set&lt;Modifier&gt; hillsModifierSet = hills.getDefenceModifiers();</span>
+<span class="nc" id="L142">        assertEquals(1, hillsModifierSet.size());</span>
+<span class="nc" id="L143">        Modifier hillsModifier = hillsModifierSet.iterator().next();</span>
+
+<span class="nc" id="L145">        Set&lt;Modifier&gt; defenceModifiers</span>
+<span class="nc" id="L146">            = combatModel.getDefensiveModifiers(soldier, colonist);</span>
+<span class="nc" id="L147">        assertEquals(3, defenceModifiers.size());</span>
+<span class="nc" id="L148">        assertTrue(defenceModifiers.contains(fortifiedModifier));</span>
+<span class="nc" id="L149">        defenceModifiers.remove(fortifiedModifier);</span>
+<span class="nc" id="L150">        assertTrue(defenceModifiers.contains(hillsModifier));</span>
+<span class="nc" id="L151">        defenceModifiers.remove(hillsModifier);</span>
+        // this was also added by the combat model
+<span class="nc" id="L153">        assertEquals(Specification.BASE_DEFENCE_SOURCE,</span>
+<span class="nc" id="L154">            defenceModifiers.iterator().next().getSource());</span>
+<span class="nc" id="L155">    }</span>
+
+    public void testGalleonAttackedByPrivateer() throws Exception {
+<span class="nc" id="L158">        Game game = getStandardGame();</span>
+<span class="nc" id="L159">        CombatModel combatModel = game.getCombatModel();</span>
+<span class="nc" id="L160">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L161">        Player french = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="nc" id="L162">        Map map = getTestMap(ocean);</span>
+<span class="nc" id="L163">        game.setMap(map);</span>
+<span class="nc" id="L164">        FreeColTestCase.spec();</span>
+<span class="nc" id="L165">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="nc" id="L166">        tile1.setExplored(dutch, true);</span>
+<span class="nc" id="L167">        tile1.setExplored(french, true);</span>
+<span class="nc" id="L168">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="nc" id="L169">        tile2.setExplored(dutch, true);</span>
+<span class="nc" id="L170">        tile2.setExplored(french, true);</span>
+
+<span class="nc" id="L172">        Unit galleon = new ServerUnit(game, tile1, dutch, galleonType);</span>
+<span class="nc" id="L173">        Unit privateer = new ServerUnit(game, tile2, french, privateerType);</span>
+
+        /**
+         * Only base modifiers should apply.
+         */
+<span class="nc" id="L178">        Set&lt;Modifier&gt; offenceModifiers = combatModel.getOffensiveModifiers(privateer, galleon);</span>
+<span class="nc" id="L179">        assertEquals(2, offenceModifiers.size());</span>
+<span class="nc" id="L180">        int n = 0;</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        for (Modifier m : offenceModifiers) {</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">            if (m.getSource() == Specification.ATTACK_BONUS_SOURCE) n += 1;</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">            if (m.getSource() == Specification.BASE_OFFENCE_SOURCE) n += 2;</span>
+        }
+<span class="nc" id="L185">        assertEquals(n, 3);</span>
+
+<span class="nc" id="L187">        Set&lt;Modifier&gt; defenceModifiers = combatModel.getDefensiveModifiers(privateer, galleon);</span>
+<span class="nc" id="L188">        assertEquals(1, defenceModifiers.size());</span>
+<span class="nc" id="L189">        assertEquals(Specification.BASE_DEFENCE_SOURCE, defenceModifiers.iterator().next().getSource());</span>
+
+        /**
+         * Fortification should have no effect.
+         */
+<span class="nc" id="L194">        galleon.setStateUnchecked(Unit.UnitState.FORTIFIED);</span>
+<span class="nc" id="L195">        defenceModifiers = combatModel.getDefensiveModifiers(privateer, galleon);</span>
+<span class="nc" id="L196">        assertEquals(1, defenceModifiers.size());</span>
+<span class="nc" id="L197">        assertEquals(Specification.BASE_DEFENCE_SOURCE, defenceModifiers.iterator().next().getSource());</span>
+
+        /**
+         * Penalties due to cargo.
+         */
+<span class="nc" id="L202">        GoodsType lumberType = spec().getGoodsType(&quot;model.goods.lumber&quot;);</span>
+<span class="nc" id="L203">        Goods goods1 = new Goods(game, null, lumberType, 50);</span>
+<span class="nc" id="L204">        privateer.add(goods1);</span>
+<span class="nc" id="L205">        offenceModifiers = combatModel.getOffensiveModifiers(privateer, galleon);</span>
+<span class="nc" id="L206">        assertEquals(3, offenceModifiers.size());</span>
+<span class="nc" id="L207">        n = 0;</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">        for (Modifier m : offenceModifiers) {</span>
+<span class="nc bnc" id="L209" title="All 2 branches missed.">            if (m.getSource() == Specification.BASE_OFFENCE_SOURCE) n += 1;</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">            if (m.getSource() == Specification.ATTACK_BONUS_SOURCE) n += 2;</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">            if (m.getSource() == Specification.CARGO_PENALTY_SOURCE) n += 4;</span>
+        }
+<span class="nc" id="L213">        assertEquals(7, n);</span>
+
+<span class="nc" id="L215">        Goods goods2 = new Goods(game, null, lumberType, 150);</span>
+<span class="nc" id="L216">        galleon.add(goods2);</span>
+<span class="nc" id="L217">        assertEquals(2, galleon.getVisibleGoodsCount());</span>
+<span class="nc" id="L218">        defenceModifiers = combatModel.getDefensiveModifiers(privateer, galleon);</span>
+<span class="nc" id="L219">        n = 0;</span>
+<span class="nc" id="L220">        assertEquals(2, defenceModifiers.size());</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">        for (Modifier m : defenceModifiers) {</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">            if (m.getSource() == Specification.BASE_DEFENCE_SOURCE) n += 1;</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">            if (m.getSource() == Specification.CARGO_PENALTY_SOURCE) {</span>
+<span class="nc" id="L224">                n += 2;</span>
+<span class="nc" id="L225">                assertEquals(-25f, m.getValue());</span>
+            }
+        }
+<span class="nc" id="L228">        assertEquals(3, n);</span>
+
+        // Francis Drake
+<span class="nc" id="L231">        FoundingFather drake = spec().getFoundingFather(&quot;model.foundingFather.francisDrake&quot;);</span>
+<span class="nc" id="L232">        Set&lt;Modifier&gt; drakeModifiers = drake.getModifiers(Modifier.OFFENCE, privateerType);</span>
+<span class="nc" id="L233">        assertEquals(1, drakeModifiers.size());</span>
+<span class="nc" id="L234">        french.addFather(drake);</span>
+<span class="nc" id="L235">        drakeModifiers = french.getModifiers(Modifier.OFFENCE, privateerType);</span>
+<span class="nc" id="L236">        assertEquals(1, drakeModifiers.size());</span>
+<span class="nc" id="L237">        offenceModifiers = combatModel.getOffensiveModifiers(privateer, galleon);</span>
+<span class="nc" id="L238">        assertEquals(4, offenceModifiers.size());</span>
+<span class="nc" id="L239">        n = 0;</span>
+<span class="nc bnc" id="L240" title="All 2 branches missed.">        for (Modifier m : offenceModifiers) {</span>
+<span class="nc bnc" id="L241" title="All 2 branches missed.">            if (m.getSource() == Specification.BASE_OFFENCE_SOURCE) n += 1;</span>
+<span class="nc bnc" id="L242" title="All 2 branches missed.">            if (m.getSource() == drake) n += 2;</span>
+<span class="nc bnc" id="L243" title="All 2 branches missed.">            if (m.getSource() == Specification.ATTACK_BONUS_SOURCE) n += 4;</span>
+<span class="nc bnc" id="L244" title="All 2 branches missed.">            if (m.getSource() == Specification.CARGO_PENALTY_SOURCE) {</span>
+<span class="nc" id="L245">                n += 8;</span>
+<span class="nc" id="L246">                assertEquals(-12.5f, m.getValue());</span>
+            }
+        }
+<span class="nc" id="L249">        assertEquals(15, n);</span>
+
+        // Verify that the move is correctly interpreted
+<span class="nc" id="L252">        assertEquals(&quot;Wrong move type&quot;, MoveType.ATTACK_UNIT,</span>
+<span class="nc" id="L253">                     privateer.getMoveType(tile1));</span>
+<span class="nc" id="L254">    }</span>
+
+    public void testDefendColonyWithUnarmedColonist() {
+<span class="nc" id="L257">        Game game = getGame();</span>
+<span class="nc" id="L258">        Map map = getTestMap(true);</span>
+<span class="nc" id="L259">        game.setMap(map);</span>
+
+<span class="nc" id="L261">        Colony colony = getStandardColony();</span>
+<span class="nc" id="L262">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L263">        Player inca = game.getPlayerByNationId(&quot;model.nation.inca&quot;);</span>
+
+<span class="nc" id="L265">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="nc" id="L266">        tile2.setExplored(dutch, true);</span>
+
+<span class="nc" id="L268">        Unit colonist = colony.getUnitIterator().next();</span>
+<span class="nc" id="L269">        Unit attacker = new ServerUnit(getGame(), tile2, inca, braveType,</span>
+<span class="nc" id="L270">                                       armedBraveRole);</span>
+
+<span class="nc" id="L272">        assertEquals(colonist, colony.getDefendingUnit(attacker));</span>
+<span class="nc" id="L273">        assertEquals(colonist, colony.getTile().getDefendingUnit(attacker));</span>
+
+<span class="nc" id="L275">        Unit defender = new ServerUnit(getGame(), colony.getTile(), dutch,</span>
+<span class="nc" id="L276">                                       colonistType);</span>
+<span class="nc" id="L277">        assertFalse(&quot;Colonist should not be defensive unit&quot;,</span>
+<span class="nc" id="L278">                    defender.isDefensiveUnit());</span>
+<span class="nc" id="L279">        assertEquals(defender, colony.getTile().getDefendingUnit(attacker));</span>
+<span class="nc" id="L280">    }</span>
+
+    public void testDefendColonyWithRevere() {
+<span class="nc" id="L283">        final Game game = getGame();</span>
+<span class="nc" id="L284">        final Map map = getTestMap(true);</span>
+<span class="nc" id="L285">        game.setMap(map);</span>
+
+<span class="nc" id="L287">        final SimpleCombatModel combatModel = new SimpleCombatModel();</span>
+<span class="nc" id="L288">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L289">        Player inca = game.getPlayerByNationId(&quot;model.nation.inca&quot;);</span>
+<span class="nc" id="L290">        Colony colony = getStandardColony();</span>
+<span class="nc" id="L291">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="nc" id="L292">        tile2.setExplored(dutch, true);</span>
+<span class="nc" id="L293">        Unit colonist = colony.getUnitIterator().next();</span>
+<span class="nc" id="L294">        Unit attacker = new ServerUnit(getGame(), tile2, inca, braveType,</span>
+<span class="nc" id="L295">                                       armedBraveRole);</span>
+
+        // Colonist will defend
+<span class="nc" id="L298">        assertEquals(colonist, colony.getDefendingUnit(attacker));</span>
+
+        // Set up for auto-equip
+<span class="nc" id="L301">        dutch.addFather(spec().getFoundingFather(&quot;model.foundingFather.paulRevere&quot;));</span>
+<span class="nc bnc" id="L302" title="All 2 branches missed.">        for (AbstractGoods ag : soldierRole.getRequiredGoods()) {</span>
+<span class="nc" id="L303">            colony.addGoods(ag);</span>
+        }
+
+        // Colonist will auto arm
+<span class="nc" id="L307">        assertEquals(soldierRole, colonist.getAutomaticRole());</span>
+
+<span class="nc" id="L309">        Set&lt;Modifier&gt; defenceModifiers = combatModel</span>
+<span class="nc" id="L310">            .getDefensiveModifiers(attacker, colonist);</span>
+<span class="nc bnc" id="L311" title="All 2 branches missed.">        for (Modifier modifier : soldierRole.getModifiers(Modifier.DEFENCE)) {</span>
+<span class="nc" id="L312">            assertTrue(defenceModifiers.contains(modifier));</span>
+        }
+<span class="nc" id="L314">    }</span>
+
+    public void testDefendSettlement() {
+<span class="nc" id="L317">        Game game = getStandardGame();</span>
+<span class="nc" id="L318">        Map map = getTestMap();</span>
+<span class="nc" id="L319">        game.setMap(map);</span>
+
+<span class="nc" id="L321">        SimpleCombatModel combatModel = new SimpleCombatModel();</span>
+<span class="nc" id="L322">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L323">        Player inca = game.getPlayerByNationId(&quot;model.nation.inca&quot;);</span>
+
+<span class="nc" id="L325">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="nc" id="L326">        tile1.setExplored(dutch, true);</span>
+
+<span class="nc" id="L328">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="nc" id="L329">        tile2.setExplored(dutch, true);</span>
+
+<span class="nc" id="L331">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="nc" id="L332">            = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="nc" id="L333">        IndianSettlement settlement = builder.player(inca)</span>
+<span class="nc" id="L334">            .settlementTile(tile1).skillToTeach(null).capital(true).build();</span>
+
+<span class="nc" id="L336">        Unit defender = new ServerUnit(game, settlement, inca, braveType,</span>
+<span class="nc" id="L337">                                       nativeDragoonRole);</span>
+<span class="nc" id="L338">        Unit attacker = new ServerUnit(game, tile2, dutch, colonistType,</span>
+<span class="nc" id="L339">                                       dragoonRole);</span>
+<span class="nc bnc" id="L340" title="All 2 branches missed.">        for (AbstractGoods ag : nativeDragoonRole.getRequiredGoods()) {</span>
+<span class="nc" id="L341">            settlement.addGoods(ag);</span>
+        }
+
+<span class="nc" id="L344">        Set&lt;Modifier&gt; defenceModifiers = combatModel</span>
+<span class="nc" id="L345">            .getDefensiveModifiers(attacker, defender);</span>
+<span class="nc bnc" id="L346" title="All 2 branches missed.">        for (Modifier modifier : nativeDragoonRole.getModifiers(Modifier.DEFENCE)) {</span>
+<span class="nc" id="L347">            assertTrue(defenceModifiers.contains(modifier));</span>
+        }
+<span class="nc" id="L349">    }</span>
+
+    public void testAttackIgnoresMovementPoints() throws Exception {
+<span class="nc" id="L352">        Game game = getStandardGame();</span>
+<span class="nc" id="L353">        Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L354">        Player french = game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="nc" id="L355">        Map map = getTestMap(plains, true);</span>
+<span class="nc" id="L356">        game.setMap(map);</span>
+<span class="nc" id="L357">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="nc" id="L358">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="nc" id="L359">        tile1.setType(hills);</span>
+<span class="nc" id="L360">        assertEquals(hills, tile1.getType());</span>
+
+<span class="nc" id="L362">        dutch.setStance(french, Stance.WAR);</span>
+<span class="nc" id="L363">        french.setStance(dutch, Stance.WAR);</span>
+
+<span class="nc" id="L365">        Unit colonist = new ServerUnit(game, tile1, dutch, colonistType);</span>
+<span class="nc" id="L366">        colonist.setStateUnchecked(Unit.UnitState.FORTIFIED);</span>
+<span class="nc" id="L367">        Unit soldier = new ServerUnit(game, tile2, french, veteranType,</span>
+<span class="nc" id="L368">                                      dragoonRole);</span>
+<span class="nc" id="L369">        soldier.setStateUnchecked(Unit.UnitState.FORTIFIED);</span>
+
+<span class="nc" id="L371">        assertEquals(tile1, colonist.getLocation());</span>
+<span class="nc" id="L372">        assertEquals(tile2, soldier.getLocation());</span>
+
+<span class="nc" id="L374">        assertEquals(Unit.MoveType.ATTACK_UNIT,</span>
+<span class="nc" id="L375">                     soldier.getMoveType(tile2, tile1, 9));</span>
+<span class="nc" id="L376">        assertEquals(Unit.MoveType.ATTACK_UNIT,</span>
+<span class="nc" id="L377">                     soldier.getMoveType(tile2, tile1, 1));</span>
+<span class="nc" id="L378">        assertEquals(Unit.MoveType.MOVE_NO_MOVES,</span>
+<span class="nc" id="L379">                     soldier.getMoveType(tile2, tile1, 0));</span>
+<span class="nc" id="L380">    }</span>
+
+    public void testSpanishAgainstNatives() throws Exception {
+<span class="nc" id="L383">        final Game game = getStandardGame();</span>
+<span class="nc" id="L384">        final Player spanish = game.getPlayerByNationId(&quot;model.nation.spanish&quot;);</span>
+<span class="nc" id="L385">        final Player dutch = game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L386">        Player tupi = game.getPlayerByNationId(&quot;model.nation.tupi&quot;);</span>
+<span class="nc" id="L387">        Map map = getTestMap(plains, true);</span>
+<span class="nc" id="L388">        game.setMap(map);</span>
+
+<span class="nc" id="L390">        SimpleCombatModel combatModel = new SimpleCombatModel();</span>
+
+<span class="nc" id="L392">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="nc" id="L393">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="nc" id="L394">        tile1.setType(hills);</span>
+<span class="nc" id="L395">        assertEquals(hills, tile1.getType());</span>
+
+<span class="nc" id="L397">        spanish.setStance(tupi, Stance.WAR);</span>
+<span class="nc" id="L398">        tupi.setStance(spanish, Stance.WAR);</span>
+
+<span class="nc" id="L400">        Unit soldier = new ServerUnit(game, tile1, spanish, colonistType,</span>
+<span class="nc" id="L401">                                      soldierRole);</span>
+<span class="nc" id="L402">        Unit brave = new ServerUnit(game, tile2, tupi, braveType);</span>
+
+<span class="nc" id="L404">        assertEquals(tile1, soldier.getLocation());</span>
+<span class="nc" id="L405">        assertEquals(tile2, brave.getLocation());</span>
+
+        // Spanish should have special bonus v natives...
+<span class="nc" id="L408">        Set&lt;Modifier&gt; offenceModifiers</span>
+<span class="nc" id="L409">            = combatModel.getOffensiveModifiers(soldier, brave);</span>
+<span class="nc" id="L410">        Modifier offenceAgainst = null;</span>
+<span class="nc bnc" id="L411" title="All 2 branches missed.">        for (Modifier modifier : offenceModifiers) {</span>
+<span class="nc bnc" id="L412" title="All 2 branches missed.">            if (Modifier.OFFENCE_AGAINST.equals(modifier.getId())) {</span>
+<span class="nc" id="L413">                offenceAgainst = modifier;</span>
+<span class="nc" id="L414">                break;</span>
+            }
+        }
+<span class="nc" id="L417">        assertNotNull(offenceAgainst);</span>
+<span class="nc" id="L418">        assertEquals(50, (int) offenceAgainst.getValue());</span>
+
+        // but not against Europeans.
+<span class="nc" id="L421">        Tile tile3 = map.getTile(6, 8);</span>
+<span class="nc" id="L422">        Unit dutchSoldier = new ServerUnit(game, tile3, dutch, colonistType,</span>
+<span class="nc" id="L423">                                           soldierRole);</span>
+<span class="nc" id="L424">        offenceAgainst = null;</span>
+<span class="nc bnc" id="L425" title="All 2 branches missed.">        for (Modifier modifier</span>
+<span class="nc" id="L426">                 : combatModel.getOffensiveModifiers(soldier, dutchSoldier)) {</span>
+<span class="nc bnc" id="L427" title="All 2 branches missed.">            if (Modifier.OFFENCE_AGAINST.equals(modifier.getId())) {</span>
+<span class="nc" id="L428">                offenceAgainst = modifier;</span>
+<span class="nc" id="L429">                break;</span>
+            }
+        }
+<span class="nc" id="L432">        assertNull(offenceAgainst);</span>
+<span class="nc" id="L433">    }</span>
+
+    public void testAttackShipWithLandUnit() {
+<span class="nc" id="L436">        Game game = getStandardGame();</span>
+<span class="nc" id="L437">        Player spanish = game.getPlayerByNationId(&quot;model.nation.spanish&quot;);</span>
+<span class="nc" id="L438">        Player tupi = game.getPlayerByNationId(&quot;model.nation.tupi&quot;);</span>
+<span class="nc" id="L439">        Map map = getTestMap(plains, true);</span>
+<span class="nc" id="L440">        game.setMap(map);</span>
+
+<span class="nc" id="L442">        SimpleCombatModel combatModel = new SimpleCombatModel();</span>
+
+<span class="nc" id="L444">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="nc" id="L445">        Tile tile2 = map.getTile(4, 8);</span>
+
+<span class="nc" id="L447">        tile1.setType(hills);</span>
+<span class="nc" id="L448">        assertEquals(hills, tile1.getType());</span>
+<span class="nc" id="L449">        tile2.setType(ocean);</span>
+<span class="nc" id="L450">        assertEquals(ocean, tile2.getType());</span>
+
+<span class="nc" id="L452">        spanish.setStance(tupi, Stance.WAR);</span>
+<span class="nc" id="L453">        tupi.setStance(spanish, Stance.WAR);</span>
+
+<span class="nc" id="L455">        Unit galleon = new ServerUnit(game, tile2, spanish, galleonType);</span>
+<span class="nc" id="L456">        Unit brave = new ServerUnit(game, tile1, tupi, braveType);</span>
+
+<span class="nc" id="L458">        assertEquals(tile1, brave.getLocation());</span>
+<span class="nc" id="L459">        assertEquals(tile2, galleon.getLocation());</span>
+
+<span class="nc" id="L461">        assertEquals(Unit.MoveType.MOVE_NO_ACCESS_LAND,</span>
+<span class="nc" id="L462">                     galleon.getMoveType(tile2, tile1, 3));</span>
+
+<span class="nc" id="L464">        assertEquals(Unit.MoveType.MOVE_NO_ACCESS_EMBARK,</span>
+<span class="nc" id="L465">                     brave.getMoveType(tile1, tile2, 3));</span>
+
+<span class="nc" id="L467">    }</span>
+
+    public void testRegulars() {
+<span class="nc" id="L470">        Game game = ServerTestHelper.startServerGame(getTestMap(plains, true));</span>
+<span class="nc" id="L471">        InGameController igc = ServerTestHelper.getInGameController();</span>
+
+<span class="nc" id="L473">        ServerPlayer french = (ServerPlayer)game.getPlayerByNationId(&quot;model.nation.french&quot;);</span>
+<span class="nc" id="L474">        french.addAbility(new Ability(Ability.INDEPENDENCE_DECLARED));</span>
+<span class="nc" id="L475">        ServerPlayer refPlayer = igc.createREFPlayer(french);</span>
+
+<span class="nc" id="L477">        SimpleCombatModel combatModel = new SimpleCombatModel();</span>
+
+<span class="nc" id="L479">        Map map = game.getMap();</span>
+<span class="nc" id="L480">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="nc" id="L481">        Tile tile2 = map.getTile(4, 8);</span>
+
+<span class="nc" id="L483">        Unit regular = new ServerUnit(game, tile2, refPlayer, kingsRegularType,</span>
+<span class="nc" id="L484">                                      cavalryRole);</span>
+<span class="nc" id="L485">        Unit colonial = new ServerUnit(game, tile1, french, colonialRegularType,</span>
+<span class="nc" id="L486">                                       dragoonRole);</span>
+
+<span class="nc" id="L488">        MockPseudoRandom loseRandom = new MockPseudoRandom();</span>
+<span class="nc" id="L489">        List&lt;Integer&gt; i1 = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L490">        i1.add((int)(Integer.MAX_VALUE * 0.85));</span>
+<span class="nc" id="L491">        loseRandom.setNextNumbers(i1, true);</span>
+<span class="nc" id="L492">        MockPseudoRandom winRandom = new MockPseudoRandom();</span>
+<span class="nc" id="L493">        List&lt;Integer&gt; i2 = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L494">        i2.add((int)(Integer.MAX_VALUE * 0.20));</span>
+<span class="nc" id="L495">        winRandom.setNextNumbers(i2, true);</span>
+
+        // colonist + regular + cavalry * attack bonus
+<span class="nc" id="L498">        double offence = (0 + 4 + 3) * 1.5;</span>
+<span class="nc" id="L499">        assertEquals(offence, combatModel.getOffencePower(regular, colonial));</span>
+        // colonist + colonial + dragoon
+<span class="nc" id="L501">        double defence = 0 + 3 + 3;</span>
+<span class="nc" id="L502">        assertEquals(defence, combatModel.getDefencePower(regular, colonial));</span>
+
+<span class="nc" id="L504">        List&lt;CombatResult&gt; crs</span>
+<span class="nc" id="L505">            = combatModel.generateAttackResult(loseRandom, regular, colonial);</span>
+<span class="nc" id="L506">        checkCombat(&quot;Regular v Colonial&quot;, crs,</span>
+<span class="nc" id="L507">            CombatResult.LOSE, CombatResult.LOSE_EQUIP);</span>
+<span class="nc" id="L508">        refPlayer.csCombat(regular, colonial, crs, loseRandom, new ChangeSet());</span>
+<span class="nc" id="L509">        assertEquals(infantryRole, regular.getRole());</span>
+
+        // (colonist + regular + infantry) * attack bonus
+<span class="nc" id="L512">        offence = (0 + 4 + 2) * 1.5;</span>
+<span class="nc" id="L513">        assertEquals(offence, combatModel.getOffencePower(regular, colonial));</span>
+
+        // slaughter King's Regular
+<span class="nc" id="L516">        crs = combatModel.generateAttackResult(winRandom, colonial, regular);</span>
+<span class="nc" id="L517">        checkCombat(&quot;Regular should be slaughtered upon losing all equipment&quot;,</span>
+<span class="nc" id="L518">            crs, CombatResult.WIN, CombatResult.SLAUGHTER_UNIT);</span>
+
+<span class="nc" id="L520">        regular = new ServerUnit(game, tile2, french, kingsRegularType,</span>
+<span class="nc" id="L521">                                 cavalryRole);</span>
+
+<span class="nc" id="L523">        crs = combatModel.generateAttackResult(winRandom, regular, colonial);</span>
+<span class="nc" id="L524">        checkCombat(&quot;Regular v Colonial (2)&quot;, crs,</span>
+<span class="nc" id="L525">            CombatResult.WIN, CombatResult.LOSE_EQUIP);</span>
+<span class="nc" id="L526">        refPlayer.csCombat(regular, colonial, crs, winRandom, new ChangeSet());</span>
+<span class="nc" id="L527">        assertEquals(soldierRole, colonial.getRole());</span>
+
+<span class="nc" id="L529">        crs = combatModel.generateAttackResult(winRandom, regular, colonial);</span>
+<span class="nc" id="L530">        checkCombat(&quot;Regular v Colonial (3)&quot;, crs,</span>
+<span class="nc" id="L531">            CombatResult.WIN, CombatResult.LOSE_EQUIP, CombatResult.DEMOTE_UNIT);</span>
+<span class="nc" id="L532">        refPlayer.csCombat(regular, colonial, crs, winRandom, new ChangeSet());</span>
+<span class="nc" id="L533">        assertFalse(colonial.isArmed());</span>
+<span class="nc" id="L534">        assertEquals(veteranType, colonial.getType());</span>
+<span class="nc" id="L535">        assertEquals(spec().getDefaultRole(), colonial.getRole());</span>
+
+<span class="nc" id="L537">        crs = combatModel.generateAttackResult(winRandom, regular, colonial);</span>
+<span class="nc" id="L538">        checkCombat(&quot;Regular v Colonial (4)&quot;, crs,</span>
+<span class="nc" id="L539">            CombatResult.WIN, CombatResult.CAPTURE_UNIT);</span>
+<span class="nc" id="L540">        refPlayer.csCombat(regular, colonial, crs, winRandom, new ChangeSet());</span>
+<span class="nc" id="L541">    }</span>
+
+    public void testCaptureConvert() {
+<span class="nc" id="L544">        Map map = getTestMap(plains, true);</span>
+<span class="nc" id="L545">        Game game = ServerTestHelper.startServerGame(map);</span>
+<span class="nc" id="L546">        CombatModel combatModel = game.getCombatModel();</span>
+<span class="nc" id="L547">        InGameController igc = ServerTestHelper.getInGameController();</span>
+
+<span class="nc" id="L549">        ServerPlayer dutch = (ServerPlayer)game.getPlayerByNationId(&quot;model.nation.dutch&quot;);</span>
+<span class="nc" id="L550">        ServerPlayer inca = (ServerPlayer)game.getPlayerByNationId(&quot;model.nation.inca&quot;);</span>
+<span class="nc" id="L551">        dutch.setStance(inca, Stance.WAR);</span>
+<span class="nc" id="L552">        inca.setStance(dutch, Stance.WAR);</span>
+
+<span class="nc" id="L554">        Tile tile1 = map.getTile(5, 8);</span>
+<span class="nc" id="L555">        tile1.setExplored(dutch, true);</span>
+<span class="nc" id="L556">        Tile tile2 = map.getTile(4, 8);</span>
+<span class="nc" id="L557">        tile2.setExplored(dutch, true);</span>
+<span class="nc" id="L558">        Unit missionary = new ServerUnit(game, null, dutch,</span>
+<span class="nc" id="L559">                                         jesuitMissionaryType, missionaryRole);</span>
+<span class="nc" id="L560">        FreeColTestCase.IndianSettlementBuilder builder</span>
+<span class="nc" id="L561">            = new FreeColTestCase.IndianSettlementBuilder(game);</span>
+<span class="nc" id="L562">        IndianSettlement settlement = builder.player(inca)</span>
+<span class="nc" id="L563">            .settlementTile(tile1).skillToTeach(null).capital(true)</span>
+<span class="nc" id="L564">            .initialBravesInCamp(8).missionary(missionary).build();</span>
+
+<span class="nc" id="L566">        IntegerOption io = spec().getIntegerOption(&quot;model.option.nativeConvertProbability&quot;);</span>
+<span class="nc" id="L567">        assertNotNull(io);</span>
+<span class="nc" id="L568">        io.setValue(100);</span>
+
+<span class="nc" id="L570">        Unit soldier = new ServerUnit(game, tile2, dutch, veteranType,</span>
+<span class="nc" id="L571">                                      soldierRole);</span>
+<span class="nc" id="L572">        Unit defender = settlement.getDefendingUnit(soldier);</span>
+<span class="nc" id="L573">        assertNotNull(defender);</span>
+<span class="nc" id="L574">        assertTrue(defender.getOwner().isIndian());</span>
+        
+<span class="nc" id="L576">        MockPseudoRandom random = new MockPseudoRandom();</span>
+<span class="nc" id="L577">        List&lt;Integer&gt; il = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L578">        il.add(0);</span>
+<span class="nc" id="L579">        random.setNextNumbers(il, true);</span>
+
+<span class="nc" id="L581">        List&lt;CombatResult&gt; crs = combatModel.generateAttackResult(random,</span>
+<span class="nc" id="L582">            soldier, defender);</span>
+<span class="nc" id="L583">        checkCombat(&quot;Capture convert&quot;, crs,</span>
+<span class="nc" id="L584">                    CombatResult.WIN, CombatResult.SLAUGHTER_UNIT,</span>
+<span class="nc" id="L585">                    CombatResult.CAPTURE_CONVERT);</span>
+<span class="nc" id="L586">        assertEquals(&quot;One unit on tile&quot;, 1, tile2.getUnitList().size());</span>
+<span class="nc" id="L587">        dutch.csCombat(soldier, defender, crs, new Random(),</span>
+<span class="nc" id="L588">                       new ChangeSet());</span>
+<span class="nc" id="L589">        assertEquals(&quot;Two units on tile&quot;, 2, tile2.getUnitList().size());</span>
+<span class="nc" id="L590">        assertEquals(&quot;Convert on tile&quot;, tile2.getUnitList().get(1).getType(),</span>
+<span class="nc" id="L591">                     indianConvertType);</span>
+<span class="nc" id="L592">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

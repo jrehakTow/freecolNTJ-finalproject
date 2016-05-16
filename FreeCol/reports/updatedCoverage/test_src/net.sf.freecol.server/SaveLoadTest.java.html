@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>SaveLoadTest.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server</a> &gt; <span class="el_source">SaveLoadTest.java</span></div><h1>SaveLoadTest.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server;
+
+import java.io.File;
+
+import net.sf.freecol.common.FreeColException;
+import net.sf.freecol.common.io.FreeColSavegameFile;
+import net.sf.freecol.common.option.FileOption;
+import net.sf.freecol.common.option.MapGeneratorOptions;
+import net.sf.freecol.server.control.Controller;
+import net.sf.freecol.server.control.PreGameController;
+import net.sf.freecol.util.test.FreeColTestCase;
+
+
+<span class="nc" id="L33">public class SaveLoadTest extends FreeColTestCase {</span>
+    
+    @Override
+    public void tearDown() throws Exception {
+<span class="nc" id="L37">        ServerTestHelper.stopServer();</span>
+<span class="nc" id="L38">        super.tearDown();</span>
+<span class="nc" id="L39">    }</span>
+
+    public void testDelayedLoading() {
+<span class="nc" id="L42">        File file = ServerTestHelper.createRandomSaveGame();</span>
+<span class="nc" id="L43">        ServerTestHelper.stopServer();</span>
+
+<span class="nc" id="L45">        FreeColServer server = ServerTestHelper.startServer(false, true);</span>
+        try {
+<span class="nc" id="L47">            server.loadGame(new FreeColSavegameFile(file));</span>
+<span class="nc" id="L48">        } catch (Exception e) {</span>
+<span class="nc" id="L49">            e.printStackTrace();</span>
+<span class="nc" id="L50">            fail(e.getMessage());</span>
+        }
+<span class="nc" id="L52">        assertNotNull(server.getGame());</span>
+<span class="nc" id="L53">        assertNotNull(server.getGame().getMap());</span>
+<span class="nc" id="L54">        file.delete();</span>
+<span class="nc" id="L55">        assertFalse(file.exists());</span>
+<span class="nc" id="L56">    }</span>
+
+    public void testImmediateLoading() {
+<span class="nc" id="L59">        File file = ServerTestHelper.createRandomSaveGame();</span>
+<span class="nc" id="L60">        ServerTestHelper.stopServer();</span>
+<span class="nc" id="L61">        FreeColServer server = ServerTestHelper.startServer(file, false, true);</span>
+<span class="nc" id="L62">        assertNotNull(server.getGame());</span>
+<span class="nc" id="L63">        assertNotNull(server.getGame().getMap());</span>
+<span class="nc" id="L64">        file.delete();</span>
+<span class="nc" id="L65">        assertFalse(file.exists());</span>
+<span class="nc" id="L66">    }</span>
+    
+    public void testImport() {
+<span class="nc" id="L69">        File file = ServerTestHelper.createRandomSaveGame();</span>
+<span class="nc" id="L70">        ServerTestHelper.stopServer();</span>
+
+<span class="nc" id="L72">        FreeColServer server = ServerTestHelper.startServer(false, true);</span>
+<span class="nc" id="L73">        FileOption importOption = (FileOption)server.getSpecification()</span>
+<span class="nc" id="L74">            .getMapGeneratorOptions()</span>
+<span class="nc" id="L75">            .getOption(MapGeneratorOptions.IMPORT_FILE);</span>
+<span class="nc" id="L76">        importOption.setValue(file);</span>
+<span class="nc" id="L77">        Controller c = server.getController();</span>
+<span class="nc" id="L78">        assertNotNull(c);</span>
+<span class="nc" id="L79">        assertTrue(c instanceof PreGameController);</span>
+<span class="nc" id="L80">        PreGameController pgc = (PreGameController)c;</span>
+        try {
+<span class="nc" id="L82">            pgc.startGame();</span>
+<span class="nc" id="L83">        } catch (FreeColException e) {</span>
+<span class="nc" id="L84">            fail(e.getMessage());</span>
+        }
+<span class="nc" id="L86">        importOption.setValue(null);</span>
+
+<span class="nc" id="L88">        assertEquals(FreeColServer.GameState.IN_GAME, server.getGameState());</span>
+<span class="nc" id="L89">        assertNotNull(server.getGame());</span>
+<span class="nc" id="L90">        assertNotNull(server.getGame().getMap());</span>
+<span class="nc" id="L91">        file.delete();</span>
+<span class="nc" id="L92">        assertFalse(file.exists());</span>
+<span class="nc" id="L93">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

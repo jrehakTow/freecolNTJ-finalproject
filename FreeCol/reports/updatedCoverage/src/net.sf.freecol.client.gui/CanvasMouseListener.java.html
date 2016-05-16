@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>CanvasMouseListener.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.client.gui</a> &gt; <span class="el_source">CanvasMouseListener.java</span></div><h1>CanvasMouseListener.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.client.gui;
+
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.swing.Timer;
+
+import net.sf.freecol.client.FreeColClient;
+import net.sf.freecol.client.control.FreeColClientHolder;
+import net.sf.freecol.common.debug.FreeColDebugger;
+import net.sf.freecol.common.model.Colony;
+import net.sf.freecol.common.model.PathNode;
+import net.sf.freecol.common.model.Tile;
+import net.sf.freecol.common.model.Unit;
+
+
+/**
+ * Listens to mouse buttons being pressed at the level of the Canvas.
+ */
+public final class CanvasMouseListener extends FreeColClientHolder
+    implements ActionListener, MouseListener {
+
+<span class="nc" id="L46">    private static final Logger logger = Logger.getLogger(CanvasMouseListener.class.getName());</span>
+
+<span class="nc" id="L48">    private static final int doubleClickDelay = 200; // Milliseconds</span>
+
+    private final Canvas canvas;
+
+<span class="nc" id="L52">    private final Timer doubleClickTimer = new Timer(doubleClickDelay,this);</span>
+
+    private int centerX, centerY;
+
+
+    /**
+     * Create a new canvas mouse listener.
+     *
+     * @param freeColClient The enclosing &lt;code&gt;FreeColClient&lt;/code&gt;.
+     * @param canvas The component this object gets created for.
+     */
+    public CanvasMouseListener(FreeColClient freeColClient, Canvas canvas) {
+<span class="nc" id="L64">        super(freeColClient);</span>
+
+<span class="nc" id="L66">        this.canvas = canvas;</span>
+<span class="nc" id="L67">    }</span>
+
+    /**
+     * Invoked when a mouse button was clicked.
+     *
+     * @param e The MouseEvent that holds all the information.
+     */
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        try {
+<span class="nc bnc" id="L77" title="All 2 branches missed.">            if (e.getClickCount() &gt; 1) {</span>
+<span class="nc" id="L78">                Tile tile = canvas.convertToMapTile(e.getX(), e.getY());</span>
+<span class="nc" id="L79">                Colony colony = tile.getColony();</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">                if (colony != null) {</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">                    if (FreeColDebugger.isInDebugMode(FreeColDebugger.DebugMode.MENUS)) {</span>
+<span class="nc" id="L82">                        canvas.showForeignColony(colony);</span>
+<span class="nc" id="L83">                    } else {</span>
+<span class="nc" id="L84">                        canvas.showColonyPanel(colony, null);</span>
+                    }
+                }
+<span class="nc" id="L87">            } else {</span>
+<span class="nc" id="L88">                canvas.requestFocus();</span>
+            }
+<span class="nc" id="L90">        } catch (Exception ex) {</span>
+<span class="nc" id="L91">            logger.log(Level.WARNING, &quot;Error in mouseClicked!&quot;, ex);</span>
+        }
+<span class="nc" id="L93">    }</span>
+
+    /**
+     * Invoked when the mouse enters the component.
+     *
+     * @param e The MouseEvent that holds all the information.
+     */
+    @Override
+    public void mouseEntered(MouseEvent e) {
+        // Ignore for now.
+<span class="nc" id="L103">    }</span>
+
+    /**
+     * Invoked when the mouse exits the component.
+     *
+     * @param e The MouseEvent that holds all the information.
+     */
+    @Override
+    public void mouseExited(MouseEvent e) {
+        // Ignore for now.
+<span class="nc" id="L113">    }</span>
+
+    /**
+     * Invoked when a mouse button was pressed.
+     *
+     * @param e The MouseEvent that holds all the information.
+     */
+    @Override
+    public void mousePressed(MouseEvent e) {
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        if (!e.getComponent().isEnabled()) return;</span>
+
+<span class="nc" id="L124">        int me = e.getButton();</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">        if (e.isPopupTrigger()) me = MouseEvent.BUTTON3;</span>
+<span class="nc" id="L126">        Tile tile = canvas.convertToMapTile(e.getX(), e.getY());</span>
+
+<span class="nc bnc" id="L128" title="All 4 branches missed.">        switch (me) {</span>
+        case MouseEvent.BUTTON1:
+            // Record initial click point for purposes of dragging
+<span class="nc" id="L131">            canvas.setDragPoint(e.getX(), e.getY());</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">            if (canvas.isGotoStarted()) {</span>
+<span class="nc" id="L133">                PathNode path = canvas.getGotoPath();</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">                if (path != null) {</span>
+<span class="nc" id="L135">                    canvas.stopGoto();</span>
+                    // Move the unit
+<span class="nc" id="L137">                    igc().goToTile(canvas.getActiveUnit(),</span>
+<span class="nc" id="L138">                                   path.getLastNode().getTile());</span>
+                }
+<span class="nc bnc" id="L140" title="All 2 branches missed.">            } else if (doubleClickTimer.isRunning()) {</span>
+<span class="nc" id="L141">                doubleClickTimer.stop();</span>
+<span class="nc" id="L142">            } else {</span>
+<span class="nc" id="L143">                centerX = e.getX();</span>
+<span class="nc" id="L144">                centerY = e.getY();</span>
+<span class="nc" id="L145">                doubleClickTimer.start();</span>
+            }
+<span class="nc" id="L147">            canvas.requestFocus();</span>
+<span class="nc" id="L148">            break;</span>
+        case MouseEvent.BUTTON2:
+<span class="nc bnc" id="L150" title="All 2 branches missed.">            if (tile != null) {</span>
+<span class="nc" id="L151">                Unit unit = canvas.getActiveUnit();</span>
+<span class="nc bnc" id="L152" title="All 4 branches missed.">                if (unit != null &amp;&amp; unit.getTile() != tile) {</span>
+<span class="nc" id="L153">                    PathNode dragPath = unit.findPath(tile);</span>
+<span class="nc" id="L154">                    canvas.startGoto();</span>
+<span class="nc" id="L155">                    canvas.setGotoPath(dragPath);</span>
+                }
+            }
+<span class="nc" id="L158">            break;</span>
+        case MouseEvent.BUTTON3:
+            // Cancel goto if one is active
+<span class="nc bnc" id="L161" title="All 2 branches missed.">            if (canvas.isGotoStarted()) canvas.stopGoto();</span>
+<span class="nc" id="L162">            canvas.showTilePopup(tile, e.getX(), e.getY());</span>
+<span class="nc" id="L163">            break;</span>
+        default:
+            break;
+        }
+<span class="nc" id="L167">    }</span>
+
+    /**
+     * Invoked when a mouse button was released.
+     *
+     * @param e The MouseEvent that holds all the information.
+     */
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        try {
+<span class="nc bnc" id="L177" title="All 2 branches missed.">            if (canvas.getGotoPath() != null) { // A mouse drag has ended.</span>
+<span class="nc" id="L178">                PathNode temp = canvas.getGotoPath();</span>
+<span class="nc" id="L179">                canvas.stopGoto();</span>
+
+<span class="nc" id="L181">                igc().goToTile(canvas.getActiveUnit(),</span>
+<span class="nc" id="L182">                               temp.getLastNode().getTile());</span>
+
+<span class="nc bnc" id="L184" title="All 2 branches missed.">            } else if (canvas.isGotoStarted()) {</span>
+<span class="nc" id="L185">                canvas.stopGoto();</span>
+            }
+<span class="nc" id="L187">        } catch (Exception ex) {</span>
+<span class="nc" id="L188">            logger.log(Level.WARNING, &quot;Error in mouseReleased!&quot;, ex);</span>
+        }
+<span class="nc" id="L190">    }</span>
+ 
+
+    // Interface ActionListener
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void actionPerformed(ActionEvent ae) {
+<span class="nc" id="L200">        doubleClickTimer.stop();</span>
+<span class="nc" id="L201">        Tile tile=canvas.convertToMapTile(centerX, centerY);</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">        if(canvas.getViewMode() == GUI.MOVE_UNITS_MODE) {</span>
+            // Clear goto order when active unit is on the tile
+<span class="nc" id="L204">            Unit unit=canvas.getActiveUnit();</span>
+<span class="nc bnc" id="L205" title="All 4 branches missed.">            if(unit != null &amp;&amp; unit.getTile() == tile) {</span>
+<span class="nc" id="L206">                igc().clearGotoOrders(unit);</span>
+<span class="nc" id="L207">                canvas.updateCurrentPathForActiveUnit();</span>
+<span class="nc" id="L208">            } else {</span>
+<span class="nc bnc" id="L209" title="All 4 branches missed.">                if (tile != null &amp;&amp; tile.hasSettlement()) {</span>
+<span class="nc" id="L210">                    getGUI().showSettlement(tile.getSettlement());</span>
+<span class="nc" id="L211">                    return;</span>
+                }
+            }
+        }
+<span class="nc" id="L215">        getGUI().setSelectedTile(tile);</span>
+<span class="nc" id="L216">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

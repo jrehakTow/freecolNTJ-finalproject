@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>AllTests.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol</a> &gt; <span class="el_source">AllTests.java</span></div><h1>AllTests.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol;
+
+import java.util.Locale;
+
+import junit.extensions.TestSetup;
+import junit.framework.Test;
+import junit.framework.TestSuite;
+
+
+/**
+ * The main test class for Freecol. All tests in the subfolders will be run.
+ */
+<span class="nc" id="L32">public class AllTests {</span>
+
+    public static Test suite() {
+<span class="nc" id="L35">        TestSuite suite = new TestSuite(&quot;Test for net.sf.freecol&quot;);</span>
+        // $JUnit-BEGIN$
+
+        // $JUnit-END$
+<span class="nc" id="L39">        suite.addTest(net.sf.freecol.common.AllTests.suite());</span>
+<span class="nc" id="L40">        suite.addTest(net.sf.freecol.server.AllTests.suite());</span>
+<span class="nc" id="L41">        suite.addTest(net.sf.freecol.server.generator.AllTests.suite());</span>
+        //suite.addTest(net.sf.freecol.client.control.AllTests.suite());
+<span class="nc" id="L43">        suite.addTest(net.sf.freecol.client.gui.AllTests.suite());</span>
+
+        // Make sure that we run the tests using the english locale
+<span class="nc" id="L46">        TestSetup wrapper = new TestSetup(suite) {</span>
+            public void setUp() {
+<span class="nc" id="L48">                Locale.setDefault(Locale.US);</span>
+<span class="nc" id="L49">            }</span>
+        };
+<span class="nc" id="L51">        return wrapper;</span>
+
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

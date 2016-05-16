@@ -1,0 +1,664 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>InGameInputHandler.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server.control</a> &gt; <span class="el_source">InGameInputHandler.java</span></div><h1>InGameInputHandler.java</h1><pre class="source lang-java linenums"><span class="nc" id="L1">/**</span>
+ *  Copyright (C) 2002-2016   The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+
+package net.sf.freecol.server.control;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import net.sf.freecol.common.model.Constants;
+import net.sf.freecol.common.model.Player;
+import net.sf.freecol.common.networking.AbandonColonyMessage;
+import net.sf.freecol.common.networking.AskSkillMessage;
+import net.sf.freecol.common.networking.AssignTeacherMessage;
+import net.sf.freecol.common.networking.AssignTradeRouteMessage;
+import net.sf.freecol.common.networking.AttackMessage;
+import net.sf.freecol.common.networking.BuildColonyMessage;
+import net.sf.freecol.common.networking.BuyMessage;
+import net.sf.freecol.common.networking.BuyPropositionMessage;
+import net.sf.freecol.common.networking.CashInTreasureTrainMessage;
+import net.sf.freecol.common.networking.ChangeStateMessage;
+import net.sf.freecol.common.networking.ChangeWorkImprovementTypeMessage;
+import net.sf.freecol.common.networking.ChangeWorkTypeMessage;
+import net.sf.freecol.common.networking.ChooseFoundingFatherMessage;
+import net.sf.freecol.common.networking.ClaimLandMessage;
+import net.sf.freecol.common.networking.ClearSpecialityMessage;
+import net.sf.freecol.common.networking.CloseTransactionMessage;
+import net.sf.freecol.common.networking.Connection;
+import net.sf.freecol.common.networking.CurrentPlayerNetworkRequestHandler;
+import net.sf.freecol.common.networking.DeclareIndependenceMessage;
+import net.sf.freecol.common.networking.DeclineMoundsMessage;
+import net.sf.freecol.common.networking.DeliverGiftMessage;
+import net.sf.freecol.common.networking.DeleteTradeRouteMessage;
+import net.sf.freecol.common.networking.DemandTributeMessage;
+import net.sf.freecol.common.networking.DiplomacyMessage;
+import net.sf.freecol.common.networking.DisbandUnitMessage;
+import net.sf.freecol.common.networking.DisembarkMessage;
+import net.sf.freecol.common.networking.DOMMessage;
+import net.sf.freecol.common.networking.EmbarkMessage;
+import net.sf.freecol.common.networking.EmigrateUnitMessage;
+import net.sf.freecol.common.networking.EquipForRoleMessage;
+import net.sf.freecol.common.networking.FirstContactMessage;
+import net.sf.freecol.common.networking.GetTransactionMessage;
+import net.sf.freecol.common.networking.GoodsForSaleMessage;
+import net.sf.freecol.common.networking.HighScoreMessage;
+import net.sf.freecol.common.networking.InciteMessage;
+import net.sf.freecol.common.networking.IndianDemandMessage;
+import net.sf.freecol.common.networking.JoinColonyMessage;
+import net.sf.freecol.common.networking.LearnSkillMessage;
+import net.sf.freecol.common.networking.LoadGoodsMessage;
+import net.sf.freecol.common.networking.LootCargoMessage;
+import net.sf.freecol.common.networking.MissionaryMessage;
+import net.sf.freecol.common.networking.MonarchActionMessage;
+import net.sf.freecol.common.networking.MoveMessage;
+import net.sf.freecol.common.networking.MoveToMessage;
+import net.sf.freecol.common.networking.MultipleMessage;
+import net.sf.freecol.common.networking.NationSummaryMessage;
+import net.sf.freecol.common.networking.NewLandNameMessage;
+import net.sf.freecol.common.networking.NewRegionNameMessage;
+import net.sf.freecol.common.networking.NewTradeRouteMessage;
+import net.sf.freecol.common.networking.PayArrearsMessage;
+import net.sf.freecol.common.networking.PayForBuildingMessage;
+import net.sf.freecol.common.networking.PutOutsideColonyMessage;
+import net.sf.freecol.common.networking.RearrangeColonyMessage;
+import net.sf.freecol.common.networking.RenameMessage;
+import net.sf.freecol.common.networking.ScoutSpeakToChiefMessage;
+import net.sf.freecol.common.networking.ScoutIndianSettlementMessage;
+import net.sf.freecol.common.networking.SellMessage;
+import net.sf.freecol.common.networking.SellPropositionMessage;
+import net.sf.freecol.common.networking.SetBuildQueueMessage;
+import net.sf.freecol.common.networking.SetCurrentStopMessage;
+import net.sf.freecol.common.networking.SetDestinationMessage;
+import net.sf.freecol.common.networking.SetGoodsLevelsMessage;
+import net.sf.freecol.common.networking.SpySettlementMessage;
+import net.sf.freecol.common.networking.TrainUnitInEuropeMessage;
+import net.sf.freecol.common.networking.UnloadGoodsMessage;
+import net.sf.freecol.common.networking.UpdateTradeRouteMessage;
+import net.sf.freecol.common.networking.WorkMessage;
+import net.sf.freecol.server.FreeColServer;
+import net.sf.freecol.server.model.ServerPlayer;
+
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+
+/**
+ * Handles the network messages that arrives while
+ * {@link net.sf.freecol.server.FreeColServer.GameState#IN_GAME in game}.
+ */
+public final class InGameInputHandler extends ServerInputHandler {
+
+<span class="nc" id="L109">    private static final Logger logger = Logger.getLogger(InGameInputHandler.class.getName());</span>
+
+
+    /**
+     * The constructor to use.
+     * 
+     * @param freeColServer The main server object.
+     */
+    public InGameInputHandler(final FreeColServer freeColServer) {
+<span class="nc" id="L118">        super(freeColServer);</span>
+        // FIXME: move and simplify methods later, for now just delegate
+        // FIXME: check that NRHs and CPNRHs are sensibly chosen
+
+        // Messages that are not specialized are trivial elements identified
+        // by tag name only.
+<span class="nc" id="L124">        register(AbandonColonyMessage.getTagName(),</span>
+<span class="nc" id="L125">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L129">                return new AbandonColonyMessage(getGame(), element)</span>
+<span class="nc" id="L130">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L132">        register(AskSkillMessage.getTagName(),</span>
+<span class="nc" id="L133">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L137">                return new AskSkillMessage(getGame(), element)</span>
+<span class="nc" id="L138">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L140">        register(AssignTeacherMessage.getTagName(),</span>
+<span class="nc" id="L141">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L145">                return new AssignTeacherMessage(getGame(), element)</span>
+<span class="nc" id="L146">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L148">        register(AssignTradeRouteMessage.getTagName(),</span>
+<span class="nc" id="L149">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L153">                return new AssignTradeRouteMessage(getGame(), element)</span>
+<span class="nc" id="L154">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L156">        register(AttackMessage.getTagName(),</span>
+<span class="nc" id="L157">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L161">                return new AttackMessage(getGame(), element)</span>
+<span class="nc" id="L162">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L164">        register(BuildColonyMessage.getTagName(),</span>
+<span class="nc" id="L165">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L169">                return new BuildColonyMessage(getGame(), element)</span>
+<span class="nc" id="L170">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L172">        register(BuyMessage.getTagName(),</span>
+<span class="nc" id="L173">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L177">                return new BuyMessage(getGame(), element)</span>
+<span class="nc" id="L178">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L180">        register(BuyPropositionMessage.getTagName(),</span>
+<span class="nc" id="L181">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L185">                return new BuyPropositionMessage(getGame(), element)</span>
+<span class="nc" id="L186">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L188">        register(CashInTreasureTrainMessage.getTagName(),</span>
+<span class="nc" id="L189">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L193">                return new CashInTreasureTrainMessage(getGame(), element)</span>
+<span class="nc" id="L194">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L196">        register(ChangeStateMessage.getTagName(),</span>
+<span class="nc" id="L197">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L201">                return new ChangeStateMessage(getGame(), element)</span>
+<span class="nc" id="L202">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L204">        register(ChangeWorkImprovementTypeMessage.getTagName(),</span>
+<span class="nc" id="L205">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L209">                return new ChangeWorkImprovementTypeMessage(getGame(), element)</span>
+<span class="nc" id="L210">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L212">        register(ChangeWorkTypeMessage.getTagName(),</span>
+<span class="nc" id="L213">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L217">                return new ChangeWorkTypeMessage(getGame(), element)</span>
+<span class="nc" id="L218">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L220">        register(ChooseFoundingFatherMessage.getTagName(),</span>
+<span class="nc" id="L221">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L225">                return new ChooseFoundingFatherMessage(getGame(), element)</span>
+<span class="nc" id="L226">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L228">        register(ClaimLandMessage.getTagName(),</span>
+<span class="nc" id="L229">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L233">                return new ClaimLandMessage(getGame(), element)</span>
+<span class="nc" id="L234">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L236">        register(ClearSpecialityMessage.getTagName(),</span>
+<span class="nc" id="L237">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L241">                return new ClearSpecialityMessage(getGame(), element)</span>
+<span class="nc" id="L242">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L244">        register(CloseTransactionMessage.getTagName(),</span>
+<span class="nc" id="L245">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L249">                return new CloseTransactionMessage(getGame(), element)</span>
+<span class="nc" id="L250">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L252">        register(DeclareIndependenceMessage.getTagName(),</span>
+<span class="nc" id="L253">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L257">                return new DeclareIndependenceMessage(getGame(), element)</span>
+<span class="nc" id="L258">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L260">        register(DeclineMoundsMessage.getTagName(),</span>
+<span class="nc" id="L261">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L265">                return new DeclineMoundsMessage(getGame(), element)</span>
+<span class="nc" id="L266">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L268">        register(DeliverGiftMessage.getTagName(),</span>
+<span class="nc" id="L269">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L273">                return new DeliverGiftMessage(getGame(), element)</span>
+<span class="nc" id="L274">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L276">        register(DeleteTradeRouteMessage.getTagName(),</span>
+<span class="nc" id="L277">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L281">                return new DeleteTradeRouteMessage(getGame(), element)</span>
+<span class="nc" id="L282">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L284">        register(DemandTributeMessage.getTagName(),</span>
+<span class="nc" id="L285">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L289">                return new DemandTributeMessage(getGame(), element)</span>
+<span class="nc" id="L290">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L292">        register(DisbandUnitMessage.getTagName(),</span>
+<span class="nc" id="L293">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L297">                return new DisbandUnitMessage(getGame(), element)</span>
+<span class="nc" id="L298">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L300">        register(DisembarkMessage.getTagName(),</span>
+<span class="nc" id="L301">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L305">                return new DisembarkMessage(getGame(), element)</span>
+<span class="nc" id="L306">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L308">        register(EmbarkMessage.getTagName(),</span>
+<span class="nc" id="L309">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L313">                return new EmbarkMessage(getGame(), element)</span>
+<span class="nc" id="L314">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L316">        register(EmigrateUnitMessage.getTagName(),</span>
+<span class="nc" id="L317">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L321">                return new EmigrateUnitMessage(getGame(), element)</span>
+<span class="nc" id="L322">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L324">        register(&quot;endTurn&quot;,</span>
+<span class="nc" id="L325">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L329">                return freeColServer.getInGameController()</span>
+<span class="nc" id="L330">                    .endTurn(freeColServer.getPlayer(connection))</span>
+<span class="nc" id="L331">                    .build(freeColServer.getPlayer(connection));</span>
+            }});
+<span class="nc" id="L333">        register(EquipForRoleMessage.getTagName(),</span>
+<span class="nc" id="L334">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L338">                return new EquipForRoleMessage(getGame(), element)</span>
+<span class="nc" id="L339">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L341">        register(GetTransactionMessage.getTagName(),</span>
+<span class="nc" id="L342">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L346">                return new GetTransactionMessage(getGame(), element)</span>
+<span class="nc" id="L347">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L349">        register(GoodsForSaleMessage.getTagName(),</span>
+<span class="nc" id="L350">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L354">                return new GoodsForSaleMessage(getGame(), element)</span>
+<span class="nc" id="L355">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L357">        register(InciteMessage.getTagName(),</span>
+<span class="nc" id="L358">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L362">                return new InciteMessage(getGame(), element)</span>
+<span class="nc" id="L363">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L365">        register(IndianDemandMessage.getTagName(),</span>
+<span class="nc" id="L366">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L370">                return new IndianDemandMessage(getGame(), element)</span>
+<span class="nc" id="L371">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L373">        register(JoinColonyMessage.getTagName(),</span>
+<span class="nc" id="L374">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L378">                return new JoinColonyMessage(getGame(), element)</span>
+<span class="nc" id="L379">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L381">        register(LearnSkillMessage.getTagName(),</span>
+<span class="nc" id="L382">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L386">                return new LearnSkillMessage(getGame(), element)</span>
+<span class="nc" id="L387">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L389">        register(LoadGoodsMessage.getTagName(),</span>
+<span class="nc" id="L390">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L394">                return new LoadGoodsMessage(getGame(), element)</span>
+<span class="nc" id="L395">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L397">        register(LootCargoMessage.getTagName(),</span>
+<span class="nc" id="L398">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L402">                return new LootCargoMessage(getGame(), element)</span>
+<span class="nc" id="L403">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L405">        register(MissionaryMessage.getTagName(),</span>
+<span class="nc" id="L406">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L410">                return new MissionaryMessage(getGame(), element)</span>
+<span class="nc" id="L411">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L413">        register(MonarchActionMessage.getTagName(),</span>
+<span class="nc" id="L414">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L418">                return new MonarchActionMessage(getGame(), element)</span>
+<span class="nc" id="L419">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L421">        register(MoveMessage.getTagName(),</span>
+<span class="nc" id="L422">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L426">                return new MoveMessage(getGame(), element)</span>
+<span class="nc" id="L427">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L429">        register(MoveToMessage.getTagName(),</span>
+<span class="nc" id="L430">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L434">                return new MoveToMessage(getGame(), element)</span>
+<span class="nc" id="L435">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L437">        register(MultipleMessage.getTagName(),</span>
+<span class="nc" id="L438">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L442">                return new MultipleMessage(getGame(), element)</span>
+<span class="nc" id="L443">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L445">        register(NewLandNameMessage.getTagName(),</span>
+<span class="nc" id="L446">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L450">                return new NewLandNameMessage(getGame(), element)</span>
+<span class="nc" id="L451">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L453">        register(NewRegionNameMessage.getTagName(),</span>
+<span class="nc" id="L454">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L458">                return new NewRegionNameMessage(getGame(), element)</span>
+<span class="nc" id="L459">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L461">        register(NewTradeRouteMessage.getTagName(),</span>
+<span class="nc" id="L462">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L466">                return new NewTradeRouteMessage(getGame(), element)</span>
+<span class="nc" id="L467">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L469">        register(PayArrearsMessage.getTagName(),</span>
+<span class="nc" id="L470">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L474">                return new PayArrearsMessage(getGame(), element)</span>
+<span class="nc" id="L475">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L477">        register(PayForBuildingMessage.getTagName(),</span>
+<span class="nc" id="L478">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L482">                return new PayForBuildingMessage(getGame(), element)</span>
+<span class="nc" id="L483">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L485">        register(PutOutsideColonyMessage.getTagName(),</span>
+<span class="nc" id="L486">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L490">                return new PutOutsideColonyMessage(getGame(), element)</span>
+<span class="nc" id="L491">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L493">        register(RearrangeColonyMessage.getTagName(),</span>
+<span class="nc" id="L494">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L498">                return new RearrangeColonyMessage(getGame(), element)</span>
+<span class="nc" id="L499">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L501">        register(RenameMessage.getTagName(),</span>
+<span class="nc" id="L502">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L506">                return new RenameMessage(getGame(), element)</span>
+<span class="nc" id="L507">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L509">        register(ScoutIndianSettlementMessage.getTagName(),</span>
+<span class="nc" id="L510">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L514">                return new ScoutIndianSettlementMessage(getGame(), element)</span>
+<span class="nc" id="L515">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L517">        register(ScoutSpeakToChiefMessage.getTagName(),</span>
+<span class="nc" id="L518">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L522">                return new ScoutSpeakToChiefMessage(getGame(), element)</span>
+<span class="nc" id="L523">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L525">        register(SellMessage.getTagName(),</span>
+<span class="nc" id="L526">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L530">                return new SellMessage(getGame(), element)</span>
+<span class="nc" id="L531">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L533">        register(SellPropositionMessage.getTagName(),</span>
+<span class="nc" id="L534">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L538">                return new SellPropositionMessage(getGame(), element)</span>
+<span class="nc" id="L539">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L541">        register(SetBuildQueueMessage.getTagName(),</span>
+<span class="nc" id="L542">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L546">                return new SetBuildQueueMessage(getGame(), element)</span>
+<span class="nc" id="L547">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L549">        register(SetGoodsLevelsMessage.getTagName(),</span>
+<span class="nc" id="L550">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L554">                return new SetGoodsLevelsMessage(getGame(), element)</span>
+<span class="nc" id="L555">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L557">        register(TrainUnitInEuropeMessage.getTagName(),</span>
+<span class="nc" id="L558">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L562">                return new TrainUnitInEuropeMessage(getGame(), element)</span>
+<span class="nc" id="L563">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L565">        register(UnloadGoodsMessage.getTagName(),</span>
+<span class="nc" id="L566">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L570">                return new UnloadGoodsMessage(getGame(), element)</span>
+<span class="nc" id="L571">                    .handle(freeColServer, player, connection);</span>
+            }});
+<span class="nc" id="L573">        register(WorkMessage.getTagName(),</span>
+<span class="nc" id="L574">                 new CurrentPlayerNetworkRequestHandler(freeColServer) {</span>
+            @Override
+            public Element handle(Player player, Connection connection,
+                                  Element element) {
+<span class="nc" id="L578">                return new WorkMessage(getGame(), element)</span>
+<span class="nc" id="L579">                    .handle(freeColServer, player, connection);</span>
+            }});
+
+        // NetworkRequestHandlers
+<span class="nc" id="L583">        register(&quot;continuePlaying&quot;,</span>
+<span class="nc" id="L584">            (Connection connection, Element element) -&gt; {</span>
+<span class="nc" id="L585">                freeColServer.getInGameController()</span>
+<span class="nc" id="L586">                    .continuePlaying(freeColServer.getPlayer(connection));</span>
+<span class="nc" id="L587">                return null;</span>
+            });
+<span class="nc" id="L589">        register(DiplomacyMessage.getTagName(),</span>
+<span class="nc" id="L590">            (Connection connection, Element element) -&gt;</span>
+<span class="nc" id="L591">            new DiplomacyMessage(getGame(), element)</span>
+<span class="nc" id="L592">                .handle(freeColServer, connection));</span>
+<span class="nc" id="L593">        register(&quot;enterRevengeMode&quot;,</span>
+<span class="nc" id="L594">            (Connection connection, Element element) -&gt;</span>
+<span class="nc" id="L595">            freeColServer.getInGameController()</span>
+<span class="nc" id="L596">               .enterRevengeMode(freeColServer.getPlayer(connection))</span>
+<span class="nc" id="L597">               .build(freeColServer.getPlayer(connection)));</span>
+<span class="nc" id="L598">        register(FirstContactMessage.getTagName(),</span>
+<span class="nc" id="L599">            (Connection connection, Element element) -&gt;</span>
+<span class="nc" id="L600">            new FirstContactMessage(getGame(), element)</span>
+<span class="nc" id="L601">                .handle(freeColServer, connection));</span>
+<span class="nc" id="L602">        register(NationSummaryMessage.getTagName(),</span>
+<span class="nc" id="L603">            (Connection connection, Element element) -&gt;</span>
+<span class="nc" id="L604">            new NationSummaryMessage(getGame(), element)</span>
+<span class="nc" id="L605">                .handle(freeColServer, connection));</span>
+<span class="nc" id="L606">        register(HighScoreMessage.getTagName(),</span>
+<span class="nc" id="L607">            (Connection connection, Element element) -&gt;</span>
+<span class="nc" id="L608">            new HighScoreMessage(getGame(), element)</span>
+<span class="nc" id="L609">                .handle(freeColServer, connection));</span>
+<span class="nc" id="L610">        register(&quot;retire&quot;,</span>
+<span class="nc" id="L611">            (Connection connection, Element element) -&gt;</span>
+<span class="nc" id="L612">            freeColServer.getInGameController()</span>
+<span class="nc" id="L613">                .retire(freeColServer.getPlayer(connection))</span>
+<span class="nc" id="L614">                .build(freeColServer.getPlayer(connection)));</span>
+<span class="nc" id="L615">        register(SetCurrentStopMessage.getTagName(),</span>
+<span class="nc" id="L616">            (Connection connection, Element element) -&gt;</span>
+<span class="nc" id="L617">            new SetCurrentStopMessage(getGame(), element)</span>
+<span class="nc" id="L618">                .handle(freeColServer, connection));</span>
+<span class="nc" id="L619">        register(SetDestinationMessage.getTagName(),</span>
+<span class="nc" id="L620">            (Connection connection, Element element) -&gt;</span>
+<span class="nc" id="L621">            new SetDestinationMessage(getGame(), element)</span>
+<span class="nc" id="L622">                .handle(freeColServer, connection));</span>
+<span class="nc" id="L623">        register(SpySettlementMessage.getTagName(),</span>
+<span class="nc" id="L624">            (Connection connection, Element element) -&gt;</span>
+<span class="nc" id="L625">            new SpySettlementMessage(getGame(), element)</span>
+<span class="nc" id="L626">                .handle(freeColServer, connection));</span>
+<span class="nc" id="L627">        register(UpdateTradeRouteMessage.getTagName(),</span>
+<span class="nc" id="L628">            (Connection connection, Element element) -&gt;</span>
+<span class="nc" id="L629">            new UpdateTradeRouteMessage(getGame(), element)</span>
+<span class="nc" id="L630">                .handle(freeColServer, connection));</span>
+<span class="nc" id="L631">    }</span>
+
+    /**
+     * Handles a &quot;logout&quot;-message.
+     * 
+     * @param connection The &lt;code&gt;Connection&lt;/code&gt; the message was received
+     *            on.
+     * @param logoutElement The element (root element in a DOM-parsed XML tree)
+     *            that holds all the information.
+     * @return The reply.
+     */
+    @Override
+    protected Element logout(Connection connection, Element logoutElement) {
+<span class="nc" id="L644">        ServerPlayer serverPlayer = getFreeColServer().getPlayer(connection);</span>
+<span class="nc bnc" id="L645" title="All 2 branches missed.">        if (serverPlayer == null) return null;</span>
+<span class="nc" id="L646">        logger.info(&quot;Logout by: &quot; + connection</span>
+<span class="nc bnc" id="L647" title="All 2 branches missed.">                    + ((serverPlayer != null) ? &quot; (&quot; + serverPlayer.getName() + &quot;) &quot; : &quot;&quot;));</span>
+
+        /*
+         * FIXME: Setting the player dead directly should be a server
+         * option, but for now - allow the player to reconnect:
+         */
+<span class="nc" id="L653">        ChangeSet cs = null;</span>
+<span class="nc" id="L654">        serverPlayer.setConnected(false);</span>
+<span class="nc bnc" id="L655" title="All 2 branches missed.">        if (getFreeColServer().getGame().getCurrentPlayer() == serverPlayer</span>
+<span class="nc bnc" id="L656" title="All 2 branches missed.">                &amp;&amp; !getFreeColServer().getSinglePlayer()) {</span>
+<span class="nc" id="L657">            cs = getFreeColServer().getInGameController()</span>
+<span class="nc" id="L658">                .endTurn(serverPlayer);</span>
+        }
+<span class="nc" id="L660">        getFreeColServer().updateMetaServer();</span>
+<span class="nc bnc" id="L661" title="All 2 branches missed.">        return (cs == null) ? null : cs.build(serverPlayer);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>

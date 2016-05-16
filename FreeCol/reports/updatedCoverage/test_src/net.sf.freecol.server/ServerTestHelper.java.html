@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../../.resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../../.resources/report.gif" type="image/gif"/><title>ServerTestHelper.java</title><link rel="stylesheet" href="../../../.resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../../.resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../../.sessions.html" class="el_session">Sessions</a></span><a href="../../../index.html" class="el_report">net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</a> &gt; <a href="../../index.html" class="el_group">FreeCol</a> &gt; <a href="../index.html" class="el_bundle">test/src</a> &gt; <a href="index.source.html" class="el_package">net.sf.freecol.server</a> &gt; <span class="el_source">ServerTestHelper.java</span></div><h1>ServerTestHelper.java</h1><pre class="source lang-java linenums">/**
+ *  Copyright (C) 2002-2016  The FreeCol Team
+ *
+ *  This file is part of FreeCol.
+ *
+ *  FreeCol is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  FreeCol is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with FreeCol.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ */
+package net.sf.freecol.server;
+
+import junit.framework.*;
+import static org.junit.Assert.*;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Random;
+
+import net.sf.freecol.common.FreeColException;
+import net.sf.freecol.common.io.FreeColSavegameFile;
+import net.sf.freecol.common.model.Game;
+import net.sf.freecol.common.model.Map;
+import net.sf.freecol.common.model.Specification;
+import net.sf.freecol.common.util.LogBuilder;
+import net.sf.freecol.server.control.ChangeSet;
+import net.sf.freecol.server.control.Controller;
+import net.sf.freecol.server.control.InGameController;
+import net.sf.freecol.server.control.PreGameController;
+import net.sf.freecol.server.model.ServerGame;
+import net.sf.freecol.util.test.FreeColTestCase;
+import net.sf.freecol.util.test.MockMapGenerator;
+
+
+<span class="nc" id="L43">public final class ServerTestHelper {</span>
+
+    private static final String SERVER_NAME = &quot;MyTestServer&quot;;
+    private static final int SERVER_PORT = -1;
+    private static final String TEST_FILE = &quot;test/data/test.fsg&quot;;
+
+<span class="nc" id="L49">    private static FreeColServer server = null;</span>
+<span class="nc" id="L50">    private static Random random = null;</span>
+
+
+    public static FreeColServer getServer() {
+<span class="nc" id="L54">        return server;</span>
+    }
+
+    public static void setServer(FreeColServer newServer) {
+<span class="nc" id="L58">        server = newServer;</span>
+<span class="nc" id="L59">    }</span>
+
+    public static InGameController getInGameController() {
+<span class="nc" id="L62">        return server.getInGameController();</span>
+    }
+
+    public static void stopServer() {
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        if (server != null) {</span>
+<span class="nc" id="L67">            Controller c = server.getController();</span>
+<span class="nc" id="L68">            assertNotNull(c);</span>
+<span class="nc" id="L69">            c.shutdown();</span>
+<span class="nc" id="L70">            server = null;</span>
+        }
+<span class="nc" id="L72">    }</span>
+
+    public static FreeColServer startServer(boolean publicServer,
+                                            boolean singlePlayer) {
+<span class="nc" id="L76">        return startServer(publicServer, singlePlayer, FreeColTestCase.spec());</span>
+    }
+
+    public static FreeColServer startServer(boolean publicServer,
+                                            boolean singlePlayer,
+                                            Specification spec) {
+<span class="nc" id="L82">        return startServer(publicServer, singlePlayer, spec,</span>
+<span class="nc" id="L83">                           SERVER_PORT, SERVER_NAME);</span>
+    }
+
+    public static FreeColServer startServer(boolean publicServer,
+                                            boolean singlePlayer,
+                                            Specification spec,
+                                            int port, String name) {
+<span class="nc" id="L90">        stopServer();</span>
+        try {
+            // FIXME: Pass tc
+<span class="nc" id="L93">            server = new FreeColServer(publicServer, singlePlayer,</span>
+<span class="nc" id="L94">                                       spec, port, name);</span>
+<span class="nc" id="L95">        } catch (IOException ex) {</span>
+<span class="nc" id="L96">            fail(ex.getMessage());</span>
+        }
+<span class="nc" id="L98">        assertNotNull(server);</span>
+<span class="nc" id="L99">        assertEquals(FreeColServer.GameState.STARTING_GAME,</span>
+<span class="nc" id="L100">                     server.getGameState());</span>
+<span class="nc" id="L101">        return server;</span>
+    }
+
+    public static FreeColServer startServer(File file, boolean publicServer,
+                                            boolean singlePlayer) {
+<span class="nc" id="L106">        return startServer(file, publicServer, singlePlayer,</span>
+<span class="nc" id="L107">                           SERVER_PORT, SERVER_NAME);</span>
+    }
+
+    public static FreeColServer startServer(File file, boolean publicServer,
+                                            boolean singlePlayer, int port,
+                                            String name) {
+<span class="nc" id="L113">        stopServer();</span>
+        try {
+<span class="nc" id="L115">            server = new FreeColServer(new FreeColSavegameFile(file), </span>
+<span class="nc" id="L116">                                       null, port, name);</span>
+<span class="nc" id="L117">        } catch (Exception e) {</span>
+<span class="nc" id="L118">            fail(e.getMessage());</span>
+        }
+<span class="nc" id="L120">        assertNotNull(server);</span>
+<span class="nc" id="L121">        assertEquals(FreeColServer.GameState.IN_GAME, server.getGameState());</span>
+<span class="nc" id="L122">        return server;</span>
+    }
+
+    public static File createRandomSaveGame() {
+        // start a server
+<span class="nc" id="L127">        FreeColServer serv = startServer(false, true);</span>
+
+        // generate a random map
+<span class="nc" id="L130">        Controller c = serv.getController();</span>
+<span class="nc" id="L131">        assertNotNull(c);</span>
+<span class="nc" id="L132">        assertTrue(c instanceof PreGameController);</span>
+<span class="nc" id="L133">        PreGameController pgc = (PreGameController) c;</span>
+        try {
+<span class="nc" id="L135">            pgc.startGame();</span>
+<span class="nc" id="L136">        } catch (FreeColException e) {</span>
+<span class="nc" id="L137">            fail(e.getMessage());</span>
+        }
+<span class="nc" id="L139">        assertEquals(FreeColServer.GameState.IN_GAME, serv.getGameState());</span>
+<span class="nc" id="L140">        assertNotNull(serv.getGame());</span>
+<span class="nc" id="L141">        assertNotNull(serv.getGame().getMap());</span>
+
+        // save the game as a file
+<span class="nc" id="L144">        File file = new File(TEST_FILE);</span>
+        try {
+<span class="nc" id="L146">            serv.saveGame(file, null, null);</span>
+<span class="nc" id="L147">        } catch (IOException e) {</span>
+<span class="nc" id="L148">            e.printStackTrace();</span>
+<span class="nc" id="L149">            fail(e.toString());</span>
+        }
+<span class="nc" id="L151">        assertTrue(file.exists());</span>
+<span class="nc" id="L152">        stopServer();</span>
+
+<span class="nc" id="L154">        return file;</span>
+    }
+
+
+    public static void newTurn() {
+<span class="nc" id="L159">        ServerGame game = (ServerGame) server.getGame();</span>
+<span class="nc" id="L160">        game.csNewTurn(random, new LogBuilder(0), new ChangeSet());</span>
+<span class="nc" id="L161">    }</span>
+
+    /**
+     * Start a new server game, using a *copy* of a supplied map.
+     *
+     * @param map The &lt;code&gt;Map&lt;/code&gt; to copy.
+     * @return The new running server game.
+     */
+    public static ServerGame startServerGame(Map map) {
+<span class="nc" id="L170">        return startServerGame(map, FreeColTestCase.spec());</span>
+    }
+
+    /**
+     * Start a new server game, using a *copy* of a supplied map.
+     *
+     * @param map The &lt;code&gt;Map&lt;/code&gt; to copy.
+     * @param spec The &lt;code&gt;Specification&lt;/code&gt; to use.
+     * @return The new running &lt;code&gt;ServerGame&lt;/code&gt;.
+     */
+    public static ServerGame startServerGame(Map map, Specification spec) {
+<span class="nc" id="L181">        stopServerGame();</span>
+<span class="nc" id="L182">        FreeColServer serv = startServer(false, true, spec);</span>
+<span class="nc" id="L183">        serv.setMapGenerator(new MockMapGenerator(serv.getGame(), map));</span>
+<span class="nc" id="L184">        PreGameController pgc = (PreGameController) serv.getController();</span>
+        try {
+<span class="nc" id="L186">            pgc.startGame();</span>
+<span class="nc" id="L187">        } catch (FreeColException e) {</span>
+<span class="nc" id="L188">            fail(&quot;Failed to start game: &quot; + e.getMessage());</span>
+        }
+
+<span class="nc" id="L191">        ServerGame game = serv.getGame();</span>
+<span class="nc" id="L192">        FreeColTestCase.setGame(game);</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">        if (game.getCurrentPlayer() == null) {</span>
+<span class="nc" id="L194">            game.setCurrentPlayer(game.getFirstPlayer());</span>
+        }
+<span class="nc" id="L196">        random = new Random();</span>
+<span class="nc" id="L197">        return game;</span>
+    }
+
+    public static void stopServerGame() {
+<span class="nc" id="L201">        stopServer();</span>
+<span class="nc" id="L202">        FreeColTestCase.setGame(null);</span>
+<span class="nc" id="L203">    }</span>
+
+    public static void setRandom(Random newRandom) {
+<span class="nc" id="L206">        random = newRandom;</span>
+<span class="nc" id="L207">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.6.201602180812</span>net.sf.freecol.tools (2) (May 15, 2016 11:18:55 PM)</div></body></html>
